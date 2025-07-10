@@ -83,17 +83,21 @@ const QuickActions = styled(Box)(() => ({
     position: 'relative',
 }));
 
-const ActionButton = styled(IconButton)(() => ({
+const ActionButton = styled(IconButton)(({theme}) => ({
     width: '40px',
     height: '40px',
     borderRadius: '24px',
     '& .MuiSvgIcon-root': {
         fontSize: '20px',
-        color: '#666666',
+        // color: '#666666',
     },
     '&:hover': {
         backgroundColor: 'rgba(0, 0, 0, 0.04)',
     },
+  
+    "& .material-symbols-outlined:hover":{
+        color: theme.palette.primary.main,
+    }
 }));
 
 const PreviewSection = styled(Box)(() => ({
@@ -175,7 +179,7 @@ const Title = styled(Typography)(() => ({
 
 
 const Icon = ({ type }) => {
-    return <span style={{color:'#000'}} className="material-symbols-outlined">
+    return <span   className="material-symbols-outlined">
         {type}
     </span>
 }

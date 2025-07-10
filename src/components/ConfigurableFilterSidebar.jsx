@@ -1,21 +1,21 @@
 import {
-    Box,
-    Button,
-    Checkbox,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogContentText,
-    Divider,
-    FormControl,
-    FormControlLabel,
-    FormGroup,
-    InputBase,
-    Paper,
-    Radio,
-    RadioGroup,
-    TextareaAutosize,
-    Typography
+  Box,
+  Button,
+  Checkbox,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  Divider,
+  FormControl,
+  FormControlLabel,
+  FormGroup,
+  InputBase,
+  Paper,
+  Radio,
+  RadioGroup,
+  TextareaAutosize,
+  Typography
 } from '@mui/material';
 import { styled, useTheme } from '@mui/material/styles';
 import React, { useEffect, useState } from 'react';
@@ -88,7 +88,7 @@ const MassSearchButton = styled(Typography)(({theme}) => ({
 }));
 
 const StyledFormControlLabel = styled(FormControlLabel)(({ theme }) => ({
-  marginLeft: 0,
+  marginLeft: -9,
   marginRight: 0,
   color: theme.palette.text.secondary,
   '& .MuiFormControlLabel-label': {

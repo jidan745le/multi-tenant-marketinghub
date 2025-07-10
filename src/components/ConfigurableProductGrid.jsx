@@ -1,6 +1,46 @@
 import { Box, CircularProgress, Grid, Pagination, Typography } from '@mui/material';
+import { styled } from '@mui/material/styles';
 import React, { useEffect, useState } from 'react';
 import DigitalAssetCard from './DigitalAssetCard';
+
+// 外层容器，不处理滚动
+const ProductGridOuterContainer = styled(Box)(() => ({
+  flex: 1,
+  position: 'relative',
+  overflow: 'hidden',
+}));
+
+// 内层滚动容器
+const ProductGridContainer = styled(Box)(() => ({
+  height: '100%',
+  overflow: 'auto',
+  padding: '16px',
+  paddingRight: '16px', // 正常的 padding
+  
+  // 自定义滚动条样式 - 不占用布局空间
+  '&::-webkit-scrollbar': {
+    width: '6px',
+  },
+  '&::-webkit-scrollbar-track': {
+    background: 'transparent',
+  },
+  '&::-webkit-scrollbar-thumb': {
+    backgroundColor: 'rgba(128, 128, 128, 0.3)',
+    borderRadius: '3px',
+    transition: 'background-color 0.2s ease',
+  },
+  '&::-webkit-scrollbar-thumb:hover': {
+    backgroundColor: 'rgba(85, 85, 85, 0.6)',
+  },
+  
+  // 为了避免布局变化，我们在右侧添加透明边框来"预留"滚动条空间
+  borderRight: '6px solid transparent',
+  marginRight: '-6px', // 抵消边框的影响
+  
+  // Firefox 滚动条样式
+  scrollbarWidth: 'thin',
+  scrollbarColor: 'rgba(128, 128, 128, 0.3) transparent',
+}));
 
 const ConfigurableProductGrid = ({
   config,
@@ -12,7 +52,7 @@ const ConfigurableProductGrid = ({
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [totalPages, setTotalPages] = useState(0);
-  const [totalCount, setTotalCount] = useState(0);
+  const [_totalCount, setTotalCount] = useState(0);
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [cardActionsConfig, setCardActionsConfig] = useState({
     show_file_type: false,
@@ -113,7 +153,6 @@ const ConfigurableProductGrid = ({
     });
   };
 
-
   const currentPage = searchParams.page || 1;
 
   if (!config) {
@@ -122,59 +161,59 @@ const ConfigurableProductGrid = ({
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      {/* 产品网格 - 使用自定义滚动条 */}
+      <ProductGridOuterContainer>
+        <ProductGridContainer>
+          {loading ? (
+            <Box 
+              sx={{ 
+                display: 'flex', 
+                justifyContent: 'center', 
+                alignItems: 'center', 
+                height: 200 
+              }}
+            >
+              <CircularProgress />
+            </Box>
+          ) : (
+            <>
+              <Grid container spacing={3}>
+                {products.map((product) => (
+                  <Grid item xs={12} sm={6} md={4} lg={3} key={product.id}>
+                    <DigitalAssetCard
+                      product={product}
+                      isSelected={selectedProducts.some(p => p.id === product.id)}
+                      onSelect={handleProductSelect}
+                      onProductClick={onProductClick}
+                      onDownload={onProductDownload}
+                      cardActionsConfig={cardActionsConfig}
+                    />
+                  </Grid>
+                ))}
+              </Grid>
 
-
-      {/* 产品网格 */}
-      <Box sx={{ flex: 1, overflow: 'auto' }}>
-        {loading ? (
-          <Box 
-            sx={{ 
-              display: 'flex', 
-              justifyContent: 'center', 
-              alignItems: 'center', 
-              height: 200 
-            }}
-          >
-            <CircularProgress />
-          </Box>
-        ) : (
-          <>
-            <Grid container spacing={3}>
-              {products.map((product) => (
-                <Grid item xs={12} sm={6} md={4} lg={3} key={product.id}>
-                  <DigitalAssetCard
-                    product={product}
-                    isSelected={selectedProducts.some(p => p.id === product.id)}
-                    onSelect={handleProductSelect}
-                    onProductClick={onProductClick}
-                    onDownload={onProductDownload}
-                    cardActionsConfig={cardActionsConfig}
-                  />
-                </Grid>
-              ))}
-            </Grid>
-
-            {products.length === 0 && !loading && (
-              <Box 
-                sx={{ 
-                  display: 'flex', 
-                  justifyContent: 'center', 
-                  alignItems: 'center', 
-                  height: 200 
-                }}
-              >
-                <Typography variant="body1" color="text.secondary">
-                  No products found
-                </Typography>
-              </Box>
-            )}
-          </>
-        )}
-      </Box>
+              {products.length === 0 && !loading && (
+                <Box 
+                  sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'center', 
+                    alignItems: 'center', 
+                    height: 200 
+                  }}
+                >
+                  <Typography variant="body1" color="text.secondary">
+                    No products found
+                  </Typography>
+                </Box>
+              )}
+            </>
+          )}
+        </ProductGridContainer>
+      </ProductGridOuterContainer>
 
       {/* 分页 */}
       {totalPages > 1 && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3, p: 2 }}>
           <Pagination
             count={totalPages}
             page={currentPage}

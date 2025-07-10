@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  marketinghub:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: marketinghub-app
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    networks:
+      - marketinghub-network
+
+networks:
+  marketinghub-network:
+    driver: bridge 

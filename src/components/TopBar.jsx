@@ -1,27 +1,22 @@
 import {
-    AddCircleOutlined,
-    ArrowDropDown,
-    BrandingWatermarkOutlined,
-    DownloadOutlined,
-    HomeOutlined,
-    InfoOutlined,
-    Language,
-    PhotoLibraryOutlined,
-    SearchOutlined,
-    ShareOutlined,
-    StickyNote2Outlined,
-    VideoLibraryOutlined,
+  ArrowDropDown,
+  DownloadOutlined,
+  Language,
+  ShareOutlined,
+  StickyNote2Outlined
 } from '@mui/icons-material';
 import {
-    Avatar,
-    Box,
-    IconButton,
-    Menu,
-    MenuItem,
-    Typography
+  Avatar,
+  Box,
+  IconButton,
+  Menu,
+  MenuItem,
+  Typography
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import logo from '../assets/icon/kendo.png';
 
 // Styled Components
 const StyledTopBar = styled(Box)(({ theme }) => ({
@@ -55,10 +50,10 @@ const StyledNavBar = styled(Box)(({ theme }) => ({
 }));
 
 const LogoContainer = styled(Box)(({ theme }) => ({
-  padding: '0px 16px',
   display: 'flex',
   alignItems: 'center',
-  height: '40px',
+  height: '32px',
+  marginRight: '12px',
 }));
 
 const LogoText = styled(Typography)(({ theme }) => ({
@@ -190,7 +185,7 @@ const TopRow = () => {
       {/* Left side - Logo and Portal Selection */}
       <Box sx={{ display: 'flex', alignItems: 'center' }}>
         <LogoContainer>
-          <LogoText>KENDO</LogoText>
+          <img style={{height:'100%'}} src={logo} alt="logo" />
         </LogoContainer>
         
         <PortalDropdown onClick={handlePortalClick}>
@@ -258,20 +253,33 @@ const TopRow = () => {
 
 // NavBar Component
 const NavBar = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [activeItem, setActiveItem] = useState('Product Catalog');
 
+  // 菜单项配置，包含路由路径
   const navItems = [
-    { label: 'Home', icon: <HomeOutlined />, key: 'Home' },
-    { label: 'Brand Assets', icon: <BrandingWatermarkOutlined />, key: 'Brand Assets' },
-    { label: 'Video Library', icon: <VideoLibraryOutlined />, key: 'Video Library' },
-    { label: 'Media Library', icon: <PhotoLibraryOutlined />, key: 'Media Library' },
-    { label: 'New Products', icon: <AddCircleOutlined />, key: 'New Products' },
-    { label: 'Product Catalog', icon: <SearchOutlined />, key: 'Product Catalog' },
-    { label: 'After Sales Service', icon: <InfoOutlined />, key: 'After Sales Service' },
+    { label: 'Home', icon: <span className="material-symbols-outlined">home</span>, key: 'Home', path: '/home' },
+    { label: 'Brand Assets', icon: <span className="material-symbols-outlined">branding_watermark</span>, key: 'Brand Assets', path: '/brand-book' },
+    { label: 'Video Library', icon: <span className="material-symbols-outlined">video_library</span>, key: 'Video Library', path: '/videos' },
+    { label: 'Media Library', icon: <span className="material-symbols-outlined">photo_library</span>, key: 'Media Library', path: '/medias' },
+    { label: 'New Products', icon: <span className="material-symbols-outlined">add_circle</span>, key: 'New Products', path: '/accessories' },
+    { label: 'Product Catalog', icon: <span className="material-symbols-outlined">search</span>, key: 'Product Catalog', path: '/products' },
+    { label: 'After Sales Service', icon: <span className="material-symbols-outlined">info</span>, key: 'After Sales Service', path: '/after-sales-service' },
   ];
 
-  const handleNavItemClick = (key) => {
+  // 根据当前路径设置活动菜单项
+  useEffect(() => {
+    const currentPath = location.pathname;
+    const currentNavItem = navItems.find(item => item.path === currentPath);
+    if (currentNavItem) {
+      setActiveItem(currentNavItem.key);
+    }
+  }, [location.pathname]);
+
+  const handleNavItemClick = (key, path) => {
     setActiveItem(key);
+    navigate(path);
   };
 
   return (
@@ -280,7 +288,7 @@ const NavBar = () => {
         <NavItem
           key={item.key}
           active={activeItem === item.key}
-          onClick={() => handleNavItemClick(item.key)}
+          onClick={() => handleNavItemClick(item.key, item.path)}
         >
           <NavItemIcon active={activeItem === item.key}>
             {item.icon}

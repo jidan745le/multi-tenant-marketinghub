@@ -12,11 +12,11 @@ import ConfigurableProductGrid from './ConfigurableProductGrid';
  * @typedef {Object} ProductCatalogueConfig
  * @property {Object} filterConfig - 筛选器配置
  * @property {Array} filterConfig.filters - 筛选器列表配置
- * @property {Object} gridConfig - 产品网格配置
- * @property {Function} gridConfig.fetchProducts - 获取产品数据的Promise函数
- * @property {number} gridConfig.pageSize - 页面大小
- * @property {Object} gridConfig.cardActions - 卡片工具功能配置
- * @property {string} gridConfig.title - 网格标题
+ * @property {Object} productConfig - 产品网格配置
+ * @property {Function} productConfig.fetchProducts - 获取产品数据的Promise函数
+ * @property {number} productConfig.pageSize - 页面大小
+ * @property {Object} productConfig.cardActions - 卡片工具功能配置
+ * @property {string} productConfig.title - 网格标题
 
  */
 
@@ -32,14 +32,14 @@ const ProductCatalogue = ({
 
   // 计算搜索参数，避免不必要的对象创建
   const searchParams = useMemo(() => {
-    const pageSize = config?.gridConfig?.pageSize || 20;
+    const pageSize = config?.productConfig?.pageSize || 20;
     return {
       ...filterValues,
       offset: (currentPage - 1) * pageSize,
       limit: pageSize,
       page: currentPage
     };
-  }, [filterValues, currentPage, config?.gridConfig?.pageSize]);
+  }, [filterValues, currentPage, config?.productConfig?.pageSize]);
 
   // 处理筛选器值变化
   const handleFilterChange = useCallback((newValues) => {
@@ -115,7 +115,7 @@ const ProductCatalogue = ({
             {/* 产品网格 - 可滚动区域 */}
             <Box sx={{ flex: 1, overflow: 'auto', padding: "24px" }}>
               <ConfigurableProductGrid 
-                config={config.gridConfig}
+                config={config.productConfig}
                 searchParams={searchParams}
                 onProductClick={onProductClick}
                 onProductDownload={onProductDownload}

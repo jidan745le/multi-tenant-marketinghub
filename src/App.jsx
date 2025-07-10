@@ -2,9 +2,10 @@ import { Box } from '@mui/material';
 import CssBaseline from '@mui/material/CssBaseline';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import React from 'react';
+import { BrowserRouter, useRoutes } from 'react-router-dom';
 import './assets/styles/fonts.css';
 import TopBar from './components/TopBar';
-import ProductCatalogue from './pages/ProductCatalogue';
+import router from './router/index.jsx';
 
 // 创建Material UI主题
 const theme = createTheme({
@@ -46,35 +47,43 @@ const theme = createTheme({
   },
 });
 
+// 路由组件
+function AppRoutes() {
+  const content = useRoutes(router);
+  return content;
+}
+
 function App() {
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Box 
-        sx={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
-          height: '100vh',
-          overflow: 'hidden' 
-        }}
-      >
-        {/* 顶部导航栏 */}
-        <TopBar />
-        
-        {/* 主要内容区域 */}
+    <BrowserRouter>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
         <Box 
-          component="main" 
           sx={{ 
-            flexGrow: 1,
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column'
+            display: 'flex', 
+            flexDirection: 'column', 
+            height: '100vh',
+            overflow: 'hidden' 
           }}
         >
-          <ProductCatalogue />
+          {/* 顶部导航栏 */}
+          <TopBar />
+          
+          {/* 主要内容区域 */}
+          <Box 
+            component="main" 
+            sx={{ 
+              flexGrow: 1,
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          >
+            <AppRoutes />
+          </Box>
         </Box>
-      </Box>
-    </ThemeProvider>
+      </ThemeProvider>
+    </BrowserRouter>
   );
 }
 

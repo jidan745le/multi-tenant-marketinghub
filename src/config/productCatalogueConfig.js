@@ -270,14 +270,14 @@ export const productCatalogueConfig = {
         filters: productListConfigs
     },
     // 产品网格配置
-    gridConfig: {
+    productConfig: {
         // 获取产品数据的Promise函数
         fetchProducts: fetchProductsAPI,
         // 页面大小
-        pageSize: 12,
+        pageSize: 10,
         // 卡片工具功能配置（对应图片中的开关）
         cardActions: {
-            show_file_type: false,
+            show_file_type: true,
             show_eyebrow: true,
             show_open_pdf: true,
             show_open_product_page: true,
