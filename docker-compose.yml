@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
     container_name: marketinghub-app
     ports:
-      - "3000:80"
+      - "3012:80"
     restart: unless-stopped
     environment:
       - NODE_ENV=production
