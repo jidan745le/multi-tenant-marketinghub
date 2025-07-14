@@ -13,33 +13,45 @@ const ProductGridOuterContainer = styled(Box)(() => ({
 // 内层滚动容器
 const ProductGridContainer = styled(Box)(() => ({
   height: '100%',
-  overflow: 'auto',
+  overflow: 'auto', // 始终允许滚动
   padding: '16px',
-  paddingRight: '16px', // 正常的 padding
+  paddingRight: '16px',
   
-  // 自定义滚动条样式 - 不占用布局空间
+  // 自定义滚动条样式 - 默认透明，hover时显示
   '&::-webkit-scrollbar': {
     width: '6px',
   },
   '&::-webkit-scrollbar-track': {
-    background: 'transparent',
-  },
-  '&::-webkit-scrollbar-thumb': {
-    backgroundColor: 'rgba(128, 128, 128, 0.3)',
-    borderRadius: '3px',
+    borderRadius: '8px',
+    backgroundColor: 'transparent', // 默认透明
+    border: 'none',
     transition: 'background-color 0.2s ease',
   },
-  '&::-webkit-scrollbar-thumb:hover': {
-    backgroundColor: 'rgba(85, 85, 85, 0.6)',
+  '&::-webkit-scrollbar-thumb': {
+    borderRadius: '8px',
+    backgroundColor: 'transparent', // 默认透明
+    transition: 'background-color 0.2s ease',
   },
   
-  // 为了避免布局变化，我们在右侧添加透明边框来"预留"滚动条空间
-  borderRight: '6px solid transparent',
-  marginRight: '-6px', // 抵消边框的影响
+  // hover时显示滚动条
+  '&:hover': {
+    '&::-webkit-scrollbar-track': {
+      backgroundColor: '#e7e7e7',
+      border: '1px solid #cacaca',
+    },
+    '&::-webkit-scrollbar-thumb': {
+      backgroundColor: 'gray',
+    },
+    '&::-webkit-scrollbar-thumb:hover': {
+      backgroundColor: '#555',
+    },
+    // Firefox hover效果
+    scrollbarColor: 'gray #e7e7e7',
+  },
   
   // Firefox 滚动条样式
   scrollbarWidth: 'thin',
-  scrollbarColor: 'rgba(128, 128, 128, 0.3) transparent',
+  scrollbarColor: 'transparent transparent',
 }));
 
 const ConfigurableProductGrid = ({
