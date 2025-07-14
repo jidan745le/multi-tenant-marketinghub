@@ -1,51 +1,28 @@
 import { Box } from '@mui/material';
 import CssBaseline from '@mui/material/CssBaseline';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
-import React from 'react';
+import React, { Suspense } from 'react';
 import { BrowserRouter, useRoutes } from 'react-router-dom';
 import './assets/styles/fonts.css';
 import TopBar from './components/TopBar';
+import './i18n/i18n'; // 导入 i18n 配置
 import router from './router/index.jsx';
+import ThemeProviderWrapper from './theme/ThemeProvider';
 
-// 创建Material UI主题
-const theme = createTheme({
-  palette: {
-    mode: 'light',
-    primary: {
-      main: 'rgb(241, 101, 8)',
-    },
-    secondary: {
-      main: '#dc004e',
-    },
-    background: {
-      default: '#f5f5f5',
-    },
-  },
-  typography: {
-    fontFamily: '"Roboto-Regular", "Roboto", "Helvetica", "Arial", sans-serif',
-    h1: {
-      fontFamily: '"Roboto-Medium", "Roboto", "Helvetica", "Arial", sans-serif',
-    },
-    h2: {
-      fontFamily: '"Roboto-Medium", "Roboto", "Helvetica", "Arial", sans-serif',
-    },
-    h3: {
-      fontFamily: '"Roboto-Medium", "Roboto", "Helvetica", "Arial", sans-serif',
-    },
-    h4: {
-      fontFamily: '"Roboto-Medium", "Roboto", "Helvetica", "Arial", sans-serif',
-    },
-    h5: {
-      fontFamily: '"Roboto-Medium", "Roboto", "Helvetica", "Arial", sans-serif',
-    },
-    h6: {
-      fontFamily: '"Roboto-Medium", "Roboto", "Helvetica", "Arial", sans-serif',
-    },
-    button: {
-      fontFamily: '"Roboto-Medium", "Roboto", "Helvetica", "Arial", sans-serif',
-    },
-  },
-});
+// 加载组件
+const LoadingFallback = () => (
+  <Box
+    sx={{
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      height: '100vh',
+      fontSize: '18px',
+      color: 'text.secondary',
+    }}
+  >
+    Loading...
+  </Box>
+);
 
 // 路由组件
 function AppRoutes() {
@@ -55,35 +32,37 @@ function AppRoutes() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <Box 
-          sx={{ 
-            display: 'flex', 
-            flexDirection: 'column', 
-            height: '100vh',
-            overflow: 'hidden' 
-          }}
-        >
-          {/* 顶部导航栏 */}
-          <TopBar />
-          
-          {/* 主要内容区域 */}
+    <Suspense fallback={<LoadingFallback />}>
+      <BrowserRouter>
+        <ThemeProviderWrapper>
+          <CssBaseline />
           <Box 
-            component="main" 
             sx={{ 
-              flexGrow: 1,
-              overflow: 'hidden',
-              display: 'flex',
-              flexDirection: 'column'
+              display: 'flex', 
+              flexDirection: 'column', 
+              height: '100vh',
+              overflow: 'hidden' 
             }}
           >
-            <AppRoutes />
+            {/* 顶部导航栏 */}
+            <TopBar />
+            
+            {/* 主要内容区域 */}
+            <Box 
+              component="main" 
+              sx={{ 
+                flexGrow: 1,
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column'
+              }}
+            >
+              <AppRoutes />
+            </Box>
           </Box>
-        </Box>
-      </ThemeProvider>
-    </BrowserRouter>
+        </ThemeProviderWrapper>
+      </BrowserRouter>
+    </Suspense>
   );
 }
 

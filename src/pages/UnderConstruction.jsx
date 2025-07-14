@@ -1,13 +1,21 @@
-import { Home } from '@mui/icons-material';
+import { Construction, Home } from '@mui/icons-material';
 import { Box, Button, Container, Typography } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { useBrand } from '../hooks/useBrand';
+import { useLanguage } from '../hooks/useLanguage';
 
 function UnderConstruction() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const { currentLanguage } = useLanguage();
+  const { currentBrand } = useBrand();
+  const theme = useTheme();
 
   const handleGoHome = () => {
-    navigate('/products');
+    navigate(`/${currentLanguage}/${currentBrand}/products`);
   };
 
   return (
@@ -23,13 +31,21 @@ function UnderConstruction() {
           py: 4
         }}
       >
-        {/* <Construction
+        {/* 调试信息 */}
+        <Box sx={{ mb: 3, p: 2, backgroundColor: 'grey.100', borderRadius: 1 }}>
+          <Typography variant="h6">Debug Info:</Typography>
+          <Typography>Current Brand: {currentBrand}</Typography>
+          <Typography>Primary Color: {theme.palette.primary.main}</Typography>
+          <Typography>Secondary Color: {theme.palette.secondary.main}</Typography>
+        </Box>
+        
+        <Construction
           sx={{
             fontSize: 120,
             color: 'primary.main',
             mb: 3
           }}
-        /> */}
+        />
         
         <Typography
           variant="h2"
@@ -41,7 +57,7 @@ function UnderConstruction() {
             mb: 2
           }}
         >
-          Under Construction
+          {t('under.construction.title')}
         </Typography>
         
         <Typography
@@ -53,17 +69,7 @@ function UnderConstruction() {
             maxWidth: '600px'
           }}
         >
-          This page is currently under development. We're working hard to bring you new features and improvements.
-        </Typography>
-        
-        <Typography
-          variant="body1"
-          sx={{
-            color: 'text.secondary',
-            mb: 4
-          }}
-        >
-          In the meantime, you can explore our Product Catalogue.
+          {t('under.construction.description')}
         </Typography>
         
         <Button
@@ -77,7 +83,7 @@ function UnderConstruction() {
             fontSize: '1.1rem'
           }}
         >
-          Go to Product Catalogue
+          Go to Catalog
         </Button>
       </Box>
     </Container>
