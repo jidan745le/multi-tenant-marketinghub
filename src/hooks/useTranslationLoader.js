@@ -21,12 +21,10 @@ export const useTranslationLoader = () => {
         const currentBrand = getCurrentBrand();
 
         if (!currentBrand || !currentBrand.translations) {
-            console.log('⚠️ 无法获取品牌翻译数据:', currentBrand?.code);
             return;
         }
 
         const translations = currentBrand.translations;
-        console.log('🌐 从Redux加载翻译数据:', Object.keys(translations));
 
         // 为每种语言动态添加翻译资源到i18n
         Object.keys(translations).forEach(languageCode => {
@@ -36,11 +34,9 @@ export const useTranslationLoader = () => {
                 // 检查i18n是否已有该语言的资源
                 if (!i18n.hasResourceBundle(languageCode, 'translation')) {
                     i18n.addResourceBundle(languageCode, 'translation', translationData);
-                    console.log(`✅ 添加语言资源: ${languageCode}`);
                 } else {
                     // 更新现有资源
                     i18n.addResourceBundle(languageCode, 'translation', translationData, true, true);
-                    console.log(`🔄 更新语言资源: ${languageCode}`);
                 }
             }
         });
@@ -68,9 +64,9 @@ export const useTranslationLoader = () => {
         // 从品牌的languages配置中获取完整信息
         if (currentBrand.languages && currentBrand.languages.length > 0) {
             return currentBrand.languages.filter(lang =>
-                supportedLanguageCodes.includes(lang.code) // 使用lang.code进行匹配
+                supportedLanguageCodes.includes(lang.code)
             ).map(lang => ({
-                code: lang.code, // 保持使用code字段
+                code: lang.code,
                 name: lang.name,
                 nativeName: lang.nativeName || lang.name
             }));

@@ -25,13 +25,10 @@ const fetchStrapiThemes = async (dispatch) => {
     const token = import.meta.env.VITE_STRAPI_TOKEN;
     
     if (!baseUrl || !token) {
-      console.error('❌ Strapi配置缺失:', { baseUrl: !!baseUrl, token: !!token });
       return null;
     }
 
-    console.log('🚀 开始获取Strapi主题数据...');
-
-    const response = await fetch(`${baseUrl}/api/themes?populate[0]=theme_colors&populate[1]=theme_logo&populate[2]=menu&populate[3]=menu.menu_l2&populate[4]=languages&populate[5]=theme_logos.favicon&populate[6]=theme_logos.onwhite_logo&populate[7]=theme_logos.oncolor_logo&populate[8]=login&populate[9]=translations`, {
+    const response = await fetch(`${baseUrl}/api/themes?populate[0]=theme_colors&populate[1]=theme_logo&populate[2]=menu&populate[3]=menu.menu_l2&populate[4]=languages&populate[5]=theme_logos.favicon&populate[6]=theme_logos.onwhite_logo&populate[7]=theme_logos.oncolor_logo&populate[8]=login`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -44,24 +41,10 @@ const fetchStrapiThemes = async (dispatch) => {
     }
 
     const result = await response.json();
-    console.log('✅ Strapi主题数据获取成功:', result.data?.length, '个主题');
-    
-    // 验证和调试数据
-    result.data.forEach((theme, index) => {
-      console.log(`主题 ${index + 1} (${theme.theme_key || 'unknown'}) 数据:`, {
-        favicon: theme.theme_logos?.favicon?.url || '无favicon',
-        onwhite_logo: theme.theme_logos?.onwhite_logo?.url || '无onwhite_logo',
-        oncolor_logo: theme.theme_logos?.oncolor_logo?.url || '无oncolor_logo',
-        translations: theme.translations ? Object.keys(theme.translations) : '无翻译数据'
-      });
-    });
-    
-    // 将数据存储到Redux
     dispatch(fetchThemes.fulfilled(result));
-    
     return result;
+    
   } catch (error) {
-    console.error('❌ 获取Strapi主题数据失败:', error);
     dispatch(fetchThemes.rejected(error.message));
     return null;
   }
@@ -92,7 +75,6 @@ function AppRoutes() {
 // 简洁的加载覆盖组件
 const TranslationLoadingOverlay = ({ isLoading }) => {
   const {theme} = useTheme();
-  console.log(theme,"THEME");
   return (
     <Backdrop 
       sx={{ 

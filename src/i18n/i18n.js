@@ -60,23 +60,16 @@ const getCurrentLanguage = () => {
 i18n
     .use(initReactI18next)
     .init({
-        resources: staticResources, // 初始使用静态资源
+        resources: staticResources,
         lng: getCurrentLanguage(),
         fallbackLng: 'en_GB',
-
-        // 配置选项
-        keySeparator: false, // 不使用键分隔符
+        keySeparator: false,
         interpolation: {
-            escapeValue: false, // React 已经处理了 XSS
+            escapeValue: false,
         },
-
-        // React 配置
         react: {
-            useSuspense: false, // 关闭 Suspense 以避免加载问题
-        },
-
-        // 调试选项
-        debug: import.meta.env.MODE === 'development',
+            useSuspense: false,
+        }
     });
 
 export default i18n; 

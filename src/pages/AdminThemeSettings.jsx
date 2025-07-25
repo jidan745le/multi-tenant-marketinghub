@@ -25,7 +25,7 @@ import {
     TextField,
     Typography
 } from '@mui/material';
-import { styled } from '@mui/material/styles';
+import { alpha, styled } from '@mui/material/styles';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSelector } from 'react-redux';
@@ -56,7 +56,7 @@ const ImagePreviewBox = styled(Box)(() => ({
   marginBottom: 8,
   position: 'relative',
   borderRadius: 4,
-  overflow: 'hidden', // 确保图片不会溢出容器
+  overflow: 'hidden',
 }));
 
 const EditButton = styled(Button)(() => ({
@@ -112,13 +112,13 @@ const ContentArea = styled(Box)(() => ({
   backgroundColor: '#f5f5f5',
 }));
 
-const SidebarMenuItem = styled(ListItem)(({ active }) => ({
+const SidebarMenuItem = styled(ListItem)(({ theme, active }) => ({
   padding: '8px 16px',
   cursor: 'pointer',
-  backgroundColor: active ? '#f0f0f0' : 'transparent',
-  borderLeft: active ? '3px solid #92c020' : '3px solid transparent',
+  backgroundColor: active ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
+  borderLeft: active ? `3px solid ${theme.palette.primary.main}` : '3px solid transparent',
   '&:hover': {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: alpha(theme.palette.primary.main, 0.04),
   },
 }));
 
@@ -129,22 +129,149 @@ const SectionCard = styled(Paper)(() => ({
   boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
 }));
 
-const DropZone = styled(Box)(() => ({
+const DropZone = styled(Box)(({ theme }) => ({
+  height: '100%',
   border: '2px dashed #e0e0e0',
-  borderRadius: 8,
-  padding: 24,
+  borderRadius: theme.shape.borderRadius,
+  position: 'relative',
+  backgroundColor: '#fafafa',
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
   justifyContent: 'center',
-  backgroundColor: '#fafafa',
-  height: 300,
-  textAlign: 'center',
+  padding: theme.spacing(4),
   cursor: 'pointer',
+  transition: 'all 0.3s ease',
   '&:hover': {
-    backgroundColor: '#f5f5f5',
-    borderColor: '#cccccc',
+    backgroundColor: alpha(theme.palette.primary.main, 0.04),
+    borderColor: theme.palette.primary.main,
   },
+}));
+
+const UploadedFileContainer = styled(Box)(({ theme }) => ({
+  height: '100%',
+  border: `1px solid ${theme.palette.primary.main}`,
+  borderRadius: theme.shape.borderRadius,
+  position: 'relative',
+  backgroundColor: alpha(theme.palette.primary.main, 0.04),
+  display: 'flex',
+  flexDirection: 'column',
+  padding: theme.spacing(3),
+}));
+
+const FileTypeBox = styled(Box)(({ theme }) => ({
+  width: 40,
+  height: 40,
+  borderRadius: theme.shape.borderRadius,
+  backgroundColor: theme.palette.primary.main,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  marginRight: theme.spacing(2),
+}));
+
+const UploadButton = styled(Box)(({ theme }) => ({
+  width: 40,
+  height: 40,
+  borderRadius: '50%',
+  backgroundColor: theme.palette.primary.main,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  boxShadow: `0 2px 8px ${alpha(theme.palette.primary.main, 0.3)}`,
+  cursor: 'pointer',
+  transition: 'transform 0.2s ease',
+  '&:hover': {
+    transform: 'scale(1.1)',
+    boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.4)}`,
+  },
+}));
+
+const ReplaceUploadZone = styled(Box)(({ theme }) => ({
+  flex: 1,
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  border: `2px dashed ${theme.palette.primary.main}`,
+  borderRadius: theme.shape.borderRadius,
+  backgroundColor: 'white',
+  cursor: 'pointer',
+  transition: 'all 0.3s ease',
+  '&:hover': {
+    backgroundColor: alpha(theme.palette.primary.main, 0.04),
+  },
+}));
+
+const DeleteIconButton = styled(IconButton)(({ theme }) => ({
+  color: theme.palette.text.secondary,
+  '&:hover': { 
+    color: theme.palette.error.main,
+    backgroundColor: alpha(theme.palette.error.main, 0.1),
+  },
+}));
+
+const SaveButton = styled(Button)(({ theme }) => ({
+  backgroundColor: theme.palette.primary.main,
+  '&:hover': {
+    backgroundColor: theme.palette.primary.dark,
+  },
+}));
+
+const AddLanguageButton = styled(Button)(({ theme }) => ({
+  color: theme.palette.primary.main,
+  '&:hover': {
+    backgroundColor: alpha(theme.palette.primary.main, 0.04),
+  },
+}));
+
+const PreviewContainer = styled(Box)(({ theme }) => ({
+  height: '100%',
+  border: `1px solid ${theme.palette.divider}`,
+  borderRadius: theme.shape.borderRadius,
+  overflow: 'hidden',
+  backgroundColor: theme.palette.background.paper,
+}));
+
+const PreviewHeader = styled(Box)(({ theme }) => ({
+  padding: theme.spacing(2),
+  borderBottom: `1px solid ${theme.palette.divider}`,
+  backgroundColor: theme.palette.grey[50],
+  display: 'flex',
+  alignItems: 'center',
+}));
+
+const PreviewContent = styled(Box)(({ theme }) => ({
+  flex: 1,
+  padding: theme.spacing(3),
+  overflow: 'auto',
+  fontFamily: '"SF Mono", "Monaco", "Inconsolata", "Roboto Mono", monospace',
+  fontSize: '0.875rem',
+  lineHeight: 1.6,
+  whiteSpace: 'pre-wrap',
+  backgroundColor: theme.palette.background.default,
+  color: theme.palette.text.primary,
+}));
+
+const EmptyPreview = styled(Box)(({ theme }) => ({
+  height: '100%',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  color: theme.palette.text.secondary,
+  backgroundColor: theme.palette.grey[50],
+}));
+
+const EmptyPreviewIcon = styled(Box)(({ theme }) => ({
+  width: 64,
+  height: 64,
+  borderRadius: theme.shape.borderRadius,
+  backgroundColor: theme.palette.grey[100],
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  marginBottom: theme.spacing(2),
 }));
 
 // 图片上传预览组件
@@ -774,14 +901,14 @@ function AdminThemeSettings() {
             ))}
           </Grid>
         </Grid>
+        {/* 修改添加语言按钮 */}
         <Box mt={2}>
-          <Button 
+          <AddLanguageButton 
             startIcon={<AddIcon />} 
-            variant="text" 
-            sx={{ color: '#92c020' }}
+            variant="text"
           >
             Add Language
-          </Button>
+          </AddLanguageButton>
         </Box>
       </SectionCard>
 
@@ -793,16 +920,7 @@ function AdminThemeSettings() {
           <Box sx={{ flex: 1, pr: 1 }}>
             {uploadedFile ? (
               // 显示已上传的文件信息
-              <Box sx={{ 
-                height: '100%',
-                border: '1px solid #92c020',
-                borderRadius: 2,
-                position: 'relative',
-                backgroundColor: '#f8faf6',
-                display: 'flex',
-                flexDirection: 'column',
-                p: 3
-              }}>
+              <UploadedFileContainer>
                 {/* 文件信息 */}
                 <Box sx={{ 
                   display: 'flex', 
@@ -811,16 +929,7 @@ function AdminThemeSettings() {
                   mb: 2 
                 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                    <Box sx={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 1,
-                      backgroundColor: '#92c020',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      mr: 2
-                    }}>
+                    <FileTypeBox>
                       <Typography sx={{ 
                         color: 'white',
                         fontSize: '0.8rem',
@@ -828,7 +937,7 @@ function AdminThemeSettings() {
                       }}>
                         {uploadedFile.name.split('.').pop().toUpperCase()}
                       </Typography>
-                    </Box>
+                    </FileTypeBox>
                     <Box>
                       <Typography variant="subtitle1" sx={{ fontWeight: 500, color: '#333' }}>
                         {uploadedFile.name}
@@ -838,38 +947,17 @@ function AdminThemeSettings() {
                       </Typography>
                     </Box>
                   </Box>
-                  <IconButton 
+                  <DeleteIconButton 
                     size="small"
                     onClick={removeFile}
-                    sx={{ 
-                      color: '#999',
-                      '&:hover': { 
-                        color: '#f44336',
-                        backgroundColor: 'rgba(244, 67, 54, 0.1)' 
-                      }
-                    }}
                   >
                     <DeleteIcon fontSize="small" />
-                  </IconButton>
+                  </DeleteIconButton>
                 </Box>
 
                 {/* 重新上传提示 */}
-                <Box sx={{ 
-                  flex: 1,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '2px dashed #92c020',
-                  borderRadius: 2,
-                  backgroundColor: 'white',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    backgroundColor: '#f0f7e6'
-                  }
-                }}
-                onClick={() => document.getElementById('file-upload-input').click()}
+                <ReplaceUploadZone
+                  onClick={() => document.getElementById('file-upload-input').click()}
                 >
                   <CloudUploadIcon sx={{ 
                     fontSize: 32, 
@@ -882,7 +970,7 @@ function AdminThemeSettings() {
                   }}>
                     Click to replace file
                   </Typography>
-                </Box>
+                </ReplaceUploadZone>
 
                 <input
                   id="file-upload-input"
@@ -891,30 +979,13 @@ function AdminThemeSettings() {
                   onChange={handleFileUpload}
                   style={{ display: 'none' }}
                 />
-              </Box>
+              </UploadedFileContainer>
             ) : (
               // 显示空状态上传区域
-              <Box sx={{ 
-                height: '100%',
-                border: '2px dashed #e0e0e0',
-                borderRadius: 2,
-                position: 'relative',
-                backgroundColor: '#fafafa',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                p: 4,
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  borderColor: '#92c020',
-                  backgroundColor: '#f8faf6'
-                }
-              }}
-              onDragOver={handleDragOver}
-              onDrop={handleDrop}
-              onClick={() => document.getElementById('file-upload-input').click()}
+              <DropZone
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+                onClick={() => document.getElementById('file-upload-input').click()}
               >
                 <Box sx={{ textAlign: 'center', maxWidth: 320 }}>
                   <Typography variant="h6" sx={{ 
@@ -955,27 +1026,12 @@ function AdminThemeSettings() {
                   bottom: 16,
                   right: 16
                 }}>
-                  <Box sx={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: '50%',
-                    backgroundColor: '#92c020',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 2px 8px rgba(146, 192, 32, 0.3)',
-                    cursor: 'pointer',
-                    transition: 'transform 0.2s ease',
-                    '&:hover': {
-                      transform: 'scale(1.1)',
-                      boxShadow: '0 4px 12px rgba(146, 192, 32, 0.4)'
-                    }
-                  }}>
+                  <UploadButton>
                     <CloudUploadIcon sx={{ 
                       color: 'white',
                       fontSize: 20
                     }} />
-                  </Box>
+                  </UploadButton>
                 </Box>
 
                 <input
@@ -985,39 +1041,18 @@ function AdminThemeSettings() {
                   onChange={handleFileUpload}
                   style={{ display: 'none' }}
                 />
-              </Box>
+              </DropZone>
             )}
           </Box>
 
           {/* 右栏：预览区域 */}
           <Box sx={{ flex: 1, pl: 1 }}>
-            <Box sx={{ 
-              height: '100%',
-              border: '1px solid #e0e0e0',
-              borderRadius: 2,
-              overflow: 'hidden',
-              backgroundColor: 'white'
-            }}>
+            <PreviewContainer>
               {selectedFileName ? (
                 <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                   {/* 文件头部信息 */}
-                  <Box sx={{ 
-                    p: 2, 
-                    borderBottom: '1px solid #e0e0e0',
-                    backgroundColor: '#f8f9fa',
-                    display: 'flex',
-                    alignItems: 'center'
-                  }}>
-                    <Box sx={{
-                      width: 24,
-                      height: 24,
-                      borderRadius: 0.5,
-                      backgroundColor: '#92c020',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      mr: 1.5
-                    }}>
+                  <PreviewHeader>
+                    <FileTypeBox sx={{ width: 24, height: 24, borderRadius: 0.5, mr: 1.5 }}>
                       <Typography sx={{ 
                         color: 'white',
                         fontSize: '0.7rem',
@@ -1025,64 +1060,37 @@ function AdminThemeSettings() {
                       }}>
                         {selectedFileName.split('.').pop().toUpperCase()}
                       </Typography>
-                    </Box>
+                    </FileTypeBox>
                     <Typography variant="subtitle2" sx={{ fontWeight: 500 }}>
                       {selectedFileName}
                     </Typography>
-                  </Box>
+                  </PreviewHeader>
                   
                   {/* 文件内容 */}
-                  <Box sx={{ 
-                    flex: 1, 
-                    p: 3, 
-                    overflow: 'auto',
-                    fontFamily: '"SF Mono", "Monaco", "Inconsolata", "Roboto Mono", monospace',
-                    fontSize: '0.875rem',
-                    lineHeight: 1.6,
-                    whiteSpace: 'pre-wrap',
-                    backgroundColor: '#fdfdfd',
-                    color: '#333'
-                  }}>
+                  <PreviewContent>
                     {selectedFileContent}
-                  </Box>
+                  </PreviewContent>
                 </Box>
               ) : (
-                <Box sx={{ 
-                  height: '100%', 
-                  display: 'flex', 
-                  flexDirection: 'column',
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                  color: '#999',
-                  backgroundColor: '#fafafa'
-                }}>
-                  <Box sx={{
-                    width: 64,
-                    height: 64,
-                    borderRadius: 2,
-                    backgroundColor: '#f0f0f0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    mb: 2
-                  }}>
-                    <UploadFileIcon sx={{ fontSize: 28, color: '#ccc' }} />
-                  </Box>
-                  <Typography variant="body2" sx={{ color: '#666', textAlign: 'center' }}>
+                <EmptyPreview>
+                  <EmptyPreviewIcon>
+                    <UploadFileIcon sx={{ fontSize: 28, color: 'text.disabled' }} />
+                  </EmptyPreviewIcon>
+                  <Typography variant="body2" sx={{ textAlign: 'center' }}>
                     Select a file to preview
                   </Typography>
-                </Box>
+                </EmptyPreview>
               )}
-            </Box>
+            </PreviewContainer>
           </Box>
         </Box>
       </SectionCard>
 
       {/* 保存按钮 */}
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, mb: 4 }}>
-        <Button variant="contained" color="primary" sx={{ backgroundColor: '#92c020' }}>
+        <SaveButton variant="contained">
           保存配置
-        </Button>
+        </SaveButton>
       </Box>
     </>
   );
