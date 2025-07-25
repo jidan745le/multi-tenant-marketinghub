@@ -41,8 +41,8 @@ const ProductGridContainer = styled(Box)(() => ({
     },
     '&::-webkit-scrollbar-thumb': {
       backgroundColor: 'gray',
-    },
-    '&::-webkit-scrollbar-thumb:hover': {
+  },
+  '&::-webkit-scrollbar-thumb:hover': {
       backgroundColor: '#555',
     },
     // Firefox hover效果

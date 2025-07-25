@@ -1,24 +1,26 @@
 import {
-  ArrowDropDown,
-  DownloadOutlined,
-  Language,
-  ShareOutlined,
-  StickyNote2Outlined
+    ArrowDropDown,
+    DownloadOutlined,
+    Language,
+    SettingsOutlined,
+    ShareOutlined,
+    StickyNote2Outlined
 } from '@mui/icons-material';
 import {
-  Avatar,
-  Box,
-  IconButton,
-  Menu,
-  MenuItem,
-  Typography
+    Avatar,
+    Box,
+    IconButton,
+    Menu,
+    MenuItem,
+    Tooltip,
+    Typography
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
-import logo from '../assets/icon/kendo.png';
 import { useBrand } from '../hooks/useBrand';
+import { useDynamicMenus } from '../hooks/useDynamicMenus';
 import { useLanguage } from '../hooks/useLanguage';
 
 // Styled Components
@@ -168,120 +170,166 @@ const ProfileAvatar = styled(Avatar)(() => ({
   fontWeight: 500,
 }));
 
+// 占位符样式
+const PlaceholderNavItem = styled(Box)(() => ({
+  padding: '0px 16px',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  height: '40px',
+  borderBottom: '2px solid transparent',
+}));
+
+const PlaceholderIcon = styled(Box)(() => ({
+  width: '24px',
+  height: '24px',
+  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  borderRadius: '4px',
+  animation: 'pulse 1.5s ease-in-out infinite',
+}));
+
+const PlaceholderText = styled(Box)(({ width = '80px' }) => ({
+  width: width,
+  height: '14px',
+  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  borderRadius: '4px',
+  animation: 'pulse 1.5s ease-in-out infinite',
+}));
+
+// 全局动画定义
+const GlobalStyles = styled('div')(() => ({
+  '@keyframes pulse': {
+    '0%': {
+      opacity: 1,
+    },
+    '50%': {
+      opacity: 0.5,
+    },
+    '100%': {
+      opacity: 1,
+    },
+  },
+}));
+
 // NavBar Component
 const NavBar = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { menuItems, debug } = useDynamicMenus();
+  const [activeItem, setActiveItem] = useState('home'); // 使用API key格式
   const { t } = useTranslation();
-  const { currentLanguage } = useLanguage();
-  const { currentBrand } = useBrand();
-  const [activeItem, setActiveItem] = useState('Product Catalog');
 
-  // 菜单项配置，包含路由路径和翻译键
-  const navItems = [
-    { 
-      label: t('nav.home'), 
-      icon: <span className="material-symbols-outlined">home</span>, 
-      key: 'Home', 
-      path: `/${currentLanguage}/${currentBrand}/home` 
-    },
-    { 
-      label: t('nav.brand.assets'), 
-      icon: <span className="material-symbols-outlined">branding_watermark</span>, 
-      key: 'Brand Assets', 
-      path: `/${currentLanguage}/${currentBrand}/brand-book` 
-    },
-    { 
-      label: t('nav.video.library'), 
-      icon: <span className="material-symbols-outlined">video_library</span>, 
-      key: 'Video Library', 
-      path: `/${currentLanguage}/${currentBrand}/videos` 
-    },
-    { 
-      label: t('nav.media.library'), 
-      icon: <span className="material-symbols-outlined">photo_library</span>, 
-      key: 'Media Library', 
-      path: `/${currentLanguage}/${currentBrand}/medias` 
-    },
-    { 
-      label: t('nav.new.products'), 
-      icon: <span className="material-symbols-outlined">add_circle</span>, 
-      key: 'New Products', 
-      path: `/${currentLanguage}/${currentBrand}/accessories` 
-    },
-    { 
-      label: t('nav.product.catalog'), 
-      icon: <span className="material-symbols-outlined">search</span>, 
-      key: 'Product Catalog', 
-      path: `/${currentLanguage}/${currentBrand}/products` 
-    },
-    { 
-      label: t('nav.after.sales.service'), 
-      icon: <span className="material-symbols-outlined">info</span>, 
-      key: 'After Sales Service', 
-      path: `/${currentLanguage}/${currentBrand}/after-sales-service` 
-    },
-  ];
+  console.log('📋 NavBar: 使用动态菜单:', debug);
 
-  // 根据当前路径设置活动菜单项
+  // 根据当前路径设置活动项
   useEffect(() => {
     const currentPath = location.pathname;
-    const pathSegments = currentPath.split('/');
-    const page = pathSegments[3]; // /:lang/:brand/:page
-    
-    // 根据页面路径匹配菜单项
-    const pageToKey = {
-      'home': 'Home',
-      'brand-book': 'Brand Assets',
-      'videos': 'Video Library',
-      'medias': 'Media Library',
-      'accessories': 'New Products',
-      'products': 'Product Catalog',
-      'after-sales-service': 'After Sales Service',
-    };
-    
-    const newActiveItem = pageToKey[page] || 'Product Catalog';
-    setActiveItem(newActiveItem);
-  }, [location.pathname]);
+    const pathSegments = currentPath.split('/'); 
+    // 路径格式: /:lang/:brand/:page
+    const currentPage = pathSegments[3]; // 当前页面部分
 
-  const handleNavItemClick = (key, path) => {
-    setActiveItem(key);
+    if (!currentPage || menuItems.length === 0) {
+      // 如果没有页面或菜单还没加载，默认选中第一个菜单项
+      if (menuItems.length > 0) {
+        setActiveItem(menuItems[0].key);
+      }
+      return;
+    }
+
+    // 动态匹配：根据API菜单数据的path字段查找匹配的菜单项
+    const matchedMenuItem = menuItems.find(item => {
+      // 提取菜单项路径的页面部分进行匹配
+      // item.path 格式: /:lang/:brand/page
+      const menuPathSegments = item.path.split('/');
+      const menuPage = menuPathSegments[menuPathSegments.length - 1]; // 获取最后一部分
+      return menuPage === currentPage;
+    });
+
+    const activeKey = matchedMenuItem ? matchedMenuItem.key : (menuItems[0]?.key || 'home');
+    
+    setActiveItem(activeKey);
+  }, [location.pathname, menuItems]); // 添加menuItems依赖
+
+  // 处理菜单项标签的翻译 (目前未使用，但保留以备将来使用)
+  // const translateMenuLabel = (item) => {
+  //   if (!item || !item.label) return '';
+  //   
+  //   // 检查标签是否是翻译键（如 'nav.home'）
+  //   if (item.label.includes('.')) {
+  //     // 尝试翻译
+  //     const translated = t(item.label);
+  //     // 如果翻译返回的与输入相同，可能表示没有翻译，直接使用标签值
+  //     return translated !== item.label ? translated : item.label;
+  //   }
+  //   
+  //   // 不是翻译键，直接返回原始标签
+  //   return item.label;
+  // };
+
+  const handleNavItemClick = (itemKey, path) => {
+    setActiveItem(itemKey);
     navigate(path);
   };
 
   return (
     <StyledNavBar>
-      {navItems.map((item) => (
-        <NavItem
-          key={item.key}
-          active={activeItem === item.key ? 1 : 0}
-          onClick={() => handleNavItemClick(item.key, item.path)}
-        >
-          <NavItemIcon active={activeItem === item.key}>
-            {item.icon}
-          </NavItemIcon>
-          <NavItemLabel active={activeItem === item.key}>
-            {item.label}
-          </NavItemLabel>
-        </NavItem>
-      ))}
+      <GlobalStyles />
+      {menuItems.length === 0 ? (
+        <>
+          <PlaceholderNavItem>
+            <PlaceholderIcon />
+            <PlaceholderText width="60px" />
+          </PlaceholderNavItem>
+          <PlaceholderNavItem>
+            <PlaceholderIcon />
+            <PlaceholderText width="100px" />
+          </PlaceholderNavItem>
+          <PlaceholderNavItem>
+            <PlaceholderIcon />
+            <PlaceholderText width="80px" />
+          </PlaceholderNavItem>
+          <PlaceholderNavItem>
+            <PlaceholderIcon />
+            <PlaceholderText width="120px" />
+          </PlaceholderNavItem>
+        </>
+      ) : (
+        menuItems.map((item) => {
+          return <NavItem
+            key={item.key}
+            active={activeItem === item.key ? 1 : 0}
+            onClick={() => handleNavItemClick(item.key, item.path)}
+          >
+            <NavItemIcon active={activeItem === item.key}>
+              {item.icon}
+            </NavItemIcon>
+            <NavItemLabel active={activeItem === item.key}>
+              {t(item.label)}
+            </NavItemLabel>
+          </NavItem>
+        })
+      )}
     </StyledNavBar>
   );
 };
 
 // TopRow Component with Language and Brand Switching
 const TopRow = () => {
-  const { t } = useTranslation();
-  const { supportedLanguages, currentLanguage, changeLanguage, getCurrentLanguageInfo } = useLanguage();
-  const { supportedBrands, currentBrand, changeBrand, getCurrentBrandInfo } = useBrand();
-  
-  console.log('TopRow: currentBrand =', currentBrand);
-  console.log('TopRow: supportedBrands =', supportedBrands);
-  
+  const { t: translate } = useTranslation();
+  const {supportedLanguages,getCurrentLanguageInfo,currentLanguage, changeLanguage} = useLanguage();
+  const { brands, currentBrand, switchBrand, debug } = useBrand();  
+  const currentLanguageInfo = getCurrentLanguageInfo();
   const [portalAnchorEl, setPortalAnchorEl] = useState(null);
   const [languageAnchorEl, setLanguageAnchorEl] = useState(null);
+  const navigate = useNavigate();
 
-
+  // 调试信息
+  console.log('🖥️ TopBar - 语言数据:', {
+    supportedLanguages,
+    currentLanguage,
+    currentLanguageInfo,
+    languageCount: supportedLanguages?.length || 0,
+  });
 
   const handlePortalClick = (event) => {
     setPortalAnchorEl(event.currentTarget);
@@ -297,7 +345,7 @@ const TopRow = () => {
   };
 
   const handleBrandSelect = (brandCode) => {
-    changeBrand(brandCode);
+    switchBrand(brandCode);
     handleClose();
   };
 
@@ -305,20 +353,36 @@ const TopRow = () => {
     changeLanguage(languageCode);
     handleClose();
   };
-
-  const currentLanguageInfo = getCurrentLanguageInfo();
-  const currentBrandInfo = getCurrentBrandInfo();
+  
+  const navigateToAdmin = () => {
+    navigate(`/${currentLanguage}/${currentBrand.code}/admin`);
+  };
 
   return (
     <StyledTopRow>
       {/* Left side - Logo and Portal Selection */}
       <Box sx={{ display: 'flex', alignItems: 'center' }}>
         <LogoContainer>
-          <img style={{height:'100%'}} src={logo} alt="logo" />
+          <img 
+            style={{height:'100%'}} 
+            src={
+              currentBrand?.strapiData?.theme_logo?.url 
+                ? `${import.meta.env.VITE_STRAPI_BASE_URL}${currentBrand.strapiData.theme_logo.url}`
+                : '/src/assets/icon/kendo.png' // 回退到静态logo
+            }
+            alt={`${currentBrand?.displayName || 'Brand'} logo`}
+            onError={(e) => {
+              // 如果动态logo加载失败，回退到静态logo
+              e.target.src = '/src/assets/icon/kendo.png';
+            }}
+          />
         </LogoContainer>
         
         <PortalDropdown onClick={handlePortalClick}>
-          <PortalLabel>{currentBrandInfo?.displayName || 'Loading...'}</PortalLabel>
+          <PortalLabel>
+            {currentBrand?.displayName || 'Loading...'}
+            {debug.isLoading && ' (Loading...)'}
+          </PortalLabel>
           <ArrowDropDown sx={{ color: '#000000', strokeWidth: '1.5' }} />
         </PortalDropdown>
         
@@ -327,11 +391,11 @@ const TopRow = () => {
           open={Boolean(portalAnchorEl)}
           onClose={handleClose}
         >
-          {supportedBrands.map((brand) => (
+          {brands.map((brand) => (
             <MenuItem 
               key={brand.code} 
               onClick={() => handleBrandSelect(brand.code)}
-              selected={brand.code === currentBrand}
+              selected={brand.code === currentBrand?.code}
             >
               {brand.displayName}
             </MenuItem>
@@ -343,15 +407,20 @@ const TopRow = () => {
       <ActionsContainer>
         {/* Action Buttons */}
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <ActionIconButton title={t('topbar.download')}>
+          <ActionIconButton title={translate('topbar.download')}>
             <DownloadOutlined />
           </ActionIconButton>
-          <ActionIconButton title={t('topbar.share')}>
+          <ActionIconButton title={translate('topbar.share')}>
             <ShareOutlined />
           </ActionIconButton>
-          <ActionIconButton title={t('topbar.notes')}>
+          <ActionIconButton title={translate('topbar.notes')}>
             <StickyNote2Outlined />
           </ActionIconButton>
+          <Tooltip title="主题管理">
+            <ActionIconButton onClick={navigateToAdmin}>
+              <SettingsOutlined />
+            </ActionIconButton>
+          </Tooltip>
         </Box>
 
         {/* Language Dropdown */}
@@ -381,7 +450,7 @@ const TopRow = () => {
         <ProfileAvatar>S</ProfileAvatar>
       </ActionsContainer>
     </StyledTopRow>
-  );
+  );  
 };
 
 // Main TopBar Component

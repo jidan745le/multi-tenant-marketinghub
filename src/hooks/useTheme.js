@@ -9,7 +9,7 @@ export const useTheme = () => {
     return {
         theme,
         setThemeName,
-        currentBrand: theme.brand?.name || 'kendo-china',
+        currentBrand: theme.brand?.name || 'kendo',
         brandLogo: theme.brand?.logo,
         primaryColor: theme.palette.primary.main,
         secondaryColor: theme.palette.secondary.main,

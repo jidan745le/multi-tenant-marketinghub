@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { supportedLanguages } from '../i18n/i18n';
+import { useTranslationLoader } from './useTranslationLoader';
 
 export const useLanguage = () => {
     const { i18n } = useTranslation();
@@ -9,80 +9,87 @@ export const useLanguage = () => {
     const location = useLocation();
     const params = useParams();
 
-    const [currentLanguage, setCurrentLanguage] = useState(() => {
-        // 从 URL 参数中获取当前语言
-        const langFromParams = params.lang;
-        const supportedLanguageCodes = supportedLanguages.map(lang => lang.code);
+    // 使用新的翻译加载器
+    const { getSupportedLanguages, getCurrentBrand } = useTranslationLoader();
 
-        if (supportedLanguageCodes.includes(langFromParams)) {
-            return langFromParams;
+    // 获取当前品牌支持的语言
+    const currentSupportedLanguages = getSupportedLanguages();
+
+    // 从URL解析语言
+    const getLanguageFromURL = useCallback(() => {
+        const pathSegments = location.pathname.split('/');
+        const langFromPath = pathSegments[1];
+        const supportedCodes = currentSupportedLanguages.map(lang => lang.code);
+
+        if (params.lang && supportedCodes.includes(params.lang)) {
+            return params.lang;
         }
 
-        return 'en_GB'; // 默认语言
-    });
+        if (supportedCodes.includes(langFromPath)) {
+            return langFromPath;
+        }
 
-    // 同步 i18n 语言设置
+        // 如果当前品牌有支持的语言，使用第一个，否则使用默认语言
+        return supportedCodes.length > 0 ? supportedCodes[0] : 'en_GB';
+    }, [location.pathname, params.lang, currentSupportedLanguages]);
+
+    const [currentLanguage, setCurrentLanguage] = useState(() => getLanguageFromURL());
+
+    // 同步语言状态和i18n
     useEffect(() => {
-        if (currentLanguage && i18n.language !== currentLanguage) {
-            i18n.changeLanguage(currentLanguage);
+        const urlLang = getLanguageFromURL();
+
+        console.log('🔍 useLanguage - 语言状态同步:', {
+            urlLang,
+            currentLanguage,
+            supportedLanguages: currentSupportedLanguages.length,
+            brand: getCurrentBrand()?.code
+        });
+
+        // 更新语言状态
+        if (currentLanguage !== urlLang) {
+            setCurrentLanguage(urlLang);
         }
-    }, [currentLanguage, i18n]);
 
-    // 当路由参数变化时更新当前语言
-    useEffect(() => {
-        const langFromParams = params.lang;
-        const supportedLanguageCodes = supportedLanguages.map(lang => lang.code);
-
-        if (supportedLanguageCodes.includes(langFromParams) && langFromParams !== currentLanguage) {
-            setCurrentLanguage(langFromParams);
+        // 同步i18n（现在直接使用Redux中的翻译数据）
+        if (i18n.language !== urlLang) {
+            i18n.changeLanguage(urlLang);
         }
-    }, [params.lang, currentLanguage]);
 
-    // 切换语言函数
+    }, [location.pathname, getLanguageFromURL, currentLanguage, i18n, currentSupportedLanguages, getCurrentBrand]);
+
+    // 手动切换语言
     const changeLanguage = useCallback((newLanguage) => {
         if (!newLanguage || newLanguage === currentLanguage) return;
 
-        const supportedLanguageCodes = supportedLanguages.map(lang => lang.code);
-        if (!supportedLanguageCodes.includes(newLanguage)) {
-            console.warn(`Unsupported language: ${newLanguage}`);
+        const supportedCodes = currentSupportedLanguages.map(lang => lang.code);
+        if (!supportedCodes.includes(newLanguage)) {
+            console.warn('⚠️ 不支持的语言代码:', newLanguage);
             return;
         }
 
-        // 构建新的路径：${language}/${brand}/${page}
         const pathSegments = location.pathname.split('/').filter(Boolean);
-
-        // 从URL路径或params中获取当前品牌，确保不会丢失
-        let currentBrand = params.brand;
-        if (!currentBrand && pathSegments.length >= 2) {
-            currentBrand = pathSegments[1]; // 从路径中提取品牌
-        }
-        if (!currentBrand) {
-            currentBrand = 'kendo-china'; // 最后的默认值
-        }
-
-        const currentPage = pathSegments[2] || 'products'; // 默认页面
-
-        // 构建新路径
+        const currentBrand = params.brand || pathSegments[1] || 'kendo';
+        const currentPage = pathSegments[2] || 'category';
         const newPath = `/${newLanguage}/${currentBrand}/${currentPage}`;
 
-        // 保留查询参数
-        const search = location.search;
+        console.log('🌐 切换语言:', {
+            from: currentLanguage,
+            to: newLanguage,
+            path: newPath
+        });
 
-        // 导航到新路径
-        navigate(newPath + search);
+        navigate(`${newPath}${location.search}`);
+    }, [currentLanguage, location, navigate, params, currentSupportedLanguages]);
 
-        // 更新状态
-        setCurrentLanguage(newLanguage);
-    }, [currentLanguage, location, navigate, params]);
-
-    // 获取当前语言信息
     const getCurrentLanguageInfo = useCallback(() => {
-        return supportedLanguages.find(lang => lang.code === currentLanguage) || supportedLanguages[0];
-    }, [currentLanguage]);
+        return currentSupportedLanguages.find(lang => lang.code === currentLanguage) ||
+            (currentSupportedLanguages.length > 0 ? currentSupportedLanguages[0] : { code: 'en_GB', name: 'English (UK)', nativeName: 'English (UK)' });
+    }, [currentLanguage, currentSupportedLanguages]);
 
     return {
         currentLanguage,
-        supportedLanguages,
+        supportedLanguages: currentSupportedLanguages,
         changeLanguage,
         getCurrentLanguageInfo,
     };

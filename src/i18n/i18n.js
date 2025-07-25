@@ -1,7 +1,7 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
-// 导入翻译文件
+// 导入静态翻译文件作为回退
 import de_DE from './translations/de_DE.js';
 import en_GB from './translations/en_GB.js';
 import en_US from './translations/en_US.js';
@@ -10,8 +10,8 @@ import fr_FR from './translations/fr_FR.js';
 import ja_JP from './translations/ja_JP.js';
 import zh_CN from './translations/zh_CN.js';
 
-// 翻译资源配置
-const resources = {
+// 静态翻译资源配置（作为回退）
+const staticResources = {
     'en_GB': { translation: en_GB },
     'en_US': { translation: en_US },
     'zh_CN': { translation: zh_CN },
@@ -32,7 +32,7 @@ export const languageMap = {
     'ja_JP': 'ja',
 };
 
-// 支持的语言列表
+// 静态支持的语言列表（作为回退）
 export const supportedLanguages = [
     { code: 'en_GB', name: 'English (UK)', nativeName: 'English (UK)' },
     { code: 'en_US', name: 'English (US)', nativeName: 'English (US)' },
@@ -48,9 +48,8 @@ const getCurrentLanguage = () => {
     const pathSegments = window.location.pathname.split('/');
     const langFromPath = pathSegments[1];
 
-    // 检查是否是支持的语言
-    const supportedLanguageCodes = supportedLanguages.map(lang => lang.code);
-    if (supportedLanguageCodes.includes(langFromPath)) {
+    // 检查是否是支持的语言代码
+    if (supportedLanguages.some(lang => lang.code === langFromPath)) {
         return langFromPath;
     }
 
@@ -61,7 +60,7 @@ const getCurrentLanguage = () => {
 i18n
     .use(initReactI18next)
     .init({
-        resources,
+        resources: staticResources, // 初始使用静态资源
         lng: getCurrentLanguage(),
         fallbackLng: 'en_GB',
 

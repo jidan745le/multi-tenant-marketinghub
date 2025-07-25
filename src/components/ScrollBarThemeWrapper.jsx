@@ -1,7 +1,6 @@
 import {
-    Box,
-    Card,
-    styled,
+  Box,
+  styled
 } from '@mui/material';
 
 const renderScrollWrapper = ({
@@ -35,6 +34,4 @@ const renderScrollWrapper = ({
  * @param {string} type
  * @returns {string}
  */
-export const ScrollBarWrapper = styled(Card)(renderScrollWrapper);
 export const ScrollBarWrapperBox = styled(Box)(renderScrollWrapper);
-export const ScrollBarWrapperDiv = styled('div')(renderScrollWrapper); 
