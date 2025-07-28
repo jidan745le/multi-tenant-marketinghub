@@ -57,7 +57,23 @@ const themesSlice = createSlice({
                 'es_ES': 'Español',
                 'ja_JP': '日本語',
                 'bg-BG': 'Български',
-                'ch': '中文'
+                'ch': '中文',
+                'hr-HR': 'Hrvatski',
+                'cht': '繁體中文',
+                'cs_CZ': 'Čeština',
+                'da_DK': 'Dansk',
+                'el_GR': 'Ελληνικά',
+                'en_AU': 'English (AU)',
+                'et-EE': 'Eesti',
+                'fi_FI': 'Suomi',
+                'hu_HU': 'Magyar',
+                'it_IT': 'Italiano',
+                'ko_KR': '한국어',
+                'lt-LT': 'Lietuvių',
+                'lv-LV': 'Latviešu',
+                'nb_NO': 'Norsk',
+                'nl-NL': 'Nederlands',
+                'pl_PL': 'Polski'
             };
 
             // 将Strapi数据转换为应用所需的品牌格式

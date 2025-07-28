@@ -55,29 +55,43 @@ export const useTranslationLoader = () => {
     const getSupportedLanguages = useCallback(() => {
         const currentBrand = getCurrentBrand();
 
-        if (!currentBrand || !currentBrand.translations) {
+        if (!currentBrand) {
             return [];
         }
 
-        const supportedLanguageCodes = Object.keys(currentBrand.translations);
-
-        // 从品牌的languages配置中获取完整信息
+        // 优先使用品牌的 languages 配置（从 Strapi languages 字段获取）
         if (currentBrand.languages && currentBrand.languages.length > 0) {
-            return currentBrand.languages.filter(lang =>
-                supportedLanguageCodes.includes(lang.code)
-            ).map(lang => ({
+            console.log('🌐 使用品牌语言配置:', {
+                brand: currentBrand.code,
+                languagesCount: currentBrand.languages.length,
+                languages: currentBrand.languages.map(l => ({ code: l.code, name: l.name }))
+            });
+
+            return currentBrand.languages.map(lang => ({
                 code: lang.code,
                 name: lang.name,
                 nativeName: lang.nativeName || lang.name
             }));
         }
 
-        // 如果没有完整的语言配置，返回基本信息
-        return supportedLanguageCodes.map(code => ({
-            code,
-            name: code,
-            nativeName: code
-        }));
+        // 回退：如果没有 languages 配置，使用 translations 的键
+        if (currentBrand.translations) {
+            const supportedLanguageCodes = Object.keys(currentBrand.translations);
+            console.log('🌐 回退使用翻译数据的语言:', {
+                brand: currentBrand.code,
+                languagesCount: supportedLanguageCodes.length,
+                languages: supportedLanguageCodes
+            });
+
+            return supportedLanguageCodes.map(code => ({
+                code,
+                name: code,
+                nativeName: code
+            }));
+        }
+
+        console.log('⚠️ 没有找到任何语言配置:', { brand: currentBrand.code });
+        return [];
     }, [getCurrentBrand]);
 
     return {

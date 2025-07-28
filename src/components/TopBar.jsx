@@ -1,19 +1,19 @@
 import {
-    ArrowDropDown,
-    DownloadOutlined,
-    Language,
-    SettingsOutlined,
-    ShareOutlined,
-    StickyNote2Outlined
+  ArrowDropDown,
+  DownloadOutlined,
+  Language,
+  SettingsOutlined,
+  ShareOutlined,
+  StickyNote2Outlined
 } from '@mui/icons-material';
 import {
-    Avatar,
-    Box,
-    IconButton,
-    Menu,
-    MenuItem,
-    Tooltip,
-    Typography
+  Avatar,
+  Box,
+  IconButton,
+  Menu,
+  MenuItem,
+  Tooltip,
+  Typography
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import React, { useEffect, useState } from 'react';
@@ -357,6 +357,8 @@ const TopRow = () => {
   const navigateToAdmin = () => {
     navigate(`/${currentLanguage}/${currentBrand.code}/admin`);
   };
+
+  console.log("supportedLanguages", supportedLanguages);
 
   return (
     <StyledTopRow>

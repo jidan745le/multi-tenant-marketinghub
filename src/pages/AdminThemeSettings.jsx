@@ -10,26 +10,27 @@ import FeaturedPlayListIcon from '@mui/icons-material/FeaturedPlayList';
 import SettingsIcon from '@mui/icons-material/Settings';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import {
-    Box,
-    Button,
-    Checkbox,
-    CircularProgress,
-    Container,
-    FormControlLabel,
-    Grid,
-    IconButton,
-    List,
-    ListItem,
-    ListItemText,
-    Paper,
-    TextField,
-    Typography
+  Box,
+  Button,
+  Checkbox,
+  CircularProgress,
+  Container,
+  FormControlLabel,
+  Grid,
+  IconButton,
+  List,
+  ListItem,
+  ListItemText,
+  Paper,
+  TextField,
+  Typography
 } from '@mui/material';
 import { alpha, styled } from '@mui/material/styles';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSelector } from 'react-redux';
-import { selectBrands, selectLanguages, selectThemesLoading } from '../store/slices/themesSlice';
+import { useBrand } from '../hooks/useBrand';
+import { selectLanguages, selectThemesLoading } from '../store/slices/themesSlice';
 
 // 样式化组件
 const SectionTitle = styled(Typography)(() => ({
@@ -274,71 +275,93 @@ const EmptyPreviewIcon = styled(Box)(({ theme }) => ({
   marginBottom: theme.spacing(2),
 }));
 
-// 图片上传预览组件
-const ImageUpload = ({ initialImage = null, height = 120, onImageChange }) => {
-  const [previewUrl, setPreviewUrl] = useState(null);
-  
-  // 当initialImage变化时更新预览
-  useEffect(() => {
-    if (initialImage) {
-      console.log('ImageUpload组件收到初始图片:', initialImage);
-      setPreviewUrl(initialImage);
-    }
-  }, [initialImage]);
-  
-  const handleFileChange = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const dataUrl = reader.result;
-        console.log('用户上传了新图片');
-        setPreviewUrl(dataUrl);
-        if (onImageChange) {
-          onImageChange(file, dataUrl);
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-  
-  const handleRemoveImage = () => {
-    console.log('用户移除了图片');
-    setPreviewUrl(null);
-    if (onImageChange) {
-      onImageChange(null, null);
-    }
-  };
-  
-  return (
-    <ImagePreviewBox sx={{ height }}>
-      {previewUrl ? (
-        <>
-          <img 
-            src={previewUrl} 
-            alt="预览" 
-            style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} 
+  // 图片上传预览组件 - 支持Strapi图片和blob预览
+  const ImageUpload = ({ title, image, logoType, isUploading, onUpload, onDelete }) => {
+    const handleFileChange = async (event) => {
+      const file = event.target.files[0];
+      if (file && onUpload) {
+        await onUpload(file, logoType);
+      }
+    };
+
+    const handleEdit = () => {
+      document.getElementById(`file-input-${logoType}`).click();
+    };
+
+    const handleDelete = () => {
+      if (onDelete) {
+        onDelete(logoType);
+      }
+    };
+
+    // 处理图片显示 - blob URL直接显示，Strapi URL忽略CORS错误
+    const handleImageError = (e) => {
+      console.error('图片加载失败 (可能是CORS问题):', image);
+      // 对于CORS错误，我们不做任何处理，因为这是预期的
+      // 只有blob URL才能正常显示
+    };
+
+    return (
+      <Grid item xs={12} md={6}>
+        <SectionTitle>{title}</SectionTitle>
+        <ImagePreviewBox>
+          {isUploading ? (
+            <CircularProgress />
+          ) : image ? (
+            <>
+              <img
+                src={image}
+                alt={title}
+                onError={handleImageError}
+                onLoad={() => {
+                  console.log('图片加载成功:', image);
+                }}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain'
+                }}
+              />
+              <EditButton
+                variant="contained"
+                color="primary"
+                onClick={handleEdit}
+                size="small"
+              >
+                <EditIcon fontSize="small" />
+              </EditButton>
+              <DeleteButton
+                variant="contained"
+                onClick={handleDelete}
+                size="small"
+              >
+                <DeleteIcon fontSize="small" />
+              </DeleteButton>
+            </>
+          ) : (
+            <Button
+              variant="outlined"
+              component="label"
+              startIcon={<CloudUploadIcon />}
+            >
+              Upload {title}
+              <VisuallyHiddenInput
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+              />
+            </Button>
+          )}
+          <VisuallyHiddenInput
+            id={`file-input-${logoType}`}
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
           />
-          <DeleteButton size="small" variant="contained" onClick={handleRemoveImage}>
-            <DeleteIcon fontSize="small" />
-          </DeleteButton>
-          <EditButton size="small" variant="contained" component="label">
-            <EditIcon fontSize="small" />
-            <VisuallyHiddenInput type="file" accept="image/*" onChange={handleFileChange} />
-          </EditButton>
-        </>
-      ) : (
-        <Button
-          component="label"
-          startIcon={<CloudUploadIcon />}
-        >
-          上传图片
-          <VisuallyHiddenInput type="file" accept="image/*" onChange={handleFileChange} />
-        </Button>
-      )}
-    </ImagePreviewBox>
-  );
-};
+        </ImagePreviewBox>
+      </Grid>
+    );
+  };
 
 // 管理后台菜单项
 const menuItems = [
@@ -415,66 +438,590 @@ function UnderConstructionContent() {
   );
 }
 
-// 管理后台主题设置页面组件
-function AdminThemeSettings() {
-  const [selectedMenuItem, setSelectedMenuItem] = useState('theme-general-settings');
-  const brands = useSelector(selectBrands);
-  const loading = useSelector(selectThemesLoading);
-  const [localThemeData, setLocalThemeData] = useState(null);
-  const allLanguages = useSelector(selectLanguages); // 获取所有可用语言
-  const [selectedLanguages, setSelectedLanguages] = useState([]);
-  
-  // 图片状态
-  const [logoImage, setLogoImage] = useState(null);
-  const [onwhiteLogoImage, setOnwhiteLogoImage] = useState(null);
-  const [oncolorLogoImage, setOncolorLogoImage] = useState(null);
-  const [faviconImage, setFaviconImage] = useState(null);
-  const [loginBgImage, setLoginBgImage] = useState(null);
-  
-  // Translations文件状态
-  const [uploadedFile, setUploadedFile] = useState(null);
-  const [selectedFileContent, setSelectedFileContent] = useState('');
-  const [selectedFileName, setSelectedFileName] = useState('');
-
-  // 文件处理函数
-  const handleFileUpload = (event) => {
-    const files = event.target.files;
-    if (files && files.length > 0) {
-      const file = files[0];
-      const fileExtension = file.name.split('.').pop().toLowerCase();
+// 文件上传和主题更新的工具函数
+const updateThemeWithRetry = async (themeId, updateData, retries = 3) => {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const strapiBaseUrl = import.meta.env.VITE_STRAPI_BASE_URL;
+      const strapiToken = import.meta.env.VITE_STRAPI_TOKEN;
       
-      if (!['txt', 'json'].includes(fileExtension)) {
-        alert('Only TXT and JSON files are supported');
-        return;
+      if (!strapiBaseUrl || !strapiToken) {
+        throw new Error('Strapi configuration is missing');
       }
 
-      const fileItem = {
-        id: Date.now(),
-        name: file.name,
-        size: file.size,
-        file: file
-      };
+      const response = await fetch(`${strapiBaseUrl}/api/themes/${themeId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${strapiToken}`
+        },
+        body: JSON.stringify({ data: updateData })
+      });
 
-      setUploadedFile(fileItem);
-      previewFile(fileItem);
+      if (!response.ok) {
+        throw new Error(`Update failed: ${response.status} ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.log(`更新失败，第 ${i + 1} 次重试`, error);
+      
+      if (i < retries) {
+        // 重试前等待
+        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+      } else {
+        throw error;
+      }
+    }
+  }
+};
+
+
+
+// 管理后台主题设置页面组件
+function AdminThemeSettings() {
+  const { t } = useTranslation();
+  const allLanguages = useSelector(selectLanguages);
+  const isLoading = useSelector(selectThemesLoading);
+  const { currentBrand } = useBrand();
+
+  // 状态管理
+  const [activeMenuItem, setActiveMenuItem] = useState('theme-general');
+  const [selectedLanguages, setSelectedLanguages] = useState([]);
+  const [strapiLanguages, setStrapiLanguages] = useState([]);
+  const [languagesLoading, setLanguagesLoading] = useState(false);
+  
+  // 图片预览状态
+  const [brandLogoPreview, setBrandLogoPreview] = useState(null);
+  const [onwhiteLogoPreview, setOnwhiteLogoPreview] = useState(null);
+  const [oncolorLogoPreview, setOncolorLogoPreview] = useState(null);
+  const [faviconPreview, setFaviconPreview] = useState(null);
+  const [loginBackgroundPreview, setLoginBackgroundPreview] = useState(null);
+
+  // 翻译文件上传状态
+  const [uploadedTranslationFile, setUploadedTranslationFile] = useState(null);
+  const [translationFileContent, setTranslationFileContent] = useState('');
+
+  // 配置数据状态
+  const [primaryColor, setPrimaryColor] = useState('');
+  const [secondaryColor, setSecondaryColor] = useState('');
+  const [loginPretitle, setLoginPretitle] = useState('');
+  const [loginTitle, setLoginTitle] = useState('');
+  const [loginSubtitle, setLoginSubtitle] = useState('');
+  
+  // 上传状态管理
+  const [uploadingStates, setUploadingStates] = useState({
+    theme_logo: false,
+    onwhite_logo: false,
+    oncolor_logo: false,
+    favicon: false,
+    loginBg: false
+  });
+
+  // 跟踪已上传的图片ID
+  const [uploadedImageIds, setUploadedImageIds] = useState({
+    theme_logo: null,
+    onwhite_logo: null,
+    oncolor_logo: null,
+    favicon: null,
+    loginBg: null
+  });
+
+  // 更新图片上传成功后的ID记录
+  const updateUploadedImageId = (logoType, imageId) => {
+    setUploadedImageIds(prev => ({
+      ...prev,
+      [logoType]: imageId
+    }));
+  };
+
+  // 上传文件到 Strapi
+  const uploadFileToStrapi = async (file, logoType) => {
+    try {
+      const strapiBaseUrl = import.meta.env.VITE_STRAPI_BASE_URL;
+      const strapiToken = import.meta.env.VITE_STRAPI_TOKEN;
+      
+      if (!strapiBaseUrl || !strapiToken) {
+        throw new Error('Strapi 配置缺失');
+      }
+
+      const formData = new FormData();
+      formData.append('files', file);
+
+      const response = await fetch(`${strapiBaseUrl}/api/upload`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${strapiToken}`
+        },
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const uploadedFiles = await response.json();
+      console.log('✅ 图片上传成功:', uploadedFiles);
+      
+      // 记录上传的图片ID，用于后续更新主题配置
+      if (uploadedFiles && uploadedFiles.length > 0) {
+        const uploadedImage = uploadedFiles[0];
+        updateUploadedImageId(logoType, uploadedImage.id);
+        console.log(`📝 记录${logoType}图片ID:`, uploadedImage.id);
+        return uploadedImage;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('❌ 图片上传失败:', error);
+      throw error;
     }
   };
 
-  const previewFile = (fileItem) => {
+  // 获取 Strapi languages 数据
+  const fetchStrapiLanguages = async () => {
+    try {
+      setLanguagesLoading(true);
+      const strapiBaseUrl = import.meta.env.VITE_STRAPI_BASE_URL;
+      const strapiToken = import.meta.env.VITE_STRAPI_TOKEN;
+      
+      if (!strapiBaseUrl || !strapiToken) {
+        console.error('Strapi 配置缺失');
+        return;
+      }
+
+      console.log('🔍 获取 Strapi languages 数据...');
+      
+      // 获取所有语言数据，可能需要分页
+      const response = await fetch(`${strapiBaseUrl}/api/languages?pagination[pageSize]=100`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${strapiToken}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const languagesData = await response.json();
+      console.log('✅ 获取到 Strapi languages 数据:', languagesData);
+      
+      // 处理语言数据，按 order 排序，然后按 label 排序
+      const processedLanguages = languagesData.data
+        .map(lang => ({
+          id: lang.id,
+          documentId: lang.documentId,
+          code: lang.key,
+          key: lang.key,
+          label: lang.label,
+          iso_639_code: lang.iso_639_code,
+          order: lang.order || 999
+        }))
+        .sort((a, b) => {
+          // 先按 order 排序，如果 order 相同则按 label 排序
+          if (a.order !== b.order) {
+            return a.order - b.order;
+          }
+          return a.label.localeCompare(b.label);
+        });
+
+      setStrapiLanguages(processedLanguages);
+      console.log('📊 处理后的语言数据:', processedLanguages);
+
+    } catch (error) {
+      console.error('❌ 获取 Strapi languages 失败:', error);
+    } finally {
+      setLanguagesLoading(false);
+    }
+  };
+
+  // 组件加载时获取语言数据
+  useEffect(() => {
+    fetchStrapiLanguages();
+  }, []);
+
+  // 检查语言是否被当前主题关联
+  const isLanguageSelectedByTheme = (languageCode) => {
+    if (!currentTheme?.languages) return false;
+    return currentTheme.languages.some(lang => lang.code === languageCode);
+  };
+
+  // 保存配置到 Strapi
+  const handleSaveConfiguration = async () => {
+    try {
+      if (!currentBrand) {
+        alert('未找到当前品牌数据');
+        return;
+      }
+
+      if (!currentBrand.strapiData?.documentId) {
+        alert('未找到品牌的 documentId');
+        return;
+      }
+
+      console.log('🔄 开始保存完整配置...');
+      console.log('当前品牌:', currentBrand);
+      console.log('选中的语言:', selectedLanguages);
+      console.log('可用的Strapi语言:', strapiLanguages);
+
+      const strapiBaseUrl = import.meta.env.VITE_STRAPI_BASE_URL;
+      const strapiToken = import.meta.env.VITE_STRAPI_TOKEN;
+      
+      if (!strapiBaseUrl || !strapiToken) {
+        alert('Strapi 配置缺失');
+        return;
+      }
+
+      // 1. 准备语言数据 - 将选中的语言代码映射为documentId数组
+      const selectedLanguageDocuments = selectedLanguages
+        .map(langCode => {
+          const foundLang = strapiLanguages.find(lang => lang.code === langCode);
+          if (!foundLang) {
+            console.warn(`未找到语言代码对应的数据: ${langCode}`);
+            return null;
+          }
+          return foundLang.documentId;
+        })
+        .filter(id => id !== null);
+
+      console.log('选中语言的 documentIds:', selectedLanguageDocuments);
+
+      // 2. 准备颜色数据
+      const colorData = {
+        primary_color: primaryColor || currentBrand.colors?.primary_color,
+        secondary_color: secondaryColor || currentBrand.colors?.secondary_color
+      };
+
+      // 3. 准备login数据（如果有修改）
+      const loginData = {
+        pretitle: loginPretitle || currentBrand.login?.pretitle || '',
+        title: loginTitle || currentBrand.login?.title || '',
+        subtitle: loginSubtitle || currentBrand.login?.subtitle || '',
+        background: currentBrand.login?.background || null
+      };
+
+      // 4. 准备更新数据 - 包含所有配置项
+      const updateData = {
+        languages: selectedLanguageDocuments,
+        theme_colors: colorData,
+        login: loginData
+      };
+
+      // 5. 添加 logo 更新数据
+      // 如果有新上传的 theme_logo，更新主 logo
+      if (uploadedImageIds.theme_logo) {
+        updateData.theme_logo = uploadedImageIds.theme_logo;
+        console.log('🖼️ 更新 theme_logo:', uploadedImageIds.theme_logo);
+      }
+
+      // 处理 theme_logos 中的各个 logo
+      const themeLogosUpdate = {};
+      let hasThemeLogosUpdate = false;
+
+      // 如果没有新上传的图片，保留现有的图片ID
+      const currentThemeLogos = currentBrand.strapiData?.theme_logos;
+
+      if (uploadedImageIds.onwhite_logo) {
+        themeLogosUpdate.onwhite_logo = uploadedImageIds.onwhite_logo;
+        hasThemeLogosUpdate = true;
+        console.log('🖼️ 更新 onwhite_logo:', uploadedImageIds.onwhite_logo);
+      } else if (currentThemeLogos?.onwhite_logo?.id) {
+        themeLogosUpdate.onwhite_logo = currentThemeLogos.onwhite_logo.id;
+        hasThemeLogosUpdate = true;
+        console.log('🖼️ 保留现有 onwhite_logo:', currentThemeLogos.onwhite_logo.id);
+      }
+
+      if (uploadedImageIds.oncolor_logo) {
+        themeLogosUpdate.oncolor_logo = uploadedImageIds.oncolor_logo;
+        hasThemeLogosUpdate = true;
+        console.log('🖼️ 更新 oncolor_logo:', uploadedImageIds.oncolor_logo);
+      } else if (currentThemeLogos?.oncolor_logo?.id) {
+        themeLogosUpdate.oncolor_logo = currentThemeLogos.oncolor_logo.id;
+        hasThemeLogosUpdate = true;
+        console.log('🖼️ 保留现有 oncolor_logo:', currentThemeLogos.oncolor_logo.id);
+      }
+
+      if (uploadedImageIds.favicon) {
+        themeLogosUpdate.favicon = uploadedImageIds.favicon;
+        hasThemeLogosUpdate = true;
+        console.log('🖼️ 更新 favicon:', uploadedImageIds.favicon);
+      } else if (currentThemeLogos?.favicon?.id) {
+        themeLogosUpdate.favicon = currentThemeLogos.favicon.id;
+        hasThemeLogosUpdate = true;
+        console.log('🖼️ 保留现有 favicon:', currentThemeLogos.favicon.id);
+      }
+
+      // 如果有 theme_logos 的更新，添加到更新数据中
+      if (hasThemeLogosUpdate) {
+        // 需要保持现有的 theme_logos ID，只更新特定字段
+        updateData.theme_logos = {
+          ...themeLogosUpdate
+        };
+        console.log('🖼️ theme_logos 更新数据:', updateData.theme_logos);
+      }
+
+      // 6. 如果有新上传的登录背景图片，更新 login.background
+      if (uploadedImageIds.loginBg) {
+        updateData.login = {
+          ...updateData.login,
+          background: uploadedImageIds.loginBg
+        };
+        console.log('🖼️ 更新 login background:', uploadedImageIds.loginBg);
+      } else if (currentBrand.strapiData?.login?.background?.id) {
+        // 保留现有的登录背景图片ID
+        updateData.login = {
+          ...updateData.login,
+          background: currentBrand.strapiData.login.background.id
+        };
+        console.log('🖼️ 保留现有 login background:', currentBrand.strapiData.login.background.id);
+      }
+
+      console.log('准备更新的完整数据:', updateData);
+      console.log('目标主题 documentId:', currentBrand.strapiData.documentId);
+
+      // 调用 Strapi API 更新 themes
+      const response = await fetch(`${strapiBaseUrl}/api/themes/${currentBrand.strapiData.documentId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${strapiToken}`
+        },
+        body: JSON.stringify({ data: updateData })
+      });
+
+      console.log('API 响应状态:', response.status, response.statusText);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API 错误响应:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ 完整配置保存成功:', result);
+      alert('配置保存成功！');
+
+      // 清空已上传的图片ID记录
+      setUploadedImageIds({
+        theme_logo: null,
+        onwhite_logo: null,
+        oncolor_logo: null,
+        favicon: null,
+        loginBg: null
+      });
+
+      // 重新获取主题数据以更新界面
+      // dispatch(fetchThemes());
+
+    } catch (error) {
+      console.error('❌ 保存配置失败:', error);
+      alert(`保存失败: ${error.message}`);
+    }
+  };
+
+  // 测试调用 Strapi languages 接口
+  const testStrapiLanguagesAPI = async () => {
+    try {
+      const strapiBaseUrl = import.meta.env.VITE_STRAPI_BASE_URL;
+      const strapiToken = import.meta.env.VITE_STRAPI_TOKEN;
+      
+      if (!strapiBaseUrl || !strapiToken) {
+        console.error('Strapi 配置缺失');
+        return;
+      }
+
+      console.log('🔍 尝试调用 Strapi languages 接口...');
+      
+      const response = await fetch(`${strapiBaseUrl}/api/languages`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${strapiToken}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const languagesData = await response.json();
+      console.log('✅ Strapi languages 接口返回数据:', languagesData);
+      console.log('📊 数据详情:', {
+        数据条数: languagesData.data?.length || 0,
+        第一条数据: languagesData.data?.[0] || null,
+        完整响应: languagesData
+      });
+
+    } catch (error) {
+      console.error('❌ 调用 Strapi languages 接口失败:', error);
+    }
+  };
+
+  // 组件加载时测试接口
+  useEffect(() => {
+    // 延迟1秒调用，确保组件完全加载
+    const timer = setTimeout(() => {
+      testStrapiLanguagesAPI();
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // 获取当前主题
+  const currentTheme = currentBrand;
+
+  // 处理语言勾选变化
+  const handleLanguageChange = (languageCode) => {
+    console.log('点击语言:', languageCode);
+    console.log('当前选中的语言:', selectedLanguages);
+    
+    setSelectedLanguages(prev => {
+      const newSelection = prev.includes(languageCode)
+        ? prev.filter(code => code !== languageCode)
+        : [...prev, languageCode];
+      
+      console.log('更新后的语言选择:', newSelection);
+      return newSelection;
+    });
+  };
+
+  useEffect(() => {
+    if (currentTheme?.languages) {
+      // 修复：使用正确的语言数据结构
+      const languageKeys = currentTheme.languages.map(lang => lang.code);
+      console.log('设置选中的语言:', languageKeys);
+      console.log('当前主题的语言数据:', currentTheme.languages);
+      setSelectedLanguages(languageKeys);
+    } else {
+      console.log('当前主题没有语言数据');
+      setSelectedLanguages([]);
+    }
+  }, [currentTheme]);
+
+  // 初始化配置数据状态
+  useEffect(() => {
+    if (currentBrand) {
+      // 初始化颜色配置
+      setPrimaryColor(currentBrand.colors?.primary_color || '');
+      setSecondaryColor(currentBrand.colors?.secondary_color || '');
+      
+      // 初始化登录页面配置
+      setLoginPretitle(currentBrand.login?.pretitle || '');
+      setLoginTitle(currentBrand.login?.title || '');
+      setLoginSubtitle(currentBrand.login?.subtitle || '');
+      
+      console.log('初始化配置数据:', {
+        colors: currentBrand.colors,
+        login: currentBrand.login
+      });
+    }
+  }, [currentBrand]);
+
+  useEffect(() => {
+    console.log('所有可用语言:', allLanguages);
+    console.log('Strapi语言数据:', strapiLanguages);
+    console.log('当前选中的语言:', selectedLanguages);
+  }, [allLanguages, strapiLanguages, selectedLanguages]);
+
+  // 检查语言是否被选中 - 使用 selectedLanguages 状态而不是主题数据
+  const isLanguageSelected = (languageCode) => {
+    return selectedLanguages.includes(languageCode);
+  };
+
+  // 初始化图片预览 - 从Redux回显已存在的图片
+  useEffect(() => {
+    console.log('初始化图片预览，currentBrand:', currentBrand);
+    if (currentBrand) {
+      const baseUrl = import.meta.env.VITE_STRAPI_BASE_URL || '';
+      
+      // 修复：设置 brand logo - 在Redux中存储为 logo 字段
+      if (currentBrand.logo?.url) {
+        const logoUrl = `${baseUrl}${currentBrand.logo.url}`;
+        console.log('设置 Brand Logo (从logo字段):', logoUrl);
+        setBrandLogoPreview(logoUrl);
+      } else if (currentBrand.strapiData?.theme_logo?.url) {
+        const logoUrl = `${baseUrl}${currentBrand.strapiData.theme_logo.url}`;
+        console.log('设置 Brand Logo (从strapiData.theme_logo):', logoUrl);
+        setBrandLogoPreview(logoUrl);
+      } else {
+        console.log('未找到 Brand Logo 数据');
+        setBrandLogoPreview(null);
+      }
+      
+      // 设置 onwhite logo
+      if (currentBrand.onwhite_logo?.url) {
+        const onwhiteUrl = `${baseUrl}${currentBrand.onwhite_logo.url}`;
+        console.log('设置 Onwhite Logo:', onwhiteUrl);
+        setOnwhiteLogoPreview(onwhiteUrl);
+      } else if (currentBrand.strapiData?.theme_logos?.onwhite_logo?.url) {
+        const onwhiteUrl = `${baseUrl}${currentBrand.strapiData.theme_logos.onwhite_logo.url}`;
+        console.log('设置 Onwhite Logo (从strapiData):', onwhiteUrl);
+        setOnwhiteLogoPreview(onwhiteUrl);
+      } else {
+        setOnwhiteLogoPreview(null);
+      }
+      
+      // 设置 oncolor logo
+      if (currentBrand.oncolor_logo?.url) {
+        const oncolorUrl = `${baseUrl}${currentBrand.oncolor_logo.url}`;
+        console.log('设置 Oncolor Logo:', oncolorUrl);
+        setOncolorLogoPreview(oncolorUrl);
+      } else if (currentBrand.strapiData?.theme_logos?.oncolor_logo?.url) {
+        const oncolorUrl = `${baseUrl}${currentBrand.strapiData.theme_logos.oncolor_logo.url}`;
+        console.log('设置 Oncolor Logo (从strapiData):', oncolorUrl);
+        setOncolorLogoPreview(oncolorUrl);
+      } else {
+        setOncolorLogoPreview(null);
+      }
+      
+      // 设置 favicon
+      if (currentBrand.favicon?.url) {
+        const faviconUrl = `${baseUrl}${currentBrand.favicon.url}`;
+        console.log('设置 Favicon:', faviconUrl);
+        setFaviconPreview(faviconUrl);
+      } else if (currentBrand.strapiData?.theme_logos?.favicon?.url) {
+        const faviconUrl = `${baseUrl}${currentBrand.strapiData.theme_logos.favicon.url}`;
+        console.log('设置 Favicon (从strapiData):', faviconUrl);
+        setFaviconPreview(faviconUrl);
+      } else {
+        setFaviconPreview(null);
+      }
+      
+      // 设置 login background
+      if (currentBrand.login?.background?.url) {
+        const loginBgUrl = `${baseUrl}${currentBrand.login.background.url}`;
+        console.log('设置 Login Background:', loginBgUrl);
+        setLoginBackgroundPreview(loginBgUrl);
+      } else if (currentBrand.strapiData?.login?.background?.url) {
+        const loginBgUrl = `${baseUrl}${currentBrand.strapiData.login.background.url}`;
+        console.log('设置 Login Background (从strapiData):', loginBgUrl);
+        setLoginBackgroundPreview(loginBgUrl);
+      } else {
+        setLoginBackgroundPreview(null);
+      }
+    } else {
+      // 如果没有品牌数据，重置所有图片状态
+      setBrandLogoPreview(null);
+      setOnwhiteLogoPreview(null);
+      setOncolorLogoPreview(null);
+      setFaviconPreview(null);
+      setLoginBackgroundPreview(null);
+    }
+  }, [currentBrand]);
+
+  // 文件预览函数
+  const previewFile = (file) => {
     const reader = new FileReader();
     reader.onload = (e) => {
-      setSelectedFileContent(e.target.result);
-      setSelectedFileName(fileItem.name);
+      setTranslationFileContent(e.target.result);
     };
-    reader.readAsText(fileItem.file);
+    reader.readAsText(file);
   };
 
-  const removeFile = () => {
-    setUploadedFile(null);
-    setSelectedFileContent('');
-    setSelectedFileName('');
-  };
-
+  // 拖拽处理函数
   const handleDragOver = (event) => {
     event.preventDefault();
   };
@@ -498,114 +1045,141 @@ function AdminThemeSettings() {
         file: file
       };
 
-      setUploadedFile(fileItem);
-      previewFile(fileItem);
+      setUploadedTranslationFile(fileItem);
+      previewFile(file);
     }
   };
-  
-  console.log(brands,"brands")
-   
-  // 当品牌数据加载完成后，设置当前选中品牌的数据
-  useEffect(() => {
-    console.log('初始化主题数据...', brands?.length || 0);
-    
-    if (brands && brands.length > 0) {
-      const currentTheme = brands[0].strapiData;
-      console.log('获取到主题数据:', currentTheme?.theme_key, '图片数据:', {
-        logo: currentTheme?.theme_logo?.url || '无logo',
-        favicon: currentTheme?.theme_logos?.favicon?.url || '无favicon',
-        onwhite_logo: currentTheme?.theme_logos?.onwhite_logo?.url || '无onwhite_logo',
-        oncolor_logo: currentTheme?.theme_logos?.oncolor_logo?.url || '无oncolor_logo'
-      });
-      
-      setLocalThemeData(brands[0]);
-      
-      // 如果有API数据，设置初始图片
-      if (currentTheme) {
-        if (currentTheme.theme_logo?.url) {
-          const logoUrl = getFullImageUrl(currentTheme.theme_logo.url);
-          console.log('设置Logo URL:', logoUrl);
-          setLogoImage(logoUrl);
-        }
-        
-        if (currentTheme.theme_logos?.favicon?.url) {
-          const faviconUrl = getFullImageUrl(currentTheme.theme_logos.favicon.url);
-          console.log('设置Favicon URL:', faviconUrl);
-          setFaviconImage(faviconUrl);
-        }
-        
-        // 设置onwhite_logo和oncolor_logo
-        if (currentTheme.theme_logos?.onwhite_logo?.url) {
-          const onwhiteLogoUrl = getFullImageUrl(currentTheme.theme_logos.onwhite_logo.url);
-          console.log('设置Onwhite Logo URL:', onwhiteLogoUrl);
-          setOnwhiteLogoImage(onwhiteLogoUrl);
-        }
-        
-        if (currentTheme.theme_logos?.oncolor_logo?.url) {
-          const oncolorLogoUrl = getFullImageUrl(currentTheme.theme_logos.oncolor_logo.url);
-          console.log('设置Oncolor Logo URL:', oncolorLogoUrl);
-          setOncolorLogoImage(oncolorLogoUrl);
-        }
 
-        // 设置当前主题的选中语言
-        if (currentTheme.languages && Array.isArray(currentTheme.languages)) {
-          const languageCodes = currentTheme.languages.map(lang => lang.key);
-          setSelectedLanguages(languageCodes);
+  // 图片上传处理函数 - blob预览 + 调用上传接口
+  const handleImageUpload = async (file, logoType) => {
+    console.log('开始处理图片:', logoType, file.name);
+    
+    // 设置上传状态
+    setUploadingStates(prev => ({
+      ...prev,
+      [logoType]: true
+    }));
+
+    // 先创建blob URL立即显示预览（避免CORS问题）
+    const blobUrl = URL.createObjectURL(file);
+    console.log('创建blob URL用于立即预览:', blobUrl);
+    
+    // 立即设置blob预览
+    switch (logoType) {
+      case 'theme_logo':
+        setBrandLogoPreview(blobUrl);
+        break;
+      case 'onwhite_logo':
+        setOnwhiteLogoPreview(blobUrl);
+        break;
+      case 'oncolor_logo':
+        setOncolorLogoPreview(blobUrl);
+        break;
+      case 'favicon':
+        setFaviconPreview(blobUrl);
+        break;
+      case 'loginBg':
+        setLoginBackgroundPreview(blobUrl);
+        break;
+    }
+
+    try {
+      // 后台调用上传接口（但不用返回的URL显示）
+      const uploadedFile = await uploadFileToStrapi(file, logoType);
+      console.log('文件上传到Strapi成功:', uploadedFile);
+      
+      // 可以在这里触发Redux更新或保存文件ID供后续保存配置时使用
+      // TODO: 保存uploadedFile.id到某个状态，供保存配置时使用
+      
+      // 清除上传状态
+      setUploadingStates(prev => ({
+        ...prev,
+        [logoType]: false
+      }));
+      
+      console.log('图片处理完成 - 预览使用blob，文件已上传到Strapi');
+      
+    } catch (error) {
+      console.error('图片上传失败:', error);
+      
+      // 上传失败，恢复原始图片
+      if (currentBrand) {
+        const baseUrl = import.meta.env.VITE_STRAPI_BASE_URL || '';
+        switch (logoType) {
+          case 'theme_logo': {
+            setBrandLogoPreview(currentBrand.logo?.url ? `${baseUrl}${currentBrand.logo.url}` : null);
+            break;
+          }
+          case 'onwhite_logo': {
+            const onwhiteUrl = currentBrand.onwhite_logo?.url || currentBrand.strapiData?.theme_logos?.onwhite_logo?.url;
+            setOnwhiteLogoPreview(onwhiteUrl ? `${baseUrl}${onwhiteUrl}` : null);
+            break;
+          }
+          case 'oncolor_logo': {
+            const oncolorUrl = currentBrand.oncolor_logo?.url || currentBrand.strapiData?.theme_logos?.oncolor_logo?.url;
+            setOncolorLogoPreview(oncolorUrl ? `${baseUrl}${oncolorUrl}` : null);
+            break;
+          }
+          case 'favicon': {
+            const faviconUrl = currentBrand.favicon?.url || currentBrand.strapiData?.theme_logos?.favicon?.url;
+            setFaviconPreview(faviconUrl ? `${baseUrl}${faviconUrl}` : null);
+            break;
+          }
+          case 'loginBg': {
+            setLoginBackgroundPreview(currentBrand.login?.background?.url ? `${baseUrl}${currentBrand.login.background.url}` : null);
+            break;
+          }
         }
       }
+      
+      // 清除上传状态
+      setUploadingStates(prev => ({
+        ...prev,
+        [logoType]: false
+      }));
+      
+      alert(`图片上传失败: ${error.message}`);
     }
-    
-    // 组件卸载时的清理函数
-    return () => {
-      console.log('AdminThemeSettings组件卸载');
-    };
-  }, [brands]);
+  };
+
+  // 删除图片
+  const handleImageDelete = (logoType) => {
+    switch (logoType) {
+      case 'theme_logo':
+        setBrandLogoPreview(null);
+        break;
+      case 'onwhite_logo':
+        setOnwhiteLogoPreview(null);
+        break;
+      case 'oncolor_logo':
+        setOncolorLogoPreview(null);
+        break;
+      case 'favicon':
+        setFaviconPreview(null);
+        break;
+      case 'loginBg':
+        setLoginBackgroundPreview(null);
+        break;
+    }
+    // TODO: 实现删除API调用
+  };
 
   // 处理菜单项选择
   const handleMenuItemClick = (menuId) => {
-    setSelectedMenuItem(menuId);
+    setActiveMenuItem(menuId);
   };
 
-  // 获取Strapi API的基础URL
-  const getBaseUrl = () => {
-    return import.meta.env.VITE_STRAPI_BASE_URL || '';
+  // 辅助函数：获取完整图片URL
+  const getFullImageUrl = (relativeUrl) => {
+    if (!relativeUrl) return '';
+    const baseUrl = import.meta.env.VITE_STRAPI_BASE_URL || '';
+    return relativeUrl.startsWith('http') ? relativeUrl : `${baseUrl}${relativeUrl}`;
   };
 
-  // 获取完整的图片URL
-  const getFullImageUrl = (url) => {
-    if (!url) {
-      console.log('获取图片URL: 输入为空');
-      return '';
-    }
-    
-    // 已经是完整URL
-    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
-      console.log('获取图片URL: 已经是完整URL:', url.substring(0, 50) + (url.length > 50 ? '...' : ''));
-      return url;
-    }
-    
-    // 是相对URL，需要添加基础URL
-    const baseUrl = getBaseUrl();
-    const fullUrl = `${baseUrl}${url}`;
-    console.log('获取图片URL: 添加基础URL:', fullUrl);
-    return fullUrl;
-  };
 
-  // 处理语言选择状态变化
-  const handleLanguageChange = (langCode) => {
-    setSelectedLanguages(prev => {
-      if (prev.includes(langCode)) {
-        return prev.filter(code => code !== langCode);
-      } else {
-        return [...prev, langCode];
-      }
-    });
-  };
-
-  // 文件处理函数已在上方定义
 
   // 如果正在加载或数据不存在，显示加载状态
-  if (loading || !localThemeData) {
+  if (isLoading || !currentBrand) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
         <CircularProgress />
@@ -614,7 +1188,6 @@ function AdminThemeSettings() {
   }
 
   // 提取当前品牌的主题数据
-  const currentTheme = localThemeData.strapiData;
   const themeColors = currentTheme?.theme_colors || {};
   const themeLogo = currentTheme?.theme_logo || {};
 
@@ -622,19 +1195,19 @@ function AdminThemeSettings() {
   const handleImageChange = (type, file, previewUrl) => {
     switch (type) {
       case 'logo':
-        setLogoImage(previewUrl);
+        setBrandLogoPreview(previewUrl);
         break;
       case 'onwhiteLogo':
-        setOnwhiteLogoImage(previewUrl);
+        setOnwhiteLogoPreview(previewUrl);
         break;
       case 'oncolorLogo':
-        setOncolorLogoImage(previewUrl);
+        setOncolorLogoPreview(previewUrl);
         break;
       case 'favicon':
-        setFaviconImage(previewUrl);
+        setFaviconPreview(previewUrl);
         break;
       case 'loginBg':
-        setLoginBgImage(previewUrl);
+        setLoginBackgroundPreview(previewUrl);
         break;
       default:
         break;
@@ -652,25 +1225,33 @@ function AdminThemeSettings() {
         <Grid container spacing={3}>
           <Grid item xs={12} md={4}>
             <Typography variant="subtitle2" gutterBottom>BRAND LOGO</Typography>
-            <ImageUpload 
-              initialImage={logoImage} 
-              onImageChange={(file, url) => handleImageChange('logo', file, url)} 
-            />
+                          <ImageUpload 
+                title="BRAND LOGO"
+                image={brandLogoPreview} 
+                logoType="theme_logo" 
+                isUploading={uploadingStates.theme_logo}
+                onUpload={handleImageUpload}
+                onDelete={handleImageDelete}
+              />
           </Grid>
           
           <Grid item xs={12} md={4}>
             <Typography variant="subtitle2" gutterBottom>ONWHITE LOGO</Typography>
             <ImageUpload 
-              initialImage={onwhiteLogoImage} 
-              onImageChange={(file, url) => handleImageChange('onwhiteLogo', file, url)} 
+              title="ONWHITE LOGO"
+              image={onwhiteLogoPreview} 
+              logoType="onwhite_logo" 
+              isUploading={uploadingStates.onwhite_logo}
             />
           </Grid>
           
           <Grid item xs={12} md={4}>
             <Typography variant="subtitle2" gutterBottom>ONCOLOR LOGO</Typography>
             <ImageUpload 
-              initialImage={oncolorLogoImage} 
-              onImageChange={(file, url) => handleImageChange('oncolorLogo', file, url)} 
+              title="ONCOLOR LOGO"
+              image={oncolorLogoPreview} 
+              logoType="oncolor_logo" 
+              isUploading={uploadingStates.oncolor_logo}
             />
           </Grid>
         </Grid>
@@ -680,26 +1261,60 @@ function AdminThemeSettings() {
       <SectionCard>
         <SectionTitle>Colors</SectionTitle>
         <Grid container spacing={3}>
-          <Grid item xs={12} md={4}>
-            <ColorBox bgColor={themeColors.primary_color || '#ff6600'} />
-            <Typography variant="subtitle2">{localThemeData.name} PRIMARY</Typography>
-            <Typography variant="body2">
-              {themeColors.primary_color || '#ff6600'}
-            </Typography>
+          <Grid item xs={12} md={6}>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+                {currentBrand.name} PRIMARY
+              </Typography>
+              <TextField
+                fullWidth
+                label="Primary Color"
+                type="color"
+                value={primaryColor}
+                onChange={(e) => setPrimaryColor(e.target.value)}
+                InputLabelProps={{
+                  shrink: true,
+                }}
+                sx={{
+                  '& .MuiInputBase-input': {
+                    height: '50px',
+                    padding: '8px',
+                    cursor: 'pointer'
+                  }
+                }}
+              />
+              <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
+                Current: {primaryColor || themeColors.primary_color || '#ff6600'}
+              </Typography>
+            </Box>
           </Grid>
           
-          <Grid item xs={12} md={4}>
-            <ColorBox bgColor={themeColors.secondary_color || '#003366'} />
-            <Typography variant="subtitle2">{localThemeData.name} SECONDARY</Typography>
-            <Typography variant="body2">
-              {themeColors.secondary_color || '#003366'}
-            </Typography>
-          </Grid>
-          
-          <Grid item xs={12} md={4}>
-            <ColorBox bgColor="#f5f5f5" />
-            <Typography variant="subtitle2">BACKGROUND</Typography>
-            <Typography variant="body2">#f5f5f5</Typography>
+          <Grid item xs={12} md={6}>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+                {currentBrand.name} SECONDARY
+              </Typography>
+              <TextField
+                fullWidth
+                label="Secondary Color"
+                type="color"
+                value={secondaryColor}
+                onChange={(e) => setSecondaryColor(e.target.value)}
+                InputLabelProps={{
+                  shrink: true,
+                }}
+                sx={{
+                  '& .MuiInputBase-input': {
+                    height: '50px',
+                    padding: '8px',
+                    cursor: 'pointer'
+                  }
+                }}
+              />
+              <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
+                Current: {secondaryColor || themeColors.secondary_color || '#003366'}
+              </Typography>
+            </Box>
           </Grid>
         </Grid>
       </SectionCard>
@@ -710,8 +1325,12 @@ function AdminThemeSettings() {
         <Grid container spacing={3}>
           <Grid item xs={12} md={4}>
             <ImageUpload 
-              initialImage={faviconImage} 
-              onImageChange={(file, url) => handleImageChange('favicon', file, url)} 
+              title="FAVICON"
+              image={faviconPreview} 
+              logoType="favicon" 
+              isUploading={uploadingStates.favicon}
+              onUpload={handleImageUpload}
+              onDelete={handleImageDelete}
             />
           </Grid>
         </Grid>
@@ -766,15 +1385,16 @@ function AdminThemeSettings() {
             <TextField
               fullWidth
               placeholder="输入企业ID"
-              defaultValue={`Welcome to the ${localThemeData.name} Media Portal`}
+              defaultValue={`Welcome to the ${currentBrand.name} Media Portal`}
             />
             
             <Box sx={{ mt: 3 }}>
               <Typography variant="subtitle2" gutterBottom>ENTERPRISE NAME</Typography>
               <ImageUpload 
-                initialImage={loginBgImage} 
-                height={200}
-                onImageChange={(file, url) => handleImageChange('loginBg', file, url)} 
+                title="LOGIN BACKGROUND"
+                image={loginBackgroundPreview} 
+                logoType="loginBg" 
+                isUploading={uploadingStates.loginBg}
               />
             </Box>
           </Grid>
@@ -792,13 +1412,13 @@ function AdminThemeSettings() {
                 backgroundColor: '#f9f9f9',
                 padding: 2,
                 borderRadius: 1,
-                backgroundImage: loginBgImage ? `url(${loginBgImage})` : 'none',
+                backgroundImage: loginBackgroundPreview ? `url(${loginBackgroundPreview})` : 'none',
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
               }}>
                 {themeLogo?.url && (
                   <img 
-                    src={logoImage || getFullImageUrl(themeLogo.url)} 
+                    src={brandLogoPreview || getFullImageUrl(themeLogo.url)} 
                     alt="Login Logo" 
                     style={{ maxWidth: '200px', marginBottom: '20px' }} 
                   />
@@ -811,7 +1431,7 @@ function AdminThemeSettings() {
                   boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                 }}>
                   <Typography variant="h6" align="center" gutterBottom>
-                    {`Welcome to the ${localThemeData.name} Media Portal`}
+                    {`Welcome to the ${currentBrand.name} Media Portal`}
                   </Typography>
                   <TextField 
                     fullWidth 
@@ -870,43 +1490,31 @@ function AdminThemeSettings() {
       {/* Language 部分 */}
       <SectionCard>
         <SectionTitle>Language</SectionTitle>
-        <Grid container spacing={4}>
-          <Grid item xs={12} md={6}>
-            {allLanguages.filter((lang, index) => index % 2 === 0).map((language) => (
+        {languagesLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+            <CircularProgress />
+            <Typography sx={{ ml: 2 }}>加载语言数据...</Typography>
+          </Box>
+        ) : (
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+            {strapiLanguages.map((language) => (
               <FormControlLabel 
                 key={language.code}
                 control={
                   <Checkbox 
-                    checked={selectedLanguages.includes(language.code)}
+                    checked={isLanguageSelected(language.code)}
                     onChange={() => handleLanguageChange(language.code)}
                   />
                 } 
-                label={language.nativeName || language.name} 
+                label={language.label || language.name}
               />
             ))}
-          </Grid>
-          
-          <Grid item xs={12} md={6}>
-            {allLanguages.filter((lang, index) => index % 2 === 1).map((language) => (
-              <FormControlLabel 
-                key={language.code}
-                control={
-                  <Checkbox 
-                    checked={selectedLanguages.includes(language.code)}
-                    onChange={() => handleLanguageChange(language.code)}
-                  />
-                } 
-                label={language.nativeName || language.name} 
-              />
-            ))}
-          </Grid>
-        </Grid>
+          </Box>
+        )}
+        
         {/* 修改添加语言按钮 */}
-        <Box mt={2}>
-          <AddLanguageButton 
-            startIcon={<AddIcon />} 
-            variant="text"
-          >
+        <Box sx={{ mt: 3 }}>
+          <AddLanguageButton variant="text" startIcon={<AddIcon />}>
             Add Language
           </AddLanguageButton>
         </Box>
@@ -918,7 +1526,7 @@ function AdminThemeSettings() {
         <Box sx={{ display: 'flex', gap: 0, height: 400 }}>
           {/* 左栏：极简上传区域 */}
           <Box sx={{ flex: 1, pr: 1 }}>
-            {uploadedFile ? (
+            {uploadedTranslationFile ? (
               // 显示已上传的文件信息
               <UploadedFileContainer>
                 {/* 文件信息 */}
@@ -935,21 +1543,21 @@ function AdminThemeSettings() {
                         fontSize: '0.8rem',
                         fontWeight: 600
                       }}>
-                        {uploadedFile.name.split('.').pop().toUpperCase()}
+                        {uploadedTranslationFile.name.split('.').pop().toUpperCase()}
                       </Typography>
                     </FileTypeBox>
                     <Box>
                       <Typography variant="subtitle1" sx={{ fontWeight: 500, color: '#333' }}>
-                        {uploadedFile.name}
+                        {uploadedTranslationFile.name}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {(uploadedFile.size / 1024).toFixed(1)} KB • Uploaded successfully
+                        {(uploadedTranslationFile.size / 1024).toFixed(1)} KB • Uploaded successfully
                       </Typography>
                     </Box>
                   </Box>
                   <DeleteIconButton 
                     size="small"
-                    onClick={removeFile}
+                    onClick={() => setUploadedTranslationFile(null)}
                   >
                     <DeleteIcon fontSize="small" />
                   </DeleteIconButton>
@@ -976,7 +1584,13 @@ function AdminThemeSettings() {
                   id="file-upload-input"
                   type="file"
                   accept=".txt,.json"
-                  onChange={handleFileUpload}
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      setUploadedTranslationFile({ id: Date.now(), name: file.name, size: file.size, file: file });
+                      previewFile(file);
+                    }
+                  }}
                   style={{ display: 'none' }}
                 />
               </UploadedFileContainer>
@@ -1038,7 +1652,13 @@ function AdminThemeSettings() {
                   id="file-upload-input"
                   type="file"
                   accept=".txt,.json"
-                  onChange={handleFileUpload}
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      setUploadedTranslationFile({ id: Date.now(), name: file.name, size: file.size, file: file });
+                      previewFile(file);
+                    }
+                  }}
                   style={{ display: 'none' }}
                 />
               </DropZone>
@@ -1048,7 +1668,7 @@ function AdminThemeSettings() {
           {/* 右栏：预览区域 */}
           <Box sx={{ flex: 1, pl: 1 }}>
             <PreviewContainer>
-              {selectedFileName ? (
+              {uploadedTranslationFile ? (
                 <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                   {/* 文件头部信息 */}
                   <PreviewHeader>
@@ -1058,17 +1678,17 @@ function AdminThemeSettings() {
                         fontSize: '0.7rem',
                         fontWeight: 600
                       }}>
-                        {selectedFileName.split('.').pop().toUpperCase()}
+                        {uploadedTranslationFile.name.split('.').pop().toUpperCase()}
                       </Typography>
                     </FileTypeBox>
                     <Typography variant="subtitle2" sx={{ fontWeight: 500 }}>
-                      {selectedFileName}
+                      {uploadedTranslationFile.name}
                     </Typography>
                   </PreviewHeader>
                   
                   {/* 文件内容 */}
                   <PreviewContent>
-                    {selectedFileContent}
+                    {translationFileContent}
                   </PreviewContent>
                 </Box>
               ) : (
@@ -1088,7 +1708,7 @@ function AdminThemeSettings() {
 
       {/* 保存按钮 */}
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, mb: 4 }}>
-        <SaveButton variant="contained">
+        <SaveButton variant="contained" onClick={handleSaveConfiguration}>
           保存配置
         </SaveButton>
       </Box>
@@ -1098,7 +1718,7 @@ function AdminThemeSettings() {
   // 渲染当前选择的菜单内容
   const renderContent = () => {
     // 只有Theme General Settings是激活的，其他的都显示UnderConstruction
-    if (selectedMenuItem === 'theme-general-settings') {
+    if (activeMenuItem === 'theme-general-settings') {
       return renderThemeGeneralSettings();
     } else {
       return <UnderConstructionContent />;
@@ -1113,7 +1733,7 @@ function AdminThemeSettings() {
           {menuItems.map(item => (
             <SidebarMenuItem
               key={item.id}
-              active={selectedMenuItem === item.id}
+              active={activeMenuItem === item.id}
               onClick={() => handleMenuItemClick(item.id)}
             >
             
