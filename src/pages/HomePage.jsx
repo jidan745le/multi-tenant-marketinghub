@@ -4,7 +4,6 @@ import { useSelector } from 'react-redux';
 import { useBrand } from '../hooks/useBrand';
 import { useLanguage } from '../hooks/useLanguage';
 import { selectHomePagesByBrand } from '../store/slices/themesSlice';
-import { debugPageContent, debugPages } from '../utils/debugPages';
 
 const HomePage = () => {
   const { currentBrand } = useBrand();
@@ -21,10 +20,7 @@ const HomePage = () => {
       console.log('🏠 HomePage - 首页数据:', homePages);
       
       // 使用调试工具
-      debugPages(homePages, currentBrand?.code);
-      homePages.forEach(page => {
-        debugPageContent(page);
-      });
+
     }
   }, [homePages, currentBrand?.code, currentLanguage?.code]);
 
