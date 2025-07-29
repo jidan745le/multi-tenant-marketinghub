@@ -16,13 +16,13 @@ const HomePage = () => {
   useEffect(() => {
     if (homePages.length > 0) {
       console.log('🏠 HomePage - 当前品牌:', currentBrand?.code);
-      console.log('🏠 HomePage - 当前语言:', currentLanguage?.code);
+      console.log('🏠 HomePage - 当前语言:', currentLanguage);
       console.log('🏠 HomePage - 首页数据:', homePages);
       
       // 使用调试工具
 
     }
-  }, [homePages, currentBrand?.code, currentLanguage?.code]);
+  }, [homePages, currentBrand?.code, currentLanguage]);
 
   return (
     <Box sx={{ p: 3 }}>
