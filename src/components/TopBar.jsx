@@ -216,7 +216,7 @@ const NavBar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { menuItems, debug } = useDynamicMenus();
-  const [activeItem, setActiveItem] = useState('home'); // 使用API key格式
+  const [activeItem, setActiveItem] = useState(''); // 使用API key格式
   const { t } = useTranslation();
 
   console.log('📋 NavBar: 使用动态菜单:', debug);
@@ -246,6 +246,7 @@ const NavBar = () => {
     });
 
     const activeKey = matchedMenuItem ? matchedMenuItem.key : (menuItems[0]?.key || 'home');
+    console.log("activeKey", activeKey);  
     
     setActiveItem(activeKey);
   }, [location.pathname, menuItems]); // 添加menuItems依赖
