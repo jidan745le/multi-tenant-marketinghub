@@ -31,6 +31,7 @@ const defaultBrands = [
 const initialState = {
     brands: defaultBrands,
     languages: [], // 存储动态语言配置
+    pages: [], // 存储页面配置数据
     loading: false,
     error: null,
     lastUpdated: null,
@@ -105,7 +106,8 @@ const themesSlice = createSlice({
                     menus: theme.menu,
                     languages: themeLanguages,
                     login: theme.login,
-                    translations: theme.translations
+                    translations: theme.translations,
+                    pages: theme.pages || [] // 添加页面配置数据
                 };
             });
 
@@ -133,6 +135,21 @@ const themesSlice = createSlice({
                 state.languages = [];
             }
 
+            // 提取全局页面配置 - 合并所有品牌的页面配置
+            const allPages = [];
+            brands.forEach(brand => {
+                if (brand.pages && Array.isArray(brand.pages)) {
+                    // 为每个页面添加brand信息
+                    const brandPages = brand.pages.map(page => ({
+                        ...page,
+                        brandCode: brand.code,
+                        brandName: brand.name
+                    }));
+                    allPages.push(...brandPages);
+                }
+            });
+            state.pages = allPages;
+
             console.log('✅ 处理后的品牌数据:', state.brands.map(b => ({
                 code: b.code,
                 displayName: b.displayName,
@@ -144,7 +161,17 @@ const themesSlice = createSlice({
                 hasLanguages: !!b.languages && b.languages.length > 0,
                 languageCount: b.languages?.length || 0,
                 hasTranslations: !!b.translations,
-                translationKeys: b.translations ? Object.keys(b.translations) : []
+                translationKeys: b.translations ? Object.keys(b.translations) : [],
+                hasPages: !!b.pages && b.pages.length > 0,
+                pageCount: b.pages?.length || 0
+            })));
+
+            console.log('✅ 处理后的页面数据:', state.pages.map(p => ({
+                id: p.id,
+                name: p.name,
+                pageTemplate: p.page_template,
+                brandCode: p.brandCode,
+                contentAreaCount: p.content_area?.length || 0
             })));
 
             state.loading = false;
@@ -163,10 +190,30 @@ const themesSlice = createSlice({
         resetThemes: (state) => {
             state.brands = defaultBrands;
             state.languages = [];
+            state.pages = [];
             state.loading = false;
             state.error = null;
             state.lastUpdated = null;
             state.isFromAPI = false;
+        },
+        // 新增：设置页面数据的action
+        setPagesData: (state, action) => {
+            state.pages = action.payload;
+        },
+        // 新增：添加单个页面的action
+        addPage: (state, action) => {
+            const page = action.payload;
+            const existingIndex = state.pages.findIndex(p => p.id === page.id && p.brandCode === page.brandCode);
+            if (existingIndex >= 0) {
+                state.pages[existingIndex] = page;
+            } else {
+                state.pages.push(page);
+            }
+        },
+        // 新增：删除页面的action
+        removePage: (state, action) => {
+            const { id, brandCode } = action.payload;
+            state.pages = state.pages.filter(p => !(p.id === id && p.brandCode === brandCode));
         }
     },
     extraReducers: (builder) => {
@@ -200,16 +247,33 @@ export const {
     setThemesLoading,
     setThemesData,
     setThemesError,
-    resetThemes
+    resetThemes,
+    setPagesData,
+    addPage,
+    removePage
 } = themesSlice.actions;
 
 // Selectors
 export const selectBrands = (state) => state.themes.brands;
 export const selectLanguages = (state) => state.themes.languages;
+export const selectPages = (state) => state.themes.pages;
 export const selectThemesLoading = (state) => state.themes.loading;
 export const selectIsLoading = (state) => state.themes.loading; // 新增，现代命名
 export const selectThemesError = (state) => state.themes.error;
 export const selectIsFromAPI = (state) => state.themes.isFromAPI;
 export const selectLastUpdated = (state) => state.themes.lastUpdated;
+
+// 新增：页面相关的selectors
+export const selectPagesByBrand = (brandCode) => (state) =>
+    state.themes.pages.filter(page => page.brandCode === brandCode);
+
+export const selectPageByName = (pageName, brandCode) => (state) =>
+    state.themes.pages.find(page => page.name === pageName && (!brandCode || page.brandCode === brandCode));
+
+export const selectPageById = (pageId, brandCode) => (state) =>
+    state.themes.pages.find(page => page.id === pageId && (!brandCode || page.brandCode === brandCode));
+
+export const selectHomePagesByBrand = (brandCode) => (state) =>
+    state.themes.pages.filter(page => page.page_template === 'homepage' && (!brandCode || page.brandCode === brandCode));
 
 export default themesSlice.reducer; 

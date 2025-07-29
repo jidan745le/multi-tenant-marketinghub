@@ -7,6 +7,7 @@ import Loader from '../utils/Loader';
 // 延迟加载页面组件
 const ProductCatalogue = Loader(lazy(() => import('../pages/ProductCatalogue')));
 const MediaCatalogue = Loader(lazy(() => import('../pages/MediaCatalogue')));
+const HomePage = Loader(lazy(() => import('../pages/HomePage')));
 const UnderConstruction = Loader(lazy(() => import('../pages/UnderConstruction')));
 const AdminThemeSettings = Loader(lazy(() => import('../pages/AdminThemeSettings')));
 
@@ -36,7 +37,7 @@ const router = [
   },
   {
     path: '/:lang/:brand/home',
-    element: <UnderConstruction />
+    element: <HomePage />
   },
   {
     path: '/:lang/:brand/products',
