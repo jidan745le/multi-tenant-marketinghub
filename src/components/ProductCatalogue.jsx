@@ -1,7 +1,7 @@
 import {
-    Box,
-    Container,
-    Paper
+  Box,
+  Container,
+  Paper
 } from '@mui/material';
 import React, { useCallback, useMemo, useState } from 'react';
 import ConfigurableFilterSidebar from './ConfigurableFilterSidebar';
@@ -48,9 +48,21 @@ const ProductCatalogue = ({
   }, []);
 
   // 处理分页变化
-  const handlePageChange = useCallback((page) => {
-    setCurrentPage(page);
-  }, []);
+  const handlePageChange = useCallback((pageOrParams) => {
+    if (typeof pageOrParams === 'object') {
+      // 处理分页大小变化等复杂参数
+      const { page = 1, limit } = pageOrParams;
+      setCurrentPage(page);
+      // 如果分页大小改变，可以在这里处理
+      if (limit && limit !== (config?.productConfig?.pageSize || 20)) {
+        // 可以在这里添加更新配置的逻辑
+        console.log('Page size changed to:', limit);
+      }
+    } else {
+      // 处理简单的页码变化
+      setCurrentPage(pageOrParams);
+    }
+  }, [config?.productConfig?.pageSize]);
 
   // 处理批量搜索
   const handleMassSearchClick = useCallback((item, childItem) => {
@@ -115,6 +127,7 @@ const ProductCatalogue = ({
             {/* 产品网格 - 可滚动区域 */}
             <Box sx={{ flex: 1, overflow: 'auto', padding: "24px" }}>
               <ConfigurableProductGrid 
+                key={`${config?.productConfig?.title}-${config?.productConfig?.fetchProducts?.brand}`} // 确保配置变化时重新渲染
                 config={config.productConfig}
                 searchParams={searchParams}
                 onProductClick={onProductClick}

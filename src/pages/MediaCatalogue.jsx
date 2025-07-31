@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect } from 'react';
 
 // 导入配置
-import { mediaCatalogueConfig } from '../config/mediaCatalogueConfig';
+import { kendoMediaCatalogueConfig } from '../config/kendoMediaConfig';
 
 // 导入组件
 import ProductCatalogue from '../components/ProductCatalogue';
@@ -52,7 +52,7 @@ const MediaCatalogue = () => {
 
   return (
     <ProductCatalogue
-      config={mediaCatalogueConfig}
+      config={kendoMediaCatalogueConfig}
       onProductClick={handleMediaClick}
       onProductDownload={handleMediaDownload}
       onMassSearch={handleMassSearch}

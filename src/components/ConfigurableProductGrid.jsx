@@ -1,6 +1,6 @@
 import { Box, CircularProgress, Grid, Pagination, Typography } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import DigitalAssetCard from './DigitalAssetCard';
 
 // 外层容器，不处理滚动
@@ -64,7 +64,7 @@ const ConfigurableProductGrid = ({
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [totalPages, setTotalPages] = useState(0);
-  const [_totalCount, setTotalCount] = useState(0);
+
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [cardActionsConfig, setCardActionsConfig] = useState({
     show_file_type: false,
@@ -73,6 +73,10 @@ const ConfigurableProductGrid = ({
     show_open_product_page: true,
     show_preview_media: true,
   });
+
+  // 防抖定时器引用
+  const debounceTimerRef = useRef(null);
+  const lastSearchParamsRef = useRef(null);
 
   // 从config中获取配置
   const {
@@ -86,73 +90,104 @@ const ConfigurableProductGrid = ({
     setCardActionsConfig(prev => ({ ...prev, ...cardActions }));
   }, [cardActions]);
 
-  // 使用 JSON.stringify 确保参数稳定性
-  const searchParamsKey = JSON.stringify(searchParams);
+  // 监听配置变化
+  useEffect(() => {
+    console.log('🔧 ConfigurableProductGrid: Config changed', {
+      fetchProductsBrand: fetchProducts?.brand,
+      pageSize: pageSize,
+      configTitle: config?.productConfig?.title
+    });
+  }, [config, fetchProducts, pageSize]);
+
+  // 防抖的数据获取函数
+  const debouncedFetchProducts = useCallback(async (params) => {
+    if (!fetchProducts) return;
+
+    // 清除之前的定时器
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // 检查参数是否真的发生了变化
+    const paramsString = JSON.stringify(params);
+    const fetchProductsKey = fetchProducts.toString().substring(0, 100); // 使用函数的字符串表示作为key的一部分
+    const combinedKey = paramsString + fetchProductsKey;
+    
+    if (lastSearchParamsRef.current === combinedKey) {
+      console.log('🔄 ConfigurableProductGrid: Skipping duplicate API call (same params and fetchProducts)');
+      return; // 参数和函数都没有变化，不重复调用
+    }
+    
+    console.log('🔄 ConfigurableProductGrid: Parameters or fetchProducts changed, scheduling API call');
+
+    // 设置新的定时器
+    debounceTimerRef.current = setTimeout(async () => {
+      let isCancelled = false;
+
+      const loadProducts = async () => {
+        setLoading(true);
+        try {
+          console.log('🔄 ConfigurableProductGrid: Starting API call');
+          console.log('📋 ConfigurableProductGrid: Params:', params);
+          const result = await fetchProducts(params);
+          
+          // 如果组件已卸载，不更新状态
+          if (isCancelled) return;
+          
+          // 支持不同的返回格式
+          if (result && typeof result === 'object') {
+            if (result.list && Array.isArray(result.list) && typeof result.totalSize !== 'undefined') {
+              // 真实API格式: { startIndex: number, totalSize: number, pageSize: number, list: [] }
+              setProducts(result.list);
+              setTotalPages(Math.ceil((result.totalSize || 0) / pageSize));
+            } else if (result.data && Array.isArray(result.data.list)) {
+              // 格式: { data: { list: [], total: number } }
+              setProducts(result.data.list);
+              setTotalPages(Math.ceil((result.data.total || 0) / pageSize));
+            } else if (Array.isArray(result.data)) {
+              // 格式: { data: [] }
+              setProducts(result.data);
+              setTotalPages(Math.ceil(result.data.length / pageSize));
+            } else if (Array.isArray(result)) {
+              // 格式: []
+              setProducts(result);
+              setTotalPages(Math.ceil(result.length / pageSize));
+            } else if (result.list && Array.isArray(result.list)) {
+              // 格式: { list: [], total: number }
+              setProducts(result.list);
+              setTotalPages(Math.ceil((result.total || 0) / pageSize));
+            }
+          }
+        } catch (error) {
+          if (!isCancelled) {
+            console.error('❌ ConfigurableProductGrid: Failed to fetch products:', error);
+            setProducts([]);
+            setTotalPages(0);
+          }
+        } finally {
+          if (!isCancelled) {
+            console.log('✅ ConfigurableProductGrid: API call completed');
+            setLoading(false);
+          }
+        }
+      };
+
+      await loadProducts();
+      lastSearchParamsRef.current = combinedKey;
+    }, 300); // 300ms 防抖延迟
+  }, [fetchProducts, pageSize]);
 
   // 获取产品数据
   useEffect(() => {
-    if (!fetchProducts) return;
+    debouncedFetchProducts(searchParams);
 
-    let isCancelled = false;
-
-    const loadProducts = async () => {
-      setLoading(true);
-      try {
-        const result = await fetchProducts(searchParams);
-        
-        // 如果组件已卸载或参数已变化，不更新状态
-        if (isCancelled) return;
-        
-        // 支持不同的返回格式
-        if (result && typeof result === 'object') {
-          if (result.list && Array.isArray(result.list) && typeof result.totalSize !== 'undefined') {
-            // 真实API格式: { startIndex: number, totalSize: number, pageSize: number, list: [] }
-            setProducts(result.list);
-            setTotalCount(result.totalSize || 0);
-            setTotalPages(Math.ceil((result.totalSize || 0) / pageSize));
-          } else if (result.data && Array.isArray(result.data.list)) {
-            // 格式: { data: { list: [], total: number } }
-            setProducts(result.data.list);
-            setTotalCount(result.data.total || 0);
-            setTotalPages(Math.ceil((result.data.total || 0) / pageSize));
-          } else if (Array.isArray(result.data)) {
-            // 格式: { data: [] }
-            setProducts(result.data);
-            setTotalCount(result.data.length);
-            setTotalPages(Math.ceil(result.data.length / pageSize));
-          } else if (Array.isArray(result)) {
-            // 格式: []
-            setProducts(result);
-            setTotalCount(result.length);
-            setTotalPages(Math.ceil(result.length / pageSize));
-          } else if (result.list && Array.isArray(result.list)) {
-            // 格式: { list: [], total: number }
-            setProducts(result.list);
-            setTotalCount(result.total || 0);
-            setTotalPages(Math.ceil((result.total || 0) / pageSize));
-          }
-        }
-      } catch (error) {
-        if (!isCancelled) {
-          console.error('Failed to fetch products:', error);
-          setProducts([]);
-          setTotalCount(0);
-          setTotalPages(0);
-        }
-      } finally {
-        if (!isCancelled) {
-          setLoading(false);
-        }
+    // 清理函数
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
       }
     };
-
-    loadProducts();
-
-    // 清理函数，防止内存泄漏
-    return () => {
-      isCancelled = true;
-    };
-  }, [fetchProducts, searchParamsKey, pageSize]);
+  }, [debouncedFetchProducts, searchParams]);
 
   // 处理产品选择
   const handleProductSelect = (product, isSelected) => {
@@ -223,7 +258,7 @@ const ConfigurableProductGrid = ({
         </ProductGridContainer>
       </ProductGridOuterContainer>
 
-      {/* 分页 */}
+      {/* 分页器 */}
       {totalPages > 1 && (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3, p: 2 }}>
           <Pagination

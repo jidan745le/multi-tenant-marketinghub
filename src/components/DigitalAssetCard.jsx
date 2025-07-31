@@ -264,7 +264,7 @@ const ProductCard = ({
             <PreviewSection>
                 <PreviewContainer>
                     <MediaPreview
-                        src={product.image || `https://infoportal.chervon.com.cn/api/previewImage/${product.thumbnail}`}
+                        src={product.image}
                         alt={product.modelName || product.name}
                         loading="lazy"
                     />
@@ -275,7 +275,11 @@ const ProductCard = ({
             <ContentSection>
                 {cardActionsConfig.show_eyebrow && (
                     <Eyebrow>
-                        {product.modelNumber} · {product.productType || product.category}
+                        {/* 如果是资产页面，只显示Media Type；如果是产品页面，显示model number和type */}
+                        {product.mediaType ? 
+                            product.mediaType : 
+                            `${product.modelNumber} · ${product.productType || product.category}`
+                        }
                     </Eyebrow>
                 )}
                 <TitleContainer>
