@@ -51,25 +51,25 @@ export const kendoProductListConfigs = [
             }
         ]
     },
-    {
-        order: 21,
-        label: 'ERP Material Code',
-        component: 'textarea',
-        key: 'ean',
-        type: 'string',
-        defaultValue: '',
-        placeholder: 'Search ERP Material Code',
-        children: [
-            {
-                label: 'Mass Search',
-                desc: 'Enter multiple ERP Material Codes separated by semicolons',
-                clickMethod: 'onMassSearch',
-                component: 'input',
-                key: 'mass_download',
-                type: 'button',
-            }
-        ]
-    },
+    // {
+    //     order: 21,
+    //     label: 'ERP Material Code',
+    //     component: 'textarea',
+    //     key: 'ean',
+    //     type: 'string',
+    //     defaultValue: '',
+    //     placeholder: 'Search ERP Material Code',
+    //     children: [
+    //         {
+    //             label: 'Mass Search',
+    //             desc: 'Enter multiple ERP Material Codes separated by semicolons',
+    //             clickMethod: 'onMassSearch',
+    //             component: 'input',
+    //             key: 'mass_download',
+    //             type: 'button',
+    //         }
+    //     ]
+    // },
     {
         order: 31,
         label: 'Product Type',

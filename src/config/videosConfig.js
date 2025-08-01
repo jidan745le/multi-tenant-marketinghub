@@ -39,15 +39,15 @@ export const videoListConfigs = [
         defaultValue: '',
         placeholder: 'Search for model number'
     },
-    {
-        order: 21,
-        label: 'Folder Path',
-        component: 'textarea',
-        key: 'folder-path',
-        type: 'string',
-        defaultValue: '',
-        placeholder: 'Search in folder path'
-    },
+    // {
+    //     order: 21,
+    //     label: 'Folder Path',
+    //     component: 'textarea',
+    //     key: 'folder-path',
+    //     type: 'string',
+    //     defaultValue: '',
+    //     placeholder: 'Search in folder path'
+    // },
     {
         order: 41,
         label: 'Video Category',
