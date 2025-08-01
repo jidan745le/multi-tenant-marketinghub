@@ -22,7 +22,7 @@ export const newProductCategoryOptions = [
 export const newProductListConfigs = [
     {
         order: 11,
-        label: 'Product Name',
+        label: 'Model Name',
         component: 'input',
         key: 'product-name',
         type: 'string',
