@@ -78,16 +78,17 @@ const themeCreator = (brandCode) => {
 };
 
 // 新的动态主题创建函数 - 使用API返回的主题色
-export const createDynamicTheme = (brandCode, apiThemeColors = null, apiThemeLogo = null, apiFavicon = null, apiOnwhiteLogo = null, apiOncolorLogo = null) => {
+export const createDynamicTheme = (brandCode, apiThemeColors = null, apiThemeLogo = null, apiFavicon = null, apiOnwhiteLogo = null, apiOncolorLogo = null, apiFallbackImage = null) => {
     console.log('🎨 createDynamicTheme: 品牌代码:', brandCode);
     console.log('🎨 createDynamicTheme: API主题色:', apiThemeColors);
     console.log('🎨 createDynamicTheme: API主题Logo:', apiThemeLogo);
     console.log('🎨 createDynamicTheme: API Favicon:', apiFavicon);
     console.log('🎨 createDynamicTheme: API Onwhite Logo:', apiOnwhiteLogo);
     console.log('🎨 createDynamicTheme: API Oncolor Logo:', apiOncolorLogo);
+    console.log('🎨 createDynamicTheme: API Fallback Image:', apiFallbackImage);
 
     // 如果有API主题色，使用API数据；否则使用静态配置作为回退
-    let primaryColor, secondaryColor, logoUrl, faviconUrl, onwhiteLogoUrl, oncolorLogoUrl;
+    let primaryColor, secondaryColor, logoUrl, faviconUrl, onwhiteLogoUrl, oncolorLogoUrl, fallbackImageUrl;
 
     if (apiThemeColors && apiThemeColors.primary_color && apiThemeColors.secondary_color) {
         primaryColor = apiThemeColors.primary_color;
@@ -141,6 +142,16 @@ export const createDynamicTheme = (brandCode, apiThemeColors = null, apiThemeLog
         // 回退到静态配置
         oncolorLogoUrl = '';
         console.log('⚠️ 没有Oncolor Logo数据');
+    }
+
+    // 处理fallback_image
+    if (apiFallbackImage && apiFallbackImage.url) {
+        fallbackImageUrl = apiFallbackImage.url;
+        console.log('✨ 使用API动态Fallback Image:', fallbackImageUrl);
+    } else {
+        // 没有回退图片则设为空
+        fallbackImageUrl = '';
+        console.log('⚠️ 没有Fallback Image数据');
     }
 
     return createTheme({
@@ -211,7 +222,11 @@ export const createDynamicTheme = (brandCode, apiThemeColors = null, apiThemeLog
                 url: oncolorLogoUrl,
                 data: apiOncolorLogo
             },
-            isFromAPI: !!(apiThemeColors || apiThemeLogo || apiFavicon || apiOnwhiteLogo || apiOncolorLogo)
+            fallbackImage: {
+                url: fallbackImageUrl,
+                data: apiFallbackImage
+            },
+            isFromAPI: !!(apiThemeColors || apiThemeLogo || apiFavicon || apiOnwhiteLogo || apiOncolorLogo || apiFallbackImage)
         }
     });
 };

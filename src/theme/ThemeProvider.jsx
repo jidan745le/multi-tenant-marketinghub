@@ -64,6 +64,7 @@ const ThemeProviderWrapper = function (props) {
   const themeFavicon = currentBrandData?.strapiData?.theme_logos?.favicon;
   const themeOnwhiteLogo = currentBrandData?.strapiData?.theme_logos?.onwhite_logo;
   const themeOncolorLogo = currentBrandData?.strapiData?.theme_logos?.oncolor_logo;
+  const fallbackImage = currentBrandData?.strapiData?.fallback_image;
   
   console.log('🎨 ThemeProvider: 当前品牌数据:', currentBrandData);
   console.log('🎨 ThemeProvider: 主题色数据:', themeColors);
@@ -71,6 +72,7 @@ const ThemeProviderWrapper = function (props) {
   console.log('🎨 ThemeProvider: 主题Favicon数据:', themeFavicon);
   console.log('🎨 ThemeProvider: 主题OnwhiteLogo数据:', themeOnwhiteLogo);
   console.log('🎨 ThemeProvider: 主题OncolorLogo数据:', themeOncolorLogo);
+  console.log('🎨 ThemeProvider: 主题FallbackImage数据:', fallbackImage);
   
   // 使用函数形式的初始化，避免每次渲染都重新计算
   const [themeName, _setThemeName] = useState(() => {
@@ -87,14 +89,15 @@ const ThemeProviderWrapper = function (props) {
         logo: themeLogo?.url,
         favicon: themeFavicon?.url,
         onwhiteLogo: themeOnwhiteLogo?.url,
-        oncolorLogo: themeOncolorLogo?.url
+        oncolorLogo: themeOncolorLogo?.url,
+        fallbackImage: fallbackImage?.url
       });
-      return createDynamicTheme(currentBrandCode, themeColors, themeLogo, themeFavicon, themeOnwhiteLogo, themeOncolorLogo);
+      return createDynamicTheme(currentBrandCode, themeColors, themeLogo, themeFavicon, themeOnwhiteLogo, themeOncolorLogo, fallbackImage);
     } else {
       console.log('⚠️ 使用静态默认主题 (API数据未加载)');
-      return createDynamicTheme(currentBrandCode, null, null, null, null, null);
+      return createDynamicTheme(currentBrandCode, null, null, null, null, null, null);
     }
-  }, [currentBrandCode, themeColors, themeLogo, themeFavicon, themeOnwhiteLogo, themeOncolorLogo]);
+  }, [currentBrandCode, themeColors, themeLogo, themeFavicon, themeOnwhiteLogo, themeOncolorLogo, fallbackImage]);
   
   // 设置主题的函数
   const setThemeName = (brandCode) => {

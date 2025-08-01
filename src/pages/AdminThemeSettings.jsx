@@ -228,10 +228,13 @@ const AddLanguageButton = styled(Button)(({ theme }) => ({
 
 const PreviewContainer = styled(Box)(({ theme }) => ({
   height: '100%',
+  maxHeight: 'calc(100vh - 300px)', // 限制最大高度，避免溢出
   border: `1px solid ${theme.palette.divider}`,
   borderRadius: theme.shape.borderRadius,
-  overflow: 'hidden',
+  overflow: 'hidden', // 改回hidden，由内部组件控制滚动
   backgroundColor: theme.palette.background.paper,
+  display: 'flex',
+  flexDirection: 'column',
 }));
 
 const PreviewHeader = styled(Box)(({ theme }) => ({
@@ -295,7 +298,7 @@ const EmptyPreviewIcon = styled(Box)(({ theme }) => ({
     };
 
     // 处理图片显示 - blob URL直接显示，Strapi URL忽略CORS错误
-    const handleImageError = (e) => {
+    const handleImageError = () => {
       console.error('图片加载失败 (可能是CORS问题):', image);
       // 对于CORS错误，我们不做任何处理，因为这是预期的
       // 只有blob URL才能正常显示
@@ -438,50 +441,9 @@ function UnderConstructionContent() {
   );
 }
 
-// 文件上传和主题更新的工具函数
-const updateThemeWithRetry = async (themeId, updateData, retries = 3) => {
-  for (let i = 0; i <= retries; i++) {
-    try {
-      const strapiBaseUrl = import.meta.env.VITE_STRAPI_BASE_URL;
-      const strapiToken = import.meta.env.VITE_STRAPI_TOKEN;
-      
-      if (!strapiBaseUrl || !strapiToken) {
-        throw new Error('Strapi configuration is missing');
-      }
-
-      const response = await fetch(`${strapiBaseUrl}/api/themes/${themeId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${strapiToken}`
-        },
-        body: JSON.stringify({ data: updateData })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Update failed: ${response.status} ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      return result;
-    } catch (error) {
-      console.log(`更新失败，第 ${i + 1} 次重试`, error);
-      
-      if (i < retries) {
-        // 重试前等待
-        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
-      } else {
-        throw error;
-      }
-    }
-  }
-};
-
-
 
 // 管理后台主题设置页面组件
 function AdminThemeSettings() {
-  const { t } = useTranslation();
   const allLanguages = useSelector(selectLanguages);
   const isLoading = useSelector(selectThemesLoading);
   const { currentBrand } = useBrand();
@@ -502,6 +464,16 @@ function AdminThemeSettings() {
   // 翻译文件上传状态
   const [uploadedTranslationFile, setUploadedTranslationFile] = useState(null);
   const [translationFileContent, setTranslationFileContent] = useState('');
+  
+  // 翻译数据管理
+  const [translationsData, setTranslationsData] = useState({});
+  const [selectedTranslationLanguage, setSelectedTranslationLanguage] = useState('');
+  const [hasTranslationChanges, setHasTranslationChanges] = useState(false);
+
+  // 新增：编辑翻译内容的状态
+  const [editingTranslationContent, setEditingTranslationContent] = useState('');
+  const [isEditingTranslation, setIsEditingTranslation] = useState(false);
+  const [translationEditError, setTranslationEditError] = useState('');
 
   // 配置数据状态
   const [primaryColor, setPrimaryColor] = useState('');
@@ -643,11 +615,7 @@ function AdminThemeSettings() {
     fetchStrapiLanguages();
   }, []);
 
-  // 检查语言是否被当前主题关联
-  const isLanguageSelectedByTheme = (languageCode) => {
-    if (!currentTheme?.languages) return false;
-    return currentTheme.languages.some(lang => lang.code === languageCode);
-  };
+
 
   // 保存配置到 Strapi
   const handleSaveConfiguration = async () => {
@@ -779,6 +747,16 @@ function AdminThemeSettings() {
         console.log('🖼️ 保留现有 login background:', currentBrand.strapiData.login.background.id);
       }
 
+      // 7. 如果有翻译数据变化，更新 translations
+      if (hasTranslationChanges && Object.keys(translationsData).length > 0) {
+        updateData.translations = translationsData;
+        console.log('🌍 更新翻译数据:', translationsData);
+      } else if (currentBrand.strapiData?.translations) {
+        // 保留现有的翻译数据
+        updateData.translations = currentBrand.strapiData.translations;
+        console.log('🌍 保留现有翻译数据');
+      }
+
       console.log('准备更新的完整数据:', updateData);
       console.log('目标主题 documentId:', currentBrand.strapiData.documentId);
 
@@ -812,6 +790,11 @@ function AdminThemeSettings() {
         favicon: null,
         loginBg: null
       });
+
+      // 清空翻译相关状态
+      setHasTranslationChanges(false);
+      setUploadedTranslationFile(null);
+      setTranslationFileContent('');
 
       // 重新获取主题数据以更新界面
       // dispatch(fetchThemes());
@@ -913,12 +896,30 @@ function AdminThemeSettings() {
       setLoginTitle(currentBrand.login?.title || '');
       setLoginSubtitle(currentBrand.login?.subtitle || '');
       
+      // 初始化翻译数据
+      if (currentBrand.translations) {
+        setTranslationsData(currentBrand.translations);
+        // 设置默认选中第一个可用的语言
+        const availableLanguages = Object.keys(currentBrand.translations);
+        if (availableLanguages.length > 0 && !selectedTranslationLanguage) {
+          setSelectedTranslationLanguage(availableLanguages[0]);
+        }
+        console.log('初始化翻译数据:', {
+          languages: availableLanguages,
+          defaultLanguage: availableLanguages[0]
+        });
+      } else {
+        setTranslationsData({});
+        setSelectedTranslationLanguage('');
+      }
+      
       console.log('初始化配置数据:', {
         colors: currentBrand.colors,
-        login: currentBrand.login
+        login: currentBrand.login,
+        translations: currentBrand.translations
       });
     }
-  }, [currentBrand]);
+  }, [currentBrand, selectedTranslationLanguage]);
 
   useEffect(() => {
     console.log('所有可用语言:', allLanguages);
@@ -1016,9 +1017,76 @@ function AdminThemeSettings() {
   const previewFile = (file) => {
     const reader = new FileReader();
     reader.onload = (e) => {
-      setTranslationFileContent(e.target.result);
+      const content = e.target.result;
+      setTranslationFileContent(content);
+      
+      // 尝试解析文件内容并更新translations数据
+      try {
+        const parsedContent = JSON.parse(content);
+        if (selectedTranslationLanguage) {
+          setTranslationsData(prev => ({
+            ...prev,
+            [selectedTranslationLanguage]: parsedContent
+          }));
+          setHasTranslationChanges(true);
+          console.log('翻译文件解析成功，更新语言:', selectedTranslationLanguage);
+        }
+      } catch (error) {
+        console.warn('翻译文件不是有效的JSON格式:', error);
+      }
     };
     reader.readAsText(file);
+  };
+
+  // 新增：编辑翻译内容的相关函数
+  const startEditingTranslation = () => {
+    if (selectedTranslationLanguage) {
+      const currentContent = translationsData[selectedTranslationLanguage] || {};
+      setEditingTranslationContent(JSON.stringify(currentContent, null, 2));
+      setIsEditingTranslation(true);
+      setTranslationEditError('');
+    }
+  };
+
+  const saveEditingTranslation = () => {
+    try {
+      const parsedContent = JSON.parse(editingTranslationContent);
+      setTranslationsData(prev => ({
+        ...prev,
+        [selectedTranslationLanguage]: parsedContent
+      }));
+      setHasTranslationChanges(true);
+      setIsEditingTranslation(false);
+      setTranslationEditError('');
+      console.log('直接编辑的翻译内容已保存:', selectedTranslationLanguage);
+    } catch (error) {
+      setTranslationEditError('JSON格式错误: ' + error.message);
+    }
+  };
+
+  const cancelEditingTranslation = () => {
+    setIsEditingTranslation(false);
+    setEditingTranslationContent('');
+    setTranslationEditError('');
+  };
+
+  const createNewTranslation = () => {
+    if (selectedTranslationLanguage) {
+      const defaultContent = {
+        "nav.home": "Home",
+        "common.loading": "Loading...",
+        "common.save": "Save",
+        "common.cancel": "Cancel"
+      };
+      setEditingTranslationContent(JSON.stringify(defaultContent, null, 2));
+      setIsEditingTranslation(true);
+      setTranslationEditError('');
+    }
+  };
+
+  const handleTranslationContentChange = (event) => {
+    setEditingTranslationContent(event.target.value);
+    setTranslationEditError('');
   };
 
   // 拖拽处理函数
@@ -1028,6 +1096,12 @@ function AdminThemeSettings() {
 
   const handleDrop = (event) => {
     event.preventDefault();
+    
+    if (!selectedTranslationLanguage) {
+      alert('Please select a language first');
+      return;
+    }
+    
     const files = event.dataTransfer.files;
     if (files && files.length > 0) {
       const file = files[0];
@@ -1191,30 +1265,7 @@ function AdminThemeSettings() {
   const themeColors = currentTheme?.theme_colors || {};
   const themeLogo = currentTheme?.theme_logo || {};
 
-  // 处理图片上传变化
-  const handleImageChange = (type, file, previewUrl) => {
-    switch (type) {
-      case 'logo':
-        setBrandLogoPreview(previewUrl);
-        break;
-      case 'onwhiteLogo':
-        setOnwhiteLogoPreview(previewUrl);
-        break;
-      case 'oncolorLogo':
-        setOncolorLogoPreview(previewUrl);
-        break;
-      case 'favicon':
-        setFaviconPreview(previewUrl);
-        break;
-      case 'loginBg':
-        setLoginBackgroundPreview(previewUrl);
-        break;
-      default:
-        break;
-    }
-    
-    console.log(`图片 ${type} 已上传:`, file);
-  };
+
 
   // 渲染Theme General Settings内容 - 所有配置项按顺序排列
   const renderThemeGeneralSettings = () => (
@@ -1242,6 +1293,8 @@ function AdminThemeSettings() {
               image={onwhiteLogoPreview} 
               logoType="onwhite_logo" 
               isUploading={uploadingStates.onwhite_logo}
+              onUpload={handleImageUpload}
+              onDelete={handleImageDelete}
             />
           </Grid>
           
@@ -1252,6 +1305,8 @@ function AdminThemeSettings() {
               image={oncolorLogoPreview} 
               logoType="oncolor_logo" 
               isUploading={uploadingStates.oncolor_logo}
+              onUpload={handleImageUpload}
+              onDelete={handleImageDelete}
             />
           </Grid>
         </Grid>
@@ -1381,11 +1436,18 @@ function AdminThemeSettings() {
         <SectionTitle>Login Screen</SectionTitle>
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
-            <Typography variant="subtitle2" gutterBottom>ENTERPRISE ID</Typography>
+            <Typography variant="subtitle2" gutterBottom>Title</Typography>
             <TextField
               fullWidth
-              placeholder="输入企业ID"
-              defaultValue={`Welcome to the ${currentBrand.name} Media Portal`}
+              placeholder="title"
+              defaultValue={`${currentBrand.strapiData.login.title || ''}`}
+            />
+
+            <Typography variant="subtitle2" gutterBottom>Pre Title</Typography>
+            <TextField
+              fullWidth
+              placeholder="pre_title"
+              defaultValue={` ${currentBrand.strapiData.login.pre_title || ''}`}
             />
             
             <Box sx={{ mt: 3 }}>
@@ -1395,6 +1457,8 @@ function AdminThemeSettings() {
                 image={loginBackgroundPreview} 
                 logoType="loginBg" 
                 isUploading={uploadingStates.loginBg}
+                onUpload={handleImageUpload}
+                onDelete={handleImageDelete}
               />
             </Box>
           </Grid>
@@ -1523,6 +1587,74 @@ function AdminThemeSettings() {
       {/* Translations 部分 */}
       <SectionCard>
         <SectionTitle>Translations</SectionTitle>
+        
+        {/* 语言选择器 */}
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="subtitle2" gutterBottom>
+            Select Language for Translation
+          </Typography>
+          <TextField
+            select
+            fullWidth
+            value={selectedTranslationLanguage}
+            onChange={(e) => {
+              setSelectedTranslationLanguage(e.target.value);
+              // 如果选择的语言有现有数据，显示在预览中
+              if (translationsData[e.target.value]) {
+                setTranslationFileContent(JSON.stringify(translationsData[e.target.value], null, 2));
+              } else {
+                setTranslationFileContent('');
+              }
+              setUploadedTranslationFile(null);
+              // 重置编辑状态
+              setIsEditingTranslation(false);
+              setEditingTranslationContent('');
+              setTranslationEditError('');
+            }}
+            SelectProps={{
+              native: true,
+            }}
+            sx={{ maxWidth: 300 }}
+          >
+            <option value="">Select a language...</option>
+            {strapiLanguages.map((language) => (
+              <option key={language.code} value={language.code}>
+                {language.label} ({language.code})
+                {translationsData[language.code] ? ' ✓' : ''}
+              </option>
+            ))}
+          </TextField>
+          {selectedTranslationLanguage && (
+            <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Typography variant="caption" color="text.secondary">
+                {translationsData[selectedTranslationLanguage] 
+                  ? `Current translations available for ${selectedTranslationLanguage}` 
+                  : `No translations found for ${selectedTranslationLanguage}. Upload a file to add translations.`}
+              </Typography>
+              {translationsData[selectedTranslationLanguage] && (
+                <Button
+                  size="small"
+                  color="error"
+                  onClick={() => {
+                    if (window.confirm(`Are you sure you want to delete translations for ${selectedTranslationLanguage}?`)) {
+                      setTranslationsData(prev => {
+                        const updated = { ...prev };
+                        delete updated[selectedTranslationLanguage];
+                        return updated;
+                      });
+                      setHasTranslationChanges(true);
+                      setTranslationFileContent('');
+                      setUploadedTranslationFile(null);
+                    }
+                  }}
+                >
+                  Delete
+                </Button>
+              )}
+            </Box>
+          )}
+        </Box>
+
         <Box sx={{ display: 'flex', gap: 0, height: 400 }}>
           {/* 左栏：极简上传区域 */}
           <Box sx={{ flex: 1, pr: 1 }}>
@@ -1587,6 +1719,11 @@ function AdminThemeSettings() {
                   onChange={(e) => {
                     const file = e.target.files[0];
                     if (file) {
+                      if (!selectedTranslationLanguage) {
+                        alert('Please select a language first');
+                        e.target.value = '';
+                        return;
+                      }
                       setUploadedTranslationFile({ id: Date.now(), name: file.name, size: file.size, file: file });
                       previewFile(file);
                     }
@@ -1598,26 +1735,33 @@ function AdminThemeSettings() {
               // 显示空状态上传区域
               <DropZone
                 onDragOver={handleDragOver}
-                onDrop={handleDrop}
-                onClick={() => document.getElementById('file-upload-input').click()}
+                onDrop={selectedTranslationLanguage ? handleDrop : undefined}
+                onClick={selectedTranslationLanguage ? () => document.getElementById('file-upload-input').click() : undefined}
+                sx={{ 
+                  opacity: selectedTranslationLanguage ? 1 : 0.5,
+                  cursor: selectedTranslationLanguage ? 'pointer' : 'not-allowed'
+                }}
               >
                 <Box sx={{ textAlign: 'center', maxWidth: 320 }}>
                   <Typography variant="h6" sx={{ 
-                    color: '#333',
+                    color: selectedTranslationLanguage ? '#333' : '#999',
                     fontWeight: 400,
                     mb: 2,
                     fontSize: '1.1rem'
                   }}>
-                    Drop your file here
+                    {selectedTranslationLanguage ? 'Drop your file here' : 'Select a language first'}
                   </Typography>
                   
                   <Typography variant="body2" sx={{ 
-                    color: '#666',
+                    color: selectedTranslationLanguage ? '#666' : '#999',
                     lineHeight: 1.6,
                     mb: 4,
                     fontSize: '0.9rem'
                   }}>
-                    Simply drag and drop your TXT, JSON (.json) to convert them into JSON format using our document translation tool
+                    {selectedTranslationLanguage 
+                      ? `Upload translation file for ${selectedTranslationLanguage}. Supports TXT and JSON formats.`
+                      : 'Please select a language from the dropdown above to upload translations.'
+                    }
                   </Typography>
                 </Box>
 
@@ -1655,6 +1799,11 @@ function AdminThemeSettings() {
                   onChange={(e) => {
                     const file = e.target.files[0];
                     if (file) {
+                      if (!selectedTranslationLanguage) {
+                        alert('Please select a language first');
+                        e.target.value = '';
+                        return;
+                      }
                       setUploadedTranslationFile({ id: Date.now(), name: file.name, size: file.size, file: file });
                       previewFile(file);
                     }
@@ -1682,7 +1831,7 @@ function AdminThemeSettings() {
                       </Typography>
                     </FileTypeBox>
                     <Typography variant="subtitle2" sx={{ fontWeight: 500 }}>
-                      {uploadedTranslationFile.name}
+                      {uploadedTranslationFile.name} (New Upload)
                     </Typography>
                   </PreviewHeader>
                   
@@ -1691,13 +1840,153 @@ function AdminThemeSettings() {
                     {translationFileContent}
                   </PreviewContent>
                 </Box>
+              ) : selectedTranslationLanguage ? (
+                <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                  {/* 现有翻译数据头部 */}
+                  <PreviewHeader>
+                    <FileTypeBox sx={{ width: 24, height: 24, borderRadius: 0.5, mr: 1.5 }}>
+                      <Typography sx={{ 
+                        color: 'white',
+                        fontSize: '0.7rem',
+                        fontWeight: 600
+                      }}>
+                        JSON
+                      </Typography>
+                    </FileTypeBox>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 500 }}>
+                      {selectedTranslationLanguage} Translations {isEditingTranslation ? '(Editing)' : '(Current)'}
+                    </Typography>
+                  </PreviewHeader>
+                  
+                  {/* 翻译内容 - 编辑模式或只读模式 */}
+                  <Box sx={{ flex: 1, p: 2, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
+                    {isEditingTranslation ? (
+                      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, gap: 1 }}>
+                        <TextField
+                          fullWidth
+                          multiline
+                          variant="outlined"
+                          value={editingTranslationContent}
+                          onChange={handleTranslationContentChange}
+                          error={!!translationEditError}
+                          helperText={translationEditError}
+                          sx={{
+                            flex: 1,
+                            minHeight: 0,
+                            '& .MuiInputBase-root': {
+                              height: '100%',
+                              alignItems: 'flex-start',
+                              fontFamily: '"SF Mono", "Monaco", "Inconsolata", "Roboto Mono", monospace',
+                              fontSize: '0.875rem',
+                              lineHeight: 1.6,
+                            },
+                            '& .MuiInputBase-input': {
+                              height: '100% !important',
+                              padding: '12px',
+                              overflow: 'auto !important',
+                              resize: 'none',
+                            },
+                            '& textarea': {
+                              overflow: 'auto !important',
+                              scrollbarWidth: 'thin',
+                              '&::-webkit-scrollbar': {
+                                width: '8px',
+                              },
+                              '&::-webkit-scrollbar-track': {
+                                background: '#f1f1f1',
+                                borderRadius: '4px',
+                              },
+                              '&::-webkit-scrollbar-thumb': {
+                                background: '#c1c1c1',
+                                borderRadius: '4px',
+                                '&:hover': {
+                                  background: '#a8a8a8',
+                                },
+                              },
+                            },
+                          }}
+                        />
+                        <Box sx={{ 
+                          display: 'flex', 
+                          justifyContent: 'flex-end', 
+                          gap: 1,
+                          flexShrink: 0, // 防止按钮被压缩
+                          p: 1,
+                          borderTop: '1px solid',
+                          borderColor: 'divider',
+                          backgroundColor: 'grey.50'
+                        }}>
+                          <Button variant="outlined" onClick={cancelEditingTranslation}>
+                            Cancel
+                          </Button>
+                          <Button variant="contained" onClick={saveEditingTranslation}>
+                            Save Changes
+                          </Button>
+                        </Box>
+                      </Box>
+                    ) : (
+                      <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                        {translationsData[selectedTranslationLanguage] ? (
+                          <>
+                            <PreviewContent sx={{ flex: 1, mb: 2, minHeight: 0 }}>
+                              {JSON.stringify(translationsData[selectedTranslationLanguage], null, 2)}
+                            </PreviewContent>
+                            <Box sx={{ 
+                              display: 'flex', 
+                              justifyContent: 'flex-end',
+                              flexShrink: 0, // 防止按钮被压缩
+                              p: 1,
+                              borderTop: '1px solid',
+                              borderColor: 'divider',
+                              backgroundColor: 'grey.50'
+                            }}>
+                              <Button variant="outlined" onClick={startEditingTranslation}>
+                                Edit Translations
+                              </Button>
+                            </Box>
+                          </>
+                        ) : (
+                          <Box sx={{ 
+                            flex: 1, 
+                            display: 'flex', 
+                            flexDirection: 'column', 
+                            alignItems: 'center', 
+                            justifyContent: 'center',
+                            p: 3,
+                            textAlign: 'center'
+                          }}>
+                            <Typography variant="body2" color="text.secondary" gutterBottom>
+                              No translations available for {selectedTranslationLanguage}
+                            </Typography>
+                            <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
+                              <Button 
+                                variant="contained" 
+                                onClick={createNewTranslation}
+                                size="small"
+                              >
+                                Create New
+                              </Button>
+                              <Button 
+                                variant="outlined" 
+                                onClick={() => document.getElementById('file-upload-input').click()}
+                                size="small"
+                              >
+                                Upload File
+                              </Button>
+                            </Box>
+                          </Box>
+                        )}
+                      </Box>
+                    )}
+                  </Box>
+                </Box>
               ) : (
                 <EmptyPreview>
                   <EmptyPreviewIcon>
                     <UploadFileIcon sx={{ fontSize: 28, color: 'text.disabled' }} />
                   </EmptyPreviewIcon>
                   <Typography variant="body2" sx={{ textAlign: 'center' }}>
-                    Select a file to preview
+                    Select a language to edit translations
                   </Typography>
                 </EmptyPreview>
               )}
@@ -1736,7 +2025,6 @@ function AdminThemeSettings() {
               active={activeMenuItem === item.id}
               onClick={() => handleMenuItemClick(item.id)}
             >
-            
               <ListItemText primary={item.label} />
             </SidebarMenuItem>
           ))}
@@ -1751,4 +2039,4 @@ function AdminThemeSettings() {
   );
 }
 
-export default AdminThemeSettings; 
+export default AdminThemeSettings;

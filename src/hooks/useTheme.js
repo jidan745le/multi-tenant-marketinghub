@@ -11,6 +11,7 @@ export const useTheme = () => {
         setThemeName,
         currentBrand: theme.brand?.name || 'kendo',
         brandLogo: theme.brand?.logo,
+        fallbackImage: theme.brand?.fallbackImage?.url,
         primaryColor: theme.palette.primary.main,
         secondaryColor: theme.palette.secondary.main,
     };
