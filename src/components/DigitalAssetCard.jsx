@@ -9,7 +9,8 @@ import {
     Typography
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import React from 'react';
+import React, { useState } from 'react';
+import useTheme from '../hooks/useTheme';
 
 const DigitalAssetCard = styled(Box)(() => ({
     background: '#ffffff',
@@ -198,6 +199,9 @@ const ProductCard = ({
         show_preview_media: true,
     }
 }) => {
+    const { fallbackImage } = useTheme();
+    const [imageError, setImageError] = useState(false);
+    
     const handleCheckboxChange = (event) => {
         onSelect(product, event.target.checked);
     };
@@ -208,6 +212,32 @@ const ProductCard = ({
 
     const handleDownloadClick = () => {
         onDownload?.(product);
+    };
+
+    // 获取图片URL，如果没有产品图片或加载失败则使用fallback图片
+    const getImageSrc = () => {
+        console.log('🎨 getImageSrc: fallbackImage:', product, product.image);
+        
+        // 如果图片加载失败或没有产品图片，使用fallback图片
+        if (imageError || !product.image) {
+            if (fallbackImage) {
+                // 如果fallback图片URL是相对路径，需要加上base URL
+                const baseUrl = import.meta.env.VITE_STRAPI_BASE_URL || '';
+                return fallbackImage.startsWith('http') ? fallbackImage : `${baseUrl}${fallbackImage}`;
+            }
+            return product.image; // 最后回退到原始值（可能为空）
+        }
+        
+        return product.image;
+    };
+
+    // 处理图片加载失败
+    const handleImageError = () => {
+        console.log('🎨 Image load failed for product:', product.modelName || product.name);
+        // 只在第一次失败时设置imageError，避免无限循环
+        if (!imageError && product.image) {
+            setImageError(true);
+        }
     };
 
     return (
@@ -264,9 +294,10 @@ const ProductCard = ({
             <PreviewSection>
                 <PreviewContainer>
                     <MediaPreview
-                        src={product.image}
+                        src={getImageSrc()}
                         alt={product.modelName || product.name}
                         loading="lazy"
+                        onError={handleImageError}
                     />
                 </PreviewContainer>
             </PreviewSection>

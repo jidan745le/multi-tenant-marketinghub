@@ -1436,11 +1436,18 @@ function AdminThemeSettings() {
         <SectionTitle>Login Screen</SectionTitle>
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
-            <Typography variant="subtitle2" gutterBottom>ENTERPRISE ID</Typography>
+            <Typography variant="subtitle2" gutterBottom>Title</Typography>
             <TextField
               fullWidth
-              placeholder="输入企业ID"
-              defaultValue={`Welcome to the ${currentBrand.name} Media Portal`}
+              placeholder="title"
+              defaultValue={`${currentBrand.strapiData.login.title || ''}`}
+            />
+
+            <Typography variant="subtitle2" gutterBottom>Pre Title</Typography>
+            <TextField
+              fullWidth
+              placeholder="pre_title"
+              defaultValue={` ${currentBrand.strapiData.login.pre_title || ''}`}
             />
             
             <Box sx={{ mt: 3 }}>
