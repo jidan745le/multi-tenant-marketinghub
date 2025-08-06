@@ -42,11 +42,6 @@ const ThemeProviderWrapper = function (props) {
   // 从Redux获取品牌数据
   const brands = useSelector(selectBrands);
   
-  console.log('🎨 ThemeProvider: 可用品牌:', brands.map(b => ({
-    code: b.code, 
-    colors: b.strapiData?.theme_colors
-  })));
-  
   // 如果params.brand是undefined，尝试从URL路径中解析
   let brandFromUrl = params.brand;
   if (!brandFromUrl) {
@@ -65,14 +60,6 @@ const ThemeProviderWrapper = function (props) {
   const themeOnwhiteLogo = currentBrandData?.strapiData?.theme_logos?.onwhite_logo;
   const themeOncolorLogo = currentBrandData?.strapiData?.theme_logos?.oncolor_logo;
   const fallbackImage = currentBrandData?.strapiData?.fallback_image;
-  
-  console.log('🎨 ThemeProvider: 当前品牌数据:', currentBrandData);
-  console.log('🎨 ThemeProvider: 主题色数据:', themeColors);
-  console.log('🎨 ThemeProvider: 主题Logo数据:', themeLogo);
-  console.log('🎨 ThemeProvider: 主题Favicon数据:', themeFavicon);
-  console.log('🎨 ThemeProvider: 主题OnwhiteLogo数据:', themeOnwhiteLogo);
-  console.log('🎨 ThemeProvider: 主题OncolorLogo数据:', themeOncolorLogo);
-  console.log('🎨 ThemeProvider: 主题FallbackImage数据:', fallbackImage);
   
   // 使用函数形式的初始化，避免每次渲染都重新计算
   const [themeName, _setThemeName] = useState(() => {

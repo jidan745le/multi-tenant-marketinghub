@@ -5,10 +5,18 @@ export const debugBrandUsage = () => {
     // 检查Redux状态
     const state = window.store?.getState();
     if (state?.themes) {
-        console.log('📊 Redux品牌数据:', state.themes.brands.map(b => ({
-            code: b.code,
-            displayName: b.displayName
-        })));
+        // 使用新的语言缓存结构
+        const currentLang = state.themes.currentLanguage;
+        const brands = state.themes.languageCache[currentLang]?.brands || state.themes.defaultBrands || [];
+        console.log('📊 Redux品牌数据:', {
+            currentLanguage: currentLang,
+            brandsCount: brands.length,
+            brands: brands.map(b => ({
+                code: b.code,
+                displayName: b.displayName
+            })),
+            cacheLanguages: Object.keys(state.themes.languageCache)
+        });
     }
 
     // 检查当前URL

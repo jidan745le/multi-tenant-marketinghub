@@ -9,7 +9,13 @@ export const debugCurrentTheme = () => {
     const state = window.store?.getState();
     if (state?.themes) {
         console.log('📊 Redux中的品牌数据:');
-        state.themes.brands.forEach(brand => {
+        const currentLang = state.themes.currentLanguage;
+        const brands = state.themes.languageCache[currentLang]?.brands || state.themes.defaultBrands || [];
+
+        console.log('  当前语言:', currentLang);
+        console.log('  缓存语言:', Object.keys(state.themes.languageCache));
+
+        brands.forEach(brand => {
             const colors = brand.strapiData?.theme_colors;
             const logo = brand.strapiData?.theme_logo;
             const menus = brand.strapiData?.menu;
@@ -50,7 +56,9 @@ export const checkThemeChange = (brandCode) => {
 
     const state = window.store?.getState();
     if (state?.themes) {
-        const targetBrand = state.themes.brands.find(b => b.code === brandCode);
+        const currentLang = state.themes.currentLanguage;
+        const brands = state.themes.languageCache[currentLang]?.brands || state.themes.defaultBrands || [];
+        const targetBrand = brands.find(b => b.code === brandCode);
         if (targetBrand && targetBrand.strapiData) {
             console.log('✅ 目标品牌完整数据:', {
                 brand: targetBrand.displayName,
@@ -79,7 +87,10 @@ export const debugMenus = () => {
     const state = window.store?.getState();
     if (state?.themes) {
         console.log('📊 品牌菜单数据:');
-        state.themes.brands.forEach(brand => {
+        const currentLang = state.themes.currentLanguage;
+        const brands = state.themes.languageCache[currentLang]?.brands || state.themes.defaultBrands || [];
+
+        brands.forEach(brand => {
             const menus = brand.strapiData?.menu;
             console.log(`  ${brand.code}:`, {
                 hasMenus: !!menus,

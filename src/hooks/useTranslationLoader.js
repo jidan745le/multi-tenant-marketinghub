@@ -2,15 +2,21 @@ import { useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSelector } from 'react-redux';
 import { useLocation, useParams } from 'react-router-dom';
+import { selectBrands } from '../store/slices/themesSlice';
 
 export const useTranslationLoader = () => {
     const { i18n } = useTranslation();
     const params = useParams();
     const location = useLocation();
-    const brands = useSelector(state => state.themes.brands);
+    const brands = useSelector(selectBrands);
 
     // 获取当前品牌
     const getCurrentBrand = useCallback(() => {
+        if (!brands || brands.length === 0) {
+            console.warn('⚠️ 品牌数据未加载或为空');
+            return null;
+        }
+
         const pathSegments = location.pathname.split('/');
         const brandFromPath = pathSegments[2] || params.brand || 'kendo';
         return brands.find(brand => brand.code === brandFromPath);
@@ -56,6 +62,7 @@ export const useTranslationLoader = () => {
         const currentBrand = getCurrentBrand();
 
         if (!currentBrand) {
+            console.warn('⚠️ 无法获取当前品牌信息');
             return [];
         }
 
@@ -70,7 +77,8 @@ export const useTranslationLoader = () => {
             return currentBrand.languages.map(lang => ({
                 code: lang.code,
                 name: lang.name,
-                nativeName: lang.nativeName || lang.name
+                nativeName: lang.nativeName || lang.name,
+                isoCode: lang.isoCode // 添加isoCode字段
             }));
         }
 

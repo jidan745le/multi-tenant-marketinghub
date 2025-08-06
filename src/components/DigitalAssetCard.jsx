@@ -110,25 +110,78 @@ const PreviewSection = styled(Box)(() => ({
     width: '100%',
     flex: 1,
     position: 'relative',
-    overflow: 'hidden',
+    overflow: 'hidden', // 确保溢出的部分被隐藏
 }));
 
-const PreviewContainer = styled(Box)(() => ({
-    background: '#ffffff',
+const PreviewContainer = styled(Box)(({ isAssetType }) => ({
+    background: isAssetType ? '#f0f0f0' : '#ffffff',
     display: 'flex',
     flexDirection: 'column',
-    alignItems: 'flex-start',
-    justifyContent: 'flex-start',
+    alignItems: 'center', // 水平居中
+    justifyContent: 'center', // 垂直居中
     width: '100%',
     height: '100%',
     position: 'relative',
 }));
 
-const MediaPreview = styled('img')(() => ({
+// 创建一个自适应的图片容器
+const MediaPreview = styled('img')(({ aspectRatio }) => {
+    // 根据图片的宽高比决定如何显示
+    // aspectRatio > 1 表示宽度大于高度（横向图片）
+    // aspectRatio < 1 表示高度大于宽度（纵向图片）
+    const isLandscape = aspectRatio > 1;
+    
+    return {
+        width: isLandscape ? '100%' : 'auto',
+        height: isLandscape ? 'auto' : '100%',
+        maxWidth: '100%',
+        maxHeight: '100%',
+        objectFit: 'contain',
+        position: 'relative',
+        margin: 'auto',
+        display: 'block', // 使margin: auto生效
+    };
+});
+
+// 文件格式徽章容器
+const BadgeContainer = styled(Box)(() => ({
+    padding: '0px 24px 16px 0px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    justifyContent: 'flex-start',
     width: '100%',
-    height: '100%',
-    objectFit: 'cover',
+    position: 'absolute',
+    left: 0,
+    bottom: 0,
+}));
+
+// 文件类型徽章
+const FileTypeBadge = styled(Box)(() => ({
+    background: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: '4px',
+    padding: '4px 6px',
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     position: 'relative',
+}));
+
+// 文件类型文本
+const FileType = styled(Typography)(() => ({
+    color: '#ffffff',
+    textAlign: 'center',
+    fontSize: '11px',
+    lineHeight: '16px',
+    letterSpacing: '0.5px',
+    fontWeight: 500,
+    fontFamily: '"Roboto-Medium", sans-serif',
+    position: 'relative',
+    maxWidth: '31px',
+    textOverflow: 'ellipsis',
+    overflow: 'hidden',
+    whiteSpace: 'nowrap',
 }));
 
 const ContentSection = styled(Box)(() => ({
@@ -142,8 +195,8 @@ const ContentSection = styled(Box)(() => ({
     position: 'relative',
 }));
 
-const Eyebrow = styled(Typography)(() => ({
-    color: '#eb6100',
+const Eyebrow = styled(Typography)(({theme}) => ({
+    color: theme.palette.primary.main,
     fontSize: '14px',
     lineHeight: '20px',
     letterSpacing: '0.25px',
@@ -201,6 +254,50 @@ const ProductCard = ({
 }) => {
     const { fallbackImage } = useTheme();
     const [imageError, setImageError] = useState(false);
+    const [aspectRatio, setAspectRatio] = useState(1); // 默认为1（正方形）
+    
+    // 判断是否为资产类型（有mediaType属性）
+    const isAssetType = Boolean(product.mediaType);
+    
+    // 获取文件类型
+    const getFileType = () => {
+        if (!isAssetType) return null;
+        
+        // 优先从原始文件名中提取扩展名
+        if (product.filename) {
+            const match = product.filename.match(/\.([a-zA-Z0-9]+)$/);
+            if (match && match[1]) {
+                return match[1].toUpperCase();
+            }
+        }
+        
+        // 如果没有原始文件名或无法提取，尝试从文件名属性中获取
+        if (product.name) {
+            const match = product.name.match(/\.([a-zA-Z0-9]+)$/);
+            if (match && match[1]) {
+                return match[1].toUpperCase();
+            }
+        }
+        
+        // 如果仍然无法获取，尝试从mediaType中提取
+        if (product.mediaType) {
+            const mediaTypeParts = product.mediaType.split('/');
+            if (mediaTypeParts.length > 1) {
+                return mediaTypeParts[1].toUpperCase();
+            }
+            return product.mediaType.toUpperCase();
+        }
+        
+        // 最后尝试从图片URL中提取（不太可靠，因为可能是缩略图格式）
+        if (product.image) {
+            const match = product.image.match(/\.([a-zA-Z0-9]+)(?:\?|$)/);
+            if (match && match[1]) {
+                return match[1].toUpperCase();
+            }
+        }
+        
+        return 'FILE';
+    };
     
     const handleCheckboxChange = (event) => {
         onSelect(product, event.target.checked);
@@ -237,6 +334,16 @@ const ProductCard = ({
         // 只在第一次失败时设置imageError，避免无限循环
         if (!imageError && product.image) {
             setImageError(true);
+        }
+    };
+    
+    // 处理图片加载完成，计算宽高比
+    const handleImageLoad = (event) => {
+        const img = event.target;
+        if (img.naturalWidth && img.naturalHeight) {
+            const ratio = img.naturalWidth / img.naturalHeight;
+            console.log(`🖼️ Image loaded: ${img.naturalWidth}x${img.naturalHeight}, ratio: ${ratio}`);
+            setAspectRatio(ratio);
         }
     };
 
@@ -292,13 +399,24 @@ const ProductCard = ({
 
             {/* Preview */}
             <PreviewSection>
-                <PreviewContainer>
+                <PreviewContainer isAssetType={isAssetType}>
                     <MediaPreview
                         src={getImageSrc()}
                         alt={product.modelName || product.name}
                         loading="lazy"
                         onError={handleImageError}
+                        onLoad={handleImageLoad}
+                        aspectRatio={aspectRatio}
                     />
+                    
+                    {/* 文件类型徽章，仅对资产类型显示 */}
+                    {isAssetType && cardActionsConfig.show_file_type && (
+                        <BadgeContainer>
+                            <FileTypeBadge>
+                                <FileType>{getFileType()}</FileType>
+                            </FileTypeBadge>
+                        </BadgeContainer>
+                    )}
                 </PreviewContainer>
             </PreviewSection>
 

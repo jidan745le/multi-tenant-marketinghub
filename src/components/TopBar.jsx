@@ -351,6 +351,19 @@ const TopRow = () => {
   };
 
   const handleLanguageSelect = (languageCode) => {
+    console.log("🎯 TopBar handleLanguageSelect:", languageCode);
+    
+    // 验证language数据结构
+    const currentSupportedLang = supportedLanguages.find(lang => lang.code === languageCode);
+    if (currentSupportedLang) {
+      console.log("📋 选中的语言信息:", {
+        code: currentSupportedLang.code,
+        name: currentSupportedLang.name,
+        nativeName: currentSupportedLang.nativeName,
+        isoCode: currentSupportedLang.isoCode || '未找到isoCode'
+      });
+    }
+    
     changeLanguage(languageCode);
     handleClose();
   };

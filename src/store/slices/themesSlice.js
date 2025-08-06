@@ -5,6 +5,7 @@ export const fetchThemes = createAsyncThunk(
     'themes/fetchThemes',
     async (strapiResponse, { rejectWithValue }) => {
         try {
+            // strapiResponse现在应该包含languageCode
             return strapiResponse;
         } catch (error) {
             return rejectWithValue(error.message);
@@ -29,13 +30,13 @@ const defaultBrands = [
 ];
 
 const initialState = {
-    brands: defaultBrands,
-    languages: [], // 存储动态语言配置
-    pages: [], // 存储页面配置数据
+    // 新的语言缓存结构: { [languageCode]: { brands, languages, pages, lastUpdated, isFromAPI } }
+    languageCache: {},
+    currentLanguage: 'en_US', // 当前语言
     loading: false,
     error: null,
-    lastUpdated: null,
-    isFromAPI: false, // 标识数据是否来自API
+    // 保留默认数据作为回退
+    defaultBrands: defaultBrands,
 };
 
 const themesSlice = createSlice({
@@ -45,8 +46,11 @@ const themesSlice = createSlice({
         setThemesLoading: (state, action) => {
             state.loading = action.payload;
         },
+        setCurrentLanguage: (state, action) => {
+            state.currentLanguage = action.payload;
+        },
         setThemesData: (state, action) => {
-            const { data, isFromAPI = true } = action.payload;
+            const { data, isFromAPI = true, languageCode = 'en_US' } = action.payload;
 
             // 原生语言名称映射表
             const nativeNameMap = {
@@ -116,7 +120,7 @@ const themesSlice = createSlice({
             });
 
             // 确保品牌顺序稳定：kendo优先，然后按字母顺序
-            state.brands = brands.sort((a, b) => {
+            const sortedBrands = brands.sort((a, b) => {
                 if (a.code === 'kendo') return -1; // kendo排在最前面
                 if (b.code === 'kendo') return 1;
                 return a.code.localeCompare(b.code); // 其他按字母顺序
@@ -124,10 +128,11 @@ const themesSlice = createSlice({
 
             // 提取全局语言配置 - 找到第一个有语言配置的主题作为全局配置
             const themeWithLanguages = brands.find(brand => brand.languages && brand.languages.length > 0);
+            let languages = [];
             if (themeWithLanguages) {
-                state.languages = themeWithLanguages.languages;
+                languages = themeWithLanguages.languages;
                 console.log('✅ 处理后的全局语言数据 (来自主题:', themeWithLanguages.code + '):',
-                    state.languages.map(l => ({
+                    languages.map(l => ({
                         code: l.code,
                         name: l.name,
                         nativeName: l.nativeName,
@@ -136,7 +141,6 @@ const themesSlice = createSlice({
                 );
             } else {
                 console.warn('⚠️ 未找到任何主题的语言配置数据，将使用静态配置');
-                state.languages = [];
             }
 
             // 提取全局页面配置 - 合并所有品牌的页面配置
@@ -152,9 +156,20 @@ const themesSlice = createSlice({
                     allPages.push(...brandPages);
                 }
             });
-            state.pages = allPages;
 
-            console.log('✅ 处理后的品牌数据:', state.brands.map(b => ({
+            // 将数据存储到语言缓存中
+            state.languageCache[languageCode] = {
+                brands: sortedBrands,
+                languages: languages,
+                pages: allPages,
+                lastUpdated: new Date().toISOString(),
+                isFromAPI: isFromAPI
+            };
+
+            // 更新当前语言
+            state.currentLanguage = languageCode;
+
+            console.log(`✅ 处理后的${languageCode}语言品牌数据:`, sortedBrands.map(b => ({
                 code: b.code,
                 displayName: b.displayName,
                 hasColors: !!b.colors,
@@ -170,7 +185,7 @@ const themesSlice = createSlice({
                 pageCount: b.pages?.length || 0
             })));
 
-            console.log('✅ 处理后的页面数据:', state.pages.map(p => ({
+            console.log(`✅ 处理后的${languageCode}语言页面数据:`, allPages.map(p => ({
                 id: p.id,
                 name: p.name,
                 pageTemplate: p.page_template,
@@ -180,44 +195,50 @@ const themesSlice = createSlice({
 
             state.loading = false;
             state.error = null;
-            state.lastUpdated = new Date().toISOString();
-            state.isFromAPI = isFromAPI;
         },
         setThemesError: (state, action) => {
             state.loading = false;
             state.error = action.payload;
-            // 出错时保持默认品牌配置
-            if (!state.isFromAPI) {
-                state.brands = defaultBrands;
-            }
         },
         resetThemes: (state) => {
-            state.brands = defaultBrands;
-            state.languages = [];
-            state.pages = [];
+            state.languageCache = {};
+            state.currentLanguage = 'en_US';
             state.loading = false;
             state.error = null;
-            state.lastUpdated = null;
-            state.isFromAPI = false;
+        },
+        clearLanguageCache: (state, action) => {
+            const { languageCode } = action.payload;
+            if (languageCode) {
+                delete state.languageCache[languageCode];
+            } else {
+                state.languageCache = {};
+            }
         },
         // 新增：设置页面数据的action
         setPagesData: (state, action) => {
-            state.pages = action.payload;
+            const { languageCode = state.currentLanguage, pages } = action.payload;
+            if (state.languageCache[languageCode]) {
+                state.languageCache[languageCode].pages = pages;
+            }
         },
         // 新增：添加单个页面的action
         addPage: (state, action) => {
-            const page = action.payload;
-            const existingIndex = state.pages.findIndex(p => p.id === page.id && p.brandCode === page.brandCode);
-            if (existingIndex >= 0) {
-                state.pages[existingIndex] = page;
-            } else {
-                state.pages.push(page);
+            const { page, languageCode = state.currentLanguage } = action.payload;
+            if (state.languageCache[languageCode]) {
+                const existingIndex = state.languageCache[languageCode].pages.findIndex(p => p.id === page.id && p.brandCode === page.brandCode);
+                if (existingIndex >= 0) {
+                    state.languageCache[languageCode].pages[existingIndex] = page;
+                } else {
+                    state.languageCache[languageCode].pages.push(page);
+                }
             }
         },
         // 新增：删除页面的action
         removePage: (state, action) => {
-            const { id, brandCode } = action.payload;
-            state.pages = state.pages.filter(p => !(p.id === id && p.brandCode === brandCode));
+            const { id, brandCode, languageCode = state.currentLanguage } = action.payload;
+            if (state.languageCache[languageCode]) {
+                state.languageCache[languageCode].pages = state.languageCache[languageCode].pages.filter(p => !(p.id === id && p.brandCode === brandCode));
+            }
         }
     },
     extraReducers: (builder) => {
@@ -228,56 +249,109 @@ const themesSlice = createSlice({
             })
             .addCase(fetchThemes.fulfilled, (state, action) => {
                 // 处理获取成功的情况，使用现有的setThemesData逻辑
-                const { data } = action.payload;
+                const { data, languageCode } = action.payload;
                 if (data && Array.isArray(data)) {
                     // 复用现有的setThemesData逻辑
                     themesSlice.caseReducers.setThemesData(state, {
-                        payload: { data, isFromAPI: true }
+                        payload: { data, isFromAPI: true, languageCode: languageCode || 'en_US' }
                     });
                 }
             })
             .addCase(fetchThemes.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload || 'Failed to fetch themes';
-                // 出错时保持默认品牌配置
-                if (!state.isFromAPI) {
-                    state.brands = defaultBrands;
-                }
             });
     }
 });
 
 export const {
     setThemesLoading,
+    setCurrentLanguage,
     setThemesData,
     setThemesError,
     resetThemes,
+    clearLanguageCache,
     setPagesData,
     addPage,
     removePage
 } = themesSlice.actions;
 
 // Selectors
-export const selectBrands = (state) => state.themes.brands;
-export const selectLanguages = (state) => state.themes.languages;
-export const selectPages = (state) => state.themes.pages;
+export const selectCurrentLanguage = (state) => state.themes.currentLanguage;
+export const selectLanguageCache = (state) => state.themes.languageCache;
 export const selectThemesLoading = (state) => state.themes.loading;
 export const selectIsLoading = (state) => state.themes.loading; // 新增，现代命名
 export const selectThemesError = (state) => state.themes.error;
-export const selectIsFromAPI = (state) => state.themes.isFromAPI;
-export const selectLastUpdated = (state) => state.themes.lastUpdated;
 
-// 新增：页面相关的selectors
-export const selectPagesByBrand = (brandCode) => (state) =>
-    state.themes.pages.filter(page => page.brandCode === brandCode);
+// 当前语言的数据selectors
+export const selectBrands = (state) => {
+    const currentLangData = state.themes.languageCache[state.themes.currentLanguage];
+    return currentLangData?.brands || state.themes.defaultBrands;
+};
 
-export const selectPageByName = (pageName, brandCode) => (state) =>
-    state.themes.pages.find(page => page.name === pageName && (!brandCode || page.brandCode === brandCode));
+export const selectLanguages = (state) => {
+    const currentLangData = state.themes.languageCache[state.themes.currentLanguage];
+    return currentLangData?.languages || [];
+};
 
-export const selectPageById = (pageId, brandCode) => (state) =>
-    state.themes.pages.find(page => page.id === pageId && (!brandCode || page.brandCode === brandCode));
+export const selectPages = (state) => {
+    const currentLangData = state.themes.languageCache[state.themes.currentLanguage];
+    return currentLangData?.pages || [];
+};
 
-export const selectHomePagesByBrand = (brandCode) => (state) =>
-    state.themes.pages.filter(page => page.page_template === 'homepage' && (!brandCode || page.brandCode === brandCode));
+export const selectIsFromAPI = (state) => {
+    const currentLangData = state.themes.languageCache[state.themes.currentLanguage];
+    return currentLangData?.isFromAPI || false;
+};
+
+export const selectLastUpdated = (state) => {
+    const currentLangData = state.themes.languageCache[state.themes.currentLanguage];
+    return currentLangData?.lastUpdated || null;
+};
+
+// 特定语言的数据selectors
+export const selectBrandsByLanguage = (languageCode) => (state) => {
+    const langData = state.themes.languageCache[languageCode];
+    return langData?.brands || state.themes.defaultBrands;
+};
+
+export const selectLanguagesByLanguage = (languageCode) => (state) => {
+    const langData = state.themes.languageCache[languageCode];
+    return langData?.languages || [];
+};
+
+export const selectPagesByLanguage = (languageCode) => (state) => {
+    const langData = state.themes.languageCache[languageCode];
+    return langData?.pages || [];
+};
+
+// 检查语言缓存状态
+export const selectHasLanguageCache = (languageCode) => (state) =>
+    !!state.themes.languageCache[languageCode];
+
+// 页面相关的selectors
+export const selectPagesByBrand = (brandCode) => (state) => {
+    const currentLangData = state.themes.languageCache[state.themes.currentLanguage];
+    const pages = currentLangData?.pages || [];
+    return pages.filter(page => page.brandCode === brandCode);
+};
+
+export const selectPageByName = (pageName, brandCode) => (state) => {
+    const currentLangData = state.themes.languageCache[state.themes.currentLanguage];
+    const pages = currentLangData?.pages || [];
+    return pages.find(page => page.name === pageName && (!brandCode || page.brandCode === brandCode));
+};
+
+export const selectPageById = (pageId, brandCode) => (state) => {
+    const currentLangData = state.themes.languageCache[state.themes.currentLanguage];
+    const pages = currentLangData?.pages || [];
+    return pages.find(page => page.id === pageId && (!brandCode || page.brandCode === brandCode));
+};
+
+export const selectHomePagesByBrand = (brandCode) => (state) => {
+    const currentLangData = state.themes.languageCache[state.themes.currentLanguage];
+    const pages = currentLangData?.pages || [];
+    return pages.filter(page => page.page_template === 'homepage' && (!brandCode || page.brandCode === brandCode));
+};
 
 export default themesSlice.reducer; 

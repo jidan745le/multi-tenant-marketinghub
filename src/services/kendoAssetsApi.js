@@ -124,15 +124,7 @@ const buildAssetsQuery = (filters = {}, first = 20, after = 0) => {
           ... on asset {
             id
             fullpath
-            assetThumb: fullpath(thumbnail: "content")
-            srcset(thumbnail: "content") {
-              url
-              descriptor
-              resolutions(types: [2, 5]) {
-                url
-                resolution
-              }
-            }
+            assetThumb: fullpath(thumbnail: "content",format: "webp") 
             type
             filename
             mimetype

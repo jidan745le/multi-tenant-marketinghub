@@ -109,7 +109,7 @@ const buildVideosQuery = (filters = {}, first = 20, after = 0) => {
           ... on asset {
             id
             fullpath
-            assetThumb: fullpath(thumbnail: "content")
+            assetThumb: fullpath(thumbnail: "content",format: "webp")
             srcset(thumbnail: "content") {
               url
               descriptor
