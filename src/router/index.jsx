@@ -2,6 +2,7 @@ import { lazy } from 'react';
 import { Navigate } from 'react-router-dom';
 
 // 使用导入的加载器组件
+import AdminRedirect from '../components/AdminRedirect';
 import Loader from '../utils/Loader';
 
 // 延迟加载页面组件
@@ -11,7 +12,13 @@ const MediaCatalogue = Loader(lazy(() => import('../pages/MediaCatalogue')));
 const Videos = Loader(lazy(() => import('../pages/Videos')));
 const HomePage = Loader(lazy(() => import('../pages/HomePage')));
 const UnderConstruction = Loader(lazy(() => import('../pages/UnderConstruction')));
-const AdminThemeSettings = Loader(lazy(() => import('../pages/AdminThemeSettings')));
+const AdminLayout = Loader(lazy(() => import('../layouts/AdminLayout')));
+const LookAndFeel = Loader(lazy(() => import('../pages/LookAndFeel')));
+const ThemeGeneralSettings = Loader(lazy(() => import('../pages/ThemeGeneralSettings')));
+const UnderConstructionAdmin = Loader(lazy(() => import('../pages/UnderConstructionAdmin')));
+const CommunicationSettings = Loader(lazy(() => import('../pages/CommunicationSettings')));
+const LegalSettings = Loader(lazy(() => import('../pages/LegalSettings')));
+const SocialProfileSettings = Loader(lazy(() => import('../pages/SocialProfileSettings')));
 
 const router = [
   // 根路径重定向到默认语言和品牌的产品目录
@@ -75,7 +82,47 @@ const router = [
   },
   {
     path: '/:lang/:brand/admin',
-    element: <AdminThemeSettings />
+    element: <AdminLayout />,
+    children: [
+      {
+        index: true,
+        element: <Navigate to="look-feel" replace />
+      },
+      {
+        path: 'look-feel',
+        element: <LookAndFeel />
+      },
+      {
+        path: 'theme-general-settings',
+        element: <ThemeGeneralSettings />
+      },
+      {
+        path: 'legal',
+        element: <LegalSettings />
+      },
+      {
+        path: 'communication-email',
+        element: <CommunicationSettings />
+      },
+      {
+        path: 'social-profile',
+        element: <SocialProfileSettings />
+      },
+      {
+        path: 'under-construction',
+        element: <UnderConstructionAdmin />
+      },
+      {
+        path: '*',
+        element: <AdminRedirect />
+      }
+    ]
+  },
+  
+  // 独立的管理页面路由 (重定向到默认语言和品牌)
+  {
+    path: '/admin',
+    element: <Navigate to="/en_GB/kendo/admin" replace />
   },
  
   

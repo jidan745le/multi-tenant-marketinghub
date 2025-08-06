@@ -107,7 +107,11 @@ const themesSlice = createSlice({
                     languages: themeLanguages,
                     login: theme.login,
                     translations: theme.translations,
-                    pages: theme.pages || [] // 添加页面配置数据
+                    pages: theme.pages || [], // 添加页面配置数据
+                    // 添加新的配置字段
+                    communication: theme.communication,
+                    legal: theme.legal,
+                    socialprofile: theme.socialprofile
                 };
             });
 
