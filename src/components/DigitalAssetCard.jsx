@@ -145,7 +145,7 @@ const MediaPreview = styled('img')(({ aspectRatio }) => {
 
 // 文件格式徽章容器
 const BadgeContainer = styled(Box)(() => ({
-    padding: '0px 24px 16px 0px',
+    padding: '0px 12px 16px 0px',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'flex-end',
