@@ -170,7 +170,8 @@ function UnderConstruction() {
           sx={{
             py: 1.5,
             px: 4,
-            fontSize: '1.1rem'
+            fontSize: '1.1rem',
+            color: 'white'
           }}
         >
           Go to Catalog

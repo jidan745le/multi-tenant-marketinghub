@@ -1,38 +1,40 @@
-import SaveIcon from '@mui/icons-material/Save';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import {
-    Alert,
-    Box,
-    Button,
-    Checkbox,
-    CircularProgress,
-    Divider,
-    FormControlLabel,
-    IconButton,
-    InputAdornment,
-    Paper,
-    Snackbar,
-    TextField,
-    Typography
+  Alert,
+  Box,
+  Button,
+  Checkbox,
+  CircularProgress,
+  Divider,
+  FormControlLabel,
+  IconButton,
+  InputAdornment,
+  Snackbar,
+  TextField
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import React, { useEffect, useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import { SectionCard, SubTitle } from '../components/SettingsComponents';
 import { useBrand } from '../hooks/useBrand';
-import { getThemeDocumentIdFromBrand, refreshThemeData, updateCommunication } from '../services/strapiApi';
+import { selectCurrentLanguage } from '../store/slices/themesSlice';
+import { createNotification, updateThemeWithLocale, validateBrandData } from '../utils/themeUpdateUtils';
 
 // 样式化保存按钮 - 使用主题色
 const SaveButton = styled(Button)(({ theme }) => ({
   backgroundColor: theme.palette.primary.main,
+  color: 'white',
   '&:hover': {
     backgroundColor: theme.palette.primary.dark,
+    color: 'white',
   },
 }));
 
 function CommunicationSettings() {
   const { currentBrand } = useBrand();
   const dispatch = useDispatch();
+  const currentLanguage = useSelector(selectCurrentLanguage);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setSaving] = useState(false);
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
@@ -76,42 +78,37 @@ function CommunicationSettings() {
     setShowPassword(!showPassword);
   };
 
-  // 保存配置到Strapi
+  // 保存配置到Strapi - 使用通用工具函数
   const handleSave = async () => {
     try {
       setSaving(true);
       
-      if (!currentBrand) {
-        throw new Error('未找到当前品牌数据');
+      // 验证品牌数据
+      const validation = validateBrandData(currentBrand);
+      if (!validation.isValid) {
+        throw new Error(validation.error);
       }
 
-      if (!currentBrand.strapiData?.documentId) {
-        throw new Error('未找到品牌的 documentId');
-      }
+      console.log('🔄 开始保存Communication配置...');
 
-      const documentId = getThemeDocumentIdFromBrand(currentBrand);
-      
-      if (!documentId) {
-        throw new Error('无法获取主题documentId');
-      }
+      // 准备更新数据
+      const updateData = {
+        communication: formData
+      };
 
-      await updateCommunication(documentId, formData);
-      
-      // 刷新Redux中的数据
-      await refreshThemeData(dispatch);
-
-      setNotification({
-        open: true,
-        message: '通信设置保存成功！',
-        severity: 'success'
+      // 使用通用更新函数 - 支持locale和Redux刷新
+      await updateThemeWithLocale({
+        documentId: currentBrand.strapiData.documentId,
+        updateData,
+        currentLanguage,
+        dispatch,
+        description: 'Communication配置'
       });
+
+      setNotification(createNotification(true, '通信设置保存成功！'));
     } catch (error) {
       console.error('保存通信设置失败:', error);
-      setNotification({
-        open: true,
-        message: `保存失败: ${error.message}`,
-        severity: 'error'
-      });
+      setNotification(createNotification(false, `保存失败: ${error.message}`));
     } finally {
       setSaving(false);
     }
@@ -124,26 +121,10 @@ function CommunicationSettings() {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" sx={{ fontWeight: 600 }}>
-          Communication & Email Settings
-        </Typography>
-        <SaveButton
-          variant="contained"
-          startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
-          onClick={handleSave}
-          disabled={loading}
-        >
-          {loading ? '保存中...' : '保存设置'}
-        </SaveButton>
-      </Box>
-
-      <Paper elevation={2} sx={{ p: 3 }}>
+      <SectionCard>
         {/* Server Name */}
         <Box sx={{ mb: 3 }}>
-          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 500 }}>
-            SERVER NAME
-          </Typography>
+          <SubTitle>SERVER NAME</SubTitle>
           <TextField
             fullWidth
             placeholder="RG.experience@gmail.com"
@@ -156,9 +137,7 @@ function CommunicationSettings() {
 
         {/* Port */}
         <Box sx={{ mb: 3 }}>
-          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 500 }}>
-            PORT
-          </Typography>
+          <SubTitle>PORT</SubTitle>
           <TextField
             fullWidth
             placeholder="Enter Port"
@@ -200,9 +179,7 @@ function CommunicationSettings() {
 
         {/* URL */}
         <Box sx={{ mb: 3 }}>
-          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 500 }}>
-            URL
-          </Typography>
+          <SubTitle>URL</SubTitle>
           <TextField
             fullWidth
             placeholder="Enter URL"
@@ -215,9 +192,7 @@ function CommunicationSettings() {
 
         {/* User */}
         <Box sx={{ mb: 3 }}>
-          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 500 }}>
-            USER
-          </Typography>
+          <SubTitle>USER</SubTitle>
           <TextField
             fullWidth
             placeholder="Enter User"
@@ -230,9 +205,7 @@ function CommunicationSettings() {
 
         {/* Password */}
         <Box sx={{ mb: 3 }}>
-          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 500 }}>
-            PASSWORD
-          </Typography>
+          <SubTitle>PASSWORD</SubTitle>
           <TextField
             fullWidth
             placeholder="Enter password"
@@ -256,7 +229,19 @@ function CommunicationSettings() {
             }}
           />
         </Box>
-      </Paper>
+      </SectionCard>
+
+      {/* 保存按钮 */}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, mb: 4 }}>
+        <SaveButton 
+          variant="contained" 
+          onClick={handleSave}
+          disabled={loading}
+        >
+          {loading ? <CircularProgress size={20} color="inherit" sx={{ mr: 1 }} /> : null}
+          Save Configuration
+        </SaveButton>
+      </Box>
 
       {/* 通知消息 */}
       <Snackbar

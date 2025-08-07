@@ -70,13 +70,22 @@ export const useLanguage = () => {
 
         const pathSegments = location.pathname.split('/').filter(Boolean);
         const currentBrand = params.brand || pathSegments[1] || 'kendo';
-        const currentPage = pathSegments[2] || 'category';
-        const newPath = `/${newLanguage}/${currentBrand}/${currentPage}`;
+
+        // 保持当前完整路径结构，只替换语言部分
+        // 普通页面: [lang, brand, page] -> /lang/brand/page
+        // Admin页面: [lang, brand, admin, adminPage] -> /lang/brand/admin/adminPage
+        const remainingPath = pathSegments.slice(2).join('/'); // 获取brand之后的所有路径
+        const fallbackPage = remainingPath || 'category'; // 如果没有路径，使用默认页面
+
+        const newPath = `/${newLanguage}/${currentBrand}/${fallbackPage}`;
 
         console.log('🌐 切换语言:', {
             from: currentLanguage,
             to: newLanguage,
-            path: newPath
+            originalPath: location.pathname,
+            pathSegments,
+            remainingPath,
+            newPath
         });
 
         navigate(`${newPath}${location.search}`);

@@ -1,89 +1,80 @@
 import AddIcon from '@mui/icons-material/Add';
-import AttachFileIcon from '@mui/icons-material/AttachFile';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import DeleteIcon from '@mui/icons-material/Delete';
-import EditIcon from '@mui/icons-material/Edit';
-import UploadFileIcon from '@mui/icons-material/UploadFile';
 import {
-    Box,
-    Button,
-    Checkbox,
-    CircularProgress,
-    FormControlLabel,
-    Grid,
-    IconButton,
-    Paper,
-    TextField,
-    Typography
+  Box,
+  Button,
+  Checkbox,
+  CircularProgress,
+  FormControlLabel,
+  Grid,
+  IconButton,
+  MenuItem,
+  Select,
+  TextField,
+  Typography
 } from '@mui/material';
 import { alpha, styled } from '@mui/material/styles';
 import React, { useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import ImageUpload from '../components/ImageUpload';
+import { SectionCard, SectionTitle, SubTitle } from '../components/SettingsComponents';
 import { useBrand } from '../hooks/useBrand';
-import { selectThemesLoading } from '../store/slices/themesSlice';
+import { refreshThemeData } from '../services/strapiApi';
+import { selectCurrentLanguage, selectThemesLoading } from '../store/slices/themesSlice';
+
+// 动态从Redux获取语言代码到Strapi locale的映射
+const getLocaleForAPI = (languageCode) => {
+  try {
+    // 检查是否有window.store可用
+    if (typeof window !== 'undefined' && window.store) {
+      const state = window.store.getState();
+      const currentLangData = state.themes.languageCache[state.themes.currentLanguage];
+
+      if (currentLangData?.languages) {
+        // 在当前品牌的语言配置中查找对应的iso_639_code
+        const languageInfo = currentLangData.languages.find(lang => lang.code === languageCode);
+        if (languageInfo?.isoCode) {
+          console.log(`🗂️ ThemeGeneralSettings从Redux获取映射: ${languageCode} -> ${languageInfo.isoCode}`);
+          return languageInfo.isoCode;
+        }
+      }
+
+      // 回退：检查所有语言缓存中的数据
+      for (const langCache of Object.values(state.themes.languageCache)) {
+        if (langCache.languages) {
+          const languageInfo = langCache.languages.find(lang => lang.code === languageCode);
+          if (languageInfo?.isoCode) {
+            console.log(`🗂️ ThemeGeneralSettings从其他缓存获取映射: ${languageCode} -> ${languageInfo.isoCode}`);
+            return languageInfo.isoCode;
+          }
+        }
+      }
+    }
+
+    // 最后回退：使用静态映射
+    const staticMapping = {
+      'en_GB': 'en', 'en_US': 'en', 'en_AU': 'en',
+      'zh_CN': 'zh', 'zh_TW': 'zh', 'cht': 'zh', 'ch': 'zh',
+      'de_DE': 'de', 'fr_FR': 'fr', 'es_ES': 'es', 'ja_JP': 'ja',
+      'ko_KR': 'ko', 'it_IT': 'it', 'pt_PT': 'pt', 'ru_RU': 'ru',
+      'ar_SA': 'ar', 'nl_NL': 'nl', 'pl_PL': 'pl', 'cs_CZ': 'cs',
+      'da_DK': 'da', 'fi_FI': 'fi', 'hu_HU': 'hu', 'nb_NO': 'no',
+      'sv_SE': 'sv', 'bg_BG': 'bg', 'hr_HR': 'hr', 'et_EE': 'et',
+      'el_GR': 'el', 'lt_LT': 'lt', 'lv_LV': 'lv'
+    };
+
+    const locale = staticMapping[languageCode] || languageCode.split('_')[0] || 'en';
+    console.log(`⚠️ ThemeGeneralSettings使用静态映射回退: ${languageCode} -> ${locale}`);
+    return locale;
+
+  } catch (error) {
+    console.error('❌ ThemeGeneralSettings getLocaleForAPI错误:', error);
+    return languageCode.split('_')[0] || 'en';
+  }
+};
 
 // 样式化组件
-const SectionTitle = styled(Typography)(() => ({
-  fontSize: '1.2rem',
-  fontWeight: 500,
-  marginBottom: 16,
-}));
-
-const ImagePreviewBox = styled(Box)(() => ({
-  width: '100%',
-  height: 120,
-  border: '1px solid #e0e0e0',
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  marginBottom: 8,
-  position: 'relative',
-  borderRadius: 4,
-  overflow: 'hidden',
-}));
-
-const EditButton = styled(Button)(() => ({
-  position: 'absolute',
-  right: 8,
-  bottom: 8,
-  minWidth: 'auto',
-  width: 32,
-  height: 32,
-  padding: 0,
-}));
-
-const DeleteButton = styled(Button)(() => ({
-  position: 'absolute',
-  right: 48,
-  bottom: 8,
-  minWidth: 'auto',
-  width: 32,
-  height: 32,
-  padding: 0,
-  backgroundColor: '#f44336',
-  '&:hover': {
-    backgroundColor: '#d32f2f',
-  },
-}));
-
-const VisuallyHiddenInput = styled('input')({
-  clip: 'rect(0 0 0 0)',
-  clipPath: 'inset(50%)',
-  height: 1,
-  overflow: 'hidden',
-  position: 'absolute',
-  bottom: 0,
-  left: 0,
-  whiteSpace: 'nowrap',
-  width: 1,
-});
-
-const SectionCard = styled(Paper)(() => ({
-  padding: 24,
-  marginBottom: 24,
-  borderRadius: 8,
-  boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-}));
 
 const DropZone = styled(Box)(({ theme }) => ({
   height: '100%',
@@ -169,8 +160,10 @@ const DeleteIconButton = styled(IconButton)(({ theme }) => ({
 
 const SaveButton = styled(Button)(({ theme }) => ({
   backgroundColor: theme.palette.primary.main,
+  color: 'white',
   '&:hover': {
     backgroundColor: theme.palette.primary.dark,
+    color: 'white',
   },
 }));
 
@@ -233,92 +226,11 @@ const EmptyPreviewIcon = styled(Box)(({ theme }) => ({
   marginBottom: theme.spacing(2),
 }));
 
-// 图片上传预览组件
-const ImageUpload = ({ title, image, logoType, isUploading, onUpload, onDelete }) => {
-  const handleFileChange = async (event) => {
-    const file = event.target.files[0];
-    if (file && onUpload) {
-      await onUpload(file, logoType);
-    }
-  };
-
-  const handleEdit = () => {
-    document.getElementById(`file-input-${logoType}`).click();
-  };
-
-  const handleDelete = () => {
-    if (onDelete) {
-      onDelete(logoType);
-    }
-  };
-
-  const handleImageError = () => {
-    console.error('图片加载失败 (可能是CORS问题):', image);
-  };
-
-  return (
-    <Box>
-      <ImagePreviewBox>
-        {isUploading ? (
-          <CircularProgress />
-        ) : image ? (
-          <>
-            <img
-              src={image}
-              alt={title}
-              onError={handleImageError}
-              onLoad={() => {
-                console.log('图片加载成功:', image);
-              }}
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'contain'
-              }}
-            />
-            <EditButton
-              variant="contained"
-              color="primary"
-              onClick={handleEdit}
-              size="small"
-            >
-              <EditIcon fontSize="small" />
-            </EditButton>
-            <DeleteButton
-              variant="contained"
-              onClick={handleDelete}
-              size="small"
-            >
-              <DeleteIcon fontSize="small" />
-            </DeleteButton>
-          </>
-        ) : (
-          <Button
-            variant="outlined"
-            component="label"
-            startIcon={<CloudUploadIcon />}
-          >
-            Upload {title}
-            <VisuallyHiddenInput
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-            />
-          </Button>
-        )}
-        <VisuallyHiddenInput
-          id={`file-input-${logoType}`}
-          type="file"
-          accept="image/*"
-          onChange={handleFileChange}
-        />
-      </ImagePreviewBox>
-    </Box>
-  );
-};
 
 function ThemeGeneralSettings() {
+  const dispatch = useDispatch();
   const isLoading = useSelector(selectThemesLoading);
+  const currentLanguage = useSelector(selectCurrentLanguage);
   const { currentBrand } = useBrand();
 
   // 状态管理
@@ -508,28 +420,38 @@ function ThemeGeneralSettings() {
       const loginData = {
         pretitle: loginPretitle || currentBrand.login?.pretitle || '',
         title: loginTitle || currentBrand.login?.title || '',
-        subtitle: loginSubtitle || currentBrand.login?.subtitle || '',
-        background: currentBrand.login?.background || null
+        subtitle: loginSubtitle || currentBrand.login?.subtitle || ''
       };
+
+      // 处理背景图片数据 - 需要格式化为 [documentId] 数组
+      let backgroundValue = null;
+      
+      if (uploadedImageIds.loginBg) {
+        // 如果有新上传的图片，使用新上传的图片ID
+        backgroundValue = [uploadedImageIds.loginBg];
+      } else if (currentBrand.login?.background?.[0]?.id) {
+        // 如果有现有的背景图片，保持现有的documentId
+        backgroundValue = [currentBrand.login.background[0].id];
+      } else if (currentBrand.strapiData?.login?.background?.id) {
+        // 回退：使用strapiData中的ID
+        backgroundValue = [currentBrand.strapiData.login.background.id];
+      }
+
+      // 设置最终的login数据
+      loginData.background = backgroundValue;
+      
+      console.log('🖼️ 背景图片处理结果:', {
+        uploadedImageIds: uploadedImageIds.loginBg,
+        currentBackground: currentBrand.login?.background?.[0]?.documentId,
+        strapiBackground: currentBrand.strapiData?.login?.background?.id,
+        finalBackground: backgroundValue
+      });
 
       // 准备更新数据
       const updateData = {
         languages: selectedLanguageDocuments,
         login: loginData
       };
-
-      // 如果有新上传的登录背景图片，更新 login.background
-      if (uploadedImageIds.loginBg) {
-        updateData.login = {
-          ...updateData.login,
-          background: uploadedImageIds.loginBg
-        };
-      } else if (currentBrand.strapiData?.login?.background?.id) {
-        updateData.login = {
-          ...updateData.login,
-          background: currentBrand.strapiData.login.background.id
-        };
-      }
 
       // 如果有翻译数据变化，更新 translations
       if (hasTranslationChanges && Object.keys(translationsData).length > 0) {
@@ -540,8 +462,12 @@ function ThemeGeneralSettings() {
 
       console.log('准备更新的Theme General Settings数据:', updateData);
 
-      // 调用 Strapi API 更新 themes
-      const response = await fetch(`${strapiBaseUrl}/api/themes/${currentBrand.strapiData.documentId}`, {
+      // 获取当前语言对应的locale
+      const locale = getLocaleForAPI(currentLanguage);
+      console.log(`🌐 更新请求: ${currentLanguage} -> locale=${locale}`);
+
+      // 调用 Strapi API 更新 themes - 带locale参数
+      const response = await fetch(`${strapiBaseUrl}/api/themes/${currentBrand.strapiData.documentId}?locale=${locale}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -557,6 +483,12 @@ function ThemeGeneralSettings() {
 
       const result = await response.json();
       console.log('✅ Theme General Settings配置保存成功:', result);
+      
+      // 刷新Redux中的主题数据
+      console.log(`🔄 刷新${currentLanguage}语言的主题数据 (locale=${locale})`);
+      await refreshThemeData(dispatch, currentLanguage);
+      console.log(`✅ 刷新${currentLanguage}语言的主题数据完成`);
+      
       alert('Theme General Settings配置保存成功！');
 
       // 清空已上传的图片ID记录
@@ -631,13 +563,10 @@ function ThemeGeneralSettings() {
       const baseUrl = import.meta.env.VITE_STRAPI_BASE_URL || '';
       
       // 设置 login background
-      if (currentBrand.login?.background?.url) {
-        const loginBgUrl = `${baseUrl}${currentBrand.login.background.url}`;
+      if (currentBrand.login?.background?.[0]?.url) {
+        const loginBgUrl = `${baseUrl}${currentBrand.login.background[0].url}`;
         setLoginBackgroundPreview(loginBgUrl);
-      } else if (currentBrand.strapiData?.login?.background?.url) {
-        const loginBgUrl = `${baseUrl}${currentBrand.strapiData.login.background.url}`;
-        setLoginBackgroundPreview(loginBgUrl);
-      } else {
+      }  else {
         setLoginBackgroundPreview(null);
       }
     } else {
@@ -813,46 +742,48 @@ function ThemeGeneralSettings() {
     );
   }
 
-  const themeColors = currentBrand?.theme_colors || {};
+  const themeColors = currentBrand?.colors || {};
   const themeLogo = currentBrand?.theme_logo || {};
+
+  console.log('currentBrand',currentBrand, themeColors);
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Theme General Settings
-      </Typography>
-
       {/* Login Screen 部分 */}
       <SectionCard>
         <SectionTitle>Login Screen</SectionTitle>
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <Typography variant="subtitle2" gutterBottom>Title</Typography>
+        <Box sx={{ display: 'flex', gap: 3 }}>
+          <Box sx={{ flex: 1 }}>
+            <SubTitle>TITLE</SubTitle>
             <TextField
-              fullWidth
+              sx={{ width: "80%" }}
               placeholder="title"
               value={loginTitle}
               onChange={(e) => setLoginTitle(e.target.value)}
             />
 
-            <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Pre Title</Typography>
+            <Box sx={{ mt: 3 }}>
+              <SubTitle>PRE TITLE</SubTitle>
             <TextField
-              fullWidth
+                sx={{ width: "80%" }}
               placeholder="pre_title"
               value={loginPretitle}
               onChange={(e) => setLoginPretitle(e.target.value)}
             />
+            </Box>
 
-            <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Subtitle</Typography>
+            <Box sx={{ mt: 3 }}>
+              <SubTitle>SUBTITLE</SubTitle>
             <TextField
-              fullWidth
+                sx={{ width: "80%" }}
               placeholder="subtitle"
               value={loginSubtitle}
               onChange={(e) => setLoginSubtitle(e.target.value)}
             />
+            </Box>
             
             <Box sx={{ mt: 3 }}>
-              <Typography variant="subtitle2" gutterBottom>LOGIN BACKGROUND</Typography>
+              <SubTitle>LOGIN BACKGROUND</SubTitle>
               <ImageUpload 
                 title="LOGIN BACKGROUND"
                 image={loginBackgroundPreview} 
@@ -862,24 +793,30 @@ function ThemeGeneralSettings() {
                 onDelete={handleImageDelete}
               />
             </Box>
-          </Grid>
+          </Box>
           
-          <Grid item xs={12} md={6}>
-            <ImagePreviewBox sx={{ height: 350 }}>
-              {/* 登录页预览 */}
+          <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
+            <Box sx={{ 
+              width: 800,
+              height: 600,
+              border: '1px solid #e0e0e0',
+              borderRadius: 1,
+              overflow: 'hidden',
+              position: 'relative',
+              display: 'flex'
+            }}>
+              {/* 登录页预览 - 3:1 双列布局 */}
+              
+              {/* 左侧登录面板 (3/4 宽度) */}
               <Box sx={{ 
-                width: '100%', 
+                width: '75%', 
                 height: '100%', 
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'center',
                 alignItems: 'center',
                 backgroundColor: '#f9f9f9',
-                padding: 2,
-                borderRadius: 1,
-                backgroundImage: loginBackgroundPreview ? `url(${loginBackgroundPreview})` : 'none',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
+                padding: 3,
               }}>
                 {themeLogo?.url && (
                   <img 
@@ -890,44 +827,87 @@ function ThemeGeneralSettings() {
                 )}
                 <Box sx={{ 
                   width: '80%', 
-                  padding: 2, 
+                  maxWidth: '400px',
+                  padding: 3, 
                   backgroundColor: 'white',
                   borderRadius: 1,
                   boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                 }}>
-                  <Typography variant="h6" align="center" gutterBottom>
-                    {loginPretitle && `${loginPretitle} - `}
+                  <Box sx={{ textAlign: 'center', mb: 3 }}>
+                    {loginPretitle && (
+                      <Box sx={{ fontSize: '0.85rem', color: 'text.secondary', mb: 1 }}>
+                        {loginPretitle}
+                      </Box>
+                    )}
+                    <Box sx={{ fontSize: '1.1rem', fontWeight: 'bold', mb: 1 }}>
                     {loginTitle || `Welcome to the ${currentBrand.name} Media Portal`}
-                    {loginSubtitle && ` - ${loginSubtitle}`}
-                  </Typography>
+                    </Box>
+                    {loginSubtitle && (
+                      <Box sx={{ fontSize: '0.9rem', color: 'text.secondary' }}>
+                        {loginSubtitle}
+                      </Box>
+                    )}
+                  </Box>
                   <TextField 
                     fullWidth 
                     size="small" 
                     placeholder="Username" 
-                    sx={{ mb: 2 }}
+                    sx={{ mb: 2, '& .MuiInputBase-input': { fontSize: '0.9rem', py: 1.2 } }}
                   />
                   <TextField 
                     fullWidth 
                     size="small" 
                     type="password"
                     placeholder="Password" 
-                    sx={{ mb: 2 }}
+                    sx={{ mb: 2, '& .MuiInputBase-input': { fontSize: '0.9rem', py: 1.2 } }}
                   />
                   <Button 
                     fullWidth 
                     variant="contained" 
                     sx={{ 
                       backgroundColor: themeColors.primary_color || '#ff6600',
-                      '&:hover': { backgroundColor: themeColors.secondary_color || '#003366' }
+                      color: 'white',
+                      fontSize: '0.9rem',
+                      py: 1.2,
+                      '&:hover': { 
+                        backgroundColor: themeColors.primary_color || '#ff6600',
+                        opacity: 0.9
+                      }
                     }}
                   >
                     Login
                   </Button>
                 </Box>
               </Box>
-            </ImagePreviewBox>
-          </Grid>
-        </Grid>
+
+              {/* 右侧背景图片预览 (1/4 宽度) */}
+              <Box sx={{ 
+                width: '25%', 
+                height: '100%', 
+                backgroundColor: '#f0f0f0',
+                borderLeft: '1px solid #e0e0e0',
+                backgroundImage: loginBackgroundPreview ? `url(${loginBackgroundPreview})` : 'none',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                {!loginBackgroundPreview && (
+                  <Box sx={{ 
+                    textAlign: 'center', 
+                    color: '#999',
+                    fontSize: '0.8rem',
+                    padding: 1
+                  }}>
+                    Background Preview
+                  </Box>
+                )}
+              </Box>
+            </Box>
+          </Box>
+        </Box>
       </SectionCard>
 
       {/* Basic Data 部分 */}
@@ -935,7 +915,7 @@ function ThemeGeneralSettings() {
         <SectionTitle>Basic Data (ID & Name)</SectionTitle>
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
-            <Typography variant="subtitle2" gutterBottom>ENTERPRISE ID</Typography>
+            <SubTitle>ENTERPRISE ID</SubTitle>
             <TextField
               fullWidth
               placeholder="Enter ID"
@@ -944,7 +924,7 @@ function ThemeGeneralSettings() {
           </Grid>
           
           <Grid item xs={12} md={6}>
-            <Typography variant="subtitle2" gutterBottom>ENTERPRISE NAME</Typography>
+            <SubTitle>ENTERPRISE NAME</SubTitle>
             <TextField
               fullWidth
               placeholder="Enter name"
@@ -963,19 +943,57 @@ function ThemeGeneralSettings() {
             <Typography sx={{ ml: 2 }}>加载语言数据...</Typography>
           </Box>
         ) : (
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-            {strapiLanguages.map((language) => (
-              <FormControlLabel 
-                key={language.code}
-                control={
-                  <Checkbox 
-                    checked={isLanguageSelected(language.code)}
-                    onChange={() => handleLanguageChange(language.code)}
-                  />
-                } 
-                label={language.label || language.name}
-              />
-            ))}
+          <Box sx={{ display: 'flex', gap: 4 }}>
+            {(() => {
+              // 按字母顺序排序语言
+              const sortedLanguages = [...strapiLanguages].sort((a, b) => {
+                const nameA = (a.label || a.name || '').toLowerCase();
+                const nameB = (b.label || b.name || '').toLowerCase();
+                return nameA.localeCompare(nameB);
+              });
+              
+              const halfLength = Math.ceil(sortedLanguages.length / 2);
+              const leftColumn = sortedLanguages.slice(0, halfLength);
+              const rightColumn = sortedLanguages.slice(halfLength);
+              
+              return (
+                <>
+                  {/* 左栏 */}
+                  <Box sx={{ flex: 1 }}>
+                    {leftColumn.map((language) => (
+                      <FormControlLabel 
+                        key={language.code}
+                        control={
+                          <Checkbox 
+                            checked={isLanguageSelected(language.code)}
+                            onChange={() => handleLanguageChange(language.code)}
+                          />
+                        } 
+                        label={language.label || language.name}
+                        sx={{ display: 'block', mb: 1 }}
+                      />
+                    ))}
+                  </Box>
+                  
+                  {/* 右栏 */}
+                  <Box sx={{ flex: 1 }}>
+                    {rightColumn.map((language) => (
+                      <FormControlLabel 
+                        key={language.code}
+                        control={
+                          <Checkbox 
+                            checked={isLanguageSelected(language.code)}
+                            onChange={() => handleLanguageChange(language.code)}
+                          />
+                        } 
+                        label={language.label || language.name}
+                        sx={{ display: 'block', mb: 1 }}
+                      />
+                    ))}
+                  </Box>
+                </>
+              );
+            })()}
           </Box>
         )}
         
@@ -1003,8 +1021,7 @@ function ThemeGeneralSettings() {
           <Typography variant="subtitle2" gutterBottom>
             Select Language for Translation
           </Typography>
-          <TextField
-            select
+          <Select
             fullWidth
             value={selectedTranslationLanguage}
             onChange={(e) => {
@@ -1019,19 +1036,31 @@ function ThemeGeneralSettings() {
               setEditingTranslationContent('');
               setTranslationEditError('');
             }}
-            SelectProps={{
-              native: true,
-            }}
+            displayEmpty
             sx={{ maxWidth: 300 }}
           >
-            <option value="">Select a language...</option>
+            <MenuItem value="">
+              <Typography color="text.secondary">Select a language...</Typography>
+            </MenuItem>
             {strapiLanguages.map((language) => (
-              <option key={language.code} value={language.code}>
-                {language.label} ({language.code})
-                {translationsData[language.code] ? ' ✓' : ''}
-              </option>
+              <MenuItem key={language.code} value={language.code}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                  <Typography>
+                    {language.label} ({language.code})
+                  </Typography>
+                  {translationsData[language.code] && (
+                    <CheckCircleIcon 
+                      sx={{ 
+                        color: 'success.main', 
+                        fontSize: '1.2rem',
+                        ml: 'auto'
+                      }} 
+                    />
+                  )}
+                </Box>
+              </MenuItem>
             ))}
-          </TextField>
+          </Select>
           {selectedTranslationLanguage && (
             <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Typography variant="caption" color="text.secondary">
@@ -1065,133 +1094,75 @@ function ThemeGeneralSettings() {
 
         <Box sx={{ display: 'flex', gap: 0, height: 400 }}>
           {/* 左栏：上传区域 */}
-          <Box sx={{ flex: 1, pr: 1 }}>
-            {uploadedTranslationFile ? (
-              <UploadedFileContainer>
+          <Box sx={{ flex: 1, height: 400 }}>
                 <Box sx={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'space-between',
-                  mb: 2 
-                }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                    <FileTypeBox>
+              width: '100%',
+              height: '100%',
+              backgroundColor: 'white',
+              border: '1px solid #e0e0e0',
+              borderRadius: 1,
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
                       <Typography sx={{ 
-                        color: 'white',
-                        fontSize: '0.8rem',
-                        fontWeight: 600
-                      }}>
-                        {uploadedTranslationFile.name.split('.').pop().toUpperCase()}
+                position: 'absolute',
+                top: 16,
+                left: 16,
+                color: '#999',
+                fontSize: '0.875rem',
+                zIndex: 1
+              }}>
+                Drop your files here
                       </Typography>
-                    </FileTypeBox>
-                    <Box>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 500, color: '#333' }}>
+              
+              <Box sx={{
+                width: '100%',
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#999',
+                fontSize: '0.875rem',
+                textAlign: 'center',
+                padding: 3,
+                cursor: selectedTranslationLanguage ? 'pointer' : 'not-allowed',
+                opacity: selectedTranslationLanguage ? 1 : 0.5
+              }}
+              onClick={selectedTranslationLanguage ? () => document.getElementById('file-upload-input').click() : undefined}
+              onDragOver={handleDragOver}
+              onDrop={selectedTranslationLanguage ? handleDrop : undefined}
+              >
+                {uploadedTranslationFile ? (
+                  <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 500, color: '#333', mb: 1 }}>
                         {uploadedTranslationFile.name}
                       </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {(uploadedTranslationFile.size / 1024).toFixed(1)} KB • Uploaded successfully
+                    <Typography variant="caption" color="text.secondary" sx={{ mb: 2 }}>
+                      {(uploadedTranslationFile.size / 1024).toFixed(1)} KB
                       </Typography>
-                    </Box>
-                  </Box>
-                  <DeleteIconButton 
+                    <Button
+                      variant="outlined"
                     size="small"
-                    onClick={() => setUploadedTranslationFile(null)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setUploadedTranslationFile(null);
+                      }}
                   >
-                    <DeleteIcon fontSize="small" />
-                  </DeleteIconButton>
+                      Remove
+                    </Button>
                 </Box>
-
-                <ReplaceUploadZone
-                  onClick={() => document.getElementById('file-upload-input').click()}
-                >
-                  <CloudUploadIcon sx={{ 
-                    fontSize: 32, 
-                    color: '#92c020', 
-                    mb: 1 
-                  }} />
-                  <Typography variant="body2" sx={{ 
-                    color: '#92c020',
-                    fontWeight: 500
-                  }}>
-                    Click to replace file
-                  </Typography>
-                </ReplaceUploadZone>
-
-                <input
-                  id="file-upload-input"
-                  type="file"
-                  accept=".txt,.json"
-                  onChange={(e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                      if (!selectedTranslationLanguage) {
-                        alert('Please select a language first');
-                        e.target.value = '';
-                        return;
-                      }
-                      setUploadedTranslationFile({ id: Date.now(), name: file.name, size: file.size, file: file });
-                      previewFile(file);
-                    }
-                  }}
-                  style={{ display: 'none' }}
-                />
-              </UploadedFileContainer>
-            ) : (
-              <DropZone
-                onDragOver={handleDragOver}
-                onDrop={selectedTranslationLanguage ? handleDrop : undefined}
-                onClick={selectedTranslationLanguage ? () => document.getElementById('file-upload-input').click() : undefined}
-                sx={{ 
-                  opacity: selectedTranslationLanguage ? 1 : 0.5,
-                  cursor: selectedTranslationLanguage ? 'pointer' : 'not-allowed'
-                }}
-              >
-                <Box sx={{ textAlign: 'center', maxWidth: 320 }}>
-                  <Typography variant="h6" sx={{ 
-                    color: selectedTranslationLanguage ? '#333' : '#999',
-                    fontWeight: 400,
-                    mb: 2,
-                    fontSize: '1.1rem'
-                  }}>
-                    {selectedTranslationLanguage ? 'Drop your file here' : 'Select a language first'}
-                  </Typography>
-                  
-                  <Typography variant="body2" sx={{ 
-                    color: selectedTranslationLanguage ? '#666' : '#999',
-                    lineHeight: 1.6,
-                    mb: 4,
-                    fontSize: '0.9rem'
-                  }}>
+                ) : (
+                  <Box>
+                    <Typography sx={{ mb: 2 }}>
                     {selectedTranslationLanguage 
-                      ? `Upload translation file for ${selectedTranslationLanguage}. Supports TXT and JSON formats.`
+                        ? `Simply drag and drop your PDF, Word (.docx) to convert them into JSON format using our document translation tool.`
                       : 'Please select a language from the dropdown above to upload translations.'
                     }
                   </Typography>
+                    <CloudUploadIcon sx={{ fontSize: 40, color: '#ccc' }} />
                 </Box>
-
-                <Box sx={{ 
-                  position: 'absolute',
-                  bottom: 16,
-                  left: 16
-                }}>
-                  <AttachFileIcon sx={{ 
-                    color: '#ccc',
-                    fontSize: 24,
-                    transform: 'rotate(45deg)'
-                  }} />
-                </Box>
-
-                <Box sx={{ 
-                  position: 'absolute',
-                  bottom: 16,
-                  right: 16
-                }}>
-                  <UploadButton>
-                    <CloudUploadIcon sx={{ 
-                      color: 'white',
-                      fontSize: 20
-                    }} />
-                  </UploadButton>
+                )}
                 </Box>
 
                 <input
@@ -1212,54 +1183,31 @@ function ThemeGeneralSettings() {
                   }}
                   style={{ display: 'none' }}
                 />
-              </DropZone>
-            )}
+            </Box>
           </Box>
 
           {/* 右栏：预览区域 */}
-          <Box sx={{ flex: 1, pl: 1 }}>
-            <PreviewContainer>
-              {uploadedTranslationFile ? (
-                <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                  <PreviewHeader>
-                    <FileTypeBox sx={{ width: 24, height: 24, borderRadius: 0.5, mr: 1.5 }}>
-                      <Typography sx={{ 
-                        color: 'white',
-                        fontSize: '0.7rem',
-                        fontWeight: 600
-                      }}>
-                        {uploadedTranslationFile.name.split('.').pop().toUpperCase()}
-                      </Typography>
-                    </FileTypeBox>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 500 }}>
-                      {uploadedTranslationFile.name} (New Upload)
-                    </Typography>
-                  </PreviewHeader>
-                  
-                  <PreviewContent>
-                    {translationFileContent}
-                  </PreviewContent>
-                </Box>
-              ) : selectedTranslationLanguage ? (
-                <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                  <PreviewHeader>
-                    <FileTypeBox sx={{ width: 24, height: 24, borderRadius: 0.5, mr: 1.5 }}>
-                      <Typography sx={{ 
-                        color: 'white',
-                        fontSize: '0.7rem',
-                        fontWeight: 600
-                      }}>
-                        JSON
-                      </Typography>
-                    </FileTypeBox>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 500 }}>
-                      {selectedTranslationLanguage} Translations {isEditingTranslation ? '(Editing)' : '(Current)'}
-                    </Typography>
-                  </PreviewHeader>
-                  
-                  <Box sx={{ flex: 1, p: 2, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
+          <Box sx={{ flex: 1, height: 400 }}>
+            <Box sx={{
+              width: '100%',
+              height: '100%',
+              backgroundColor: '#f5f5f5',
+              border: '1px solid #e0e0e0',
+              borderRadius: 1,
+              position: 'relative',
+              overflow: 'hidden',
+              '&:hover .edit-button': {
+                opacity: 1
+              }
+            }}>
                     {isEditingTranslation ? (
-                      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, gap: 1 }}>
+                <Box sx={{
+                  width: '100%',
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  p: 2
+                }}>
                         <TextField
                           fullWidth
                           multiline
@@ -1275,8 +1223,8 @@ function ThemeGeneralSettings() {
                               height: '100%',
                               alignItems: 'flex-start',
                               fontFamily: '"SF Mono", "Monaco", "Inconsolata", "Roboto Mono", monospace',
-                              fontSize: '0.875rem',
-                              lineHeight: 1.6,
+                        fontSize: '0.75rem',
+                        lineHeight: 1.4,
                             },
                             '& .MuiInputBase-input': {
                               height: '100% !important',
@@ -1284,57 +1232,90 @@ function ThemeGeneralSettings() {
                               overflow: 'auto !important',
                               resize: 'none',
                             },
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        border: 'none',
+                      },
+                      '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
+                        border: 'none',
+                      },
+                      '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                        border: 'none',
+                            },
                           }}
                         />
                         <Box sx={{ 
                           display: 'flex', 
                           justifyContent: 'flex-end', 
                           gap: 1,
-                          flexShrink: 0,
-                          p: 1,
-                          borderTop: '1px solid',
-                          borderColor: 'divider',
-                          backgroundColor: 'grey.50'
-                        }}>
-                          <Button variant="outlined" onClick={cancelEditingTranslation}>
+                    mt: 1
+                  }}>
+                    <Button variant="outlined" onClick={cancelEditingTranslation} size="small">
                             Cancel
                           </Button>
-                          <Button variant="contained" onClick={saveEditingTranslation}>
-                            Save Changes
+                                            <Button variant="contained" onClick={saveEditingTranslation} size="small" sx={{ color: 'white' }}>
+                          Save
                           </Button>
                         </Box>
                       </Box>
-                    ) : (
-                      <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                        {translationsData[selectedTranslationLanguage] ? (
-                          <>
-                            <PreviewContent sx={{ flex: 1, mb: 2, minHeight: 0 }}>
-                              {JSON.stringify(translationsData[selectedTranslationLanguage], null, 2)}
-                            </PreviewContent>
+              ) : uploadedTranslationFile ? (
+                <Box sx={{
+                  width: '100%',
+                  height: '100%',
+                  padding: 2,
+                  fontFamily: '"SF Mono", "Monaco", "Inconsolata", "Roboto Mono", monospace',
+                  fontSize: '0.75rem',
+                  lineHeight: 1.4,
+                  whiteSpace: 'pre-wrap',
+                  overflow: 'auto',
+                  color: '#333'
+                }}>
+                  {translationFileContent}
+                </Box>
+              ) : selectedTranslationLanguage && translationsData[selectedTranslationLanguage] ? (
+                <>
                             <Box sx={{ 
-                              display: 'flex', 
-                              justifyContent: 'flex-end',
-                              flexShrink: 0,
-                              p: 1,
-                              borderTop: '1px solid',
-                              borderColor: 'divider',
-                              backgroundColor: 'grey.50'
-                            }}>
-                              <Button variant="outlined" onClick={startEditingTranslation}>
-                                Edit Translations
-                              </Button>
+                    width: '100%',
+                    height: '100%',
+                    padding: 2,
+                    fontFamily: '"SF Mono", "Monaco", "Inconsolata", "Roboto Mono", monospace',
+                    fontSize: '0.75rem',
+                    lineHeight: 1.4,
+                    whiteSpace: 'pre-wrap',
+                    overflow: 'auto',
+                    color: '#333'
+                  }}>
+                    {JSON.stringify(translationsData[selectedTranslationLanguage], null, 2)}
                             </Box>
+                                        <Button
+                        className="edit-button"
+                        variant="contained"
+                        size="small"
+                        onClick={startEditingTranslation}
+                        sx={{
+                          position: 'absolute',
+                          bottom: 16,
+                          right: 16,
+                          opacity: 0,
+                          transition: 'opacity 0.2s ease',
+                          color: 'white'
+                        }}
+                      >
+                        Edit
+                      </Button>
                           </>
                         ) : (
                           <Box sx={{ 
-                            flex: 1, 
+                  width: '100%',
+                  height: '100%',
                             display: 'flex', 
                             flexDirection: 'column', 
                             alignItems: 'center', 
                             justifyContent: 'center',
-                            p: 3,
+                  color: '#999',
                             textAlign: 'center'
                           }}>
+                  {selectedTranslationLanguage ? (
+                    <>
                             <Typography variant="body2" color="text.secondary" gutterBottom>
                               No translations available for {selectedTranslationLanguage}
                             </Typography>
@@ -1343,6 +1324,7 @@ function ThemeGeneralSettings() {
                                 variant="contained" 
                                 onClick={createNewTranslation}
                                 size="small"
+                          sx={{ color: 'white' }}
                               >
                                 Create New
                               </Button>
@@ -1354,23 +1336,15 @@ function ThemeGeneralSettings() {
                                 Upload File
                               </Button>
                             </Box>
-                          </Box>
+                    </>
+                  ) : (
+                    <Typography variant="body2">
+                      Select a language to view translations
+                    </Typography>
                         )}
                       </Box>
                     )}
                   </Box>
-                </Box>
-              ) : (
-                <EmptyPreview>
-                  <EmptyPreviewIcon>
-                    <UploadFileIcon sx={{ fontSize: 28, color: 'text.disabled' }} />
-                  </EmptyPreviewIcon>
-                  <Typography variant="body2" sx={{ textAlign: 'center' }}>
-                    Select a language to edit translations
-                  </Typography>
-                </EmptyPreview>
-              )}
-            </PreviewContainer>
           </Box>
         </Box>
       </SectionCard>

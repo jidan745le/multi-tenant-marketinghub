@@ -1,31 +1,33 @@
-import SaveIcon from '@mui/icons-material/Save';
 import {
-    Alert,
-    Box,
-    Button,
-    CircularProgress,
-    Paper,
-    Snackbar,
-    TextField,
-    Typography
+  Alert,
+  Box,
+  Button,
+  CircularProgress,
+  Snackbar,
+  TextField
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import React, { useEffect, useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import { SectionCard, SubTitle } from '../components/SettingsComponents';
 import { useBrand } from '../hooks/useBrand';
-import { getThemeDocumentIdFromBrand, refreshThemeData, updateSocialProfile } from '../services/strapiApi';
+import { selectCurrentLanguage } from '../store/slices/themesSlice';
+import { createNotification, updateThemeWithLocale, validateBrandData } from '../utils/themeUpdateUtils';
 
 // 样式化保存按钮 - 使用主题色
 const SaveButton = styled(Button)(({ theme }) => ({
   backgroundColor: theme.palette.primary.main,
+  color: 'white',
   '&:hover': {
     backgroundColor: theme.palette.primary.dark,
+    color: 'white',
   },
 }));
 
 function SocialProfileSettings() {
   const { currentBrand } = useBrand();
   const dispatch = useDispatch();
+  const currentLanguage = useSelector(selectCurrentLanguage);
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
   
@@ -63,42 +65,37 @@ function SocialProfileSettings() {
     }));
   };
 
-  // 保存社交媒体配置
+  // 保存社交媒体配置 - 使用通用工具函数
   const handleSave = async () => {
     try {
       setLoading(true);
       
-      if (!currentBrand) {
-        throw new Error('未找到当前品牌数据');
+      // 验证品牌数据
+      const validation = validateBrandData(currentBrand);
+      if (!validation.isValid) {
+        throw new Error(validation.error);
       }
 
-      if (!currentBrand.strapiData?.documentId) {
-        throw new Error('未找到品牌的 documentId');
-      }
+      console.log('🔄 开始保存Social Profile配置...');
 
-      const documentId = getThemeDocumentIdFromBrand(currentBrand);
-      
-      if (!documentId) {
-        throw new Error('无法获取主题documentId');
-      }
+      // 准备更新数据
+      const updateData = {
+        socialprofile: formData
+      };
 
-      await updateSocialProfile(documentId, formData);
-      
-      // 刷新Redux中的数据
-      await refreshThemeData(dispatch);
-
-      setNotification({
-        open: true,
-        message: '社交媒体设置保存成功！',
-        severity: 'success'
+      // 使用通用更新函数 - 支持locale和Redux刷新
+      await updateThemeWithLocale({
+        documentId: currentBrand.strapiData.documentId,
+        updateData,
+        currentLanguage,
+        dispatch,
+        description: 'Social Profile配置'
       });
+
+      setNotification(createNotification(true, '社交媒体设置保存成功！'));
     } catch (error) {
       console.error('保存社交媒体设置失败:', error);
-      setNotification({
-        open: true,
-        message: `保存失败: ${error.message}`,
-        severity: 'error'
-      });
+      setNotification(createNotification(false, `保存失败: ${error.message}`));
     } finally {
       setLoading(false);
     }
@@ -122,26 +119,10 @@ function SocialProfileSettings() {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5" sx={{ fontWeight: 600 }}>
-          Social Profile
-        </Typography>
-        <SaveButton
-          variant="contained"
-          startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
-          onClick={handleSave}
-          disabled={loading}
-        >
-          {loading ? '保存中...' : '保存设置'}
-        </SaveButton>
-      </Box>
-
-      <Paper elevation={1} sx={{ p: 3 }}>
+      <SectionCard>
         {socialFields.map((field, index) => (
           <Box key={field.key} sx={{ mb: index === socialFields.length - 1 ? 0 : 3 }}>
-            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 500, color: '#333' }}>
-              {field.label}
-            </Typography>
+            <SubTitle>{field.label}</SubTitle>
             <TextField
               fullWidth
               placeholder={field.placeholder}
@@ -151,19 +132,31 @@ function SocialProfileSettings() {
               size="medium"
               sx={{
                 '& .MuiOutlinedInput-root': {
-                  backgroundColor: '#fafafa',
+                  backgroundColor: 'white',
                   '&:hover': {
-                    backgroundColor: '#f5f5f5'
+                    backgroundColor: 'white'
                   },
                   '&.Mui-focused': {
-                    backgroundColor: '#fff'
+                    backgroundColor: 'white'
                   }
                 }
               }}
             />
           </Box>
         ))}
-      </Paper>
+      </SectionCard>
+
+      {/* 保存按钮 */}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, mb: 4 }}>
+        <SaveButton 
+          variant="contained" 
+          onClick={handleSave}
+          disabled={loading}
+        >
+          {loading ? <CircularProgress size={20} color="inherit" sx={{ mr: 1 }} /> : null}
+          Save Configuration
+        </SaveButton>
+      </Box>
 
       {/* 通知消息 */}
       <Snackbar

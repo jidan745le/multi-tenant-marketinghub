@@ -1,177 +1,39 @@
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import DeleteIcon from '@mui/icons-material/Delete';
-import EditIcon from '@mui/icons-material/Edit';
 import {
-    Box,
-    Button,
-    CircularProgress,
-    Grid,
-    Paper,
-    TextField,
-    Typography
+  Box,
+  Button,
+  CircularProgress,
+  Grid,
+  TextField,
+  Typography
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import React, { useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import ImageUpload from '../components/ImageUpload';
+import { SectionCard, SectionTitle, SubTitle } from '../components/SettingsComponents';
 import { useBrand } from '../hooks/useBrand';
-import { selectThemesLoading } from '../store/slices/themesSlice';
+import { selectCurrentLanguage, selectThemesLoading } from '../store/slices/themesSlice';
+import {
+  formatMultipleImageRelations,
+  updateThemeWithLocale,
+  validateBrandData
+} from '../utils/themeUpdateUtils';
 
 // 样式化组件
-const SectionTitle = styled(Typography)(() => ({
-  fontSize: '1.2rem',
-  fontWeight: 500,
-  marginBottom: 16,
-}));
-
-const ImagePreviewBox = styled(Box)(() => ({
-  width: '100%',
-  height: 120,
-  border: '1px solid #e0e0e0',
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  marginBottom: 8,
-  position: 'relative',
-  borderRadius: 4,
-  overflow: 'hidden',
-}));
-
-const EditButton = styled(Button)(() => ({
-  position: 'absolute',
-  right: 8,
-  bottom: 8,
-  minWidth: 'auto',
-  width: 32,
-  height: 32,
-  padding: 0,
-}));
-
-const DeleteButton = styled(Button)(() => ({
-  position: 'absolute',
-  right: 48,
-  bottom: 8,
-  minWidth: 'auto',
-  width: 32,
-  height: 32,
-  padding: 0,
-  backgroundColor: '#f44336',
-  '&:hover': {
-    backgroundColor: '#d32f2f',
-  },
-}));
-
-const VisuallyHiddenInput = styled('input')({
-  clip: 'rect(0 0 0 0)',
-  clipPath: 'inset(50%)',
-  height: 1,
-  overflow: 'hidden',
-  position: 'absolute',
-  bottom: 0,
-  left: 0,
-  whiteSpace: 'nowrap',
-  width: 1,
-});
-
-const SectionCard = styled(Paper)(() => ({
-  padding: 24,
-  marginBottom: 24,
-  borderRadius: 8,
-  boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-}));
 
 const SaveButton = styled(Button)(({ theme }) => ({
   backgroundColor: theme.palette.primary.main,
+  color: 'white',
   '&:hover': {
     backgroundColor: theme.palette.primary.dark,
+    color: 'white',
   },
 }));
 
-// 图片上传预览组件
-const ImageUpload = ({ title, image, logoType, isUploading, onUpload, onDelete }) => {
-  const handleFileChange = async (event) => {
-    const file = event.target.files[0];
-    if (file && onUpload) {
-      await onUpload(file, logoType);
-    }
-  };
-
-  const handleEdit = () => {
-    document.getElementById(`file-input-${logoType}`).click();
-  };
-
-  const handleDelete = () => {
-    if (onDelete) {
-      onDelete(logoType);
-    }
-  };
-
-  const handleImageError = () => {
-    console.error('图片加载失败 (可能是CORS问题):', image);
-  };
-
-  return (
-    <Box>
-      <ImagePreviewBox>
-        {isUploading ? (
-          <CircularProgress />
-        ) : image ? (
-          <>
-            <img
-              src={image}
-              alt={title}
-              onError={handleImageError}
-              onLoad={() => {
-                console.log('图片加载成功:', image);
-              }}
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'contain'
-              }}
-            />
-            <EditButton
-              variant="contained"
-              color="primary"
-              onClick={handleEdit}
-              size="small"
-            >
-              <EditIcon fontSize="small" />
-            </EditButton>
-            <DeleteButton
-              variant="contained"
-              onClick={handleDelete}
-              size="small"
-            >
-              <DeleteIcon fontSize="small" />
-            </DeleteButton>
-          </>
-        ) : (
-          <Button
-            variant="outlined"
-            component="label"
-            startIcon={<CloudUploadIcon />}
-          >
-            Upload {title}
-            <VisuallyHiddenInput
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-            />
-          </Button>
-        )}
-        <VisuallyHiddenInput
-          id={`file-input-${logoType}`}
-          type="file"
-          accept="image/*"
-          onChange={handleFileChange}
-        />
-      </ImagePreviewBox>
-    </Box>
-  );
-};
-
 function LookAndFeel() {
+  const dispatch = useDispatch();
   const isLoading = useSelector(selectThemesLoading);
+  const currentLanguage = useSelector(selectCurrentLanguage);
   const { currentBrand } = useBrand();
 
   // 图片预览状态
@@ -412,28 +274,17 @@ function LookAndFeel() {
     }
   };
 
-  // 保存配置
+  // 保存配置 - 使用通用工具函数
   const handleSaveConfiguration = async () => {
     try {
-      if (!currentBrand) {
-        alert('未找到当前品牌数据');
-        return;
-      }
-
-      if (!currentBrand.strapiData?.documentId) {
-        alert('未找到品牌的 documentId');
+      // 验证品牌数据
+      const validation = validateBrandData(currentBrand);
+      if (!validation.isValid) {
+        alert(validation.error);
         return;
       }
 
       console.log('🔄 开始保存Look & Feel配置...');
-
-      const strapiBaseUrl = import.meta.env.VITE_STRAPI_BASE_URL;
-      const strapiToken = import.meta.env.VITE_STRAPI_TOKEN;
-      
-      if (!strapiBaseUrl || !strapiToken) {
-        alert('Strapi 配置缺失');
-        return;
-      }
 
       // 准备颜色数据
       const colorData = {
@@ -446,64 +297,36 @@ function LookAndFeel() {
         theme_colors: colorData
       };
 
-      // 添加logo更新数据
+      // 添加theme_logo更新数据
       if (uploadedImageIds.theme_logo) {
         updateData.theme_logo = uploadedImageIds.theme_logo;
       }
 
-      // 处理theme_logos中的各个logo
-      const themeLogosUpdate = {};
-      let hasThemeLogosUpdate = false;
-
+      // 处理theme_logos中的各个logo - 使用通用格式化函数
       const currentThemeLogos = currentBrand.strapiData?.theme_logos;
+      const themeLogosUpdate = formatMultipleImageRelations(
+        uploadedImageIds,
+        {
+          onwhite_logo: currentThemeLogos?.onwhite_logo,
+          oncolor_logo: currentThemeLogos?.oncolor_logo,
+          favicon: currentThemeLogos?.favicon
+        },
+        ['onwhite_logo', 'oncolor_logo', 'favicon']
+      );
 
-      if (uploadedImageIds.onwhite_logo) {
-        themeLogosUpdate.onwhite_logo = uploadedImageIds.onwhite_logo;
-        hasThemeLogosUpdate = true;
-      } else if (currentThemeLogos?.onwhite_logo?.id) {
-        themeLogosUpdate.onwhite_logo = currentThemeLogos.onwhite_logo.id;
-        hasThemeLogosUpdate = true;
-      }
-
-      if (uploadedImageIds.oncolor_logo) {
-        themeLogosUpdate.oncolor_logo = uploadedImageIds.oncolor_logo;
-        hasThemeLogosUpdate = true;
-      } else if (currentThemeLogos?.oncolor_logo?.id) {
-        themeLogosUpdate.oncolor_logo = currentThemeLogos.oncolor_logo.id;
-        hasThemeLogosUpdate = true;
-      }
-
-      if (uploadedImageIds.favicon) {
-        themeLogosUpdate.favicon = uploadedImageIds.favicon;
-        hasThemeLogosUpdate = true;
-      } else if (currentThemeLogos?.favicon?.id) {
-        themeLogosUpdate.favicon = currentThemeLogos.favicon.id;
-        hasThemeLogosUpdate = true;
-      }
-
-      if (hasThemeLogosUpdate) {
+      if (Object.keys(themeLogosUpdate).length > 0) {
         updateData.theme_logos = themeLogosUpdate;
       }
 
-      console.log('准备更新的Look & Feel数据:', updateData);
-
-      // 调用Strapi API更新themes
-      const response = await fetch(`${strapiBaseUrl}/api/themes/${currentBrand.strapiData.documentId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${strapiToken}`
-        },
-        body: JSON.stringify({ data: updateData })
+      // 使用通用更新函数 - 支持locale和Redux刷新
+      await updateThemeWithLocale({
+        documentId: currentBrand.strapiData.documentId,
+        updateData,
+        currentLanguage,
+        dispatch,
+        description: 'Look & Feel配置'
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-      }
-
-      const result = await response.json();
-      console.log('✅ Look & Feel配置保存成功:', result);
       alert('Look & Feel配置保存成功！');
 
       // 清空已上传的图片ID记录
@@ -533,16 +356,12 @@ function LookAndFeel() {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Look & Feel
-      </Typography>
-
       {/* Logos 部分 */}
       <SectionCard>
         <SectionTitle>Logos</SectionTitle>
         <Grid container spacing={3}>
           <Grid item xs={12} md={4}>
-            <Typography variant="subtitle2" gutterBottom>BRAND LOGO</Typography>
+            <SubTitle>BRAND LOGO</SubTitle>
             <ImageUpload 
               title="BRAND LOGO"
               image={brandLogoPreview} 
@@ -554,7 +373,7 @@ function LookAndFeel() {
           </Grid>
           
           <Grid item xs={12} md={4}>
-            <Typography variant="subtitle2" gutterBottom>ONWHITE LOGO</Typography>
+            <SubTitle>ONWHITE LOGO</SubTitle>
             <ImageUpload 
               title="ONWHITE LOGO"
               image={onwhiteLogoPreview} 
@@ -566,7 +385,7 @@ function LookAndFeel() {
           </Grid>
           
           <Grid item xs={12} md={4}>
-            <Typography variant="subtitle2" gutterBottom>ONCOLOR LOGO</Typography>
+            <SubTitle>ONCOLOR LOGO</SubTitle>
             <ImageUpload 
               title="ONCOLOR LOGO"
               image={oncolorLogoPreview} 
@@ -585,56 +404,116 @@ function LookAndFeel() {
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
             <Box sx={{ mb: 2 }}>
-              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+              <SubTitle >
                 {currentBrand.name} PRIMARY
-              </Typography>
-              <TextField
-                fullWidth
-                label="Primary Color"
-                type="color"
-                value={primaryColor}
-                onChange={(e) => setPrimaryColor(e.target.value)}
-                InputLabelProps={{
-                  shrink: true,
-                }}
-                sx={{
-                  '& .MuiInputBase-input': {
-                    height: '50px',
-                    padding: '8px',
-                    cursor: 'pointer'
-                  }
-                }}
-              />
+              </SubTitle>
+                              <TextField
+                  type="color"
+                  value={primaryColor}
+                  onChange={(e) => setPrimaryColor(e.target.value)}
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                                    sx={{
+                    width: '200px',
+                    height: '200px',
+                    '& .MuiInputBase-root': {
+                      width: '200px',
+                      height: '200px',
+                      border: 'none',
+                    },
+                    '& .MuiInputBase-input': {
+                      width: '200px',
+                      height: '200px',
+                      padding: '0',
+                      cursor: 'pointer',
+                      border: 'none !important',
+                      outline: 'none !important',
+                      borderRadius: '4px',
+                      boxShadow: 'none !important',
+                    },
+                    '& input[type="color"]': {
+                      border: 'none !important',
+                      outline: 'none !important',
+                      appearance: 'none',
+                      '-webkit-appearance': 'none',
+                      '-moz-appearance': 'none',
+                      width: '200px',
+                      height: '200px',
+                      padding: '0',
+                      borderRadius: '4px',
+                    },
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      border: 'none',
+                    },
+                    '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
+                      border: 'none',
+                    },
+                    '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                      border: 'none',
+                    }
+                  }}
+                />
               <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
-                Current: {primaryColor || themeColors.primary_color || '#ff6600'}
+                Hex: {primaryColor || themeColors.primary_color || '#ff6600'}
               </Typography>
             </Box>
           </Grid>
           
           <Grid item xs={12} md={6}>
             <Box sx={{ mb: 2 }}>
-              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+              <SubTitle>
                 {currentBrand.name} SECONDARY
-              </Typography>
-              <TextField
-                fullWidth
-                label="Secondary Color"
-                type="color"
-                value={secondaryColor}
-                onChange={(e) => setSecondaryColor(e.target.value)}
-                InputLabelProps={{
-                  shrink: true,
-                }}
-                sx={{
-                  '& .MuiInputBase-input': {
-                    height: '50px',
-                    padding: '8px',
-                    cursor: 'pointer'
-                  }
-                }}
-              />
+              </SubTitle>
+                 <TextField
+                  type="color"
+                  value={secondaryColor}
+                  onChange={(e) => setSecondaryColor(e.target.value)}
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                                    sx={{
+                    width: '200px',
+                    height: '200px',
+                    '& .MuiInputBase-root': {
+                      width: '200px',
+                      height: '200px',
+                      border: 'none',
+                    },
+                    '& .MuiInputBase-input': {
+                      width: '200px',
+                      height: '200px',
+                      padding: '0',
+                      cursor: 'pointer',
+                      border: 'none !important',
+                      outline: 'none !important',
+                      borderRadius: '4px',
+                      boxShadow: 'none !important',
+                    },
+                    '& input[type="color"]': {
+                      border: 'none !important',
+                      outline: 'none !important',
+                      appearance: 'none',
+                      '-webkit-appearance': 'none',
+                      '-moz-appearance': 'none',
+                      width: '200px',
+                      height: '200px',
+                      padding: '0',
+                      borderRadius: '4px',
+                    },
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      border: 'none',
+                    },
+                    '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
+                      border: 'none',
+                    },
+                    '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                      border: 'none',
+                    }
+                  }}
+                />
               <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
-                Current: {secondaryColor || themeColors.secondary_color || '#003366'}
+                Hex: {secondaryColor || themeColors.secondary_color || '#003366'}
               </Typography>
             </Box>
           </Grid>
@@ -661,12 +540,12 @@ function LookAndFeel() {
       {/* Font & Size 部分 */}
       <SectionCard>
         <SectionTitle>Font & Size</SectionTitle>
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={4}>
-            <Typography variant="subtitle2" gutterBottom>SELECT FONT</Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 3 }}>
+          <Box sx={{ flex: 1 }}>
+            <SubTitle>SELECT FONT</SubTitle>
             <TextField
               select
-              fullWidth
+              sx={{width:"60%"}}
               defaultValue="Roboto"
               SelectProps={{
                 native: true,
@@ -676,26 +555,26 @@ function LookAndFeel() {
               <option value="Arial">Arial</option>
               <option value="Helvetica">Helvetica</option>
             </TextField>
-          </Grid>
+          </Box>
           
-          <Grid item xs={12} md={4}>
-            <Typography variant="subtitle2" gutterBottom>TITLE</Typography>
+          <Box sx={{ flex: 1 }}>
+            <SubTitle>TITLE</SubTitle>
             <Box>
               <Typography variant="h4">Heading 1</Typography>
               <Typography variant="h5">Heading 2</Typography>
               <Typography variant="h6">Heading 3</Typography>
             </Box>
-          </Grid>
+          </Box>
           
-          <Grid item xs={12} md={4}>
-            <Typography variant="subtitle2" gutterBottom>BODY</Typography>
+          <Box sx={{ flex: 1 }}>
+            <SubTitle>BODY</SubTitle>
             <Box>
               <Typography variant="body1">This is a regular body text</Typography>
               <Typography variant="body2">This is a semibold body text</Typography>
               <Typography variant="body1" sx={{ fontWeight: 'bold' }}>This is a bold body text</Typography>
             </Box>
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
       </SectionCard>
 
       {/* 保存按钮 */}

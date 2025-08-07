@@ -1,35 +1,34 @@
-import CheckIcon from '@mui/icons-material/Check';
 import {
-    Alert,
-    Box,
-    CircularProgress,
-    Fab,
-    Paper,
-    Snackbar,
-    TextField,
-    Typography
+  Alert,
+  Box,
+  Button,
+  CircularProgress,
+  Snackbar,
+  TextField
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import React, { useEffect, useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import { SectionCard, SubTitle } from '../components/SettingsComponents';
 import { useBrand } from '../hooks/useBrand';
-import { getThemeDocumentIdFromBrand, refreshThemeData, updateLegal } from '../services/strapiApi';
+import { selectCurrentLanguage } from '../store/slices/themesSlice';
+import { createNotification, updateThemeWithLocale, validateBrandData } from '../utils/themeUpdateUtils';
 
-// 样式化保存按钮 - 使用主题色
-const SaveFab = styled(Fab)(({ theme }) => ({
+// 样式化保存按钮 - 参考 Look&Feel 页面
+const SaveButton = styled(Button)(({ theme }) => ({
   backgroundColor: theme.palette.primary.main,
+  color: 'white',
   '&:hover': {
     backgroundColor: theme.palette.primary.dark,
+    color: 'white',
   },
-  '&:disabled': {
-    backgroundColor: '#ccc'
-  }
 }));
 
 function LegalSettings() {
   const { currentBrand } = useBrand();
   const dispatch = useDispatch();
-  const [loading, setLoading] = useState({ terms: false, privacy: false });
+  const currentLanguage = useSelector(selectCurrentLanguage);
+  const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
   
   // 表单数据状态
@@ -56,94 +55,39 @@ function LegalSettings() {
     }));
   };
 
-  // 刷新数据的通用函数
-  const refreshData = async () => {
-    await refreshThemeData(dispatch);
-  };
-
-  // 保存Terms & Condition
-  const handleSaveTerms = async () => {
+  // 保存Legal配置 - 使用通用工具函数
+  const handleSaveLegal = async () => {
     try {
-      setLoading(prev => ({ ...prev, terms: true }));
+      setLoading(true);
       
-      if (!currentBrand) {
-        throw new Error('未找到当前品牌数据');
+      // 验证品牌数据
+      const validation = validateBrandData(currentBrand);
+      if (!validation.isValid) {
+        throw new Error(validation.error);
       }
 
-      if (!currentBrand.strapiData?.documentId) {
-        throw new Error('未找到品牌的 documentId');
-      }
+      console.log('🔄 开始保存Legal配置...');
 
-      const documentId = getThemeDocumentIdFromBrand(currentBrand);
-      
-      if (!documentId) {
-        throw new Error('无法获取主题documentId');
-      }
+      // 准备更新数据
+      const updateData = {
+        legal: formData
+      };
 
-      await updateLegal(documentId, {
-        ...formData,
-        termsCondition: formData.termsCondition
+      // 使用通用更新函数 - 支持locale和Redux刷新
+      await updateThemeWithLocale({
+        documentId: currentBrand.strapiData.documentId,
+        updateData,
+        currentLanguage,
+        dispatch,
+        description: 'Legal配置'
       });
-      
-      await refreshData();
 
-      setNotification({
-        open: true,
-        message: 'Terms & Condition 保存成功！',
-        severity: 'success'
-      });
+      setNotification(createNotification(true, 'Legal配置保存成功！'));
     } catch (error) {
-      console.error('保存Terms & Condition失败:', error);
-      setNotification({
-        open: true,
-        message: `保存失败: ${error.message}`,
-        severity: 'error'
-      });
+      console.error('保存Legal配置失败:', error);
+      setNotification(createNotification(false, `保存失败: ${error.message}`));
     } finally {
-      setLoading(prev => ({ ...prev, terms: false }));
-    }
-  };
-
-  // 保存Privacy Policy
-  const handleSavePrivacy = async () => {
-    try {
-      setLoading(prev => ({ ...prev, privacy: true }));
-      
-      if (!currentBrand) {
-        throw new Error('未找到当前品牌数据');
-      }
-
-      if (!currentBrand.strapiData?.documentId) {
-        throw new Error('未找到品牌的 documentId');
-      }
-
-      const documentId = getThemeDocumentIdFromBrand(currentBrand);
-      
-      if (!documentId) {
-        throw new Error('无法获取主题documentId');
-      }
-
-      await updateLegal(documentId, {
-        ...formData,
-        privayPolicy: formData.privayPolicy
-      });
-      
-      await refreshData();
-
-      setNotification({
-        open: true,
-        message: 'Privacy Policy 保存成功！',
-        severity: 'success'
-      });
-    } catch (error) {
-      console.error('保存Privacy Policy失败:', error);
-      setNotification({
-        open: true,
-        message: `保存失败: ${error.message}`,
-        severity: 'error'
-      });
-    } finally {
-      setLoading(prev => ({ ...prev, privacy: false }));
+      setLoading(false);
     }
   };
 
@@ -155,11 +99,14 @@ function LegalSettings() {
   return (
     <Box sx={{ p: 3 }}>
       {/* Terms & Condition Section */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, color: '#666' }}>
-          Terms & Condition
-        </Typography>
-        <Paper elevation={1} sx={{ position: 'relative', overflow: 'visible' }}>
+      <SectionCard sx={{ position: 'relative', overflow: 'visible' }}>
+        <SubTitle>TERMS & CONDITION</SubTitle>
+        <Box sx={{
+          backgroundColor: 'white',
+          borderRadius: 1,
+          overflow: 'hidden',
+          border: '1px solid #e0e0e0'
+        }}>
           <TextField
             fullWidth
             multiline
@@ -169,34 +116,41 @@ function LegalSettings() {
             onChange={(e) => handleFieldChange('termsCondition', e.target.value)}
             variant="outlined"
             sx={{
-              '& .MuiOutlinedInput-root': {
-                borderRadius: 2,
-                backgroundColor: '#f8f9fa'
-              }
+              '& .MuiInputBase-root': {
+                backgroundColor: 'white',
+                fontFamily: '"SF Mono", "Monaco", "Inconsolata", "Roboto Mono", monospace',
+                fontSize: '0.875rem',
+                lineHeight: 1.5,
+              },
+              '& .MuiInputBase-input': {
+                padding: '20px',
+                overflow: 'auto !important',
+                resize: 'none',
+              },
+              '& .MuiOutlinedInput-notchedOutline': {
+                border: 'none',
+              },
+              '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
+                border: 'none',
+              },
+              '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                border: 'none',
+              },
             }}
           />
-          {/* Floating Save Button */}
-          <SaveFab
-            size="small"
-            onClick={handleSaveTerms}
-            disabled={loading.terms}
-            sx={{
-              position: 'absolute',
-              bottom: 16,
-              right: 16,
-            }}
-          >
-            {loading.terms ? <CircularProgress size={20} color="inherit" /> : <CheckIcon />}
-          </SaveFab>
-        </Paper>
-      </Box>
+        </Box>
+
+      </SectionCard>
 
       {/* Privacy Policy Section */}
-      <Box>
-        <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, color: '#666' }}>
-          Privacy Policy
-        </Typography>
-        <Paper elevation={1} sx={{ position: 'relative', overflow: 'visible' }}>
+      <SectionCard sx={{ position: 'relative', overflow: 'visible' }}>
+        <SubTitle>PRIVACY POLICY</SubTitle>
+        <Box sx={{
+          backgroundColor: 'white',
+          borderRadius: 1,
+          overflow: 'hidden',
+          border: '1px solid #e0e0e0'
+        }}>
           <TextField
             fullWidth
             multiline
@@ -206,26 +160,42 @@ function LegalSettings() {
             onChange={(e) => handleFieldChange('privayPolicy', e.target.value)}
             variant="outlined"
             sx={{
-              '& .MuiOutlinedInput-root': {
-                borderRadius: 2,
-                backgroundColor: '#f8f9fa'
-              }
+              '& .MuiInputBase-root': {
+                backgroundColor: 'white',
+                fontFamily: '"SF Mono", "Monaco", "Inconsolata", "Roboto Mono", monospace',
+                fontSize: '0.875rem',
+                lineHeight: 1.5,
+              },
+              '& .MuiInputBase-input': {
+                padding: '20px',
+                overflow: 'auto !important',
+                resize: 'none',
+              },
+              '& .MuiOutlinedInput-notchedOutline': {
+                border: 'none',
+              },
+              '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
+                border: 'none',
+              },
+              '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                border: 'none',
+              },
             }}
           />
-          {/* Floating Save Button */}
-          <SaveFab
-            size="small"
-            onClick={handleSavePrivacy}
-            disabled={loading.privacy}
-            sx={{
-              position: 'absolute',
-              bottom: 16,
-              right: 16,
-            }}
-          >
-            {loading.privacy ? <CircularProgress size={20} color="inherit" /> : <CheckIcon />}
-          </SaveFab>
-        </Paper>
+        </Box>
+
+      </SectionCard>
+
+      {/* 保存按钮 */}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, mb: 4 }}>
+        <SaveButton 
+          variant="contained" 
+          onClick={handleSaveLegal}
+          disabled={loading}
+        >
+          {loading ? <CircularProgress size={20} color="inherit" sx={{ mr: 1 }} /> : null}
+          Save Configuration
+        </SaveButton>
       </Box>
 
       {/* 通知消息 */}
