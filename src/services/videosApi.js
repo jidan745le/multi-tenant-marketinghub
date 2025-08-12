@@ -4,38 +4,38 @@ const ASSETS_API_URL = 'https://pim-test.kendo.com/pimcore-graphql-webservices/a
 const API_KEY = '7ce45a85b23aa742131a94d4431e22fe';
 
 /**
- * 构建视频资产GraphQL查询
- * @param {Object} filters - 筛选条件
- * @param {number} first - 获取数量
- * @param {number} after - 偏移量
- * @returns {string} GraphQL查询字符串
+ * Build video assets GraphQL query
+ * @param {Object} filters - Filter conditions
+ * @param {number} first - Number of items to fetch
+ * @param {number} after - Offset
+ * @returns {string} GraphQL query string
  */
 const buildVideosQuery = (filters = {}, first = 20, after = 0) => {
-    // 构建筛选条件数组（使用$and组合所有条件）
+    // Build filter conditions array (using $and to combine all conditions)
     const allConditions = [];
 
-    // 基本筛选 - 确保是有类型的资产
+    // Basic filtering - ensure assets have a type
     allConditions.push({ mimetype: { "$not": "" } });
 
-    // 核心条件：只获取视频类型的资产
+    // Core condition: only get video type assets
     allConditions.push({ mimetype: { "$like": "video/%" } });
 
-    // 按文件名筛选
+    // Filter by filename
     if (filters.filename) {
         allConditions.push({ filename: { "$like": `%${filters.filename}%` } });
     }
 
-    // 按文件夹路径筛选
+    // Filter by folder path
     if (filters['folder-path']) {
         allConditions.push({ fullpath: { "$like": `%${filters['folder-path']}%` } });
     }
 
-    // 按产品型号筛选（通过路径匹配）
+    // Filter by product model number (through path matching)
     if (filters['model-number']) {
         allConditions.push({ fullpath: { "$like": `%${filters['model-number']}%` } });
     }
 
-    // 按创建日期范围筛选
+    // Filter by creation date range
     if (filters['creation-date-from'] || filters['creation-date-to']) {
         const dateConditions = {};
 
@@ -52,7 +52,7 @@ const buildVideosQuery = (filters = {}, first = 20, after = 0) => {
         }
     }
 
-    // 兼容旧的预定义日期选项
+    // Compatibility with old predefined date options
     if (filters['creation-date'] && filters['creation-date'] !== 'all') {
         const now = new Date();
         let fromDate;
@@ -79,15 +79,15 @@ const buildVideosQuery = (filters = {}, first = 20, after = 0) => {
         }
     }
 
-    // 构建最终的筛选条件
+    // Build final filter conditions
     const filterConditions = allConditions.length > 1
         ? { "$and": allConditions }
         : allConditions[0] || {};
 
-    // 将筛选条件转换为字符串
+    // Convert filter conditions to string
     const filterString = JSON.stringify(filterConditions);
 
-    // 记录过滤条件（用于调试）
+    // Log filter conditions (for debugging)
     console.log('🎥 Videos GraphQL Query Filter:', {
         rawFilters: filters,
         processedConditions: filterConditions,
@@ -141,9 +141,9 @@ const buildVideosQuery = (filters = {}, first = 20, after = 0) => {
 };
 
 /**
- * 获取视频资产数据
- * @param {Object} params - 查询参数
- * @returns {Promise<Object>} 视频资产数据
+ * Fetch video assets data
+ * @param {Object} params - Query parameters
+ * @returns {Promise<Object>} Video assets data
  */
 export const fetchVideos = async (params = {}) => {
     try {
@@ -178,7 +178,7 @@ export const fetchVideos = async (params = {}) => {
 
         console.log('✅ Videos GraphQL response received');
 
-        // 使用现有的资产适配器转换数据
+        // Use existing assets adapter to transform data
         return adaptGraphQLAssetsResponse(data);
 
     } catch (error) {

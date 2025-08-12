@@ -2,26 +2,28 @@ import AddIcon from '@mui/icons-material/Add';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import {
+  Alert,
   Box,
   Button,
   Checkbox,
   CircularProgress,
   FormControlLabel,
-  Grid,
   IconButton,
   MenuItem,
   Select,
+  Snackbar,
   TextField,
   Typography
 } from '@mui/material';
 import { alpha, styled } from '@mui/material/styles';
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import ImageUpload from '../components/ImageUpload';
+import DragDropUpload from '../components/DragDropUpload';
 import { SectionCard, SectionTitle, SubTitle } from '../components/SettingsComponents';
 import { useBrand } from '../hooks/useBrand';
 import { refreshThemeData } from '../services/strapiApi';
 import { selectCurrentLanguage, selectThemesLoading } from '../store/slices/themesSlice';
+import { createNotification } from '../utils/themeUpdateUtils';
 
 // 动态从Redux获取语言代码到Strapi locale的映射
 const getLocaleForAPI = (languageCode) => {
@@ -264,6 +266,10 @@ function ThemeGeneralSettings() {
   const [uploadingStates, setUploadingStates] = useState({
     loginBg: false
   });
+  
+  // 保存状态和通知
+  const [saving, setSaving] = useState(false);
+  const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
 
   // 跟踪已上传的图片ID
   const [uploadedImageIds, setUploadedImageIds] = useState({
@@ -384,13 +390,17 @@ function ThemeGeneralSettings() {
   // 保存配置到 Strapi
   const handleSaveConfiguration = async () => {
     try {
+      setSaving(true);
+      
       if (!currentBrand) {
-        alert('未找到当前品牌数据');
+        setNotification(createNotification(false, '未找到当前品牌数据'));
+        setSaving(false);
         return;
       }
 
       if (!currentBrand.strapiData?.documentId) {
-        alert('未找到品牌的 documentId');
+        setNotification(createNotification(false, '未找到品牌的 documentId'));
+        setSaving(false);
         return;
       }
 
@@ -400,7 +410,7 @@ function ThemeGeneralSettings() {
       const strapiToken = import.meta.env.VITE_STRAPI_TOKEN;
       
       if (!strapiBaseUrl || !strapiToken) {
-        alert('Strapi 配置缺失');
+        setNotification(createNotification(false, 'Strapi 配置缺失'));
         return;
       }
 
@@ -489,7 +499,7 @@ function ThemeGeneralSettings() {
       await refreshThemeData(dispatch, currentLanguage);
       console.log(`✅ 刷新${currentLanguage}语言的主题数据完成`);
       
-      alert('Theme General Settings配置保存成功！');
+      setNotification(createNotification(true, 'Theme General Settings配置保存成功！'));
 
       // 清空已上传的图片ID记录
       setUploadedImageIds({
@@ -503,8 +513,15 @@ function ThemeGeneralSettings() {
 
     } catch (error) {
       console.error('❌ 保存配置失败:', error);
-      alert(`保存失败: ${error.message}`);
+      setNotification(createNotification(false, `保存失败: ${error.message}`));
+    } finally {
+      setSaving(false);
     }
+  };
+
+  // 关闭通知
+  const handleCloseNotification = () => {
+    setNotification({ ...notification, open: false });
   };
 
   // 处理语言勾选变化
@@ -784,7 +801,7 @@ function ThemeGeneralSettings() {
             
             <Box sx={{ mt: 3 }}>
               <SubTitle>LOGIN BACKGROUND</SubTitle>
-              <ImageUpload 
+              <DragDropUpload 
                 title="LOGIN BACKGROUND"
                 image={loginBackgroundPreview} 
                 logoType="loginBg" 
@@ -910,29 +927,7 @@ function ThemeGeneralSettings() {
         </Box>
       </SectionCard>
 
-      {/* Basic Data 部分 */}
-      <SectionCard>
-        <SectionTitle>Basic Data (ID & Name)</SectionTitle>
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <SubTitle>ENTERPRISE ID</SubTitle>
-            <TextField
-              fullWidth
-              placeholder="Enter ID"
-              defaultValue=""
-            />
-          </Grid>
-          
-          <Grid item xs={12} md={6}>
-            <SubTitle>ENTERPRISE NAME</SubTitle>
-            <TextField
-              fullWidth
-              placeholder="Enter name"
-              defaultValue=""
-            />
-          </Grid>
-        </Grid>
-      </SectionCard>
+ 
 
       {/* Language 部分 */}
       <SectionCard>
@@ -1004,13 +999,6 @@ function ThemeGeneralSettings() {
         </Box>
       </SectionCard>
 
-      {/* Menu 部分 (待后续开发) */}
-      <SectionCard>
-        <SectionTitle>Menu (To be developed later)</SectionTitle>
-        <Typography variant="body2" color="text.secondary">
-          Menu configuration will be available in future updates.
-        </Typography>
-      </SectionCard>
 
       {/* Translations 部分 */}
       <SectionCard>
@@ -1351,10 +1339,31 @@ function ThemeGeneralSettings() {
 
       {/* 保存按钮 */}
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, mb: 4 }}>
-        <SaveButton variant="contained" onClick={handleSaveConfiguration}>
+        <SaveButton 
+          variant="contained" 
+          onClick={handleSaveConfiguration}
+          disabled={saving}
+        >
+          {saving ? <CircularProgress size={20} color="inherit" sx={{ mr: 1 }} /> : null}
           Save Configuration
         </SaveButton>
       </Box>
+
+      {/* 通知消息 */}
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={6000}
+        onClose={handleCloseNotification}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={handleCloseNotification} 
+          severity={notification.severity}
+          variant="filled"
+        >
+          {notification.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

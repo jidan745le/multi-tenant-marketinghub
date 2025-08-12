@@ -6,7 +6,6 @@ import {
   Button,
   Checkbox,
   CircularProgress,
-  Divider,
   FormControlLabel,
   IconButton,
   InputAdornment,
@@ -126,7 +125,7 @@ function CommunicationSettings() {
         <Box sx={{ mb: 3 }}>
           <SubTitle>SERVER NAME</SubTitle>
           <TextField
-            fullWidth
+            sx={{ width: "60%" }}
             placeholder="RG.experience@gmail.com"
             value={formData.servername}
             onChange={(e) => handleFieldChange('servername', e.target.value)}
@@ -139,7 +138,7 @@ function CommunicationSettings() {
         <Box sx={{ mb: 3 }}>
           <SubTitle>PORT</SubTitle>
           <TextField
-            fullWidth
+            sx={{ width: "60%" }}
             placeholder="Enter Port"
             value={formData.port}
             onChange={(e) => handleFieldChange('port', e.target.value)}
@@ -175,13 +174,12 @@ function CommunicationSettings() {
           />
         </Box>
 
-        <Divider sx={{ my: 3 }} />
 
         {/* URL */}
         <Box sx={{ mb: 3 }}>
           <SubTitle>URL</SubTitle>
           <TextField
-            fullWidth
+            sx={{ width: "60%" }}
             placeholder="Enter URL"
             value={formData.url}
             onChange={(e) => handleFieldChange('url', e.target.value)}
@@ -194,7 +192,7 @@ function CommunicationSettings() {
         <Box sx={{ mb: 3 }}>
           <SubTitle>USER</SubTitle>
           <TextField
-            fullWidth
+            sx={{ width: "60%" }}
             placeholder="Enter User"
             value={formData.user}
             onChange={(e) => handleFieldChange('user', e.target.value)}
@@ -207,7 +205,7 @@ function CommunicationSettings() {
         <Box sx={{ mb: 3 }}>
           <SubTitle>PASSWORD</SubTitle>
           <TextField
-            fullWidth
+            sx={{ width: "60%" }}
             placeholder="Enter password"
             type={showPassword ? 'text' : 'password'}
             value={formData.password}

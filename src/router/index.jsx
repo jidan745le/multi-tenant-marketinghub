@@ -15,6 +15,7 @@ const UnderConstruction = Loader(lazy(() => import('../pages/UnderConstruction')
 const AdminLayout = Loader(lazy(() => import('../layouts/AdminLayout')));
 const LookAndFeel = Loader(lazy(() => import('../pages/LookAndFeel')));
 const ThemeGeneralSettings = Loader(lazy(() => import('../pages/ThemeGeneralSettings')));
+const ThemeConfiguration = Loader(lazy(() => import('../pages/ThemeConfiguration')));
 const UnderConstructionAdmin = Loader(lazy(() => import('../pages/UnderConstructionAdmin')));
 const CommunicationSettings = Loader(lazy(() => import('../pages/CommunicationSettings')));
 const LegalSettings = Loader(lazy(() => import('../pages/LegalSettings')));
@@ -95,6 +96,10 @@ const router = [
       {
         path: 'theme-general-settings',
         element: <ThemeGeneralSettings />
+      },
+      {
+        path: 'theme-configuration',
+        element: <ThemeConfiguration />
       },
       {
         path: 'legal',

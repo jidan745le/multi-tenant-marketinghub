@@ -1,5 +1,4 @@
 import DeleteIcon from '@mui/icons-material/Delete';
-import EditIcon from '@mui/icons-material/Edit';
 import { Box, CircularProgress, IconButton } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import React, { useState } from 'react';
@@ -31,10 +30,10 @@ const IconButtonWrapper = styled(Box)(() => ({
 const StyledIconButton = styled(IconButton)(() => ({
   width: 30,
   height: 30,
-  backgroundColor: 'white',
-  boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+  backgroundColor: 'transparent',
+  boxShadow: 'none',
   '&:hover': {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: 'rgba(0, 0, 0, 0.04)',
   },
 }));
 
@@ -122,7 +121,11 @@ const ImageUpload = ({ title, image, logoType, isUploading, onUpload, onDelete }
                 size="small"
                 onClick={handleEdit}
               >
-                <EditIcon fontSize="small" />
+                <img 
+                  src="/assets/edit.svg" 
+                  alt="Edit" 
+                  style={{ width: 20, height: 20 }} 
+                />
               </StyledIconButton>
               <StyledIconButton
                 size="small"

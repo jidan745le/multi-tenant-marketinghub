@@ -1,13 +1,9 @@
-import ColorLensIcon from '@mui/icons-material/ColorLens';
-import FavoriteIcon from '@mui/icons-material/Favorite';
-import FeaturedPlayListIcon from '@mui/icons-material/FeaturedPlayList';
-import SettingsIcon from '@mui/icons-material/Settings';
 import {
-    Box,
-    CircularProgress,
-    List,
-    ListItem,
-    ListItemText
+  Box,
+  CircularProgress,
+  List,
+  ListItem,
+  ListItemText
 } from '@mui/material';
 import { alpha, styled } from '@mui/material/styles';
 import React, { useEffect, useState } from 'react';
@@ -15,9 +11,9 @@ import { useSelector } from 'react-redux';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { selectThemesLoading } from '../store/slices/themesSlice';
 
-// 样式化组件
+// Styled Components
 const AdminSidebar = styled(Box)(() => ({
-  width: 220,
+  width: 231,
   flexShrink: 0,
   borderRight: '1px solid #e0e0e0',
   backgroundColor: '#fff',
@@ -32,27 +28,87 @@ const ContentArea = styled(Box)(() => ({
   backgroundColor: '#f5f5f5',
 }));
 
-const SidebarMenuItem = styled(ListItem)(({ theme, active }) => ({
-  padding: '8px 16px',
+const NavigationList = styled(List)(() => ({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 24,
+  alignItems: 'flex-start',
+  justifyContent: 'flex-start',
+  padding: '24px 8px',
+}));
+
+const MenuItemContainer = styled(Box)(() => ({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 16,
+  alignItems: 'flex-end',
+  justifyContent: 'flex-start',
+  width: 216,
+}));
+
+const MenuItemHeading = styled(ListItem)(({ theme, active }) => ({
+  borderRadius: 4,
+  padding: '0px 12px',
+  display: 'flex',
+  flexDirection: 'row',
+  gap: 12,
+  alignItems: 'center',
+  justifyContent: 'flex-start',
+  height: 44,
   cursor: 'pointer',
-  backgroundColor: active ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
-  borderLeft: active ? `3px solid ${theme.palette.primary.main}` : '3px solid transparent',
+  backgroundColor: 'transparent',
+  transition: 'all 0.2s ease',
   '&:hover': {
     backgroundColor: alpha(theme.palette.primary.main, 0.04),
   },
 }));
 
-// 管理后台菜单项
-const menuItems = [
-  { id: 'look-feel', label: 'Look & Feel', icon: <FavoriteIcon /> },
-  { id: 'theme-general-settings', label: 'Theme General Settings', icon: <SettingsIcon /> },
-  { id: 'theme-configuration', label: 'Theme Configuration', icon: <ColorLensIcon /> },
-  { id: 'legal', label: 'Legal', icon: <FeaturedPlayListIcon /> },
-  { id: 'communication-email', label: 'Communication & Email', icon: <FeaturedPlayListIcon /> },
-  { id: 'social-profile', label: 'Social Profile', icon: <FeaturedPlayListIcon /> },
-  { id: 'derivate-management', label: 'Derivate Management', icon: <FeaturedPlayListIcon /> },
-  { id: 'data-sheet-config', label: 'Data Sheet Config', icon: <FeaturedPlayListIcon /> },
-  { id: 'mass-download', label: 'Mass Download', icon: <FeaturedPlayListIcon /> },
+const MenuItemIconContainer = styled(Box)(() => ({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 0,
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: 24,
+  height: 24,
+  position: 'relative',
+}));
+
+const MenuItemIconText = styled('span')(({ theme, active }) => ({
+  color: active ? 'var(--colors-palettes-primary-primary60, #f16508)' : 'var(--black, #000000)',
+  textAlign: 'center',
+  fontFamily: '"Material Symbols Outlined"',
+  fontSize: 24,
+  fontWeight: 400,
+  fontVariationSettings: '"FILL" 0, "wght" 200, "GRAD" 0, "opsz" 24',
+}));
+
+const MenuItemLabel = styled(ListItemText)(({ theme, active }) => ({
+  flex: 1,
+  '& .MuiListItemText-primary': {
+    color: active ? 'var(--colors-palettes-primary-primary60, #f16508)' : 'var(--black, #000000)',
+    textAlign: 'left',
+    fontFamily: 'var(--label-large-font-family, "Roboto-Medium", sans-serif)',
+    fontSize: 'var(--label-large-font-size, 14px)',
+    lineHeight: 'var(--label-large-line-height, 20px)',
+    letterSpacing: 'var(--label-large-letter-spacing, 0.1px)',
+    fontWeight: 'var(--label-large-font-weight, 500)',
+    textOverflow: 'ellipsis',
+    overflow: 'hidden',
+  },
+}));
+
+// Admin menu items configuration
+const adminMenuItems = [
+  { id: 'look-feel', label: 'Look & Feel', iconName: 'palette' },
+  { id: 'theme-general-settings', label: 'Theme General Settings', iconName: 'settings' },
+  { id: 'theme-configuration', label: 'Theme Configuration', iconName: 'Design_Services' },
+  { id: 'derivate-management', label: 'Derivate Management', iconName: 'imagesmode' },
+  { id: 'legal', label: 'Legal', iconName: 'contract' },
+  { id: 'communication-email', label: 'Communication & Email', iconName: 'email' },
+  { id: 'data-sheet-config', label: 'Data Sheet Config', iconName: 'bar_chart' },
+  { id: 'mass-download', label: 'Mass Download', iconName: 'download_2' },
+  { id: 'social-profile', label: 'Social Profile', iconName: 'public' },
 ];
 
 function AdminLayout() {
@@ -71,7 +127,7 @@ function AdminLayout() {
     }
     
     // 检查是否是已知的菜单项
-    const foundItem = menuItems.find(item => item.id === lastSegment);
+    const foundItem = adminMenuItems.find(item => item.id === lastSegment);
     return foundItem ? lastSegment : 'look-feel';
   };
 
@@ -88,7 +144,7 @@ function AdminLayout() {
     if (lastSegment === 'admin') {
       setActiveMenuItem('look-feel');
     } else {
-      const foundItem = menuItems.find(item => item.id === lastSegment);
+      const foundItem = adminMenuItems.find(item => item.id === lastSegment);
       if (foundItem) {
         setActiveMenuItem(lastSegment);
       }
@@ -115,22 +171,38 @@ function AdminLayout() {
 
   return (
     <Box sx={{ display: 'flex', flexGrow: 1, height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
-      {/* 左侧边栏 */}
+      {/* Admin Sidebar */}
       <AdminSidebar>
-        <List component="nav">
-          {menuItems.map(item => (
-            <SidebarMenuItem
-              key={item.id}
-              active={activeMenuItem === item.id}
-              onClick={() => handleMenuItemClick(item.id)}
-            >
-              <ListItemText primary={item.label} />
-            </SidebarMenuItem>
-          ))}
-        </List>
+        <NavigationList component="nav">
+          {adminMenuItems.map(item => {
+            const isActive = activeMenuItem === item.id;
+            return (
+              <MenuItemContainer key={item.id}>
+                <MenuItemHeading
+                  active={isActive}
+                  onClick={() => handleMenuItemClick(item.id)}
+                  disablePadding
+                >
+                  <MenuItemIconContainer>
+                    <MenuItemIconText 
+                      active={isActive}
+                      className="material-symbols-outlined"
+                    >
+                      {item.iconName}
+                    </MenuItemIconText>
+                  </MenuItemIconContainer>
+                  <MenuItemLabel 
+                    active={isActive}
+                    primary={item.label}
+                  />
+                </MenuItemHeading>
+              </MenuItemContainer>
+            );
+          })}
+        </NavigationList>
       </AdminSidebar>
 
-      {/* 主内容区域 - 渲染子路由 */}
+      {/* Main Content Area - Render child routes */}
       <ContentArea>
         <Outlet />
       </ContentArea>

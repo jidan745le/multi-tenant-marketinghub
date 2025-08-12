@@ -1,8 +1,10 @@
 import {
+  Alert,
   Box,
   Button,
   CircularProgress,
   Grid,
+  Snackbar,
   TextField,
   Typography
 } from '@mui/material';
@@ -14,6 +16,7 @@ import { SectionCard, SectionTitle, SubTitle } from '../components/SettingsCompo
 import { useBrand } from '../hooks/useBrand';
 import { selectCurrentLanguage, selectThemesLoading } from '../store/slices/themesSlice';
 import {
+  createNotification,
   formatMultipleImageRelations,
   updateThemeWithLocale,
   validateBrandData
@@ -53,6 +56,10 @@ function LookAndFeel() {
     oncolor_logo: false,
     favicon: false,
   });
+  
+  // 保存状态和通知
+  const [saving, setSaving] = useState(false);
+  const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
 
   // 跟踪已上传的图片ID
   const [uploadedImageIds, setUploadedImageIds] = useState({
@@ -277,10 +284,12 @@ function LookAndFeel() {
   // 保存配置 - 使用通用工具函数
   const handleSaveConfiguration = async () => {
     try {
+      setSaving(true);
+      
       // 验证品牌数据
       const validation = validateBrandData(currentBrand);
       if (!validation.isValid) {
-        alert(validation.error);
+        setNotification(createNotification(false, validation.error));
         return;
       }
 
@@ -327,7 +336,7 @@ function LookAndFeel() {
         description: 'Look & Feel配置'
       });
 
-      alert('Look & Feel配置保存成功！');
+      setNotification(createNotification(true, 'Look & Feel配置保存成功！'));
 
       // 清空已上传的图片ID记录
       setUploadedImageIds({
@@ -339,8 +348,15 @@ function LookAndFeel() {
 
     } catch (error) {
       console.error('❌ 保存配置失败:', error);
-      alert(`保存失败: ${error.message}`);
+      setNotification(createNotification(false, `保存失败: ${error.message}`));
+    } finally {
+      setSaving(false);
     }
+  };
+
+  // 关闭通知
+  const handleCloseNotification = () => {
+    setNotification({ ...notification, open: false });
   };
 
   // 如果正在加载或数据不存在，显示加载状态
@@ -359,7 +375,7 @@ function LookAndFeel() {
       {/* Logos 部分 */}
       <SectionCard>
         <SectionTitle>Logos</SectionTitle>
-        <Grid container spacing={3}>
+        <Grid container spacing={6.875}>
           <Grid item xs={12} md={4}>
             <SubTitle>BRAND LOGO</SubTitle>
             <ImageUpload 
@@ -400,21 +416,19 @@ function LookAndFeel() {
 
       {/* Colors 部分 */}
       <SectionCard>
-        <SectionTitle>Color Theme</SectionTitle>
+        <SectionTitle>Colors</SectionTitle>
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
             <Box sx={{ mb: 2 }}>
-              <SubTitle >
-                {currentBrand.name} PRIMARY
-              </SubTitle>
-                              <TextField
+           
+                <TextField
                   type="color"
                   value={primaryColor}
                   onChange={(e) => setPrimaryColor(e.target.value)}
                   InputLabelProps={{
                     shrink: true,
                   }}
-                                    sx={{
+                  sx={{
                     width: '200px',
                     height: '200px',
                     '& .MuiInputBase-root': {
@@ -454,17 +468,17 @@ function LookAndFeel() {
                     }
                   }}
                 />
-              <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
-                Hex: {primaryColor || themeColors.primary_color || '#ff6600'}
+              <SubTitle >
+                {currentBrand.name} PRIMARY
+              </SubTitle>
+              <Typography variant="body2" sx={{ mt: 1, color: "#000000" }}>
+                HEX {primaryColor || themeColors.primary_color || '#ff6600'}
               </Typography>
             </Box>
           </Grid>
           
           <Grid item xs={12} md={6}>
-            <Box sx={{ mb: 2 }}>
-              <SubTitle>
-                {currentBrand.name} SECONDARY
-              </SubTitle>
+            <Box sx={{ mb: 2 }}>   
                  <TextField
                   type="color"
                   value={secondaryColor}
@@ -512,7 +526,10 @@ function LookAndFeel() {
                     }
                   }}
                 />
-              <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
+                <SubTitle >
+                {currentBrand.name} PRIMARY
+              </SubTitle>
+              <Typography variant="body2" sx={{ mt: 1, color: "#000000" }}>
                 Hex: {secondaryColor || themeColors.secondary_color || '#003366'}
               </Typography>
             </Box>
@@ -546,32 +563,104 @@ function LookAndFeel() {
             <TextField
               select
               sx={{width:"60%"}}
-              defaultValue="Roboto"
+              defaultValue="Open Sans"
               SelectProps={{
                 native: true,
               }}
             >
-              <option value="Roboto">Roboto</option>
-              <option value="Arial">Arial</option>
-              <option value="Helvetica">Helvetica</option>
+              <option value="Open Sans">Open Sans</option>
             </TextField>
           </Box>
           
           <Box sx={{ flex: 1 }}>
-            <SubTitle>TITLE</SubTitle>
-            <Box>
-              <Typography variant="h4">Heading 1</Typography>
-              <Typography variant="h5">Heading 2</Typography>
-              <Typography variant="h6">Heading 3</Typography>
+            <SubTitle>HEADINGS</SubTitle>
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: '28px' 
+            }}>
+              <Typography sx={{ 
+                fontFamily: '"Open Sans", sans-serif', 
+                fontSize: '48px', 
+                lineHeight: '56px', 
+                fontWeight: 700 
+              }}>
+                Heading 1
+              </Typography>
+              <Typography sx={{ 
+                fontFamily: '"Open Sans", sans-serif', 
+                fontSize: '36px', 
+                lineHeight: '44px', 
+                fontWeight: 600 
+              }}>
+                Heading 2
+              </Typography>
+              <Typography sx={{ 
+                fontFamily: '"Open Sans", sans-serif', 
+                fontSize: '30px', 
+                lineHeight: '38px', 
+                fontWeight: 600 
+              }}>
+                Heading 3
+              </Typography>
+              <Typography sx={{ 
+                fontFamily: '"Open Sans", sans-serif', 
+                fontSize: '24px', 
+                lineHeight: '32px', 
+                fontWeight: 600 
+              }}>
+                Heading 4
+              </Typography>
+              <Typography sx={{ 
+                fontFamily: '"Open Sans", sans-serif', 
+                fontSize: '20px', 
+                lineHeight: '28px', 
+                fontWeight: 600 
+              }}>
+                Heading 5
+              </Typography>
             </Box>
           </Box>
           
           <Box sx={{ flex: 1 }}>
             <SubTitle>BODY</SubTitle>
-            <Box>
-              <Typography variant="body1">This is a regular body text</Typography>
-              <Typography variant="body2">This is a semibold body text</Typography>
-              <Typography variant="body1" sx={{ fontWeight: 'bold' }}>This is a bold body text</Typography>
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: '22px' 
+            }}>
+              <Typography sx={{ 
+                fontFamily: '"Open Sans", sans-serif', 
+                fontSize: '16px', 
+                lineHeight: '24px', 
+                fontWeight: 400 
+              }}>
+                The quick brown fox jumps over the lazy dog
+              </Typography>
+              <Typography sx={{ 
+                fontFamily: '"Open Sans", sans-serif', 
+                fontSize: '16px', 
+                lineHeight: '24px', 
+                fontWeight: 600 
+              }}>
+                The quick brown fox jumps over the lazy dog
+              </Typography>
+              <Typography sx={{ 
+                fontFamily: '"Open Sans", sans-serif', 
+                fontSize: '16px', 
+                lineHeight: '24px', 
+                fontWeight: 700 
+              }}>
+                The quick brown fox jumps over the lazy dog
+              </Typography>
+              <Typography sx={{ 
+                fontFamily: '"Open Sans", sans-serif', 
+                fontSize: '16px', 
+                lineHeight: '24px', 
+                fontWeight: 800 
+              }}>
+                The quick brown fox jumps over the lazy dog
+              </Typography>
             </Box>
           </Box>
         </Box>
@@ -579,10 +668,31 @@ function LookAndFeel() {
 
       {/* 保存按钮 */}
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, mb: 4 }}>
-        <SaveButton variant="contained" onClick={handleSaveConfiguration}>
+        <SaveButton 
+          variant="contained" 
+          onClick={handleSaveConfiguration}
+          disabled={saving}
+        >
+          {saving ? <CircularProgress size={20} color="inherit" sx={{ mr: 1 }} /> : null}
           Save Configuration
         </SaveButton>
       </Box>
+
+      {/* 通知消息 */}
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={6000}
+        onClose={handleCloseNotification}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={handleCloseNotification} 
+          severity={notification.severity}
+          variant="filled"
+        >
+          {notification.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

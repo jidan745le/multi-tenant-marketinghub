@@ -124,13 +124,8 @@ function SocialProfileSettings() {
           <Box key={field.key} sx={{ mb: index === socialFields.length - 1 ? 0 : 3 }}>
             <SubTitle>{field.label}</SubTitle>
             <TextField
-              fullWidth
-              placeholder={field.placeholder}
-              value={formData[field.key]}
-              onChange={(e) => handleFieldChange(field.key, e.target.value)}
-              variant="outlined"
-              size="medium"
-              sx={{
+              sx={{ 
+                width: "60%",
                 '& .MuiOutlinedInput-root': {
                   backgroundColor: 'white',
                   '&:hover': {
@@ -141,6 +136,11 @@ function SocialProfileSettings() {
                   }
                 }
               }}
+              placeholder={field.placeholder}
+              value={formData[field.key]}
+              onChange={(e) => handleFieldChange(field.key, e.target.value)}
+              variant="outlined"
+              size="medium"
             />
           </Box>
         ))}
