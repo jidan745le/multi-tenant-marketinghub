@@ -5,6 +5,7 @@ import { Provider } from 'react-redux';
 import { BrowserRouter, useRoutes } from 'react-router-dom';
 import './assets/styles/fonts.css';
 import TopBar from './components/TopBar';
+import { AuthProvider } from './context/AuthContext';
 // 导入 i18n 配置
 import { I18nextProvider, useTranslation } from 'react-i18next';
 import useTheme from './hooks/useTheme';
@@ -85,7 +86,7 @@ const fetchStrapiThemes = async (dispatch, languageCode = 'en_US') => {
     console.log(`🌐 API请求: ${languageCode} -> locale=${locale}`);
     
     // 添加语言参数到API请求
-    const response = await fetch(`${baseUrl}/api/themes?locale=${locale}&populate[0]=theme_colors&populate[1]=theme_logo&populate[2]=menu&populate[3]=menu.menu_l2&populate[4]=languages&populate[5]=theme_logos.favicon&populate[6]=theme_logos.onwhite_logo&populate[7]=theme_logos.oncolor_logo&populate[8]=login&populate[9]=pages.content_area&populate[10]=pages.content_area.home_page_widget_list.image&populate[11]=pages.content_area.link_list&populate[12]=pages.content_area.contact&populate[13]=pages.content_area.link_list.link_icon&populate[14]=pages.content_area.contact.profile_pic&populate[15]=fallback_image&populate[16]=legal&populate[17]=communication&populate[18]=socialprofile&populate[19]=login.background`, {
+    const response = await fetch(`${baseUrl}/api/themes?locale=${locale}&populate[0]=theme_colors&populate[1]=theme_logo&populate[2]=menu&populate[3]=menu.menu_l2&populate[4]=languages&populate[5]=theme_logos.favicon&populate[6]=theme_logos.onwhite_logo&populate[7]=theme_logos.oncolor_logo&populate[8]=login&populate[9]=pages.content_area&populate[10]=pages.content_area.home_page_widget_list.image&populate[11]=pages.content_area.link_list&populate[12]=pages.content_area.contact&populate[13]=pages.content_area.link_list.link_icon&populate[14]=pages.content_area.contact.profile_pic&populate[15]=fallback_image&populate[16]=legal&populate[17]=communication&populate[18]=socialprofile&populate[19]=login.background&populate[20]=pages.content_area.colors&populate[21]=pages.content_area.fonts&populate[22]=pages.content_area.view_button.button_link&populate[23]=pages.content_area.download_button.button_link&populate[24]=pages.content_area.book_logo&populate[25]=pages.content_area.book_cover&populate[26]=pages.content_area.book_file`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -179,6 +180,9 @@ function RouterContent() {
     loadTranslationsFromRedux();
   }, [loadTranslationsFromRedux]);
   
+  // 检查是否是登录页面
+  const isLoginPage = window.location.pathname.endsWith('/Login');
+  
   return (
     <ThemeProviderWrapper>
       <CssBaseline />
@@ -191,8 +195,8 @@ function RouterContent() {
           overflow: 'hidden' 
         }}
       >
-        {/* 顶部导航栏 */}
-        <TopBar />
+        {/* 顶部导航栏 - 登录页面不显示 */}
+        {!isLoginPage && <TopBar />}
         
         {/* 主要内容区域 */}
         <Box 
@@ -241,7 +245,9 @@ function AppContent() {
   return (
     <Suspense fallback={<LoadingFallback />}>
       <BrowserRouter>
-        <RouterContent />
+        <AuthProvider>
+          <RouterContent />
+        </AuthProvider>
       </BrowserRouter>
     </Suspense>
   );

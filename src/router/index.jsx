@@ -20,8 +20,16 @@ const UnderConstructionAdmin = Loader(lazy(() => import('../pages/UnderConstruct
 const CommunicationSettings = Loader(lazy(() => import('../pages/CommunicationSettings')));
 const LegalSettings = Loader(lazy(() => import('../pages/LegalSettings')));
 const SocialProfileSettings = Loader(lazy(() => import('../pages/SocialProfileSettings')));
+const LoginPage = Loader(lazy(() => import('../pages/LoginPage')));
+const BrandbookPage = Loader(lazy(() => import('../pages/BrandbookPage')));
 
 const router = [
+  // Login page route with tenant validation
+  {
+    path: '/:tenant/Login',
+    element: <LoginPage />
+  },
+  
   // 根路径重定向到默认语言和品牌的产品目录
   {
     path: '/',
@@ -67,7 +75,7 @@ const router = [
   },
   {
     path: '/:lang/:brand/brand-book',
-    element: <UnderConstruction />
+    element: <BrandbookPage />
   },
   {
     path: '/:lang/:brand/accessories',
