@@ -354,4 +354,10 @@ export const selectHomePagesByBrand = (brandCode) => (state) => {
     return pages.filter(page => page.page_template === 'homepage' && (!brandCode || page.brandCode === brandCode));
 };
 
+export const selectBrandBookPagesByBrand = (brandCode) => (state) => {
+    const currentLangData = state.themes.languageCache[state.themes.currentLanguage];
+    const pages = currentLangData?.pages || [];
+    return pages.filter(page => page.page_template === 'brandbook' && (!brandCode || page.brandCode === brandCode));
+};
+
 export default themesSlice.reducer; 
