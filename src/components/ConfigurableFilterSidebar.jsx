@@ -34,7 +34,7 @@ const FilterContainer = styled(ScrollBarWrapperBox)(() => ({
 
 const FilterSection = styled(Box)(() => ({
   marginBottom: '16px',
-  marginLeft: '12px',
+  marginLeft: '8px', // 减少左边距，为指示线留空间
 }));
 
 const FilterTitle = styled(Typography)(() => ({
@@ -105,6 +105,59 @@ const ShowMoreButton = styled(Typography)(({theme}) => ({
   },
 }));
 
+// 可点击文本行样式 - 参考Toc导航的选中效果
+const ClickableListItem = styled(Typography)(({ theme, selected }) => ({
+  fontSize: '14px',
+  fontWeight: selected ? '600' : '400',
+  lineHeight: '20px',
+  padding: '10px 12px 10px 16px',
+  margin: '1px 0',
+  cursor: 'pointer',
+  userSelect: 'none',
+  color: selected ? theme.palette.primary.main : '#4a4a4a',
+  backgroundColor: selected ? theme.palette.primary.main + '08' : 'transparent',
+  borderRadius: '6px',
+  position: 'relative',
+  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+  
+  // 左侧指示线（选中状态）
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    left: '2px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    width: selected ? '3px' : '0',
+    height: selected ? '18px' : '0',
+    backgroundColor: theme.palette.primary.main,
+    borderRadius: '2px',
+    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+  },
+  
+  '&:hover': {
+    color: theme.palette.primary.main,
+    backgroundColor: selected ? theme.palette.primary.main + '12' : theme.palette.primary.main + '04',
+    fontWeight: selected ? '600' : '500',
+    
+    // hover时的左侧指示线
+    '&::before': {
+      width: selected ? '3px' : '2px',
+      height: selected ? '18px' : '14px',
+      backgroundColor: theme.palette.primary.main,
+    },
+  },
+  
+  '&:active': {
+    backgroundColor: theme.palette.primary.main + '16',
+    transform: 'scale(0.98)',
+  },
+}));
+
+// Clickable List 容器样式
+const ClickableListContainer = styled(Box)(() => ({
+  margin: '0 -8px 0 -4px', // 负边距确保指示线能够贴边显示
+}));
+
 // 初始化字段值类型
 const initFieldValueType = (type) => {
   switch (type) {
@@ -144,8 +197,8 @@ const ConfigurableFilterSidebar = ({
     config.filters.forEach((item) => {
       initialValues[item.key] = item.defaultValue || initFieldValueType(item.type);
       
-      if (item.component === 'checkbox' && item.enum) {
-        initialCollapseState[item.key] = item.enum.length > 7;
+      if ((item.component === 'checkbox' || item.component === 'clickable-list') && item.enum) {
+        initialCollapseState[item.key] = item.enum.length > (item.defaultCollapseCount || 7);
       }
     });
     
@@ -327,6 +380,50 @@ const ConfigurableFilterSidebar = ({
     );
   };
 
+  const renderClickableListField = (item) => {
+    const currentValues = internalValues[item.key] || [];
+    const isCollapsed = collapseState[item.key];
+    const displayEnum = isCollapsed && item.enum 
+      ? item.enum.slice(0, item.defaultCollapseCount || 7)
+      : item.enum || [];
+
+    return (
+      <ClickableListContainer>
+        {displayEnum.map((option) => {
+          const isSelected = currentValues.includes(option.value);
+          return (
+            <ClickableListItem
+              key={option.value}
+              selected={isSelected}
+              onClick={() => {
+                let newValues;
+                if (item.allowMultiple !== false) {
+                  // 多选模式（默认）
+                  newValues = isSelected
+                    ? currentValues.filter(v => v !== option.value)
+                    : [...currentValues, option.value];
+                } else {
+                  // 单选模式
+                  newValues = isSelected ? [] : [option.value];
+                }
+                handleValueChange(item.key, newValues);
+              }}
+            >
+              {option.label}
+            </ClickableListItem>
+          );
+        })}
+        {item.enum && item.enum.length > (item.defaultCollapseCount || 7) && (
+          <Box sx={{ paddingLeft: '16px', marginTop: '8px' }}>
+            <ShowMoreButton onClick={() => toggleCollapse(item.key)}>
+              {isCollapsed ? 'Show More' : 'Show Less'}
+            </ShowMoreButton>
+          </Box>
+        )}
+      </ClickableListContainer>
+    );
+  };
+
   const renderField = (item) => {
     switch (item.component) {
       case 'input':
@@ -337,6 +434,8 @@ const ConfigurableFilterSidebar = ({
         return renderCheckboxField(item);
       case 'radio':
         return renderRadioField(item);
+      case 'clickable-list':
+        return renderClickableListField(item);
       default:
         return <div>Unsupported component type: {item.component}</div>;
     }

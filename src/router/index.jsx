@@ -24,6 +24,8 @@ const CommunicationSettings = Loader(lazy(() => import('../pages/CommunicationSe
 const LegalSettings = Loader(lazy(() => import('../pages/LegalSettings')));
 const SocialProfileSettings = Loader(lazy(() => import('../pages/SocialProfileSettings')));
 const LoginPage = Loader(lazy(() => import('../pages/LoginPage')));
+const BrandbookPage = Loader(lazy(() => import('../pages/BrandbookPage')));
+
 const router = [
   // Login page route with tenant validation
   {
@@ -76,7 +78,7 @@ const router = [
   },
   {
     path: '/:lang/:brand/brand-book',
-    element: <ProtectedRoute><UnderConstruction /></ProtectedRoute>
+    element: <ProtectedRoute> <BrandbookPage /></ProtectedRoute>
   },
   {
     path: '/:lang/:brand/accessories',
