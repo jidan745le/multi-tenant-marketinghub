@@ -1,207 +1,234 @@
 import {
-    Alert,
     Box,
-    Card,
-    CardContent,
-    Chip,
     CircularProgress,
-    Grid,
-    Stack,
-    Typography
+    Typography,
+    Paper
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import React from 'react';
+import React, { useCallback, useMemo, useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { useBrand } from '../hooks/useBrand';
 import { selectBrandBookPagesByBrand } from '../store/slices/themesSlice';
+import Toc from '../components/Toc';
+import BrandbookContent from '../components/BrandbookContent';
+import { fetchAllBrandbookAssets } from '../services/brandbookAssetsApi';
 
-// 主布局容器
+// 主布局容器（用于加载和错误状态）
 const MainContainer = styled(Box)(({ theme }) => ({
   padding: theme.spacing(3),
   maxWidth: '1200px',
   margin: '0 auto'
 }));
 
-// 品牌手册卡片样式
-const BrandbookCard = styled(Card)(({ theme }) => ({
-  marginBottom: theme.spacing(3),
-  boxShadow: theme.shadows[2],
-  '&:hover': {
-    boxShadow: theme.shadows[4],
-    transform: 'translateY(-2px)',
-    transition: 'all 0.3s ease-in-out'
-  }
-}));
-
-// 页面标题样式
-const PageTitle = styled(Typography)(({ theme }) => ({
-  marginBottom: theme.spacing(4),
-  fontWeight: 600,
-  color: theme.palette.primary.main
-}));
-
-// 信息项样式
-const InfoItem = styled(Box)(({ theme }) => ({
-  marginBottom: theme.spacing(2),
-  padding: theme.spacing(1.5),
-  backgroundColor: theme.palette.grey[50],
-  borderRadius: theme.shape.borderRadius,
-  border: `1px solid ${theme.palette.grey[200]}`
-}));
-
 const BrandbookPage = () => {
   const { currentBrand, currentBrandCode } = useBrand();
-  
-  // 获取当前品牌的 brandbook 页面数据
   const brandbookPages = useSelector(selectBrandBookPagesByBrand(currentBrandCode));
   
-  // 获取加载状态
   const isLoading = useSelector(state => state.themes.loading);
+
+  const [activeSection, setActiveSection] = useState('');
+
+  const [assetsData, setAssetsData] = useState({
+    logos: [],
+    icons: [],
+    videos: [],
+    lifeStyles: [],
+    catelogs: []
+  });
+  const [assetsLoading, setAssetsLoading] = useState(false);
+
+  // 从PIM获取
+  useEffect(() => {
+    const fetchAssets = async () => {
+      if (!currentBrandCode) return;
+
+      setAssetsLoading(true);
+      try {
+        console.log(`🎨 Fetching brandbook assets for brand: ${currentBrandCode}`);
+        const assets = await fetchAllBrandbookAssets({ 
+          brand: currentBrandCode,
+          limit: 100 
+        });
+        
+        setAssetsData(assets);
+        console.log('Brandbook assets loaded:', assets);
+      } catch (error) {
+        console.error('Error loading brandbook assets:', error);
+        // 保持空数据，不影响页面显示
+      } finally {
+        setAssetsLoading(false);
+      }
+    };
+
+    fetchAssets();
+  }, [currentBrandCode]);
+
+  // 提取页面所需的所有数据
+  const getBrandbookData = () => {
+    let bookInfo = [];
+    const colors = [];
+    const fonts = [];
+    
+    if (brandbookPages && brandbookPages.length > 0) {
+      brandbookPages.forEach(page => {
+        if (!page.content_area) {
+          return;
+        }
+       
+        page.content_area.forEach((area) => {
+          console.log('🔍 Processing content area:', area.__component);
+
+          if (area.__component === 'pages.brand-book') {
+            bookInfo.push({
+              id: area.id,
+              cover: area.book_cover,
+              file: area.book_file,
+              logo: area.book_logo,
+              title: area.title,
+              pic_title: area.pic_title,
+              nav_title: area.nav_title,
+              size: area.book_file.size,
+              view_button: area.view_button,
+              download_button: area.download_button,
+            });
+          }
+        
+          if (area.__component === 'pages.color-list') {
+            console.log('Processing colors:', area);
+            area.colors?.forEach((colorItem) => {
+              colors.push({
+                id: colorItem.id,
+                category: colorItem.category,
+                name: colorItem.name,
+                hex: colorItem.hex_code,
+                rgb: colorItem.rgb,
+                cmyk: colorItem.cmyk,
+                phantone: colorItem.phantone,
+              });
+            });
+          }
+
+          if (area.__component === 'pages.font-list') {
+            area.fonts?.forEach((fontItem) => {
+              fonts.push({
+                family: fontItem.font_family,
+                id: fontItem.id,
+                name: fontItem.name,
+              });
+            });
+          }
+        });
+      });
+    }
+    
+    // 使用PIM
+    console.log('🔗 Using PIM assets data:', assetsData);
+    
+    return { 
+      bookInfo, 
+      colors, 
+      fonts, 
+      logos: assetsData.logos || [],
+      icons: assetsData.icons || [],
+      lifeStyles: assetsData.lifeStyles || [],
+      videos: assetsData.videos || [],
+      catelogs: assetsData.catelogs || []
+    };
+  };
+
+  const { bookInfo, colors, fonts, logos, icons, lifeStyles, videos, catelogs } = getBrandbookData();
 
   console.log('🔍 Brandbook Debug:', {
     currentBrand,
     currentBrandCode,
     brandbookPages,
-    isLoading
+    isLoading,
+    assetsLoading,
+    extractedData: { bookInfo, colors, fonts, logos, icons, lifeStyles, videos, catelogs },
+    assetsFromPIM: assetsData
   });
 
+  // 提取的数据
+  const brandbookData = useMemo(() => ({
+    bookInfo,
+    colors,
+    fonts,
+    logos,
+    icons,
+    lifeStyles,
+    videos,
+    catelogs
+  }), [bookInfo, colors, fonts, logos, icons, lifeStyles, videos, catelogs]);
+
+  const handleTocClick = useCallback((sectionId, anchor) => {
+    console.log('TOC navigation clicked:', sectionId, anchor);
+    setActiveSection(sectionId);
+  }, []);
+
+  const handleSectionInView = useCallback((sectionId) => {
+    setActiveSection(sectionId);
+  }, []);
+
   // 加载状态
-  if (isLoading) {
+  if (isLoading || assetsLoading) {
     return (
       <MainContainer>
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
           <CircularProgress />
-          <Typography variant="h6" sx={{ ml: 2 }}>
-            加载品牌手册中...
-          </Typography>
+          {/* <Typography variant="h6" sx={{ ml: 2 }}>
+            {isLoading ? 'loading...' : 'loading...'}
+          </Typography> */}
         </Box>
       </MainContainer>
     );
   }
 
-  // 无数据状态
-  if (!brandbookPages || brandbookPages.length === 0) {
-    return (
-      <MainContainer>
-        <PageTitle variant="h4">
-          {currentBrand?.brand_name || currentBrandCode} 品牌手册
-        </PageTitle>
-        <Alert severity="info">
-          暂无品牌手册信息可用。请联系管理员或稍后再试。
-        </Alert>
-      </MainContainer>
-    );
-  }
-
-  // 渲染单个品牌手册页面
-  const renderBrandbookPage = (page, index) => (
-    <BrandbookCard key={page.id || index}>
-      <CardContent>
-        <Typography variant="h5" component="h2" gutterBottom>
-          {page.page_title || `品牌手册 ${index + 1}`}
-        </Typography>
-        
-        <Grid container spacing={2}>
-          {/* 基本信息 */}
-          <Grid item xs={12} md={6}>
-            <InfoItem>
-              <Typography variant="subtitle2" color="primary" gutterBottom>
-                基本信息
-              </Typography>
-              <Typography variant="body2">
-                <strong>页面ID:</strong> {page.id}
-              </Typography>
-              <Typography variant="body2">
-                <strong>品牌代码:</strong> {page.brandCode || currentBrandCode}
-              </Typography>
-              <Typography variant="body2">
-                <strong>页面模板:</strong> {page.page_template}
-              </Typography>
-              {page.documentId && (
-                <Typography variant="body2">
-                  <strong>文档ID:</strong> {page.documentId}
-                </Typography>
-              )}
-            </InfoItem>
-          </Grid>
-
-          {/* 时间信息 */}
-          <Grid item xs={12} md={6}>
-            <InfoItem>
-              <Typography variant="subtitle2" color="primary" gutterBottom>
-                时间信息
-              </Typography>
-              {page.createdAt && (
-                <Typography variant="body2">
-                  <strong>创建时间:</strong> {new Date(page.createdAt).toLocaleString('zh-CN')}
-                </Typography>
-              )}
-              {page.updatedAt && (
-                <Typography variant="body2">
-                  <strong>更新时间:</strong> {new Date(page.updatedAt).toLocaleString('zh-CN')}
-                </Typography>
-              )}
-              {page.publishedAt && (
-                <Typography variant="body2">
-                  <strong>发布时间:</strong> {new Date(page.publishedAt).toLocaleString('zh-CN')}
-                </Typography>
-              )}
-            </InfoItem>
-          </Grid>
-
-          {/* 内容区域 */}
-          {page.content_area && (
-            <Grid item xs={12}>
-              <InfoItem>
-                <Typography variant="subtitle2" color="primary" gutterBottom>
-                  内容区域信息
-                </Typography>
-                <Typography variant="body2" component="pre" sx={{ 
-                  whiteSpace: 'pre-wrap', 
-                  backgroundColor: '#f5f5f5', 
-                  padding: 2, 
-                  borderRadius: 1,
-                  maxHeight: '200px',
-                  overflow: 'auto'
-                }}>
-                  {JSON.stringify(page.content_area, null, 2)}
-                </Typography>
-              </InfoItem>
-            </Grid>
-          )}
-
-          {/* 状态标签 */}
-          <Grid item xs={12}>
-            <Stack direction="row" spacing={1}>
-              {page.publishedAt && (
-                <Chip label="已发布" color="success" size="small" />
-              )}
-              {page.locale && (
-                <Chip label={`语言: ${page.locale}`} color="info" size="small" />
-              )}
-              {page.page_template === 'brandbook' && (
-                <Chip label="品牌手册模板" color="primary" size="small" />
-              )}
-            </Stack>
-          </Grid>
-        </Grid>
-      </CardContent>
-    </BrandbookCard>
-  );
-
   return (
-    <MainContainer>
-      <PageTitle variant="h4">
-        {currentBrand?.brand_name || currentBrandCode} 品牌手册
-      </PageTitle>
-      
-      <Typography variant="subtitle1" color="textSecondary" gutterBottom>
-        共找到 {brandbookPages.length} 个品牌手册页面
-      </Typography>
+    <Box 
+      sx={{ 
+        height: '100vh',
+        display: 'flex',
+        margin: 0,
+        padding: 0,
+        overflow: 'hidden',
+      }}
+    >
+      {/* 左侧目录导航 */}
+      <Box sx={{ width: 280, height: '100%' }}>
+        <Paper
+          elevation={1}
+          sx={{
+            height: '100%',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column'
+          }}
+        >
+          <Toc 
+            data={brandbookData}
+            activeSection={activeSection}
+            onSectionClick={handleTocClick}
+          />
+        </Paper>
+      </Box>
 
-      {/* 渲染所有品牌手册页面 */}
-      {brandbookPages.map((page, index) => renderBrandbookPage(page, index))}
-    </MainContainer>
+      {/* 右侧主内容区域 */}
+      <Box sx={{ flex: 1, height: '100%' }}>
+        <Box 
+          sx={{ 
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}
+        >
+          <BrandbookContent 
+            data={brandbookData}
+            onSectionInView={handleSectionInView}
+          />
+        </Box>
+      </Box>
+    </Box>
   );
 };
 
