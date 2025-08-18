@@ -3,6 +3,9 @@ import { Navigate } from 'react-router-dom';
 
 // 使用导入的加载器组件
 import AdminRedirect from '../components/AdminRedirect';
+import AdminRootRedirect from '../components/AdminRootRedirect';
+import DefaultRedirect from '../components/DefaultRedirect';
+import ProtectedRoute from '../components/ProtectedRoute';
 import Loader from '../utils/Loader';
 
 // 延迟加载页面组件
@@ -31,65 +34,65 @@ const router = [
   // 根路径重定向到默认语言和品牌的产品目录
   {
     path: '/',
-    element: <Navigate to="/en_GB/kendo/category" replace />
+    element: <DefaultRedirect />
   },
   
   // 仅语言路径，重定向到默认品牌和页面
   {
     path: '/:lang',
-    element: <Navigate to="/en_GB/kendo/category" replace />
+    element: <DefaultRedirect />
   },
   
   // 语言和品牌路径，重定向到默认页面
   {
     path: '/:lang/:brand',
-    element: <Navigate to="/en_GB/kendo/category" replace />
+    element: <DefaultRedirect />
   },
   
-  // 完整的三级路径：/:lang/:brand/:page
+  // 完整的三级路径：/:lang/:brand/:page (需要认证)
   {
     path: '/:lang/:brand/category',
-    element: <ProductCatalogue />
+    element: <ProtectedRoute><ProductCatalogue /></ProtectedRoute>
   },
   {
     path: '/:lang/:brand/home',
-    element: <HomePage />
+    element: <ProtectedRoute><HomePage /></ProtectedRoute>
   },
   {
     path: '/:lang/:brand/products',
-    element: <NewProducts />
+    element: <ProtectedRoute><NewProducts /></ProtectedRoute>
   },
   {
     path: '/:lang/:brand/medias',
-    element: <MediaCatalogue />
+    element: <ProtectedRoute><MediaCatalogue /></ProtectedRoute>
   },
   {
     path: '/:lang/:brand/accessory',
-    element: <UnderConstruction />
+    element: <ProtectedRoute><UnderConstruction /></ProtectedRoute>
   },
   {
     path: '/:lang/:brand/videos',
-    element: <Videos />
+    element: <ProtectedRoute><Videos /></ProtectedRoute>
   },
   {
     path: '/:lang/:brand/brand-book',
-    element: <UnderConstruction />
+    element: <ProtectedRoute><UnderConstruction /></ProtectedRoute>
   },
   {
     path: '/:lang/:brand/accessories',
-    element: <UnderConstruction />
+    element: <ProtectedRoute><UnderConstruction /></ProtectedRoute>
   },
   {
     path: '/:lang/:brand/after-sales-service',
-    element: <UnderConstruction />
+    element: <ProtectedRoute><UnderConstruction /></ProtectedRoute>
   },
   {
     path: '/:lang/:brand/training',
-    element: <UnderConstruction />
+    element: <ProtectedRoute><UnderConstruction /></ProtectedRoute>
   },
   {
     path: '/:lang/:brand/admin',
-    element: <AdminLayout />,
+    element: <ProtectedRoute><AdminLayout /></ProtectedRoute>,
     children: [
       {
         index: true,
@@ -130,18 +133,18 @@ const router = [
     ]
   },
   
-  // 独立的管理页面路由 (重定向到默认语言和品牌)
+  // 独立的管理页面路由 (从localStorage读取默认路径)
   {
     path: '/admin',
-    element: <Navigate to="/en_GB/kendo/admin" replace />
+    element: <AdminRootRedirect />
   },
- 
   
-  // 捕获所有其他路由，重定向到默认页面
+  // Dashboard route - redirect to default page
   {
-    path: '*',
-    element: <Navigate to="/en_GB/kendo/category" replace />
-  }
+    path: '/dashboard',
+    element: <ProtectedRoute><DefaultRedirect /></ProtectedRoute>
+  },
+
 ];
 
 export default router; 

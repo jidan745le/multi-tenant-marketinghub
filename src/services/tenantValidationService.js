@@ -33,12 +33,12 @@ const strapiRequest = async (endpoint) => {
  * @param {string} languageCode - Language code (e.g., 'en_gb')
  * @returns {Promise<Object>} Tenant validation result
  */
-export const validateTenant = async (tenantName, languageCode = 'en') => {
+export const validateTenant = async (tenantName, languageCode = 'en_GB') => {
     try {
         // Convert language code to locale format for Strapi
         const locale = getLocaleForStrapi(languageCode);
 
-        const endpoint = `/api/tenants?locale=${locale}&populate[0]=themes&populate[1]=themes.login&populate[2]=themes.login.background&populate[3]=themes.theme_colors&populate[4]=themes.theme_logo&filters[tenant_name]=${tenantName}`;
+        const endpoint = `/api/tenants?locale=${locale}&populate[0]=themes&populate[1]=themes.login&populate[2]=themes.login.background&populate[3]=themes.theme_colors&populate[4]=themes.theme_logo&populate[5]=themes.languages&filters[tenant_name]=${tenantName}`;
 
         console.log(`🔍 Validating tenant: ${tenantName} with locale: ${locale}`);
 
@@ -64,6 +64,7 @@ export const validateTenant = async (tenantName, languageCode = 'en') => {
             isValid: true,
             tenant,
             selectedTheme,
+            locale: locale, // 添加 locale 信息
             error: null
         };
 

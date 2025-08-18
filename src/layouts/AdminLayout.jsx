@@ -12,20 +12,20 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { selectThemesLoading } from '../store/slices/themesSlice';
 
 // Styled Components
-const AdminSidebar = styled(Box)(() => ({
+const AdminSidebar = styled(Box)(({ theme }) => ({
   width: 231,
   flexShrink: 0,
-  borderRight: '1px solid #e0e0e0',
-  backgroundColor: '#fff',
+  borderRight: `1px solid ${theme.palette.divider || '#e0e0e0'}`,
+  backgroundColor: theme.palette.background.paper || '#fff',
   height: '100%',
   overflowY: 'auto',
 }));
 
-const ContentArea = styled(Box)(() => ({
+const ContentArea = styled(Box)(({ theme }) => ({
   flexGrow: 1,
   height: '100%',
   overflowY: 'auto',
-  backgroundColor: '#f5f5f5',
+  backgroundColor: theme.palette.background.default || '#f5f5f5',
 }));
 
 const NavigationList = styled(List)(() => ({
@@ -75,7 +75,7 @@ const MenuItemIconContainer = styled(Box)(() => ({
 }));
 
 const MenuItemIconText = styled('span')(({ theme, active }) => ({
-  color: active ? 'var(--colors-palettes-primary-primary60, #f16508)' : 'var(--black, #000000)',
+  color: active ? (theme.palette.primary.main ) : (theme.palette.text.primary || '#000000'),
   textAlign: 'center',
   fontFamily: '"Material Symbols Outlined"',
   fontSize: 24,
@@ -86,7 +86,7 @@ const MenuItemIconText = styled('span')(({ theme, active }) => ({
 const MenuItemLabel = styled(ListItemText)(({ theme, active }) => ({
   flex: 1,
   '& .MuiListItemText-primary': {
-    color: active ? 'var(--colors-palettes-primary-primary60, #f16508)' : 'var(--black, #000000)',
+    color: active ? (theme.palette.primary.main) : (theme.palette.text.primary || '#000000'),
     textAlign: 'left',
     fontFamily: 'var(--label-large-font-family, "Roboto-Medium", sans-serif)',
     fontSize: 'var(--label-large-font-size, 14px)',

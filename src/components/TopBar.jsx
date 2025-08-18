@@ -19,6 +19,7 @@ import { styled } from '@mui/material/styles';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { useBrand } from '../hooks/useBrand';
 import { useDynamicMenus } from '../hooks/useDynamicMenus';
 import { useLanguage } from '../hooks/useLanguage';
@@ -317,11 +318,13 @@ const NavBar = () => {
 // TopRow Component with Language and Brand Switching
 const TopRow = () => {
   const { t: translate } = useTranslation();
+  const { user, logout, isAuthenticated } = useAuth();
   const {supportedLanguages,getCurrentLanguageInfo,currentLanguage, changeLanguage} = useLanguage();
   const { brands, currentBrand, switchBrand, debug } = useBrand();  
   const currentLanguageInfo = getCurrentLanguageInfo();
   const [portalAnchorEl, setPortalAnchorEl] = useState(null);
   const [languageAnchorEl, setLanguageAnchorEl] = useState(null);
+  const [profileAnchorEl, setProfileAnchorEl] = useState(null);
   const navigate = useNavigate();
 
   // 调试信息
@@ -343,6 +346,16 @@ const TopRow = () => {
   const handleClose = () => {
     setPortalAnchorEl(null);
     setLanguageAnchorEl(null);
+    setProfileAnchorEl(null);
+  };
+
+  const handleProfileClick = (event) => {
+    setProfileAnchorEl(event.currentTarget);
+  };
+
+  const handleLogout = () => {
+    logout();
+    handleClose();
   };
 
   const handleBrandSelect = (brandCode) => {
@@ -379,19 +392,16 @@ const TopRow = () => {
       {/* Left side - Logo and Portal Selection */}
       <Box sx={{ display: 'flex', alignItems: 'center' }}>
         <LogoContainer>
-          <img 
+          {currentBrand?.strapiData?.theme_logo?.url ? <img 
             style={{height:'100%'}} 
             src={
               currentBrand?.strapiData?.theme_logo?.url 
                 ? `${import.meta.env.VITE_STRAPI_BASE_URL}${currentBrand.strapiData.theme_logo.url}`
-                : '/src/assets/icon/kendo.png' // 回退到静态logo
+                : '' // 回退到静态logo
             }
             alt={`${currentBrand?.displayName || 'Brand'} logo`}
-            onError={(e) => {
-              // 如果动态logo加载失败，回退到静态logo
-              e.target.src = '/src/assets/icon/kendo.png';
-            }}
-          />
+
+          />:null}
         </LogoContainer>
         
         <PortalDropdown onClick={handlePortalClick}>
@@ -462,8 +472,44 @@ const TopRow = () => {
           ))}
         </Menu>
 
-        {/* Profile Avatar */}
-        <ProfileAvatar>S</ProfileAvatar>
+        {/* Profile Avatar with Dropdown */}
+        {isAuthenticated && user && (
+          <>
+            <ProfileAvatar onClick={handleProfileClick} sx={{ cursor: 'pointer' }}>
+              {user.name ? user.name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
+            </ProfileAvatar>
+            <Menu
+              anchorEl={profileAnchorEl}
+              open={Boolean(profileAnchorEl)}
+              onClose={handleClose}
+              anchorOrigin={{
+                vertical: 'bottom',
+                horizontal: 'right',
+              }}
+              transformOrigin={{
+                vertical: 'top',
+                horizontal: 'right',
+              }}
+            >
+              <Box sx={{ padding: '16px', minWidth: '200px', borderBottom: '1px solid #eee' }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', marginBottom: '4px' }}>
+                  {user.name || user.email.split('@')[0]}
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  {user.email}
+                </Typography>
+                {user.tenantName && (
+                  <Typography variant="body2" sx={{ color: 'text.secondary', marginTop: '4px' }}>
+                    {user.tenantName}
+                  </Typography>
+                )}
+              </Box>
+              <MenuItem onClick={handleLogout}>
+                <Typography>Logout</Typography>
+              </MenuItem>
+            </Menu>
+          </>
+        )}
       </ActionsContainer>
     </StyledTopRow>
   );  

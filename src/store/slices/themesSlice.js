@@ -32,7 +32,7 @@ const defaultBrands = [
 const initialState = {
     // 新的语言缓存结构: { [languageCode]: { brands, languages, pages, lastUpdated, isFromAPI } }
     languageCache: {},
-    currentLanguage: 'en_US', // 当前语言
+    currentLanguage: 'en_GB', // 当前语言
     loading: false,
     error: null,
     // 保留默认数据作为回退

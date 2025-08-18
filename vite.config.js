@@ -19,7 +19,26 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       host: env.VITE_DEV_SERVER_HOST || '127.0.0.1',
-      port: parseInt(env.VITE_DEV_SERVER_PORT) || 3001
+      port: parseInt(env.VITE_DEV_SERVER_PORT) || 3001,
+      proxy: {
+        '/apis': {
+          target: 'https://marketinghub-test.rg-experience.com',
+          changeOrigin: true,
+          secure: true,
+          rewrite: (path) => path.replace(/^\/apis/, 'apis'),
+          configure: (proxy) => {
+            proxy.on('error', (err) => {
+              console.log('proxy error', err);
+            });
+            proxy.on('proxyReq', (proxyReq, req) => {
+              console.log('Sending Request to the Target:', req.method, req.url);
+            });
+            proxy.on('proxyRes', (proxyRes, req) => {
+              console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
+            });
+          },
+        }
+      }
     },
     build: {
       sourcemap: env.VITE_BUILD_SOURCEMAP === 'true',

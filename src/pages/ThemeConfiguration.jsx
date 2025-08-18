@@ -1,15 +1,15 @@
 import {
-    Box,
-    Button,
-    Checkbox,
-    CircularProgress,
-    FormControlLabel,
-    MenuItem,
-    Select,
-    TextField,
-    Typography
+  Box,
+  Button,
+  Checkbox,
+  CircularProgress,
+  FormControlLabel,
+  MenuItem,
+  Select,
+  TextField,
+  Typography
 } from '@mui/material';
-import { styled } from '@mui/material/styles';
+import { styled, useTheme } from '@mui/material/styles';
 import React, { useState } from 'react';
 import { SectionCard, SectionTitle, SubTitle } from '../components/SettingsComponents';
 
@@ -40,6 +40,8 @@ const TwoColumnLayout = styled(Box)(() => ({
 }));
 
 function ThemeConfiguration() {
+  const theme = useTheme();
+  
   // State for demo purposes
   const [saving, setSaving] = useState(false);
   const [activeFunctionality, setActiveFunctionality] = useState({
@@ -94,9 +96,9 @@ function ThemeConfiguration() {
                   checked={activeFunctionality.brandBook}
                   onChange={() => handleFunctionalityChange('brandBook')}
                   sx={{ 
-                    color: '#ff6600',
+                    color: theme.palette.primary.main ,
                     '&.Mui-checked': {
-                      color: '#ff6600',
+                      color: theme.palette.primary.main ,
                     },
                   }}
                 />
@@ -111,9 +113,9 @@ function ThemeConfiguration() {
                   checked={activeFunctionality.derivateManagement}
                   onChange={() => handleFunctionalityChange('derivateManagement')}
                   sx={{ 
-                    color: '#ff6600',
+                    color: theme.palette.primary.main || '#ff6600',
                     '&.Mui-checked': {
-                      color: '#ff6600',
+                      color: theme.palette.primary.main || '#ff6600',
                     },
                   }}
                 />
@@ -127,6 +129,12 @@ function ThemeConfiguration() {
                 <Checkbox
                   checked={activeFunctionality.feature1}
                   onChange={() => handleFunctionalityChange('feature1')}
+                  sx={{ 
+                    color: theme.palette.primary.main || '#ff6600',
+                    '&.Mui-checked': {
+                      color: theme.palette.primary.main || '#ff6600',
+                    },
+                  }}
                 />
               }
               label="Feature 1"
@@ -138,6 +146,12 @@ function ThemeConfiguration() {
                 <Checkbox
                   checked={activeFunctionality.feature2}
                   onChange={() => handleFunctionalityChange('feature2')}
+                  sx={{ 
+                    color: theme.palette.primary.main || '#ff6600',
+                    '&.Mui-checked': {
+                      color: theme.palette.primary.main || '#ff6600',
+                    },
+                  }}
                 />
               }
               label="Feature 2"
@@ -152,6 +166,12 @@ function ThemeConfiguration() {
                 <Checkbox
                   checked={activeFunctionality.feature3}
                   onChange={() => handleFunctionalityChange('feature3')}
+                  sx={{ 
+                    color: theme.palette.primary.main || '#ff6600',
+                    '&.Mui-checked': {
+                      color: theme.palette.primary.main || '#ff6600',
+                    },
+                  }}
                 />
               }
               label="Feature 3"
@@ -163,6 +183,12 @@ function ThemeConfiguration() {
                 <Checkbox
                   checked={activeFunctionality.feature4}
                   onChange={() => handleFunctionalityChange('feature4')}
+                  sx={{ 
+                    color: theme.palette.primary.main || '#ff6600',
+                    '&.Mui-checked': {
+                      color: theme.palette.primary.main || '#ff6600',
+                    },
+                  }}
                 />
               }
               label="Feature 4"
@@ -174,6 +200,12 @@ function ThemeConfiguration() {
                 <Checkbox
                   checked={activeFunctionality.feature5}
                   onChange={() => handleFunctionalityChange('feature5')}
+                  sx={{ 
+                    color: theme.palette.primary.main || '#ff6600',
+                    '&.Mui-checked': {
+                      color: theme.palette.primary.main || '#ff6600',
+                    },
+                  }}
                 />
               }
               label="Feature 5"
@@ -185,6 +217,12 @@ function ThemeConfiguration() {
                 <Checkbox
                   checked={activeFunctionality.feature6}
                   onChange={() => handleFunctionalityChange('feature6')}
+                  sx={{ 
+                    color: theme.palette.primary.main || '#ff6600',
+                    '&.Mui-checked': {
+                      color: theme.palette.primary.main || '#ff6600',
+                    },
+                  }}
                 />
               }
               label="Feature 6"

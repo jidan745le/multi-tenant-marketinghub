@@ -65,6 +65,12 @@ class CookieService {
      */
     static setToken(token, options = {}) {
         this.setCookie(this.TOKEN_KEY, token, options);
+        // Also store in localStorage for easier access
+        try {
+            localStorage.setItem(this.TOKEN_KEY, token);
+        } catch (error) {
+            console.warn('Failed to store token in localStorage:', error);
+        }
     }
 
     /**
@@ -99,6 +105,13 @@ class CookieService {
     static clearAuth() {
         this.deleteCookie(this.TOKEN_KEY);
         this.deleteCookie(this.USER_INFO_KEY);
+        // Also clear from localStorage
+        try {
+            localStorage.removeItem(this.TOKEN_KEY);
+            localStorage.removeItem(this.USER_INFO_KEY);
+        } catch (error) {
+            console.warn('Failed to clear auth data from localStorage:', error);
+        }
     }
 }
 
