@@ -139,6 +139,7 @@ const buildAssetsQuery = (filters = {}, first = 20, after = 0) => {
             metadata {
               name
               type
+              data
             }
           }
         }
