@@ -175,7 +175,7 @@ const BrandbookContent = ({ data, onSectionInView }) => {
                   fontWeight="bold"
                   sx={{ mb: 1, fontSize: '3rem' }}
                 >
-                  {'Kendo Brand Book 2025'}
+                  {'Kendo Brand Book'}
                 </Typography>
                 
                 {brandInfo.size && (
@@ -204,8 +204,9 @@ const BrandbookContent = ({ data, onSectionInView }) => {
                   size="large"
                   startIcon={<Visibility />}
                   sx={{ 
-                    minWidth: 180,
+                    minWidth: 260,
                     fontWeight: 'bold',
+                    color: 'white',
                     textTransform: 'uppercase'
                   }}
                   onClick={() => {
@@ -221,13 +222,19 @@ const BrandbookContent = ({ data, onSectionInView }) => {
                 
                 <Button
                   variant="outlined"
-                  color="secondary"
+                  // color="text."
                   size="large"
                   startIcon={<Download />}
                   sx={{ 
-                    minWidth: 180,
+                    minWidth: 260,
                     fontWeight: 'bold',
-                    textTransform: 'uppercase'
+                    textTransform: 'uppercase',
+                    color: (theme) => theme.palette.grey[700],
+                    borderColor: (theme) => theme.palette.grey[700],
+                    '&:hover': {
+                      borderColor: (theme) => theme.palette.grey[800],
+                      color: (theme) => theme.palette.grey[800]
+                    }
                   }}
                   onClick={async () => {
                     const link = brandInfo.file?.url ? `${import.meta.env.VITE_STRAPI_BASE_URL}${brandInfo.file.url}` : null;
@@ -537,12 +544,12 @@ const BrandbookContent = ({ data, onSectionInView }) => {
               }}
             />
             
-            {/* Download Selection 下拉框 */}
-            <FormControl size="small" sx={{ minWidth: 230 }}>
-              <InputLabel>DOWNLOAD SELECTION</InputLabel>
+            {/* Download All 下拉框 */}
+            <FormControl size="small" sx={{ minWidth: 180 }}>
+              <InputLabel>DOWNLOAD ALL</InputLabel>
               <Select
                 value=""
-                label="DOWNLOAD SELECTION"
+                label="DOWNLOAD ALL"
                 sx={{ 
                   backgroundColor: 'white',
                   borderRadius: 1
@@ -652,14 +659,14 @@ const BrandbookContent = ({ data, onSectionInView }) => {
       {renderColors()}
       
       {renderFonts()}
-      
-      {renderMediaSection(data?.logos, 'Logos', 'logos')}
-      
+
       {renderMediaSection(data?.icons, 'Iconography', 'icons')}
       
-      {renderMediaSection(data?.lifeStyles, 'Brand Story Images', 'lifestyles')}
-      
+      {renderMediaSection(data?.logos, 'Logos', 'logos')}
+
       {renderMediaSection(data?.videos, 'Promotional Videos', 'videos')}
+      
+      {renderMediaSection(data?.lifeStyles, 'Brand Story Images', 'lifestyles')}
 
       {renderMediaSection(data?.catelogs, 'Catalogs', 'catalogs')}
       
