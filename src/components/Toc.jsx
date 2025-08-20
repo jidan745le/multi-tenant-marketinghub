@@ -37,10 +37,10 @@ const NavItem = styled(ListItemButton)(({ theme, active }) => ({
   paddingBottom: theme.spacing(0.5),
   borderRadius: theme.spacing(1),
   margin: theme.spacing(0.25, 1),
-  backgroundColor: active ? theme.palette.primary.main : 'transparent',
-  color: active ? theme.palette.primary.contrastText : theme.palette.text.primary,
+  backgroundColor: active ? 'rgba(255, 102, 0, 0.12)' : 'transparent',
+  color: active ? theme.palette.primary.main : theme.palette.grey[700], 
   '&:hover': {
-    backgroundColor: active ? theme.palette.primary.dark : theme.palette.action.hover,
+    backgroundColor: active ? 'rgba(255, 102, 0, 0.16)' : theme.palette.action.hover,
   },
   transition: 'all 0.2s ease-in-out',
 }));
@@ -90,7 +90,9 @@ const Toc = ({  activeSection, onSectionClick }) => {
                 <ListItemText 
                   primary={section.title}
                   primaryTypographyProps={{
-                    fontSize: '0.88rem'
+                    fontSize: '0.88rem',
+                    fontWeight: isActive ? 600 : 400,
+                    color: isActive ? 'inherit' : 'inherit'
                   }}
                 />
               </NavItem>
@@ -117,7 +119,9 @@ const Toc = ({  activeSection, onSectionClick }) => {
                 <ListItemText 
                   primary={section.title}
                   primaryTypographyProps={{
-                    fontSize: '0.88rem'
+                    fontSize: '0.88rem',
+                    fontWeight: isActive ? 600 : 400, // 高亮时字体加粗
+                    color: isActive ? 'inherit' : 'inherit' // 继承父组件的颜色
                   }}
                 />
               </NavItem>
