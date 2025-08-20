@@ -360,4 +360,32 @@ export const selectBrandBookPagesByBrand = (brandCode) => (state) => {
     return pages.filter(page => page.page_template === 'brandbook' && (!brandCode || page.brandCode === brandCode));
 };
 
+// Legal configuration selectors
+export const selectLegalByBrand = (brandCode) => (state) => {
+    const currentLangData = state.themes.languageCache[state.themes.currentLanguage];
+    const brands = currentLangData?.brands || state.themes.defaultBrands;
+    const brand = brands.find(b => b.code === brandCode);
+
+    if (!brand || !brand.legal) {
+        return {
+            hasLegal: false,
+            legal: null,
+            error: `No legal configuration found for brand: ${brandCode}`
+        };
+    }
+
+    return {
+        hasLegal: true,
+        legal: {
+            id: brand.legal.id || null,
+            termsCondition: brand.legal.termsCondition || null,
+            privayPolicy: brand.legal.privayPolicy || null,
+            // Raw legal data for custom processing
+            rawData: brand.legal
+        },
+        error: null
+    };
+};
+
+
 export default themesSlice.reducer; 
