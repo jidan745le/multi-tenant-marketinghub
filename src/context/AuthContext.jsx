@@ -68,7 +68,19 @@ export const AuthProvider = ({ children }) => {
     const login = async (credentials) => {
         try {
             setLoading(true);
-            const response = await apiClient.post('/login', credentials);
+            
+            // Extract tenantName from URL and add it to credentials
+            const loginPathSegments = location.pathname.split('/').filter(Boolean);
+            const loginTenantName = loginPathSegments[0]; // e.g., "KENDO" from "/:tenant/Login"
+            
+            const loginData = {
+                ...credentials,
+                tenantName: loginTenantName
+            };
+            
+            console.log('Login data with tenant:', loginData);
+            
+            const response = await apiClient.post('/login', loginData);
             const { token: newToken, user: userData } = response;
 
             // 使用CookieService保存token和用户信息
@@ -91,7 +103,7 @@ export const AuthProvider = ({ children }) => {
             const localeParam = searchParams.get('locale') || 'en'; // 如 "en"
 
             // 构建应用页面路径格式，使用用户信息优先
-            const tenantName = userData.tenantName || tenantFromPath || 'KENDO';
+            const tenantName = userData.tenantName || tenantFromPath || 'Kendo';
             const brand = themeParam || tenantName.toLowerCase() || 'kendo';
             
             // 将locale转换为应用格式 (en -> en_GB)
@@ -137,8 +149,15 @@ export const AuthProvider = ({ children }) => {
             // 检查是否是账户未激活错误
             if (error.response?.status === 403 &&
                 error.response?.data?.message === "Account not activated. Please check your email for verification link.") {
+                // 从当前URL解析租户信息
+                const pathSegments = location.pathname.split('/').filter(Boolean);
+                const searchParams = new URLSearchParams(location.search);
+                const tenantFromPath = pathSegments[0];
+                const themeParam = searchParams.get('theme');
+                const localeParam = searchParams.get('locale') || 'en';
+                
                 // 跳转到验证页面，传递邮箱和直接启用重发标志
-                navigate('/verification-sent', {
+                navigate(`/${tenantFromPath}/VerificationSent?theme=${themeParam}&locale=${localeParam}`, {
                     state: {
                         email: credentials.email,
                         skipTimer: true
@@ -154,6 +173,9 @@ export const AuthProvider = ({ children }) => {
     const logout = () => {
         // 使用CookieService清除认证信息
         CookieService.clearAuth();
+
+        // 设置logout标志，防止ProtectedRoute干扰
+        sessionStorage.setItem('logout_in_progress', 'true');
 
         // 重置状态
         setToken(null);
@@ -171,25 +193,49 @@ export const AuthProvider = ({ children }) => {
             currentLocale = pathSegments[0] || 'en';
             currentTheme = pathSegments[1] || 'kendo'; // brand作为theme
             // 使用用户的tenantName或brand作为tenantName
-            tenantName = (user?.tenantName) || pathSegments[1] || 'KENDO';
+            tenantName = (user?.tenantName) || pathSegments[1] || 'Kendo';
+            // alert(JSON.stringify(user));
+            // alert(JSON.stringify(pathSegments));
         } else if (pathSegments.length === 1 && pathSegments[0] !== 'Login') {
             // 可能是租户根路径
-            tenantName = pathSegments[0] || (user?.tenantName) || 'KENDO';
+            tenantName = pathSegments[0] || (user?.tenantName) || 'Kendo';
             currentTheme = pathSegments[0]?.toLowerCase() || 'kendo';
             currentLocale = 'en';
         } else {
             // 回退到用户信息或默认值
-            tenantName = (user?.tenantName) || 'KENDO';
+            tenantName = (user?.tenantName) || 'Kendo';
             currentTheme = (user?.tenantName?.toLowerCase()) || 'kendo';
             currentLocale = 'en';
         }
+
+        // alert(JSON.stringify(tenantName));
+        // alert(JSON.stringify(currentTheme));
+        // alert(JSON.stringify(currentLocale));
         
-        // 跳转至登录页，使用正确的URL格式
+            // 跳转至登录页，使用正确的URL格式
         navigate(`/${tenantName}/Login?theme=${currentTheme}&locale=${currentLocale}`);
+        
+        // 延迟清除logout标志，确保跳转完成
+        setTimeout(() => {
+            sessionStorage.removeItem('logout_in_progress');
+        }, 100);
+    };
+
+    // Get full user info including subApplications when needed
+    const getFullUserInfo = () => {
+        return CookieService.getFullUserInfo();
     };
 
     return (
-        <AuthContext.Provider value={{ user, token, isAuthenticated, login, logout, loading }}>
+        <AuthContext.Provider value={{ 
+            user, 
+            token, 
+            isAuthenticated, 
+            login, 
+            logout, 
+            loading,
+            getFullUserInfo 
+        }}>
             {children}
         </AuthContext.Provider>
     );

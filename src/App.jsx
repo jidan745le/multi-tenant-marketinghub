@@ -286,7 +286,9 @@ function RouterContent() {
   
   // 检查是否是登录页面
   const isLoginPage = window.location.pathname.endsWith('/Login');
-  
+  const isSignUpPage = window.location.pathname.split('/').pop().includes('Register');
+  const isVerificationSentPage = window.location.pathname.endsWith('/VerificationSent');
+  const isEmailVerificationPage = window.location.pathname.endsWith('/VerifyEmail');
   return (
     <ThemeProviderWrapper>
       <CssBaseline />
@@ -300,7 +302,7 @@ function RouterContent() {
         }}
       >
         {/* 顶部导航栏 - 登录页面不显示 */}
-        {!isLoginPage && <TopBar />}
+        {!isLoginPage && !isSignUpPage && !isVerificationSentPage && !isEmailVerificationPage && <TopBar />}
         
         {/* 主要内容区域 */}
         <Box 

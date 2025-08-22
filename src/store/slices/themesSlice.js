@@ -15,18 +15,18 @@ export const fetchThemes = createAsyncThunk(
 
 // 默认的品牌配置作为回退
 const defaultBrands = [
-    {
-        code: 'kendo',
-        name: 'KENDO',
-        displayName: 'KENDO',
-        description: 'KENDO China Marketing Portal'
-    },
-    {
-        code: 'bosch',
-        name: 'Bosch',
-        displayName: 'Bosch',
-        description: 'Bosch Portal'
-    }
+    // {
+    //     code: 'kendo',
+    //     name: 'KENDO',
+    //     displayName: 'KENDO',
+    //     description: 'KENDO China Marketing Portal'
+    // },
+    // {
+    //     code: 'bosch',
+    //     name: 'Bosch',
+    //     displayName: 'Bosch',
+    //     description: 'Bosch Portal'
+    // }
 ];
 
 const initialState = {

@@ -1,0 +1,237 @@
+.pageContainer {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.contentSide {
+  flex: 4;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background-color: white;
+  padding: 40px;
+  box-sizing: border-box;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.verificationContainer {
+  width: 100%;
+  max-width: 500px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+
+.iconContainer {
+  margin-bottom: 24px;
+}
+
+.emailIcon, .successIcon, .errorIcon, .loadingIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background-color: rgba(229, 57, 53, 0.1);
+  margin: 0 auto;
+}
+
+.emailIcon, .loadingIcon {
+  background-color: rgba(229, 57, 53, 0.1);
+}
+
+.successIcon {
+  background-color: rgba(76, 175, 80, 0.1);
+}
+
+.errorIcon {
+  background-color: rgba(244, 67, 54, 0.1);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(229, 57, 53, 0.1);
+  border-top: 4px solid var(--primary-color, #e53935);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.title {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #333;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.messageContainer {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.message {
+  color: #666;
+  font-size: 1rem;
+  margin-bottom: 8px;
+}
+
+.email {
+  color: #333;
+  font-weight: 500;
+  font-size: 1.1rem;
+}
+
+.helpSection {
+  width: 100%;
+  margin-bottom: 32px;
+}
+
+.helpTitle {
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 16px;
+}
+
+.helpList {
+  color: #666;
+  padding-left: 20px;
+  margin-bottom: 24px;
+}
+
+.helpList li {
+  margin-bottom: 8px;
+}
+
+.resendButton {
+  padding: 12px 24px;
+  background-color: transparent;
+  color: var(--primary-color, #e53935);
+  border: 1px solid var(--primary-color, #e53935);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  width: 100%;
+}
+
+/* Removed hover effect as requested - but keep same styles to override browser defaults */
+.resendButton:hover:not(.disabled) {
+  background-color: transparent;
+  color: var(--primary-color, #e53935);
+  border: 1px solid var(--primary-color, #e53935);
+}
+
+.resendButton.disabled {
+  border-color: #ccc;
+  color: #999;
+  cursor: not-allowed;
+}
+
+.confirmButton {
+  padding: 12px 24px;
+  background-color: var(--primary-color, #e53935);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+/* Removed hover effect as requested - but keep same styles to override browser defaults */
+.confirmButton:hover {
+  background-color: var(--primary-color, #e53935);
+  color: white;
+  border: none;
+}
+
+.supportSection {
+  width: 100%;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.supportTitle {
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.supportText {
+  color: #666;
+}
+
+.supportLink {
+  color: var(--primary-color, #e53935);
+  text-decoration: none;
+}
+
+.supportLink:hover {
+  text-decoration: underline;
+}
+
+.linkContainer {
+  text-align: center;
+  margin-top: 24px;
+}
+
+.backLink {
+  color: #666;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.backLink:hover {
+  color: var(--primary-color, #e53935);
+  text-decoration: underline;
+}
+
+.actionButtons {
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.imageSide {
+  flex: 5;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Media query for smaller screens */
+@media (max-width: 992px) {
+  .pageContainer {
+    flex-direction: column;
+  }
+  
+  .contentSide {
+    order: 2;
+    min-height: 70vh;
+  }
+  
+  .imageSide {
+    order: 1;
+    min-height: 30vh;
+  }
+}

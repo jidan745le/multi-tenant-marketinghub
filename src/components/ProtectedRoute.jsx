@@ -24,6 +24,23 @@ const ProtectedRoute = ({ children }) => {
 
   // If not authenticated, redirect to login with return URL
   if (!isAuthenticated) {
+    // 检查是否是logout过程中，如果是则不进行重定向
+    const isLogoutInProgress = sessionStorage.getItem('logout_in_progress');
+    if (isLogoutInProgress) {
+      console.log('🔄 ProtectedRoute: Logout in progress, skipping redirect');
+      return (
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+          fontSize: '18px',
+          color: '#666'
+        }}>
+          Redirecting...
+        </div>
+      );
+    }
     // Determine the tenant, theme and locale from the current path
     // Expected path format: /:lang/:brand/:page or /:tenantName/Login
     const pathSegments = location.pathname.split('/').filter(Boolean);
@@ -40,16 +57,17 @@ const ProtectedRoute = ({ children }) => {
         const storedTenant = localStorage.getItem('mh_tenant');
         if (storedTenant) {
           const parsed = JSON.parse(storedTenant);
-          tenantName = parsed.tenant || pathSegments[1]?.toUpperCase() || 'KENDO';
+          tenantName = parsed.tenant || 'Kendo';
+
         } else {
-          tenantName = pathSegments[1]?.toUpperCase() || 'KENDO';
+          tenantName = 'Kendo';
         }
       } catch {
-        tenantName = pathSegments[1]?.toUpperCase() || 'KENDO';
+        tenantName = pathSegments[1]?.toUpperCase() || 'Kendo';
       }
     } else {
       // Fallback: use first segment as tenant or default
-      tenantName = pathSegments[0] || 'KENDO';
+      tenantName = pathSegments[0] || 'Kendo';
       currentTheme = pathSegments[0]?.toLowerCase() || 'kendo';
       locale = 'en';
     }

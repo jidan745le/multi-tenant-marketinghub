@@ -5,18 +5,7 @@ import { selectBrands, selectIsFromAPI, selectThemesLoading } from '../store/sli
 
 // 支持的品牌配置 - 作为回退使用
 export const supportedBrands = [
-    {
-        code: 'kendo',
-        name: 'KENDO',
-        displayName: 'KENDO',
-        description: 'KENDO China Marketing Portal'
-    },
-    {
-        code: 'bosch',
-        name: 'Bosch',
-        displayName: 'Bosch',
-        description: 'Bosch Portal'
-    }
+
 
 ];
 

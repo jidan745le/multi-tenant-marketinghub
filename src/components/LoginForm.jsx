@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import styles from '../styles/LoginForm.module.css';
 import CookieService from '../utils/cookieService';
+
+
 
 const LoginForm = ({ pretitle, title, subtitle, primaryColor, secondaryColor }) => {
   const [email, setEmail] = useState('');
@@ -11,6 +13,19 @@ const LoginForm = ({ pretitle, title, subtitle, primaryColor, secondaryColor }) 
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
+  const { tenant } = useParams();
+  const location = useLocation();
+
+  // Parse URL parameters to get theme and locale
+  const parseUrlParams = () => {
+    const searchParams = new URLSearchParams(location.search);
+    const theme = searchParams.get('theme');
+    const locale = searchParams.get('locale') || 'en_GB';
+    return { theme, locale };
+  };
+
+  // Get current values from URL
+  const { locale: currentLocale, theme: currentTheme } = parseUrlParams();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -181,7 +196,7 @@ const LoginForm = ({ pretitle, title, subtitle, primaryColor, secondaryColor }) 
 
         <div className={styles.signupPrompt}>
           <span>New User?</span>
-          <Link to="/signup" className={styles.signupLink} style={linkStyles}>
+          <Link to={`/${tenant}/Register?theme=${currentTheme}&locale=${currentLocale}`} className={styles.signupLink} style={linkStyles}>
             SIGN UP
           </Link>
         </div>
