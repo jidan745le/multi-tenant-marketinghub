@@ -3,14 +3,10 @@ import {
   styled
 } from '@mui/material';
 
-const renderScrollWrapper = ({
-    autoOverflow = true,
-  }) => {
+const renderScrollWrapper = () => {
     return `
-      ${autoOverflow ? 'overflow: hidden!important;' : ''}
-      &:hover {
-        overflow: auto!important;
-      }
+      overflow: auto!important;
+      scrollbar-gutter: stable both;
       &::-webkit-scrollbar {
         width: 6px;
       }

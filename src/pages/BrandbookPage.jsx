@@ -13,7 +13,6 @@ import { selectBrandBookPagesByBrand } from '../store/slices/themesSlice';
 import Toc from '../components/Toc';
 import BrandbookContent from '../components/BrandbookContent';
 import { fetchAllBrandbookAssets } from '../services/brandbookAssetsApi';
-// import { Language } from '@mui/icons-material';
 
 
 const MainContainer = styled(Box)(({ theme }) => ({
@@ -46,7 +45,7 @@ const BrandbookPage = () => {
 
       setAssetsLoading(true);
       try {
-        console.log(`🎨 Fetching brandbook assets for brand: ${currentBrandCode}`);
+        console.log(`Fetching brandbook assets for brand: ${currentBrandCode}`);
         const assets = await fetchAllBrandbookAssets({ 
           brand: currentBrandCode,
           limit: 100 
@@ -72,58 +71,66 @@ const BrandbookPage = () => {
     const fonts = [];
     const externalMedias = [];
     const externalMediaWidgets = [];
-    const sectionTitles = { colors: undefined, fonts: undefined};
-    const sectionSubTitles = { colors: undefined, fonts: undefined};
+    
+    const sectionTitles = {colors: undefined, fonts: undefined};
+    const sectionSubTitles = {colors: undefined, fonts: undefined};
 
-    const componentHandlers = {
-      'pages.brand-book': (area) => {
-        bookInfo.push({
-          id: area.id,
-          cover: area.book_cover,
-          file: area.book_file,
-          logo: area.book_logo,
-          title: area.title,
-          pic_title: area.pic_title,
-          nav_title: area.nav_title,
-          size: area.book_file?.size,
-          view_button: area.view_button,
-          download_button: area.download_button,
-        });
-      },
-
+ 
+    const DATA_MAPPERS = {
+      'pages.brand-book': (area) => ({
+        id: area.id,
+        cover: area.book_cover,
+        file: area.book_file,
+        logo: area.book_logo,
+        title: area.title,
+        pic_title: area.pic_title,
+        nav_title: area.nav_title,
+        size: area.book_file?.size,
+        view_button: area.view_button,
+        download_button: area.download_button,
+      }),
+      
       'pages.color-list': (area) => {
         sectionTitles.colors = area.nav_title;
         sectionSubTitles.colors = area.title;
-        area.colors?.forEach((colorItem) => {
-          colors.push({
-            id: colorItem.id,
-            title: colorItem.title,
-            category: colorItem.category,
-            name: colorItem.name,
-            hex: colorItem.hex_code,
-            rgb: colorItem.rgb,
-            cmyk: colorItem.cmyk,
-            phantone: colorItem.phantone,
-          });
-        });
+        return area.colors?.map(colorItem => ({
+          id: colorItem.id,
+          title: colorItem.title,
+          category: colorItem.category,
+          name: colorItem.name,
+          hex: colorItem.hex_code,
+          rgb: colorItem.rgb,
+          cmyk: colorItem.cmyk,
+          phantone: colorItem.phantone,
+        })) || [];
       },
-
+      
       'pages.font-list': (area) => {
         sectionTitles.fonts = area.nav_title;
         sectionSubTitles.fonts = area.title;
-        area.fonts?.forEach((fontItem) => {
-          fonts.push({
-            title: fontItem.title,
-            family: fontItem.font_family,
-            id: fontItem.id,
-            name: fontItem.name,
-          });
-        });
+        return area.fonts?.map(fontItem => ({
+          title: fontItem.title,
+          family: fontItem.font_family,
+          id: fontItem.id,
+          name: fontItem.name,
+        })) || [];
       },
+      
+      'pages.external-media-widget': (area) => area,
+    };
 
+    const componentHandlers = {
+      'pages.brand-book': (area) => {
+        bookInfo.push(DATA_MAPPERS['pages.brand-book'](area));
+      },
+      'pages.color-list': (area) => {
+        colors.push(...DATA_MAPPERS['pages.color-list'](area));
+      },
+      'pages.font-list': (area) => {
+        fonts.push(...DATA_MAPPERS['pages.font-list'](area));
+      },
       'pages.external-media-widget': (area) => {
-        externalMediaWidgets.push(area);
-        
+        externalMediaWidgets.push(DATA_MAPPERS['pages.external-media-widget'](area));
       },
     };
 
@@ -137,41 +144,22 @@ const BrandbookPage = () => {
       });
     }
 
-    // 遍历收集到的 external-media-widget，根据 media_type 从 PIM 数据中取对应数据并合并,先记下
-    // const pickAssetsByType = (type) => {
-    //   switch ((type || '').toLowerCase()) {
-    //     case 'icons':
-    //       return assetsData.icons || [];
-    //     case 'logos':
-    //       return assetsData.logos || [];
-    //     case 'videos':
-    //       return assetsData.videos || [];
-    //     case 'lifestyles':
-    //       return assetsData.lifeStyles || [];
-    //     case 'catalogs':
-    //       return assetsData.catelogs || [];
-        
-    //     default:
-    //       return [];
-    //   }
-    // };
 
-    externalMediaWidgets.forEach((widgetArea) => {
-      // const pageSize = Number(widgetArea.page_size) || 20;
-      // const list = pickAssetsByType(widgetArea.media_type).slice(0, pageSize);
-      externalMedias.push({
-        id: widgetArea.id,
-        title:widgetArea.title,
-        preview: widgetArea.preview || false,
-        mediaUrl: widgetArea.media_url,
-        mediaType: widgetArea.media_type,
-        language: widgetArea.language_search,
-        subtitle: widgetArea.nav_title,
-      });
-    });
+    // 处理外部媒体数据
+    const processedExternalMedias = externalMediaWidgets.map(widgetArea => ({
+      id: widgetArea.id,
+      title: widgetArea.title,
+      preview: widgetArea.preview || false,
+      mediaUrl: widgetArea.media_url,
+      mediaType: widgetArea.media_type,
+      language: widgetArea.language_search,
+      subtitle: widgetArea.nav_title,
+    }));
+    
+    externalMedias.push(...processedExternalMedias);
 
     // 使用PIM
-    console.log('🔗 Using PIM assets data:', assetsData);
+    console.log('Using PIM assets data:', assetsData);
 
     return {
       bookInfo,
@@ -189,7 +177,7 @@ const BrandbookPage = () => {
   };
   const { bookInfo, colors, fonts, externalMedias, sectionTitles, sectionSubTitles, logos, icons, lifeStyles, videos, catelogs } = getBrandbookData();
 
-  console.log('🔍 Brandbook Debug:', {
+  console.log('Brandbook Debug:', {
     currentBrand,
     currentBrandCode,
     brandbookPages,

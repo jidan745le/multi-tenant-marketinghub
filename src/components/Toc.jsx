@@ -139,7 +139,7 @@ const Toc = ({  data, activeSection, onSectionClick }) => {
                   primaryTypographyProps={{
                     fontSize: '0.88rem',
                     fontWeight: isActive ? 600 : 400, // 高亮时字体加粗
-                    color: isActive ? 'inherit' : 'inherit' // 继承父组件的颜色
+                    color: isActive ? 'inherit' : 'inherit'
                   }}
                 />
               </NavItem>

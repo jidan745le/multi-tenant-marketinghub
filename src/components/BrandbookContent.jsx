@@ -642,7 +642,7 @@ const BrandbookContent = ({ data, onSectionInView }) => {
           display: 'grid', 
           gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
           gap: 1, 
-          padding: '12px'
+          // padding: '12px'
         }}>
           {items
             .filter(item => {
@@ -697,7 +697,7 @@ const BrandbookContent = ({ data, onSectionInView }) => {
               id: item.id || item.identifier || index,
               name: item.filename || item.name || `${title} ${index + 1}`,
               image: item.img || item.image,
-              mediaType: item.mediaType || 'Picto · Universal',
+              mediaType: item.mediaType,
               filename: item.filename,
               fileSize: item.fileSize,
               language: item.language,
