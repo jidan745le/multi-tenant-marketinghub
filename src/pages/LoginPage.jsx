@@ -40,7 +40,8 @@ const LoginPage = () => {
         return;
       }
 
-      console.log(`🔍 Loading tenant data for: ${tenantName} with locale: ${locale}`);
+      console.log(`🔍 LoginPage: Loading tenant data for: ${tenantName} with locale: ${locale}`);
+      // alert(`LoginPage: Loading tenant ${tenantName}`);
 
       // Only reload tenant data if forced (language change) or if not already loaded
       if (forceReload || !tenantData) {
@@ -173,6 +174,13 @@ const LoginPage = () => {
   const handleRetry = () => {
     loadTenantData();
   };
+
+  // Load tenant data on component mount and URL change
+  useEffect(() => {
+    console.log('🔄 LoginPage useEffect triggered, current URL:', location.pathname + location.search);
+    // alert(`LoginPage useEffect: ${location.pathname + location.search}`);
+    loadTenantData();
+  }, [location.search, location.pathname]);
 
   // Loading state
   if (loading) {

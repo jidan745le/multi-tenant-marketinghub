@@ -27,12 +27,29 @@ const LoginPage = Loader(lazy(() => import('../pages/LoginPage')));
 const BrandbookPage = Loader(lazy(() => import('../pages/BrandbookPage')));
 const LegalTermsPage = Loader(lazy(() => import('../pages/LegalTermsPage')));
 const LegalPrivacyPage = Loader(lazy(() => import('../pages/LegalPrivacyPage')));
+const SignUpPage = Loader(lazy(() => import('../pages/SignUpPage')));
+const VerificationSentPage = Loader(lazy(() => import('../pages/VerificationSentPage')));
+const EmailVerificationPage = Loader(lazy(() => import('../pages/EmailVerificationPage')));
 
 const router = [
   // Login page route with tenant validation
   {
     path: '/:tenant/Login',
     element: <LoginPage />
+  },
+  
+  // Sign Up and Verification routes with tenant validation
+  {
+    path: '/:tenant/Register',
+    element: <SignUpPage />
+  },
+  {
+    path: '/:tenant/VerificationSent',
+    element: <VerificationSentPage />
+  },
+  {
+    path: '/:tenant/VerifyEmail',
+    element: <EmailVerificationPage />
   },
   
   // 根路径重定向到默认语言和品牌的产品目录
