@@ -47,11 +47,12 @@ const MediaCard = styled(Card)(({ theme }) => ({
 const BrandbookContent = ({ data, onSectionInView }) => {
   const [activeSection, setActiveSection] = useState('');
   const [selectedItems, setSelectedItems] = useState(new Set());
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedLanguage, setSelectedLanguage] = useState('');
-  const [selectedDate, setSelectedDate] = useState('');
+  const [searchTerms, setSearchTerms] = useState({});
+  const [selectedDates, setSelectedDates] = useState({});
   const sectionRefs = useRef({});
   const scrollContainerRef = useRef(null);
+
+  const [selectedLanguages, setSelectedLanguages] = useState({});
 
 
 
@@ -115,7 +116,7 @@ const BrandbookContent = ({ data, onSectionInView }) => {
           position: 'relative'
         }}>
           <Typography variant="h4" component="h2" fontWeight="bold" fontSize="1.6rem" sx={{ mb: 0 }}>
-            Brand Book
+            {brandInfo.title || 'Brand Book'}
           </Typography>
         </Box>
         
@@ -175,7 +176,7 @@ const BrandbookContent = ({ data, onSectionInView }) => {
                   fontWeight="bold"
                   sx={{ mb: 1, fontSize: '3rem' }}
                 >
-                  {'Kendo Brand Book'}
+                  {brandInfo.pic_title || 'Kendo Brand Book'}
                 </Typography>
                 
                 {brandInfo.size && (
@@ -217,7 +218,7 @@ const BrandbookContent = ({ data, onSectionInView }) => {
                   }}
 
                 >
-                  View Brand Book
+                  {brandInfo.view_button?.label || 'View Brand Book'}  
                 </Button>
                 
                 <Button
@@ -264,7 +265,7 @@ const BrandbookContent = ({ data, onSectionInView }) => {
                   }}
 
                 >
-                  Download Asset Pack
+                  {brandInfo.download_button?.label || 'Download Asset Pack'}
                 </Button>
               </Box>
             </Box>
@@ -290,7 +291,7 @@ const BrandbookContent = ({ data, onSectionInView }) => {
           position: 'relative'
         }}>
           <Typography variant="h4" component="h2" fontWeight="bold" fontSize="1.6rem" sx={{ mb: 0 }}>
-            Color Palette
+            {data?.sectionSubTitles?.colors || 'Color Palette'}
           </Typography>
         </Box>
         
@@ -365,7 +366,7 @@ const BrandbookContent = ({ data, onSectionInView }) => {
           position: 'relative'
         }}>
           <Typography variant="h4" component="h2" fontWeight="bold" fontSize="1.6rem" sx={{ mb: 0 }}>
-            Typography
+            {data?.sectionSubTitles?.fonts || 'Typography'}
           </Typography>
         </Box>
         
@@ -469,8 +470,37 @@ const BrandbookContent = ({ data, onSectionInView }) => {
   };
 
   // 渲染媒体资源
-  const renderMediaSection = (items, title, sectionId) => {
+  const renderMediaSection = (items, title, sectionId, list) => {
     if (!items || items.length === 0) return null;
+
+    const languageLabelMap = {
+      en_GB: 'English',
+      de_DE: 'German',
+      fr_FR: 'French',
+      es_ES: 'Spanish',
+      ja_JP: 'Japanese',
+      zh_CN: 'Chinese'
+    };
+    const languageOptions = Array.from(
+      new Set((items || []).map(i => i.language).filter(Boolean))
+    );
+
+    const currentSearchTerm = searchTerms[sectionId] || '';
+    const currentSelectedDate = selectedDates[sectionId] || '';
+
+    const handleSearchChange = (e) => {
+      setSearchTerms(prev => ({
+        ...prev,
+        [sectionId]: e.target.value
+      }));
+    };
+
+    const handleDateChange = (e) => {
+      setSelectedDates(prev => ({
+        ...prev,
+        [sectionId]: e.target.value
+      }));
+    };
 
     const handleSelect = (item, isSelected) => {
       const newSelected = new Set(selectedItems);
@@ -530,8 +560,8 @@ const BrandbookContent = ({ data, onSectionInView }) => {
             <TextField
               size="small"
               placeholder="Search file name"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              value={currentSearchTerm}
+              onChange={handleSearchChange}
               InputProps={{
                 startAdornment: <Search sx={{ color: 'text.secondary', mr: 1 }} />,
               }}
@@ -561,31 +591,38 @@ const BrandbookContent = ({ data, onSectionInView }) => {
             </FormControl>
             
             {/* Language 下拉框 */}
-            <FormControl size="small" sx={{ minWidth: 130 }}>
-              <InputLabel>LANGUAGE</InputLabel>
-              <Select
-                value={selectedLanguage}
-                onChange={(e) => setSelectedLanguage(e.target.value)}
-                label="LANGUAGE"
-                sx={{ 
-                  backgroundColor: 'white',
-                  borderRadius: 1
-                }}
-              >
-                <MenuItem value="">All</MenuItem>
-                <MenuItem value="en">English</MenuItem>
-                <MenuItem value="de">German</MenuItem>
-                <MenuItem value="fr">French</MenuItem>
-                <MenuItem value="es">Spanish</MenuItem>
-              </Select>
-            </FormControl>
+            {list?.language !== false && (
+              <FormControl size="small" sx={{ minWidth: 130 }}>
+                <InputLabel>LANGUAGE</InputLabel>
+                <Select
+                  value={selectedLanguages[sectionId] || ''}
+                  onChange={(e) => setSelectedLanguages(prev => ({ ...prev, [sectionId]: e.target.value }))}
+                  label="LANGUAGE"
+                  sx={{ 
+                    backgroundColor: 'white',
+                    borderRadius: 1
+                  }}
+                >
+                  <MenuItem value="">All</MenuItem>
+                  <MenuItem value="en_GB">English</MenuItem>
+                  <MenuItem value="de_DE">German</MenuItem>
+                  <MenuItem value="fr_FR">French</MenuItem>
+                  <MenuItem value="es_ES">Spanish</MenuItem>
+                  <MenuItem value="ja_JP">Japanese</MenuItem>
+                  <MenuItem value="zh_CN">Chinese</MenuItem>
+                  {languageOptions.map(code => (
+                    <MenuItem key={code} value={code}>{languageLabelMap[code] || code}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
             
             {/* Date Created 下拉框 */}
             <FormControl size="small" sx={{ minWidth: 160 }}>
               <InputLabel>DATE CREATED</InputLabel>
               <Select
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
+                value={currentSelectedDate}
+                onChange={handleDateChange}
                 label="DATE CREATED"
                 sx={{ 
                   backgroundColor: 'white',
@@ -607,7 +644,54 @@ const BrandbookContent = ({ data, onSectionInView }) => {
           gap: 1, 
           padding: '12px'
         }}>
-          {items.map((item, index) => {
+          {items
+            .filter(item => {
+              if (currentSearchTerm) {
+                const filename = item.filename || item.name || '';
+                if (!filename.toLowerCase().includes(currentSearchTerm.toLowerCase())) {
+                  return false;
+                }
+              }
+
+              const localLang = selectedLanguages[sectionId];
+              if (localLang) {
+                const itemLanguage = item.language;
+                if (!itemLanguage || itemLanguage !== localLang) {
+                  return false;
+                }
+              }
+
+              // 日期
+              if (currentSelectedDate) {
+                const itemDate = new Date(item.createOn || item.createdDate);
+                const now = new Date();
+                let cutoffDate;
+
+                switch (currentSelectedDate) {
+                  case 'last_2_weeks':
+                    cutoffDate = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+                    break;
+                  case 'last_1_month':
+                    cutoffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                    break;
+                  case 'last_3_months':
+                    cutoffDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+                    break;
+                  case 'last_1_year':
+                    cutoffDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+                    break;
+                  default:
+                    cutoffDate = new Date(0);
+                }
+
+                if (itemDate < cutoffDate) {
+                  return false;
+                }
+              }
+
+              return true;
+            })
+            .map((item, index) => {
             // 适配 ProductCard
             const cardData = {
               id: item.id || item.identifier || index,
@@ -660,15 +744,17 @@ const BrandbookContent = ({ data, onSectionInView }) => {
       
       {renderFonts()}
 
-      {renderMediaSection(data?.icons, 'Iconography', 'icons')}
+      {renderMediaSection(data?.icons, data?.externalMedias?.[0]?.title, data?.externalMedias?.[0]?.mediaType,data?.externalMedias?.[0])}
       
-      {renderMediaSection(data?.logos, 'Logos', 'logos')}
+      {renderMediaSection(data?.logos, data?.externalMedias?.[1]?.title, data?.externalMedias?.[1]?.mediaType,data?.externalMedias?.[1])}
 
-      {renderMediaSection(data?.videos, 'Promotional Videos', 'videos')}
+      {renderMediaSection(data?.videos, data?.externalMedias?.[2]?.title, data?.externalMedias?.[2]?.mediaType,data?.externalMedias?.[2])}
       
-      {renderMediaSection(data?.lifeStyles, 'Brand Story Images', 'lifestyles')}
+      {renderMediaSection(data?.lifeStyles, data?.externalMedias?.[3]?.title, data?.externalMedias?.[3]?.mediaType,data?.externalMedias?.[3])}
 
-      {renderMediaSection(data?.catelogs, 'Catalogs', 'catalogs')}
+      {renderMediaSection(data?.catelogs, data?.externalMedias?.[4]?.title, data?.externalMedias?.[4]?.mediaType,data?.externalMedias?.[4])}
+      
+      {/* {renderMediaSection(data?.externalMedias, 'External Media', 'external-media')} */}
       
     </ScrollBarWrapperBox>
   );

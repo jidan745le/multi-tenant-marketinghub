@@ -517,10 +517,12 @@ const TopRow = () => {
 
 // Main TopBar Component
 function TopBar() {
+  const location = useLocation();
+  const hideNavBar = location.pathname.includes('/legal-terms') || location.pathname.includes('/legal-privacy');
   return (
     <StyledTopBar>
       <TopRow />
-      <NavBar />
+      {!hideNavBar && <NavBar />}
     </StyledTopBar>
   );
 }

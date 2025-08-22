@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Box,
   List,
@@ -12,6 +12,7 @@ import {
   Paper
 } from '@mui/material';
 import { ExpandLess, ExpandMore } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 
 // 静态数据
 const TOC_STRUCTURE_DS = [
@@ -46,10 +47,27 @@ const NavItem = styled(ListItemButton)(({ theme, active }) => ({
 }));
 
 
-const Toc = ({  activeSection, onSectionClick }) => {
-  const tocStructureDS = TOC_STRUCTURE_DS;
-  const tocStructureMA = TOC_STRUCTURE_MA;
+const Toc = ({  data, activeSection, onSectionClick }) => {
+  const { t } = useTranslation();
 
+  const tocStructureDS = useMemo(() => {
+    const list = [];
+    if (data?.bookInfo?.length) list.push({ id: 'brand-info', title: data.bookInfo?.[0]?.nav_title || 'BRAND BOOK' });
+    if (data?.colors?.length) list.push({ id: 'colors', title: data?.sectionTitles?.colors || 'COLOR PALETTE' });
+    if (data?.fonts?.length) list.push({ id: 'fonts', title: data?.sectionTitles?.fonts || 'TYPOGRAPHY' });
+    if (data?.icons?.length) list.push({ id: 'icons', title: data?.externalMedias?.[0]?.subtitle || 'ICONOGRAPHY'});
+    if (data?.logos?.length) list.push({ id: 'logos', title: data?.externalMedias?.[1]?.subtitle || 'LOGOS' });
+    return list.length ? list : TOC_STRUCTURE_DS;
+  }, [data]);
+
+  const tocStructureMA = useMemo(() => {
+    const list = [];
+    if (data?.videos?.length) list.push({ id: 'videos', title: data?.externalMedias?.[2]?.subtitle || 'PROMOTIONAL VIDEOS' });
+    if (data?.lifeStyles?.length) list.push({ id: 'lifestyles', title: data?.externalMedias?.[3]?.subtitle || 'BRAND STORY IMAGES' });
+    if (data?.catelogs?.length) list.push({ id: 'catalogs', title: data?.externalMedias?.[4]?.subtitle || 'CATALOGS' });
+    return list.length ? list : TOC_STRUCTURE_MA;
+  }, [data]);
+   
   // 导航点击
   const handleNavClick = (section) => {
     const targetId = section.id;
@@ -74,7 +92,7 @@ const Toc = ({  activeSection, onSectionClick }) => {
       {/* Design Support */}
       <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
         <Typography variant="h6" component="h2" fontWeight="bold" fontSize="1.08rem">
-          Design Support
+          {t('brandbook.designSupport', 'Design Support')}
         </Typography>
       </Box>
       <List sx={{ py: 1 }}>
@@ -103,7 +121,7 @@ const Toc = ({  activeSection, onSectionClick }) => {
       {/* Marketing Assets */}
       <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider'}}>
         <Typography variant="h6" component="h2" fontWeight="bold" fontSize="1.08rem">
-          Marketing Assets
+          {t('brandbook.marketingAssets', 'Marketing Assets')}
         </Typography>
       </Box>
       <List sx={{ py: 1 }}>

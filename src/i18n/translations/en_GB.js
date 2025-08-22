@@ -1,4 +1,4 @@
 export default {
-    // 导航菜单
-
+    "brandbook.designSupport": "Design Support",
+    "brandbook.marketingAssets": "Marketing Assets",
 }; 
