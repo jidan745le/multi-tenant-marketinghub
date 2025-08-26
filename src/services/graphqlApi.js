@@ -65,11 +65,13 @@ const buildGraphQLQuery = (filters = {}, first = 100, after = 0, brand = 'kendo'
   }
 
   // Product category filtering
-  if (filters['category-name'] && filters['category-name'].length > 0) {
-    const categoryConditions = filters['category-name'].map(category => ({
-      "CategoryName": { "$like": `%${category}%` }
+  if (filters['product-category'] && filters['product-category'].length > 0) {
+    console.log('🏷️ Product category filter applied:', filters['product-category']);
+    const categoryConditions = filters['product-category'].map(category => ({
+      "CategoryName": { "$like": `%${category.replace('-', ' ')}%` }
     }));
     filterConditions.push({ "$or": categoryConditions });
+    console.log('🔍 CategoryName filter conditions:', categoryConditions);
   }
 
   // Online date filtering for new products (OnlineDate > 2025-01-01)
@@ -80,6 +82,13 @@ const buildGraphQLQuery = (filters = {}, first = 100, after = 0, brand = 'kendo'
   }
 
   const filterString = JSON.stringify({ "$and": filterConditions });
+
+  // Debug log for all filters
+  console.log('🔍 GraphQL buildProductQuery filters:', {
+    rawFilters: filters,
+    filterConditions: filterConditions,
+    finalFilterString: filterString
+  });
 
   return `{
     getProductListing(first: ${first}, after: ${after}, filter: "${filterString.replace(/"/g, '\\"')}") {

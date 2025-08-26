@@ -2,6 +2,8 @@ import {
   ArrowDropDown,
   DownloadOutlined,
   Language,
+  PolicyOutlined,
+  PrivacyTipOutlined,
   SettingsOutlined,
   ShareOutlined,
   StickyNote2Outlined
@@ -326,6 +328,7 @@ const TopRow = () => {
   const [languageAnchorEl, setLanguageAnchorEl] = useState(null);
   const [profileAnchorEl, setProfileAnchorEl] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   // 调试信息
   console.log('🖥️ TopBar - 语言数据:', {
@@ -355,6 +358,22 @@ const TopRow = () => {
 
   const handleLogout = () => {
     logout();
+    handleClose();
+  };
+
+  const handleLegalTermsClick = () => {
+    const pathSegments = location.pathname.split('/');
+    const lang = pathSegments[1] || 'en_GB';
+    const brand = pathSegments[2] || 'kendo';
+    navigate(`/${lang}/${brand}/legal-terms`);
+    handleClose();
+  };
+
+  const handlePrivacyPolicyClick = () => {
+    const pathSegments = location.pathname.split('/');
+    const lang = pathSegments[1] || 'en_GB';
+    const brand = pathSegments[2] || 'kendo';
+    navigate(`/${lang}/${brand}/legal-privacy`);
     handleClose();
   };
 
@@ -490,22 +509,169 @@ const TopRow = () => {
                 vertical: 'top',
                 horizontal: 'right',
               }}
+              sx={{
+                '& .MuiPaper-root': {
+                  width: '240px',
+                  borderRadius: '4px',
+                  border: '1px solid #bfbfbf',
+                  boxShadow: '0px 2px 4px 0px rgba(0, 0, 0, 0.15)',
+                  padding: 0,
+                },
+                '& .MuiList-root': {
+                  padding: 0,
+                },
+              }}
             >
-              <Box sx={{ padding: '16px', minWidth: '200px', borderBottom: '1px solid #eee' }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', marginBottom: '4px' }}>
-                  {user.name || user.email.split('@')[0]}
+              {/* Header with ADMIN label */}
+              <Box sx={{ 
+                padding: '16px 12px 12px 12px',
+                borderBottom: '1px solid #e0e0e0',
+                position: 'relative',
+              }}>
+                <Typography sx={{ 
+                  color: '#1e1e1e',
+                  fontFamily: '"Lato-Bold", sans-serif',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  lineHeight: '140%',
+                  marginBottom: '12px',
+                }}>
+                  ADMIN
                 </Typography>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  {user.email}
-                </Typography>
-                {user.tenantName && (
-                  <Typography variant="body2" sx={{ color: 'text.secondary', marginTop: '4px' }}>
-                    {user.tenantName}
-                  </Typography>
-                )}
+                
+                {/* User Info Row */}
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '12px' 
+                }}>
+                  <ProfileAvatar sx={{ 
+                    width: '40px', 
+                    height: '40px',
+                    fontSize: '16px',
+                  }}>
+                    {user.name ? user.name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
+                  </ProfileAvatar>
+                  <Box>
+                    <Typography sx={{ 
+                      color: '#1e1e1e',
+                      fontFamily: '"OpenSans-Regular", sans-serif',
+                      fontSize: '14px',
+                      lineHeight: '140%',
+                      fontWeight: 400,
+                    }}>
+                      {user.name || user.email.split('@')[0]}
+                    </Typography>
+                    <Typography sx={{ 
+                      color: '#858585',
+                      fontFamily: '"HelveticaNeue-Regular", sans-serif',
+                      fontSize: '12px',
+                      lineHeight: '140%',
+                      fontWeight: 400,
+                    }}>
+                      {user.email}
+                    </Typography>
+                  </Box>
+                </Box>
               </Box>
-              <MenuItem onClick={handleLogout}>
-                <Typography>Logout</Typography>
+
+              {/* Menu Items */}
+              <MenuItem 
+                onClick={handleLegalTermsClick}
+                sx={{ 
+                  padding: '0px 12px',
+                  height: '44px',
+                  borderRadius: '4px',
+                  margin: '4px',
+                  gap: '12px',
+                  '&:hover': {
+                    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                  },
+                }}
+              >
+                <PolicyOutlined sx={{ 
+                  fontSize: '24px',
+                  color: '#000000',
+                  width: '24px',
+                  height: '24px',
+                }} />
+                <Typography sx={{
+                  color: '#000000',
+                  fontFamily: '"Roboto-Medium", sans-serif',
+                  fontSize: '14px',
+                  lineHeight: '20px',
+                  letterSpacing: '0.1px',
+                  fontWeight: 500,
+                  flex: 1,
+                }}>
+                  {translate('profile.legalTerms')}
+                </Typography>
+              </MenuItem>
+
+              <MenuItem 
+                onClick={handlePrivacyPolicyClick}
+                sx={{ 
+                  padding: '0px 12px',
+                  height: '44px',
+                  borderRadius: '4px',
+                  margin: '4px',
+                  gap: '12px',
+                  '&:hover': {
+                    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                  },
+                }}
+              >
+                <PrivacyTipOutlined sx={{ 
+                  fontSize: '24px',
+                  color: '#000000',
+                  width: '24px',
+                  height: '24px',
+                }} />
+                <Typography sx={{
+                  color: '#000000',
+                  fontFamily: '"Roboto-Medium", sans-serif',
+                  fontSize: '14px',
+                  lineHeight: '20px',
+                  letterSpacing: '0.1px',
+                  fontWeight: 500,
+                  flex: 1,
+                }}>
+                  {translate('profile.privacyPolicy')}
+                </Typography>
+              </MenuItem>
+
+              {/* Separator line before logout */}
+              <Box sx={{ 
+                height: '1px', 
+                backgroundColor: '#e0e0e0', 
+                margin: '4px 0' 
+              }} />
+
+              <MenuItem 
+                onClick={handleLogout}
+                sx={{ 
+                  padding: '0px 12px',
+                  height: '44px',
+                  borderRadius: '4px',
+                  margin: '4px',
+                  gap: '12px',
+                  '&:hover': {
+                    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                  },
+                }}
+              >
+        
+                <Typography sx={{
+                  color: '#000000',
+                  fontFamily: '"Roboto-Medium", sans-serif',
+                  fontSize: '14px',
+                  lineHeight: '20px',
+                  letterSpacing: '0.1px',
+                  fontWeight: 500,
+                  flex: 1,
+                }}>
+                  Sign Out
+                </Typography>
               </MenuItem>
             </Menu>
           </>

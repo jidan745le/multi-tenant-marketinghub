@@ -1,4 +1,5 @@
-import { fetchVideos } from '../services/videosApi';
+import { adaptGraphQLAssetsResponse } from '../adapters/kendoAssetsAdapter';
+import fetchKendoAssets from '../services/kendoAssetsMetaDataApi';
 
 // 媒体分类选项 - 应用于视频资产
 export const videoCategoryOptions = [
@@ -48,16 +49,16 @@ export const videoListConfigs = [
     //     defaultValue: '',
     //     placeholder: 'Search in folder path'
     // },
-    {
-        order: 41,
-        label: 'Video Category',
-        component: 'checkbox',
-        key: 'media-category',
-        type: 'array',
-        defaultValue: [],
-        enum: videoCategoryOptions,
-        defaultCollapseCount: 6
-    },
+    // {
+    //     order: 41,
+    //     label: 'Video Category',
+    //     component: 'checkbox',
+    //     key: 'media-category',
+    //     type: 'array',
+    //     defaultValue: [],
+    //     enum: videoCategoryOptions,
+    //     defaultCollapseCount: 6
+    // },
     {
         order: 52,
         label: 'Creation Date',
@@ -69,11 +70,12 @@ export const videoListConfigs = [
     }
 ];
 
-// KENDO GraphQL Videos API包装函数
-export const fetchVideosAPI = async (params) => {
+// 动态 Videos API包装函数，支持多品牌，使用 getAssetsByMetadata
+export const fetchVideosAPI = async (params, brand = 'kendo') => {
     try {
-        console.log('🎥 Videos Catalogue - Fetching KENDO videos at:', new Date().toISOString());
-        console.log('📋 Videos Catalogue - Search params:', params);
+        const brandName = brand.toUpperCase();
+        console.log(`🎥 Videos Catalogue - Fetching ${brandName} videos at:`, new Date().toISOString());
+        console.log(`📋 Videos Catalogue - Search params for ${brandName}:`, params);
 
         // 记录日期过滤条件
         if (params['creation-date-from'] || params['creation-date-to'] || (params['creation-date'] && params['creation-date'] !== 'all')) {
@@ -84,19 +86,31 @@ export const fetchVideosAPI = async (params) => {
             });
         }
 
-        // 调用Videos API获取已适配的数据
-        const result = await fetchVideos(params);
+        // 构建视频特定的过滤参数
+        const videoParams = {
+            ...params,
+            brand, // 传递品牌参数
+            'media-type': ['Videos'], // 只获取视频文件
+        };
+
+        // 调用 getAssetsByMetadata API 获取原始数据
+        const graphqlResponse = await fetchKendoAssets(videoParams);
 
         // 检查API错误
-        if (result.error) {
-            throw new Error(result.error);
+        if (graphqlResponse.errors) {
+            throw new Error(graphqlResponse.errors[0].message);
         }
 
-        console.log('✅ Videos Catalogue - Videos received:', {
+        // 使用Adapter转换数据
+        const result = adaptGraphQLAssetsResponse(graphqlResponse);
+
+        console.log(`✅ Videos Catalogue - ${brandName} Videos received:`, {
             count: result.list.length,
             totalSize: result.totalSize,
             totalPages: Math.ceil(result.totalSize / (params.limit || 20))
         });
+
+        // 直接返回GraphQL查询结果，所有筛选都在服务端完成
         console.log('📊 Videos Catalogue - Pagination info:', {
             currentPage: Math.floor((params.offset || 0) / (params.limit || 20)) + 1,
             pageSize: params.limit || 20,
@@ -123,6 +137,7 @@ export const fetchVideosAPI = async (params) => {
             pageSize: result.pageSize,
             _metadata: result._metadata
         };
+
     } catch (error) {
         console.error('❌ Videos Catalogue - Error fetching videos:', error);
         return {
@@ -135,21 +150,38 @@ export const fetchVideosAPI = async (params) => {
     }
 };
 
-// Videos目录配置
-export const videosCatalogueConfig = {
-    filterConfig: {
-        filters: videoListConfigs
-    },
-    productConfig: {
-        fetchProducts: fetchVideosAPI,
-        pageSize: 12,
-        cardActions: {
-            show_title: true,
-            show_eyebrow: true, // 显示 "Videos" mediaType
-            show_download: true,
-            show_cart: false,
-            show_view: true,
-            show_favorite: false
+// 动态Videos Catalogue配置函数，支持多品牌
+export const createVideoCatalogueConfig = (brand = 'kendo') => {
+    const brandName = brand.toUpperCase();
+
+    return {
+        // 筛选器配置
+        filterConfig: {
+            filters: videoListConfigs
+        },
+        // 视频网格配置
+        productConfig: {
+            // 获取视频数据的Promise函数（绑定品牌参数）
+            fetchProducts: Object.assign(
+                (params) => fetchVideosAPI(params, brand),
+                { brand: brand } // 添加品牌标识，确保函数被识别为不同
+            ),
+            // 页面大小
+            pageSize: 12,
+            // 卡片工具功能配置
+            cardActions: {
+                show_title: true,
+                show_eyebrow: true, // 显示 "Videos" mediaType
+                show_download: true,
+                show_cart: false,
+                show_view: true,
+                show_favorite: false
+            },
+            // 网格标题
+            title: `${brandName} Video Library`
         }
-    }
-}; 
+    };
+};
+
+// 向后兼容的默认配置（KENDO）
+export const videosCatalogueConfig = createVideoCatalogueConfig('kendo'); 

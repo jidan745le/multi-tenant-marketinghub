@@ -1,12 +1,12 @@
 import { adaptGraphQLAssetsResponse } from '../adapters/kendoAssetsAdapter';
-import fetchKendoAssets from '../services/kendoAssetsApi';
+import fetchKendoAssets from '../services/kendoAssetsMetaDataApi';
 
 // 媒体类型选项
 export const mediaTypeOptions = [
     { value: 'Images', label: 'Images' },
     { value: 'Videos', label: 'Videos' },
     { value: 'Documents', label: 'Documents' },
-    { value: 'Audio', label: 'Audio' }
+    // { value: 'Audio', label: 'Audio' }
 ];
 
 // 媒体分类选项
@@ -89,11 +89,12 @@ export const kendoMediaListConfigs = [
     }
 ];
 
-// KENDO GraphQL Assets API包装函数
-export const fetchKendoMediaAPI = async (params) => {
+// 动态 Media API包装函数，支持多品牌
+export const fetchKendoMediaAPI = async (params, brand = 'kendo') => {
     try {
-        console.log('🔍 Media Catalogue - Fetching KENDO assets at:', new Date().toISOString());
-        console.log('📋 Media Catalogue - Search params:', params);
+        const brandName = brand.toUpperCase();
+        console.log(`🔍 Media Catalogue - Fetching ${brandName} assets at:`, new Date().toISOString());
+        console.log(`📋 Media Catalogue - Search params for ${brandName}:`, params);
 
         // 记录日期过滤条件
         if (params['creation-date-from'] || params['creation-date-to'] || (params['creation-date'] && params['creation-date'] !== 'all')) {
@@ -104,8 +105,8 @@ export const fetchKendoMediaAPI = async (params) => {
             });
         }
 
-        // 调用Assets API获取原始数据
-        const graphqlResponse = await fetchKendoAssets(params);
+        // 调用Assets API获取原始数据，传递品牌参数
+        const graphqlResponse = await fetchKendoAssets({ ...params, brand });
 
         // 检查API错误
         if (graphqlResponse.errors) {
@@ -115,7 +116,7 @@ export const fetchKendoMediaAPI = async (params) => {
         // 使用Adapter转换数据
         const result = adaptGraphQLAssetsResponse(graphqlResponse);
 
-        console.log('✅ Media Catalogue - Assets received:', {
+        console.log(`✅ Media Catalogue - ${brandName} Assets received:`, {
             count: result.list.length,
             totalSize: result.totalSize,
             totalPages: Math.ceil(result.totalSize / (params.limit || 20))
@@ -159,27 +160,38 @@ export const fetchKendoMediaAPI = async (params) => {
     }
 };
 
-// 完整的KENDO Media目录配置
-export const kendoMediaCatalogueConfig = {
-    // 筛选器配置
-    filterConfig: {
-        filters: kendoMediaListConfigs
-    },
-    // 媒体网格配置
-    productConfig: { // 保持与现有组件兼容的名称
-        // 获取媒体数据的Promise函数
-        fetchProducts: fetchKendoMediaAPI, // 保持与现有组件兼容的名称
-        // 页面大小
-        pageSize: 12,
-        // 卡片工具功能配置
-        cardActions: {
-            show_file_type: true,
-            show_eyebrow: true,
-            show_open_pdf: false,
-            show_open_product_page: false,
-            show_preview_media: true,
-            show_download: true,
-        },
+// 动态Media Catalogue配置函数，支持多品牌
+export const createMediaCatalogueConfig = (brand = 'kendo') => {
+    const brandName = brand.toUpperCase();
 
-    }
-}; 
+    return {
+        // 筛选器配置
+        filterConfig: {
+            filters: kendoMediaListConfigs
+        },
+        // 媒体网格配置
+        productConfig: { // 保持与现有组件兼容的名称
+            // 获取媒体数据的Promise函数（绑定品牌参数）
+            fetchProducts: Object.assign(
+                (params) => fetchKendoMediaAPI(params, brand),
+                { brand: brand } // 添加品牌标识，确保函数被识别为不同
+            ),
+            // 页面大小
+            pageSize: 12,
+            // 卡片工具功能配置
+            cardActions: {
+                show_file_type: true,
+                show_eyebrow: true,
+                show_open_pdf: false,
+                show_open_product_page: false,
+                show_preview_media: true,
+                show_download: true,
+            },
+            // 网格标题
+            title: `${brandName} Media Assets`
+        }
+    };
+};
+
+// 向后兼容的默认配置（KENDO）
+export const kendoMediaCatalogueConfig = createMediaCatalogueConfig('kendo'); 

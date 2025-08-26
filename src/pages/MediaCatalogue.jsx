@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 
 // 导入配置
-import { kendoMediaCatalogueConfig } from '../config/kendoMediaConfig';
+import { createMediaCatalogueConfig } from '../config/kendoMediaConfig';
 
 // 导入组件
 import ProductCatalogue from '../components/ProductCatalogue';
@@ -12,8 +12,16 @@ import { useLanguage } from '../hooks/useLanguage';
 
 const MediaCatalogue = () => {
   // 使用品牌和语言钩子 (基于reference代码)
-  const { currentBrand } = useBrand();
+  const { currentBrand, currentBrandCode } = useBrand();
   const { currentLanguage } = useLanguage();
+
+  // 根据当前品牌动态创建配置
+  const config = useMemo(() => {
+    console.log(`🏭 Creating media catalogue config for brand: ${currentBrandCode}`);
+    const newConfig = createMediaCatalogueConfig(currentBrandCode);
+    console.log(`🔧 Media config created with brand:`, currentBrandCode);
+    return newConfig;
+  }, [currentBrandCode]);
 
   // 处理媒体点击 (基于reference代码逻辑)
   const handleMediaClick = useCallback((media) => {
@@ -52,7 +60,8 @@ const MediaCatalogue = () => {
 
   return (
     <ProductCatalogue
-      config={kendoMediaCatalogueConfig}
+      key={currentBrandCode} // 确保品牌切换时组件重新渲染
+      config={config}
       onProductClick={handleMediaClick}
       onProductDownload={handleMediaDownload}
       onMassSearch={handleMassSearch}

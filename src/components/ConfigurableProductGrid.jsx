@@ -249,7 +249,6 @@ const ConfigurableProductGrid = ({
                   }}
                 >
                   <Typography variant="body1" color="text.secondary">
-                    No products found
                   </Typography>
                 </Box>
               )}
@@ -267,6 +266,11 @@ const ConfigurableProductGrid = ({
             onChange={(event, page) => onPageChange?.(page)}
             color="primary"
             size="large"
+            sx={{
+              '& .MuiPaginationItem-root.Mui-selected': {
+                color: '#ffffff !important',
+              },
+            }}
           />
         </Box>
       )}

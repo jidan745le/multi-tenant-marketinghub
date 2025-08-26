@@ -11,5 +11,7 @@ export default {
     "legal.privacyPolicy.title": "Datenschutzerklärung",
     "legal.privacyPolicy.intro1": "Ihre Privatsphäre ist uns wichtig. Diese Datenschutzerklärung erklärt, wie wir Ihre persönlichen Informationen sammeln, verwenden und schützen, wenn Sie unsere Website, Produkte oder Dienstleistungen nutzen.",
     "legal.privacyPolicy.intro2": "Durch die Nutzung unserer Dienstleistungen stimmen Sie der Sammlung und Verwendung von Informationen gemäß dieser Richtlinie zu.",
-    "legal.privacyPolicy.copyright": "© [Jahr] [Ihr Firmenname]. Alle Rechte vorbehalten."
+    "legal.privacyPolicy.copyright": "© [Jahr] [Ihr Firmenname]. Alle Rechte vorbehalten.",
+    "profile.legalTerms": "Allgemeine Geschäftsbedingungen",
+    "profile.privacyPolicy": "Datenschutzerklärung",
 }; 

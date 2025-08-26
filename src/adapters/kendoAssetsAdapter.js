@@ -155,7 +155,11 @@ export const adaptGraphQLAssetNode = (assetNode) => {
         region: 'Global',
         brand: 'KENDO',
         fileSize: formatFileSize(assetNode.filesize),
-        createdDate: assetNode.creationDate ? assetNode.creationDate.split('T')[0] : new Date().toISOString().split('T')[0], // 使用API提供的创建日期
+        createdDate: assetNode.creationDate ?
+            (typeof assetNode.creationDate === 'number' ?
+                new Date(assetNode.creationDate * 1000).toISOString().split('T')[0] :
+                assetNode.creationDate.split('T')[0]
+            ) : new Date().toISOString().split('T')[0], // 支持时间戳和ISO格式
 
         // URL相关
         fullpath: assetNode.fullpath,
@@ -183,8 +187,23 @@ export const adaptGraphQLAssetNode = (assetNode) => {
  * @returns {Object} 转换后的资产列表数据
  */
 export const adaptGraphQLAssetsResponse = (graphqlResponse) => {
-    // 验证响应结构
-    if (!graphqlResponse?.data?.getAssetListing?.edges) {
+    // 添加详细的调试信息
+    console.log('🔍 adaptGraphQLAssetsResponse received:', {
+        hasData: !!graphqlResponse?.data,
+        hasGetAssetsByMetadata: !!graphqlResponse?.data?.getAssetsByMetadata,
+        hasGetAssetListing: !!graphqlResponse?.data?.getAssetListing,
+        responseKeys: graphqlResponse?.data ? Object.keys(graphqlResponse.data) : 'no data'
+    });
+
+    // 验证响应结构 - 支持新的 getAssetsByMetadata 和旧的 getAssetListing
+    const assetsData = graphqlResponse?.data?.getAssetsByMetadata || graphqlResponse?.data?.getAssetListing;
+
+    if (!assetsData?.edges) {
+        console.warn('❌ Invalid GraphQL response structure:', {
+            hasAssetsData: !!assetsData,
+            assetsDataKeys: assetsData ? Object.keys(assetsData) : 'no assets data',
+            fullResponse: graphqlResponse
+        });
         return {
             list: [],
             totalSize: 0,
@@ -194,8 +213,14 @@ export const adaptGraphQLAssetsResponse = (graphqlResponse) => {
         };
     }
 
-    const edges = graphqlResponse.data.getAssetListing.edges;
-    const totalCount = graphqlResponse.data.getAssetListing.totalCount || 0;
+    const edges = assetsData.edges;
+    const totalCount = assetsData.totalCount || 0;
+
+    console.log('✅ GraphQL response structure valid:', {
+        edgeCount: edges.length,
+        totalCount: totalCount,
+        queryType: graphqlResponse?.data?.getAssetsByMetadata ? 'getAssetsByMetadata' : 'getAssetListing'
+    });
 
     // 转换每个资产节点
     const assets = edges

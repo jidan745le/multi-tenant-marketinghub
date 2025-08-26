@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 
 // 导入配置
-import { videosCatalogueConfig } from '../config/videosConfig';
+import { createVideoCatalogueConfig } from '../config/videosConfig';
 
 // 导入组件
 import ProductCatalogue from '../components/ProductCatalogue';
@@ -12,8 +12,16 @@ import { useLanguage } from '../hooks/useLanguage';
 
 const Videos = () => {
   // 使用品牌和语言钩子 (基于reference代码)
-  const { currentBrand } = useBrand();
+  const { currentBrand, currentBrandCode } = useBrand();
   const { currentLanguage } = useLanguage();
+
+  // 根据当前品牌动态创建配置
+  const config = useMemo(() => {
+    console.log(`🎥 Creating video catalogue config for brand: ${currentBrandCode}`);
+    const newConfig = createVideoCatalogueConfig(currentBrandCode);
+    console.log(`🔧 Video config created with brand:`, currentBrandCode);
+    return newConfig;
+  }, [currentBrandCode]);
 
   // 处理视频点击 (基于reference代码逻辑)
   const handleVideoClick = useCallback((video) => {
@@ -65,7 +73,8 @@ const Videos = () => {
 
   return (
     <ProductCatalogue
-      config={videosCatalogueConfig}
+      key={currentBrandCode} // 确保品牌切换时组件重新渲染
+      config={config}
       onProductClick={handleVideoClick}
       onProductDownload={handleVideoDownload}
       onMassSearch={handleMassSearch}
