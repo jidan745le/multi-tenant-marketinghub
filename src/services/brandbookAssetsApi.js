@@ -27,14 +27,20 @@ export const fetchBrandbookAssets = async (params = {}) => {
     try {
         console.log(`🎨 Fetching brandbook assets for brand ${params.brand || 'kendo'}`);
 
-        // 限制只取6个资产
         const limitedParams = {
             ...params,
-            limit: 6,
-            offset: 0
+            offset: 0,
+            //icons:ids: ['647', '88', '94', '102', '89', '93'],
+            //logos: ['2091', '2093','2096','2095','2094','2092']
+            //lifeStyles: ['129', '396', '980','981','982','1002']
+            //catelogs: ids: ['128','127','1461','1055','1051','1056']
+            //videos: ids: ['976','977','400', '978', '401','1053']
+            //videos的type取Category Images
+            ids: ['647', '88', '94', '102', '89', '93','2091', '2093','2096','2095','2094','2092','976','977','400', '978', '401','1053','129', '396', '980','981','982','1002','128','127','1461','1055','1051','1056']
+            
+            
         };
 
-        // 直接使用 kendoAssetsApi 获取数据，不进行类型过滤
         const graphqlResponse = await fetchKendoAssets(limitedParams);
 
         // 检查API错误
@@ -45,7 +51,7 @@ export const fetchBrandbookAssets = async (params = {}) => {
         // 使用Adapter转换数据
         const result = adaptGraphQLAssetsResponse(graphqlResponse);
 
-        console.log(`✅ Brandbook assets received:`, {
+        console.log(`Brandbook assets received:`, {
             count: result.list.length,
             totalSize: result.totalSize
         });
@@ -68,7 +74,7 @@ export const fetchBrandbookAssets = async (params = {}) => {
         };
 
     } catch (error) {
-        console.error(`❌ Error fetching brandbook assets:`, error);
+        console.error(`Error fetching brandbook assets:`, error);
         return {
             list: [],
             totalSize: 0,
@@ -86,34 +92,75 @@ export const fetchBrandbookAssets = async (params = {}) => {
  */
 export const fetchAllBrandbookAssets = async (params = {}) => {
     try {
-        console.log('🎨 Fetching all brandbook assets...');
+        console.log('Fetching all brandbook assets...');
 
-        // 直接调用一次 API，获取所有资产数据
+        // 获取数据
         const allAssetsResult = await fetchBrandbookAssets(params);
 
-        console.log('✅ All brandbook assets fetched:', {
+        console.log('All brandbook assets fetched:', {
             totalAssets: allAssetsResult.list.length,
             totalSize: allAssetsResult.totalSize
         });
 
-        // 返回所有资产数据，不进行分类过滤
-        return {
-            logos: allAssetsResult.list || [],
-            icons: allAssetsResult.list || [],
-            videos: allAssetsResult.list || [],
-            lifeStyles: allAssetsResult.list || [],
-            catelogs: allAssetsResult.list || [],
-            totalCounts: {
-                logos: allAssetsResult.totalSize || 0,
-                icons: allAssetsResult.totalSize || 0,
-                videos: allAssetsResult.totalSize || 0,
-                lifeStyles: allAssetsResult.totalSize || 0,
-                catelogs: allAssetsResult.totalSize || 0
+        const categorizedAssets = {
+            logos: [],
+            icons: [],
+            videos: [],
+            lifeStyles: [],
+            catelogs: []
+        };
+
+        // 遍历 + metadata分类
+        allAssetsResult.list.forEach(asset => {
+            const mediaTypeMetadata = asset._originalData?.metadata?.find(meta => 
+                meta.name === 'Media Type'
+            );
+            
+            const mediaType = mediaTypeMetadata?.data;
+
+            switch (mediaType) {
+                case 'Icons':
+                    categorizedAssets.icons.push(asset);
+                    break;
+                case 'Logos':
+                    categorizedAssets.logos.push(asset);
+                    break;
+                case 'Category Images':
+                    categorizedAssets.videos.push(asset);
+                    break;
+                case 'Lifestyle':
+                    categorizedAssets.lifeStyles.push(asset);
+                    break;
+                case 'Catalog':
+                    categorizedAssets.catelogs.push(asset);
+                    break;
+                default:
+                    console.log(`Unclassified asset: ID ${asset.id}, Media Type: ${mediaType}`);
+                    break;
             }
+        });
+
+        const totalCounts = {
+            logos: categorizedAssets.logos.length,
+            icons: categorizedAssets.icons.length,
+            videos: categorizedAssets.videos.length,
+            lifeStyles: categorizedAssets.lifeStyles.length,
+            catelogs: categorizedAssets.catelogs.length
+        };
+
+        console.log('Resource classification result:', {
+            totalAssets: allAssetsResult.list.length,
+            categorizedCounts: totalCounts,
+            uncategorized: allAssetsResult.list.length - Object.values(totalCounts).reduce((sum, count) => sum + count, 0)
+        });
+
+        return {
+            ...categorizedAssets,
+            totalCounts
         };
 
     } catch (error) {
-        console.error('❌ Error fetching all brandbook assets:', error);
+        console.error('Error fetching all brandbook assets:', error);
         return {
             logos: [],
             icons: [],

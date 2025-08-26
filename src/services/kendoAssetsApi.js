@@ -176,7 +176,7 @@ const buildAssetsQuery = (filters = {}, first = 20, after = 0) => {
  */
 export const fetchKendoAssets = async (params = {}) => {
     try {
-        const { limit = 20, offset = 0, ids } = params;
+        const { limit = 30, offset = 0, ids } = params;
 
         // Log IDs parameter for debugging
         if (ids && Array.isArray(ids)) {
