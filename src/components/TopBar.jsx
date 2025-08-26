@@ -2,8 +2,6 @@ import {
   ArrowDropDown,
   DownloadOutlined,
   Language,
-  PolicyOutlined,
-  PrivacyTipOutlined,
   SettingsOutlined,
   ShareOutlined,
   StickyNote2Outlined
@@ -589,12 +587,7 @@ const TopRow = () => {
                   },
                 }}
               >
-                <PolicyOutlined sx={{ 
-                  fontSize: '24px',
-                  color: '#000000',
-                  width: '24px',
-                  height: '24px',
-                }} />
+        
                 <Typography sx={{
                   color: '#000000',
                   fontFamily: '"Roboto-Medium", sans-serif',
@@ -620,13 +613,7 @@ const TopRow = () => {
                     backgroundColor: 'rgba(0, 0, 0, 0.04)',
                   },
                 }}
-              >
-                <PrivacyTipOutlined sx={{ 
-                  fontSize: '24px',
-                  color: '#000000',
-                  width: '24px',
-                  height: '24px',
-                }} />
+              >    
                 <Typography sx={{
                   color: '#000000',
                   fontFamily: '"Roboto-Medium", sans-serif',
