@@ -11,6 +11,7 @@ const API_KEY = '7ce45a85b23aa742131a94d4431e22fe';
  * @param {string} filters['model-number'] - Filter by product model number
  * @param {Array<string>} filters['media-type'] - Filter by media types
  * @param {Array<string>} filters['media-category'] - Filter by Media Category metadata (支持多选)
+ * @param {Array<string>} filters['document-type'] - Filter by Document Type metadata (支持多选)
  * @param {string} filters.brand - Brand path filter (子品牌主题切换)
  * @param {string} filters['creation-date-from'] - Filter by creation date from (YYYY-MM-DD)
  * @param {string} filters['creation-date-to'] - Filter by creation date to (YYYY-MM-DD)
@@ -46,6 +47,15 @@ const buildAssetsQuery = (filters = {}, first = 20, offset = 0) => {
         metadataFilters.push({
             name: "Media Type",
             values: filters['media-category'],
+            operator: "IN"
+        });
+    }
+
+    // Document Type metadata filter (支持多选)
+    if (filters['document-type'] && Array.isArray(filters['document-type']) && filters['document-type'].length > 0) {
+        metadataFilters.push({
+            name: "Document Type",
+            values: filters['document-type'],
             operator: "IN"
         });
     }
@@ -245,6 +255,7 @@ const buildAssetsQuery = (filters = {}, first = 20, offset = 0) => {
  * @param {string} params['model-number'] - Filter by product model number
  * @param {Array<string>} params['media-type'] - Filter by media types (Images, Videos, Documents, Audio)
  * @param {Array<string>} params['media-category'] - Filter by Media Category metadata (支持多选：Icons, Logos, Main等)
+ * @param {Array<string>} params['document-type'] - Filter by Document Type metadata (支持多选：Catalog, Brochure, Manual等)
  * @param {string} params.brand - Brand for path filtering (子品牌主题切换，默认为KENDO)
  * @param {string} params['creation-date-from'] - Filter by creation date from (YYYY-MM-DD)
  * @param {string} params['creation-date-to'] - Filter by creation date to (YYYY-MM-DD)
@@ -309,37 +320,142 @@ export const fetchKendoAssets = async (params = {}) => {
 export default fetchKendoAssets;
 
 // Usage examples with getAssetsByMetadata:
-//
-// 1. Fetch assets with Media Category metadata filter (多选支持):
+
+// ===== METADATA FILTERING EXAMPLES =====
+
+// 1. 搜索 Media Type 为 Icons 的资产:
+// fetchKendoAssets({ 'media-category': ['Icons'] })
+// 生成的查询包含: metadataFilters: [{ name: "Media Type", values: ["Icons"], operator: "IN" }]
+
+// 2. 搜索 Document Type 为 Catalog 的资产:
+// fetchKendoAssets({ 'document-type': ['Catalog'] })
+// 生成的查询包含: metadataFilters: [{ name: "Document Type", values: ["Catalog"], operator: "IN" }]
+
+// 3. 多选 Media Category metadata filter:
 // fetchKendoAssets({ 'media-category': ['Icons', 'Logos', 'Main'] })
-//
-// 2. Fetch assets from specific brand (子品牌主题切换):
-// fetchKendoAssets({ brand: 'KENDO', 'media-category': ['Icons'] })
-// fetchKendoAssets({ brand: 'OTHERBRAND', 'media-category': ['Logos'] })
-//
-// 3. Fetch multiple specific assets by IDs:
-// fetchKendoAssets({ ids: ['647', '648', '649'] })
-//
-// 4. Complex filtering combining metadata and traditional filters:
+
+// 4. 组合多个 metadata 条件:
 // fetchKendoAssets({
 //   'media-category': ['Icons', 'Logos'],
-//   'media-type': ['Images'],
-//   filename: 'product',
-//   brand: 'KENDO'
+//   'document-type': ['Catalog', 'Brochure']
 // })
-//
-// 5. Date range filtering:
+
+// ===== BRAND/PATH FILTERING EXAMPLES =====
+
+// 5. 特定品牌的 Icons (子品牌主题切换):
+// fetchKendoAssets({ brand: 'KENDO', 'media-category': ['Icons'] })
+// fetchKendoAssets({ brand: 'BOSCH', 'media-category': ['Icons'] })
+
+// 6. 默认 KENDO 品牌 (不指定 brand 参数):
+// fetchKendoAssets({ 'media-category': ['Icons'] })
+// 生成: pathStartsWith: "/KENDO/"
+
+// ===== MIME TYPE FILTERING EXAMPLES =====
+
+// 7. 只搜索图片类型的 Icons:
+// fetchKendoAssets({
+//   'media-category': ['Icons'],
+//   'media-type': ['Images']  // 过滤 mimetype: "image/%"
+// })
+
+// 8. 只搜索视频文件:
+// fetchKendoAssets({
+//   'media-type': ['Videos']  // 过滤 mimetype: "video/%"
+// })
+
+// 9. 搜索文档文件 (PDF, DOC 等):
+// fetchKendoAssets({
+//   'media-type': ['Documents']  // 过滤 mimetype: "application/%"
+// })
+
+// ===== COMPLEX FILTERING EXAMPLES =====
+
+// 10. 复杂组合查询 - Icons + 图片 + 特定品牌:
+// fetchKendoAssets({
+//   'media-category': ['Icons'],
+//   'media-type': ['Images'],
+//   brand: 'KENDO',
+//   filename: 'logo'  // 文件名包含 'logo'
+// })
+
+// 11. 按产品型号搜索资产:
+// fetchKendoAssets({
+//   'model-number': 'ABC123',
+//   'media-category': ['Main']
+// })
+
+// 12. 按文件夹路径搜索:
+// fetchKendoAssets({
+//   'folder-path': 'PRODUCT ASSETS',
+//   'media-category': ['Icons']
+// })
+
+// ===== DATE FILTERING EXAMPLES =====
+
+// 13. 日期范围 + Media Type 搜索:
 // fetchKendoAssets({
 //   'creation-date-from': '2024-01-01',
 //   'creation-date-to': '2024-12-31',
-//   'media-category': ['Main']
+//   'media-category': ['Icons']
 // })
-//
-// Generated query example:
+
+// 14. 快速日期过滤:
+// fetchKendoAssets({
+//   'creation-date': 'last_1_month',  // 最近一个月
+//   'media-category': ['Icons']
+// })
+
+// 15. 只搜索最近两周的 Catalog 文档:
+// fetchKendoAssets({
+//   'creation-date': 'last_2_weeks',
+//   'document-type': ['Catalog'],
+//   'media-type': ['Documents']
+// })
+
+// ===== PAGINATION EXAMPLES =====
+
+// 16. 分页搜索 Icons (第一页):
+// fetchKendoAssets({
+//   'media-category': ['Icons'],
+//   limit: 20,
+//   offset: 0
+// })
+
+// 17. 分页搜索 Icons (第二页):
+// fetchKendoAssets({
+//   'media-category': ['Icons'],
+//   limit: 20,
+//   offset: 20
+// })
+
+// ===== ID-BASED FETCHING EXAMPLES =====
+
+// 18. 获取特定 ID 的资产:
+// fetchKendoAssets({ ids: ['647', '648', '649'] })
+
+// 19. 获取特定 ID 且验证是 Icons:
+// fetchKendoAssets({
+//   ids: ['647', '648'],
+//   'media-category': ['Icons']
+// })
+
+// ===== GENERATED QUERY EXAMPLES =====
+
+// Example 1: Media Type Icons 查询生成:
 // pathStartsWith: "/KENDO/"
-// metadataFilters: [{ name: "Media Type", values: ["Icons", "Logos"], operator: "IN" }]
-//
-// Pagination examples:
-// fetchKendoAssets({ limit: 20, offset: 0 })   // 第一页
-// fetchKendoAssets({ limit: 20, offset: 20 })  // 第二页
-// fetchKendoAssets({ limit: 20, offset: 40 })  // 第三页 
+// metadataFilters: [{ name: "Media Type", values: ["Icons"], operator: "IN" }]
+// metadataLogic: "AND"
+
+// Example 2: Document Type Catalog 查询生成:
+// pathStartsWith: "/KENDO/"
+// metadataFilters: [{ name: "Document Type", values: ["Catalog"], operator: "IN" }]
+// metadataLogic: "AND"
+
+// Example 3: 组合查询生成:
+// pathStartsWith: "/KENDO/"
+// metadataFilters: [
+//   { name: "Media Type", values: ["Icons"], operator: "IN" },
+//   { name: "Document Type", values: ["Catalog"], operator: "IN" }
+// ]
+// metadataLogic: "AND"
+// filter: "{\"$and\":[{\"mimetype\":{\"$not\":\"\"}},{\"mimetype\":{\"$like\":\"image/%\"}}]}" 
