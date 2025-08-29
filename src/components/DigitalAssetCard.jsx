@@ -22,7 +22,7 @@ const DigitalAssetCard = styled(Box)(() => ({
     gap: '0px',
     alignItems: 'flex-start',
     justifyContent: 'flex-start',
-    width: '240px',
+    width: '270px',
     height: '300px',
     position: 'relative',
     overflow: 'hidden',

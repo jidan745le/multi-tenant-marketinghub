@@ -630,18 +630,20 @@ const BrandbookContent = ({ data, onSectionInView }) => {
                 }}
               >
                 <MenuItem value="">All</MenuItem>
-                <MenuItem value="last_2_weeks">Last 2 weeks</MenuItem>
+                <MenuItem value="last_1_week">Last 1 week</MenuItem>
                 <MenuItem value="last_1_month">Last 1 month</MenuItem>
                 <MenuItem value="last_3_months">Last 3 months</MenuItem>
-                <MenuItem value="last_1_year">Last 1 year</MenuItem>
+                <MenuItem value="last_6_months">Last 6 months</MenuItem>
+                <MenuItem value="this_year">This year</MenuItem>
               </Select>
             </FormControl>
           </Box>
         </Box>
         <Box sx={{ 
           display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-          gap: 1, 
+          gridTemplateColumns: 'repeat(6, 270px)',
+          columnGap: 3,
+          rowGap: 3,
           // padding: '12px'
         }}>
           {items
@@ -664,28 +666,33 @@ const BrandbookContent = ({ data, onSectionInView }) => {
               // 日期
               if (currentSelectedDate) {
                 const itemDate = new Date(item.createOn || item.createdDate);
-                const now = new Date();
-                let cutoffDate;
+                if (!isNaN(itemDate.getTime())) {
+                  const now = new Date();
+                  let cutoffDate;
 
-                switch (currentSelectedDate) {
-                  case 'last_2_weeks':
-                    cutoffDate = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-                    break;
-                  case 'last_1_month':
-                    cutoffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-                    break;
-                  case 'last_3_months':
-                    cutoffDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-                    break;
-                  case 'last_1_year':
-                    cutoffDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
-                    break;
-                  default:
-                    cutoffDate = new Date(0);
-                }
+                  switch (currentSelectedDate) {
+                    case 'last_1_week':
+                      cutoffDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                      break;
+                    case 'last_1_month':
+                      cutoffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                      break;
+                    case 'last_3_months':
+                      cutoffDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+                      break;
+                    case 'last_6_months':
+                      cutoffDate = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
+                      break;
+                    case 'this_year':
+                      cutoffDate = new Date(now.getFullYear(), 0, 1);
+                      break;
+                    default:
+                      cutoffDate = new Date(0);
+                  }
 
-                if (itemDate < cutoffDate) {
-                  return false;
+                  if (itemDate < cutoffDate) {
+                    return false;
+                  }
                 }
               }
 
@@ -748,13 +755,8 @@ const BrandbookContent = ({ data, onSectionInView }) => {
       
       {renderMediaSection(data?.logos, data?.externalMedias?.[1]?.title, data?.externalMedias?.[1]?.mediaType,data?.externalMedias?.[1])}
 
-      {renderMediaSection(data?.videos, data?.externalMedias?.[2]?.title, data?.externalMedias?.[2]?.mediaType,data?.externalMedias?.[2])}
+      {renderMediaSection(data?.catelogs, data?.externalMedias?.[2]?.title, data?.externalMedias?.[2]?.mediaType,data?.externalMedias?.[2])}
       
-      {renderMediaSection(data?.lifeStyles, data?.externalMedias?.[3]?.title, data?.externalMedias?.[3]?.mediaType,data?.externalMedias?.[3])}
-
-      {renderMediaSection(data?.catelogs, data?.externalMedias?.[4]?.title, data?.externalMedias?.[4]?.mediaType,data?.externalMedias?.[4])}
-      
-      {/* {renderMediaSection(data?.externalMedias, 'External Media', 'external-media')} */}
       
     </ScrollBarWrapperBox>
   );

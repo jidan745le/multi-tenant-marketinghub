@@ -1,5 +1,6 @@
 import { adaptGraphQLAssetsResponse } from '../adapters/kendoAssetsAdapter';
-import fetchKendoAssets from './kendoAssetsApi';
+// import fetchKendoAssets from './kendoAssetsApi';
+import fetchKendoAssets from './kendoAssetsMetaDataApi';
 
 /**
  * 从路径中提取语言信息
@@ -27,21 +28,30 @@ export const fetchBrandbookAssets = async (params = {}) => {
     try {
         console.log(`🎨 Fetching brandbook assets for brand ${params.brand || 'kendo'}`);
 
-        const limitedParams = {
-            ...params,
-            offset: 0,
-            //icons:ids: ['647', '88', '94', '102', '89', '93'],
-            //logos: ['2091', '2093','2096','2095','2094','2092']
-            //lifeStyles: ['129', '396', '980','981','982','1002']
-            //catelogs: ids: ['128','127','1461','1055','1051','1056']
-            //videos: ids: ['976','977','400', '978', '401','1053']
-            //videos的type取Category Images
-            ids: ['647', '88', '94', '102', '89', '93','2091', '2093','2096','2095','2094','2092','976','977','400', '978', '401','1053','129', '396', '980','981','982','1002','128','127','1461','1055','1051','1056']
-            
-            
-        };
+        // const limitedParams = {
+        //     ...params,
+        //     offset: 0,
+        //     //icons:ids: ['647', '88', '94', '102', '89', '93'],
+        //     //logos: ['2091', '2093','2096','2095','2094','2092']
+        //     //lifeStyles: ['129', '396', '980','981','982','1002']
+        //     //catelogs: ids: ['128','127','1461','1055','1051','1056']
+        //     //videos: ids: ['976','977','400', '978', '401','1053']
+        //     //videos的type取Category Images
+        //     // ids: ['647', '88', '94', '102', '89', '93','2091', '2093','2096','2095','2094','2092','976','977','400', '978', '401','1053','129', '396', '980','981','982','1002','128','127','1461','1055','1051','1056']
+        //     'media-category': ['Icons', 'Logos'],
+        //     'document-type': ['Catalog']
 
-        const graphqlResponse = await fetchKendoAssets(limitedParams);
+        // };
+
+        // const graphqlResponse = await fetchKendoAssets(limitedParams);
+        const graphqlResponse = await fetchKendoAssets({
+            'media-category': ['Icons', 'Logos'],
+            'document-type': ['Catalog'],
+            'metadata-logic': 'OR'
+        });
+
+
+        console.log('graphqlResponse', graphqlResponse);
 
         // 检查API错误
         if (graphqlResponse.errors) {
@@ -50,6 +60,8 @@ export const fetchBrandbookAssets = async (params = {}) => {
 
         // 使用Adapter转换数据
         const result = adaptGraphQLAssetsResponse(graphqlResponse);
+
+        console.log('result111', result);
 
         console.log(`Brandbook assets received:`, {
             count: result.list.length,
@@ -110,41 +122,39 @@ export const fetchAllBrandbookAssets = async (params = {}) => {
             catelogs: []
         };
 
+        // 分类映射配置
+        const categoryMapping = {
+            'Icons': 'icons',
+            'Logos': 'logos', 
+            'Catalog': 'catelogs'
+        };
+
         // 遍历 + metadata分类
         allAssetsResult.list.forEach(asset => {
+            // 查找metadata，优先查找 Media Type，然后查找 Document Type
             const mediaTypeMetadata = asset._originalData?.metadata?.find(meta => 
                 meta.name === 'Media Type'
+            ) || asset._originalData?.metadata?.find(meta => 
+                meta.name === 'Document Type'
             );
-            
-            const mediaType = mediaTypeMetadata?.data;
 
-            switch (mediaType) {
-                case 'Icons':
-                    categorizedAssets.icons.push(asset);
-                    break;
-                case 'Logos':
-                    categorizedAssets.logos.push(asset);
-                    break;
-                case 'Category Images':
-                    categorizedAssets.videos.push(asset);
-                    break;
-                case 'Lifestyle':
-                    categorizedAssets.lifeStyles.push(asset);
-                    break;
-                case 'Catalog':
-                    categorizedAssets.catelogs.push(asset);
-                    break;
-                default:
-                    console.log(`Unclassified asset: ID ${asset.id}, Media Type: ${mediaType}`);
-                    break;
+            if (mediaTypeMetadata) {
+                const mediaType = mediaTypeMetadata.data;
+                const targetCategory = categoryMapping[mediaType];
+                
+                if (targetCategory && categorizedAssets[targetCategory]) {
+                    categorizedAssets[targetCategory].push(asset);
+                } else {
+                    console.log(`Unclassified asset: ID ${asset.id}, Type: ${mediaType}`);
+                }
+            } else {
+                console.log(`No metadata found for asset: ID ${asset.id}`);
             }
         });
 
         const totalCounts = {
             logos: categorizedAssets.logos.length,
             icons: categorizedAssets.icons.length,
-            videos: categorizedAssets.videos.length,
-            lifeStyles: categorizedAssets.lifeStyles.length,
             catelogs: categorizedAssets.catelogs.length
         };
 
@@ -164,14 +174,10 @@ export const fetchAllBrandbookAssets = async (params = {}) => {
         return {
             logos: [],
             icons: [],
-            videos: [],
-            lifeStyles: [],
             catelogs: [],
             totalCounts: {
                 logos: 0,
                 icons: 0,
-                videos: 0,
-                lifeStyles: 0,
                 catelogs: 0
             },
             error: error.message

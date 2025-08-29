@@ -24,8 +24,6 @@ const TOC_STRUCTURE_DS = [
 ];
 
 const TOC_STRUCTURE_MA = [
-  { id: 'videos', title: 'PROMOTIONAL VIDEOS' },
-  { id: 'lifestyles', title: 'BRAND STORY IMAGES' },
   { id: 'catalogs', title: 'CATALOGS' }
 ];
 
@@ -62,9 +60,7 @@ const Toc = ({  data, activeSection, onSectionClick }) => {
 
   const tocStructureMA = useMemo(() => {
     const list = [];
-    if (data?.videos?.length) list.push({ id: 'videos', title: data?.externalMedias?.[2]?.subtitle || 'PROMOTIONAL VIDEOS' });
-    if (data?.lifeStyles?.length) list.push({ id: 'lifestyles', title: data?.externalMedias?.[3]?.subtitle || 'BRAND STORY IMAGES' });
-    if (data?.catelogs?.length) list.push({ id: 'catalogs', title: data?.externalMedias?.[4]?.subtitle || 'CATALOGS' });
+    if (data?.catelogs?.length) list.push({ id: 'catalogs', title: data?.externalMedias?.[2]?.subtitle || 'CATALOGS' });
     return list.length ? list : TOC_STRUCTURE_MA;
   }, [data]);
    
@@ -110,7 +106,8 @@ const Toc = ({  data, activeSection, onSectionClick }) => {
                   primaryTypographyProps={{
                     fontSize: '0.88rem',
                     fontWeight: isActive ? 600 : 400,
-                    color: isActive ? 'inherit' : 'inherit'
+                    color: isActive ? 'inherit' : 'inherit',
+                    lineHeight: '2'
                   }}
                 />
               </NavItem>
