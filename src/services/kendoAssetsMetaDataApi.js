@@ -12,6 +12,7 @@ const API_KEY = '7ce45a85b23aa742131a94d4431e22fe';
  * @param {Array<string>} filters['media-type'] - Filter by media types
  * @param {Array<string>} filters['media-category'] - Filter by Media Category metadata (支持多选)
  * @param {Array<string>} filters['document-type'] - Filter by Document Type metadata (支持多选)
+ * @param {string} filters['metadata-logic'] - Metadata filter logic: 'AND' or 'OR' (default: 'AND')
  * @param {string} filters.brand - Brand path filter (子品牌主题切换)
  * @param {string} filters['creation-date-from'] - Filter by creation date from (YYYY-MM-DD)
  * @param {string} filters['creation-date-to'] - Filter by creation date to (YYYY-MM-DD)
@@ -69,7 +70,10 @@ const buildAssetsQuery = (filters = {}, first = 20, offset = 0) => {
         }).join(', ');
 
         queryParams.push(`metadataFilters: [${metadataFiltersGraphQL}]`);
-        queryParams.push(`metadataLogic: "AND"`);
+
+        // Support both AND and OR logic for metadata filters
+        const metadataLogic = filters['metadata-logic'] && filters['metadata-logic'].toUpperCase() === 'OR' ? 'OR' : 'AND';
+        queryParams.push(`metadataLogic: "${metadataLogic}"`);
     }
 
     // Build MongoDB-style filter for other conditions
@@ -223,6 +227,7 @@ const buildAssetsQuery = (filters = {}, first = 20, offset = 0) => {
         rawFilters: filters,
         pathStartsWith: pathStartsWith,
         metadataFilters: metadataFilters,
+        metadataLogic: filters['metadata-logic'] ? filters['metadata-logic'].toUpperCase() : 'AND',
         mongoFilter: mongoFilter,
         queryParams: queryParams,
         dateFilters: {
@@ -256,6 +261,7 @@ const buildAssetsQuery = (filters = {}, first = 20, offset = 0) => {
  * @param {Array<string>} params['media-type'] - Filter by media types (Images, Videos, Documents, Audio)
  * @param {Array<string>} params['media-category'] - Filter by Media Category metadata (支持多选：Icons, Logos, Main等)
  * @param {Array<string>} params['document-type'] - Filter by Document Type metadata (支持多选：Catalog, Brochure, Manual等)
+ * @param {string} params['metadata-logic'] - Metadata filter logic: 'AND' or 'OR' (default: 'AND')
  * @param {string} params.brand - Brand for path filtering (子品牌主题切换，默认为KENDO)
  * @param {string} params['creation-date-from'] - Filter by creation date from (YYYY-MM-DD)
  * @param {string} params['creation-date-to'] - Filter by creation date to (YYYY-MM-DD)
@@ -317,6 +323,11 @@ export const fetchKendoAssets = async (params = {}) => {
     }
 };
 
+// fetchKendoAssets({
+//     'media-category': ['Icons', 'Logos'],
+//     'document-type': ['Catalog'],
+//     'metadata-logic': 'OR'
+// })
 export default fetchKendoAssets;
 
 // Usage examples with getAssetsByMetadata:
@@ -334,10 +345,36 @@ export default fetchKendoAssets;
 // 3. 多选 Media Category metadata filter:
 // fetchKendoAssets({ 'media-category': ['Icons', 'Logos', 'Main'] })
 
-// 4. 组合多个 metadata 条件:
+// 4. 组合多个 metadata 条件 (AND 逻辑 - 默认):
 // fetchKendoAssets({
 //   'media-category': ['Icons', 'Logos'],
 //   'document-type': ['Catalog', 'Brochure']
+// })
+// 结果: 返回既是Icons/Logos类型，又是Catalog/Brochure文档的资产
+
+// ===== OR LOGIC EXAMPLES =====
+
+// 5. 组合多个 metadata 条件 (OR 逻辑):
+// fetchKendoAssets({
+//   'media-category': ['Icons', 'Logos'],
+//   'document-type': ['Catalog', 'Brochure'],
+//   'metadata-logic': 'OR'
+// })
+// 结果: 返回所有Icons/Logos类型的资产 + 所有Catalog/Brochure文档
+
+// 6. OR 逻辑实际应用场景 - 获取所有品牌相关素材:
+// fetchKendoAssets({
+//   'media-category': ['Logos', 'Brand'],      // 所有Logo和品牌图片
+//   'document-type': ['Brochure', 'Catalog'],  // 或者所有宣传册和目录
+//   'metadata-logic': 'OR'
+// })
+
+// 7. OR 逻辑 - 获取产品的所有相关内容:
+// fetchKendoAssets({
+//   'media-category': ['Main', 'Detail', 'Application'], // 产品图片
+//   'document-type': ['Manual', 'Datasheet', 'Guide'],   // 或者技术文档
+//   'model-number': 'ABC123',
+//   'metadata-logic': 'OR'
 // })
 
 // ===== BRAND/PATH FILTERING EXAMPLES =====
@@ -451,11 +488,30 @@ export default fetchKendoAssets;
 // metadataFilters: [{ name: "Document Type", values: ["Catalog"], operator: "IN" }]
 // metadataLogic: "AND"
 
-// Example 3: 组合查询生成:
+// Example 3: 组合查询生成 (AND 逻辑):
 // pathStartsWith: "/KENDO/"
 // metadataFilters: [
 //   { name: "Media Type", values: ["Icons"], operator: "IN" },
 //   { name: "Document Type", values: ["Catalog"], operator: "IN" }
 // ]
 // metadataLogic: "AND"
-// filter: "{\"$and\":[{\"mimetype\":{\"$not\":\"\"}},{\"mimetype\":{\"$like\":\"image/%\"}}]}" 
+// 结果: Icons AND Catalog (交集)
+
+// Example 4: 组合查询生成 (OR 逻辑):
+// pathStartsWith: "/KENDO/"
+// metadataFilters: [
+//   { name: "Media Type", values: ["Icons", "Logos"], operator: "IN" },
+//   { name: "Document Type", values: ["Catalog", "Brochure"], operator: "IN" }
+// ]
+// metadataLogic: "OR"
+// 结果: (Icons OR Logos) OR (Catalog OR Brochure) (并集)
+
+// Example 5: OR 逻辑复杂示例:
+// pathStartsWith: "/KENDO/"
+// metadataFilters: [
+//   { name: "Media Type", values: ["Brand", "Logos"], operator: "IN" },
+//   { name: "Document Type", values: ["Brochure", "Leaflet"], operator: "IN" }
+// ]
+// metadataLogic: "OR"
+// filter: "{\"$and\":[{\"mimetype\":{\"$not\":\"\"}},{\"fullpath\":{\"$like\":\"%ABC123%\"}}]}"
+// 结果: 所有品牌图片 + 所有宣传材料 + 包含ABC123的其他资产 
