@@ -387,7 +387,7 @@ const ProductCard = ({
                         </ActionButton>
                     )}
                     {cardActionsConfig.show_preview_media && (
-                        <ActionButton>
+                        <ActionButton onClick={handleProductClick}>
                             <Icon type="preview" />
                         </ActionButton>
                     )}
