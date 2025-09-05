@@ -32,6 +32,7 @@ const VerificationSentPage = Loader(lazy(() => import('../pages/VerificationSent
 const EmailVerificationPage = Loader(lazy(() => import('../pages/EmailVerificationPage')));
 const ThankYouPage = Loader(lazy(() => import('../pages/ThankYouPage')));
 const UserManagement = Loader(lazy(() => import('../pages/UserManagement')));
+const ProductDetailPage = Loader(lazy(() => import('../pages/ProductDetailPage')));
 
 const router = [
   // Login page route with tenant validation
@@ -108,6 +109,10 @@ const router = [
   {
     path: '/:lang/:brand/brand-book',
     element: <ProtectedRoute> <BrandbookPage /></ProtectedRoute>
+  },
+  {
+    path: '/:lang/:brand/product-detail/:id',
+    element: <ProtectedRoute><ProductDetailPage /></ProtectedRoute>
   },
   {
     path: '/:lang/:brand/legal-terms',
