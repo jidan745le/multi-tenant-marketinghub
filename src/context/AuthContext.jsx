@@ -5,6 +5,8 @@ import { clearLanguageCache } from '../store/slices/themesSlice';
 import { clearUserData, setUserData } from '../store/slices/userSlice';
 import apiClient from '../utils/apiClient';
 import CookieService from '../utils/cookieService';
+import CookieDebugger from '../utils/debugCookies';
+import DebugTracker from '../utils/debugTracker';
 
 const AuthContext = createContext();
 
@@ -77,23 +79,73 @@ export const AuthProvider = ({ children }) => {
     }, [location]);
 
     useEffect(() => {
+        DebugTracker.log('AUTH_INIT_START', {});
+        console.log('🚀 AuthContext 开始初始化检查...');
+        
         // 从cookie中检查认证状态
         const storedToken = CookieService.getToken();
         const userInfo = CookieService.getUserInfo();
+        
+        console.log('🔍 AuthContext 初始化检查:', {
+            currentURL: window.location.href,
+            hasStoredToken: !!storedToken,
+            tokenPreview: storedToken ? storedToken.substring(0, 20) + '...' : 'null',
+            hasUserInfo: !!userInfo,
+            userInfoValid: !!userInfo?.id,
+            userEmail: userInfo?.email || 'no email'
+        });
 
-        if (storedToken) {
-            setToken(storedToken);
-            setIsAuthenticated(true);
-            if (userInfo) {
+        if (storedToken || userInfo) {
+            // 如果有token或用户信息，尝试恢复认证状态
+            DebugTracker.log('AUTH_RESTORE_ATTEMPT', {
+                hasToken: !!storedToken,
+                hasUserInfo: !!userInfo,
+                userEmail: userInfo?.email
+            });
+            
+            if (storedToken) {
+                console.log('🔑 找到token，设置认证状态为已登录');
+                setToken(storedToken);
+                setIsAuthenticated(true);
+                
+                if (userInfo) {
+                    setUser(userInfo);
+                    // 将存储的用户数据同步到Redux
+                    dispatch(setUserData({
+                        user: userInfo,
+                        permissions: userInfo.permissions || [],
+                        roles: userInfo.roles || []
+                    }));
+                }
+                
+                DebugTracker.log('AUTH_RESTORE_SUCCESS', {
+                    userEmail: userInfo?.email,
+                    hasPermissions: !!(userInfo?.permissions && userInfo.permissions.length > 0)
+                });
+                console.log('✅ 认证状态恢复成功:', userInfo?.email || 'token only');
+            } else if (userInfo) {
+                // 只有用户信息没有token，可能是token过期了，但我们仍然可以尝试使用用户信息
+                console.log('⚠️ 只找到用户信息，没有token，尝试部分恢复');
                 setUser(userInfo);
-                // 将存储的用户数据同步到Redux
+                setIsAuthenticated(false); // 没有token就不算完全认证
                 dispatch(setUserData({
                     user: userInfo,
                     permissions: userInfo.permissions || [],
                     roles: userInfo.roles || []
                 }));
+                
+                DebugTracker.log('AUTH_PARTIAL_RESTORE', {
+                    userEmail: userInfo.email,
+                    reason: 'no_token'
+                });
             }
         } else {
+            DebugTracker.log('AUTH_RESTORE_FAILED', {
+                hasToken: !!storedToken,
+                hasUserInfo: !!userInfo,
+                reason: 'no_data'
+            });
+            console.log('❌ 未找到认证信息，设置为未登录状态');
             setToken(null);
             setIsAuthenticated(false);
             setUser(null);
@@ -101,10 +153,18 @@ export const AuthProvider = ({ children }) => {
         }
 
         setLoading(false);
+        console.log('✅ AuthContext 初始化完成');
+        
+        // 在开发模式下暴露调试工具
+        if (import.meta.env.DEV) {
+            window.CookieDebugger = CookieDebugger;
+            console.log('🛠️ Debug tools available: window.CookieDebugger.runFullTest()');
+        }
     }, []);
 
     const login = async (credentials) => {
         try {
+            DebugTracker.log('LOGIN_START', { email: credentials.email });
             setLoading(true);
             
             // Extract tenantName from URL and add it to credentials
@@ -119,17 +179,59 @@ export const AuthProvider = ({ children }) => {
             console.log('Login data with tenant:', loginData);
             
             const response = await apiClient.post('/login', loginData);
+            DebugTracker.log('LOGIN_API_SUCCESS', { userEmail: response.user?.email });
             const { token: newToken, user: userData } = response;
 
             // 使用CookieService保存token和用户信息
+            console.log('🍪 保存token到cookie和localStorage:', {
+                hasToken: !!newToken,
+                tokenLength: newToken?.length,
+                tokenStart: newToken?.substring(0, 20)
+            });
+            
+            DebugTracker.log('SAVE_TOKEN_START', {
+                hasToken: !!newToken,
+                tokenLength: newToken?.length,
+                userEmail: userData?.email
+            });
+            
             CookieService.setToken(newToken);
+            console.log('🍪 保存用户信息到cookie和localStorage:', userData?.email);
             CookieService.setUserInfo(userData);
+            
+            // 验证保存是否成功
+            const savedToken = CookieService.getToken();
+            const savedUserInfo = CookieService.getUserInfo();
+            
+            DebugTracker.log('SAVE_TOKEN_VERIFY', {
+                tokenSaved: !!savedToken,
+                userInfoSaved: !!savedUserInfo,
+                tokenMatch: savedToken === newToken,
+                userEmailMatch: savedUserInfo?.email === userData?.email,
+                cookieCount: document.cookie.split(';').length
+            });
+            
+            console.log('🔍 验证保存结果:', {
+                tokenSaved: !!savedToken,
+                tokenLength: savedToken?.length,
+                userInfoSaved: !!savedUserInfo,
+                tokenMatch: savedToken === newToken,
+                userEmailMatch: savedUserInfo?.email === userData?.email,
+                allCookies: document.cookie
+            });
 
             // 更新状态
             setToken(newToken);
             setIsAuthenticated(true);
             setUser(userData);
             setLoading(false);
+            
+            DebugTracker.log('LOGIN_STATE_UPDATED', {
+                hasToken: !!newToken,
+                isAuthenticated: true,
+                userId: userData?.id,
+                userEmail: userData?.email
+            });
 
             // 将用户数据存储到Redux
             dispatch(setUserData({

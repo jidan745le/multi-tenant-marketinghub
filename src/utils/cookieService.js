@@ -55,6 +55,17 @@ class CookieService {
      * @returns {string|null} Auth token or null
      */
     static getToken() {
+        // Try localStorage first (more reliable)
+        try {
+            const localToken = localStorage.getItem(this.TOKEN_KEY);
+            if (localToken) {
+                return localToken;
+            }
+        } catch (error) {
+            console.warn('Failed to get token from localStorage:', error);
+        }
+
+        // Fallback to cookie
         return this.getCookie(this.TOKEN_KEY);
     }
 
