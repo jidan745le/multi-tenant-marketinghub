@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { clearLanguageCache } from '../store/slices/themesSlice';
 import { clearUserData, setUserData } from '../store/slices/userSlice';
 import apiClient from '../utils/apiClient';
 import CookieService from '../utils/cookieService';
@@ -232,8 +233,9 @@ export const AuthProvider = ({ children }) => {
         // 使用CookieService清除认证信息
         CookieService.clearAuth();
 
-        // 清除Redux用户状态
+        // 清除所有Redux状态
         dispatch(clearUserData());
+        dispatch(clearLanguageCache({})); // 清除所有主题/语言缓存
 
         // 设置logout标志，防止ProtectedRoute干扰
         sessionStorage.setItem('logout_in_progress', 'true');

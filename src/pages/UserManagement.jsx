@@ -11,7 +11,6 @@ import {
   DialogTitle,
   FormControl,
   FormControlLabel,
-  FormHelperText,
   IconButton,
   InputLabel,
   MenuItem,
@@ -28,7 +27,7 @@ import {
   TableRow,
   TextField,
   Tooltip,
-  Typography,
+  Typography
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -80,15 +79,6 @@ const PrimaryButton = styled(Button)(({ theme }) => ({
   },
 }));
 
-// 角色分配按钮样式
-const AssignRoleButton = styled(ActionButton)(({ theme }) => ({
-  backgroundColor: theme.palette.primary.main,
-  color: 'white',
-  borderRadius: '4px',
-  '&:hover': {
-    backgroundColor: theme.palette.primary.dark,
-  },
-}));
 
 // Main component
 function UserManagement() {
@@ -103,7 +93,6 @@ function UserManagement() {
 
   // Dialog states
   const [addUserDialog, setAddUserDialog] = useState(false);
-  const [assignRolesDialog, setAssignRolesDialog] = useState(false);
   const [editUserDialog, setEditUserDialog] = useState(false);
   const [deleteConfirmDialog, setDeleteConfirmDialog] = useState(false);
 
@@ -116,13 +105,7 @@ function UserManagement() {
   });
   const [editingUser, setEditingUser] = useState(null);
   const [userToDelete, setUserToDelete] = useState(null);
-  const [selectedUserForRoles, setSelectedUserForRoles] = useState(null);
   const [availableRoles, setAvailableRoles] = useState([]);
-  const [selectedRoles, setSelectedRoles] = useState([]);
-  
-  // 批量选择用户状态
-  const [selectedUserIds, setSelectedUserIds] = useState([]);
-  const [selectAllUsers, setSelectAllUsers] = useState(false);
 
   // Snackbar state
   const [snackbar, setSnackbar] = useState({
@@ -221,7 +204,14 @@ function UserManagement() {
     }
 
     try {
+      // Update user basic information
       await UserManagementApiService.updateUser(editingUser.id, editingUser);
+      
+      // Update user roles if roleIds are provided
+      if (editingUser.roleIds) {
+        await UserManagementApiService.assignRoles(editingUser.id, editingUser.roleIds);
+      }
+      
       showSnackbar('User updated successfully');
       setEditUserDialog(false);
       setEditingUser(null);
@@ -244,34 +234,6 @@ function UserManagement() {
     }
   };
 
-  const handleAssignRoles = async () => {
-    try {
-      if (selectedUserForRoles.isBulk) {
-        // 批量分配角色
-        const promises = selectedUserForRoles.userIds.map(userId =>
-          UserManagementApiService.assignRoles(userId, selectedRoles)
-        );
-        await Promise.all(promises);
-        showSnackbar(`Roles assigned successfully to ${selectedUserForRoles.userIds.length} users`);
-      } else {
-        // 单个用户分配角色
-        await UserManagementApiService.assignRoles(
-          selectedUserForRoles.id,
-          selectedRoles
-        );
-        showSnackbar('Roles assigned successfully');
-      }
-      
-      setAssignRolesDialog(false);
-      setSelectedUserForRoles(null);
-      setSelectedRoles([]);
-      setSelectedUserIds([]); // 清空选择
-      setSelectAllUsers(false);
-      loadUsers();
-    } catch (err) {
-      showSnackbar(err.message, 'error');
-    }
-  };
 
   const handleToggleUserStatus = async (user) => {
     try {
@@ -286,10 +248,22 @@ function UserManagement() {
   };
 
   // Dialog handlers
-  const openEditDialog = (user) => {
+  const openEditDialog = async (user) => {
     setEditingUser({ ...user });
     setEditUserDialog(true);
     setFormErrors({});
+    
+    // Load user's current roles
+    try {
+      const userRoles = await UserManagementApiService.getUserRoles(user.id);
+      setEditingUser({ 
+        ...user, 
+        roleIds: userRoles.roles?.map(role => role.id) || [] 
+      });
+    } catch (err) {
+      console.error('Failed to load user roles:', err);
+      setEditingUser({ ...user, roleIds: [] });
+    }
   };
 
   const openDeleteDialog = (user) => {
@@ -297,58 +271,6 @@ function UserManagement() {
     setDeleteConfirmDialog(true);
   };
 
-  const openAssignRolesDialog = async (user) => {
-    setSelectedUserForRoles(user);
-    try {
-      const userRoles = await UserManagementApiService.getUserRoles(user.id);
-      setSelectedRoles(userRoles.roles?.map(role => role.id) || []);
-    } catch (err) {
-      setSelectedRoles([]);
-    }
-    setAssignRolesDialog(true);
-  };
-
-  // 批量选择用户处理函数
-  const handleSelectAllUsers = (checked) => {
-    setSelectAllUsers(checked);
-    if (checked) {
-      setSelectedUserIds(users.map(user => user.id));
-    } else {
-      setSelectedUserIds([]);
-    }
-  };
-
-  const handleSelectUser = (userId, checked) => {
-    if (checked) {
-      setSelectedUserIds(prev => [...prev, userId]);
-    } else {
-      setSelectedUserIds(prev => prev.filter(id => id !== userId));
-    }
-    
-    // 更新全选状态
-    const newSelectedIds = checked 
-      ? [...selectedUserIds, userId]
-      : selectedUserIds.filter(id => id !== userId);
-    setSelectAllUsers(newSelectedIds.length === users.length);
-  };
-
-  // 批量分配角色
-  const handleBulkAssignRoles = () => {
-    if (selectedUserIds.length === 0) {
-      showSnackbar('Please select at least one user', 'warning');
-      return;
-    }
-    
-    // 为批量操作设置虚拟用户对象
-    setSelectedUserForRoles({
-      id: 'bulk',
-      name: `${selectedUserIds.length} selected users`,
-      isBulk: true,
-      userIds: selectedUserIds
-    });
-    setSelectedRoles([]);
-    setAssignRolesDialog(true);
-  };
 
   // Format date
   const formatDate = (dateString) => {
@@ -400,13 +322,6 @@ function UserManagement() {
           >
             ADD USER
           </PrimaryButton>
-          <PrimaryButton
-            variant="contained"
-            onClick={handleBulkAssignRoles}
-            disabled={selectedUserIds.length === 0}
-          >
-            ASSIGN ROLES ({selectedUserIds.length})
-          </PrimaryButton>
         </Box>
       </HeaderContainer>
 
@@ -422,14 +337,6 @@ function UserManagement() {
         <Table>
           <TableHead>
             <TableRow>
-              <TableHeader>
-                <Checkbox 
-                  size="small" 
-                  checked={selectAllUsers}
-                  indeterminate={selectedUserIds.length > 0 && selectedUserIds.length < users.length}
-                  onChange={(e) => handleSelectAllUsers(e.target.checked)}
-                />
-              </TableHeader>
               <TableHeader>ID</TableHeader>
               <TableHeader>First Name</TableHeader>
               <TableHeader>Last Name</TableHeader>
@@ -441,101 +348,110 @@ function UserManagement() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {users.map((user) => (
-              <TableRow key={user.id} hover>
-                <TableCell>
-                  <Checkbox 
-                    size="small" 
-                    checked={selectedUserIds.includes(user.id)}
-                    onChange={(e) => handleSelectUser(user.id, e.target.checked)}
-                  />
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body2" color="primary">
-                    {user.id.slice(-6)}
-                  </Typography>
-                </TableCell>
-                <TableCell>{user.name?.split(' ')[0] || '-'}</TableCell>
-                <TableCell>{user.name?.split(' ').slice(1).join(' ') || '-'}</TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell>
-                  <Box>
-                    <Typography variant="body2">
-                      {user.createdAt ? formatDate(user.createdAt) : '-'}
+            {users.map((user) => {
+              // Separate roles into theme and non-theme roles
+              const themeRoles = user.roles?.filter(role => 
+                role.name.toLowerCase().includes('_viewer') || 
+                role.name.toLowerCase().includes('theme')
+              ) || [];
+              
+              const nonThemeRoles = user.roles?.filter(role => 
+                !role.name.toLowerCase().includes('_viewer') && 
+                !role.name.toLowerCase().includes('theme')
+              ) || [];
+
+              return (
+                <TableRow key={user.id} hover>
+                  <TableCell>
+                    <Typography variant="body2" color="primary">
+                      {user.id.slice(-6)}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {user.lastLoginAt ? formatDate(user.lastLoginAt) : 'Never'}
-                    </Typography>
-                  </Box>
-                </TableCell>
-                <TableCell>
-                  {user.roles?.map((role) => (
-                    <Chip
-                      key={role.id}
-                      label={role.name}
-                      size="small"
-                      variant="outlined"
-                      sx={{ mr: 0.5, mb: 0.5 }}
-                    />
-                  )) || 'No roles'}
-                </TableCell>
-                <TableCell>
-                  <Chip
-                    label={user.tenant?.name || 'KENDO'}
-                    size="small"
-                    color="primary"
-                    variant="outlined"
-                  />
-                </TableCell>
-                <TableCell>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Tooltip title="Edit">
-                      <ActionButton
-                        onClick={() => openEditDialog(user)}
-                        sx={{ color: 'primary.main' }}
-                      >
-                        <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-                          edit
-                        </span>
-                      </ActionButton>
-                    </Tooltip>
-                    <Tooltip title="Send Email">
-                      <ActionButton sx={{ color: 'primary.main' }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-                          mail
-                        </span>
-                      </ActionButton>
-                    </Tooltip>
-                    <Tooltip title={user.isActive ? 'Deactivate' : 'Activate'}>
-                      <StatusSwitch
-                        checked={user.isActive}
-                        onChange={() => handleToggleUserStatus(user)}
-                        size="small"
-                      />
-                    </Tooltip>
-                    <Tooltip title="Assign Roles">
-                      <AssignRoleButton
-                        onClick={() => openAssignRolesDialog(user)}
-                      >
-                        <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-                          person_add
-                        </span>
-                      </AssignRoleButton>
-                    </Tooltip>
-                    <Tooltip title="Delete">
-                      <ActionButton
-                        onClick={() => openDeleteDialog(user)}
-                        sx={{ color: 'primary.main' }}
-                      >
-                        <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-                          delete
-                        </span>
-                      </ActionButton>
-                    </Tooltip>
-                  </Box>
-                </TableCell>
-              </TableRow>
-            ))}
+                  </TableCell>
+                  <TableCell>{user.name?.split(' ')[0] || '-'}</TableCell>
+                  <TableCell>{user.name?.split(' ').slice(1).join(' ') || '-'}</TableCell>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell>
+                    <Box>
+                      <Typography variant="body2">
+                        {user.createdAt ? formatDate(user.createdAt) : '-'}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {user.lastLoginAt ? formatDate(user.lastLoginAt) : 'Never'}
+                      </Typography>
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    {nonThemeRoles.length > 0 ? (
+                      nonThemeRoles.map((role) => (
+                        <Chip
+                          key={role.id}
+                          label={role.name}
+                          size="small"
+                          variant="outlined"
+                          sx={{ mr: 0.5, mb: 0.5 }}
+                        />
+                      ))
+                    ) : (
+                      <Typography variant="body2" color="text.secondary">No roles</Typography>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {themeRoles.length > 0 ? (
+                      themeRoles.map((role) => (
+                        <Chip
+                          key={role.id}
+                          label={role.name.replace('_viewer', '')}
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                          sx={{ mr: 0.5, mb: 0.5 }}
+                        />
+                      ))
+                    ) : (
+                      <Typography variant="body2" color="text.secondary">No themes</Typography>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Tooltip title="Edit">
+                        <ActionButton
+                          onClick={() => openEditDialog(user)}
+                          sx={{ color: 'primary.main' }}
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+                            edit
+                          </span>
+                        </ActionButton>
+                      </Tooltip>
+                      <Tooltip title="Send Email">
+                        <ActionButton sx={{ color: 'primary.main' }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+                            mail
+                          </span>
+                        </ActionButton>
+                      </Tooltip>
+                      <Tooltip title={user.isActive ? 'Deactivate' : 'Activate'}>
+                        <StatusSwitch
+                          checked={user.isActive}
+                          onChange={() => handleToggleUserStatus(user)}
+                          size="small"
+                        />
+                      </Tooltip>
+                      <Tooltip title="Delete">
+                        <ActionButton
+                          onClick={() => openDeleteDialog(user)}
+                          sx={{ color: 'primary.main' }}
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+                            delete
+                          </span>
+                        </ActionButton>
+                      </Tooltip>
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </TableContainer>
@@ -668,6 +584,34 @@ function UserManagement() {
                 }
                 label="Active"
               />
+              <FormControl fullWidth>
+                <InputLabel>Roles</InputLabel>
+                <Select
+                  multiple
+                  value={editingUser.roleIds || []}
+                  onChange={(e) => setEditingUser({ ...editingUser, roleIds: e.target.value })}
+                  renderValue={(selected) =>
+                    selected.map(roleId => {
+                      const role = availableRoles.find(r => r.id === roleId);
+                      return role?.name || roleId;
+                    }).join(', ')
+                  }
+                >
+                  {availableRoles.map((role) => (
+                    <MenuItem key={role.id} value={role.id}>
+                      <Checkbox checked={(editingUser.roleIds || []).indexOf(role.id) > -1} />
+                      <Box>
+                        <Typography variant="body1">{role.name}</Typography>
+                        {role.description && (
+                          <Typography variant="body2" color="text.secondary">
+                            {role.description}
+                          </Typography>
+                        )}
+                      </Box>
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </Box>
           )}
         </DialogContent>
@@ -698,56 +642,6 @@ function UserManagement() {
         </DialogActions>
       </Dialog>
 
-      {/* Assign Roles Dialog */}
-      <Dialog
-        open={assignRolesDialog}
-        onClose={() => setAssignRolesDialog(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          Assign Roles {selectedUserForRoles && `to ${selectedUserForRoles.name}`}
-        </DialogTitle>
-        <DialogContent>
-          <FormControl fullWidth sx={{ mt: 1 }}>
-            <InputLabel>Select Roles</InputLabel>
-            <Select
-              multiple
-              value={selectedRoles}
-              onChange={(e) => setSelectedRoles(e.target.value)}
-              renderValue={(selected) =>
-                selected.map(roleId => {
-                  const role = availableRoles.find(r => r.id === roleId);
-                  return role?.name || roleId;
-                }).join(', ')
-              }
-            >
-              {availableRoles.map((role) => (
-                <MenuItem key={role.id} value={role.id}>
-                  <Checkbox checked={selectedRoles.indexOf(role.id) > -1} />
-                  <Box>
-                    <Typography variant="body1">{role.name}</Typography>
-                    {role.description && (
-                      <Typography variant="body2" color="text.secondary">
-                        {role.description}
-                      </Typography>
-                    )}
-                  </Box>
-                </MenuItem>
-              ))}
-            </Select>
-            <FormHelperText>
-              Select one or more roles to assign to the user
-            </FormHelperText>
-          </FormControl>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setAssignRolesDialog(false)}>Cancel</Button>
-          <PrimaryButton onClick={handleAssignRoles} variant="contained">
-            Assign Roles
-          </PrimaryButton>
-        </DialogActions>
-      </Dialog>
 
       {/* Success/Error Snackbar */}
       <Snackbar
