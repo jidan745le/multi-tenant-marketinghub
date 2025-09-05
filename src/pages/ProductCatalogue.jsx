@@ -1,12 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import ProductCatalogue from '../components/ProductCatalogue';
 import { createProductCatalogueConfig } from '../config/kendoProductConfig';
 import { useBrand } from '../hooks/useBrand';
-import ProductDetailApiService from '../services/productDetailApi';
+import { fetchSKUProducts } from '../services/skuProductsApi';
 
 function ProductCataloguePage() {
-  // 获取当前品牌
+  // 获取当前品牌和路由参数
   const { currentBrandCode } = useBrand();
+  const navigate = useNavigate();
+  const { lang, brand } = useParams();
   
   // 产品详情状态
   const [loadingProductDetail, setLoadingProductDetail] = useState(false);
@@ -25,16 +28,16 @@ function ProductCataloguePage() {
     return newConfig;
   }, [currentBrandCode]);
 
-  // 处理产品点击
+  // 处理产品点击 - 特殊逻辑：查找SKU产品并导航到第一个SKU的详情页
   const handleProductClick = async (product) => {
     console.log(`Open ${currentBrandCode.toUpperCase()} product page for:`, product.name);
     
-    // 获取产品ID - 尝试从不同的字段中获取
-    const productId = product.id || product.productId || product.VirtualProductID;
+    // 获取虚拟产品ID
+    const virtualProductId = product.VirtualProductID || product.modelNumber;
     
-    if (!productId) {
-      console.warn('Product ID not found in product object:', product);
-      setProductDetailError('Product ID not available');
+    if (!virtualProductId) {
+      console.warn('VirtualProductID not found in product object:', product);
+      setProductDetailError('VirtualProductID not available');
       return;
     }
     
@@ -42,31 +45,40 @@ function ProductCataloguePage() {
       setLoadingProductDetail(true);
       setProductDetailError(null);
       
-      console.log(`🔍 Fetching product detail for ID: ${productId}`);
+      console.log(`🔍 Searching for SKU products with VirtualProductID: ${virtualProductId}`);
       
-      // 调用产品详情API
-      const productDetail = await ProductDetailApiService.getProductDetail(productId);
+      // 查询与该虚拟产品ID相关的所有SKU产品
+      const { skuProducts, error } = await fetchSKUProducts(virtualProductId);
       
-      console.log(`✅ Product detail fetched successfully:`, productDetail);
+      if (error) {
+        throw new Error(error);
+      }
       
-      // 打印关键信息
-      console.log(`📦 Product Name: ${productDetail.productCardInfo.productName}`);
-      console.log(`🏷️ Brand: ${productDetail.basicData.brand}`);
-      console.log(`📊 Product Type: ${productDetail.basicData.productType}`);
-      console.log(`📝 Short Description: ${productDetail.marketingData.popShortDescription}`);
+      if (!skuProducts || skuProducts.length === 0) {
+        console.warn(`No SKU products found for VirtualProductID: ${virtualProductId}`);
+        setProductDetailError('No SKU products found for this product');
+        return;
+      }
       
-      // TODO: 在这里可以打开产品详情弹窗、导航到详情页或者更新UI状态
-      // 例如：
-      // - 打开产品详情模态框
-      // - 导航到产品详情页面
-      // - 更新Redux状态存储产品详情
+      console.log(`✅ Found ${skuProducts.length} SKU products:`, skuProducts);
+      
+      // 选择第一个SKU产品的ID
+      const firstSku = skuProducts[0];
+      const firstSkuId = firstSku.id;
+      
+      console.log(`🎯 Selecting first SKU with ID: ${firstSkuId}`, firstSku);
+      
+      // 构建产品详情页面URL: /en_GB/kendo/product-detail/${id}
+      const detailUrl = `/${lang || 'en_GB'}/${brand || currentBrandCode}/product-detail/${firstSkuId}`;
+      
+      console.log(`🚀 Navigating to product detail page: ${detailUrl}`);
+      
+      // 导航到产品详情页面
+      navigate(detailUrl);
       
     } catch (error) {
-      console.error(`❌ Failed to fetch product detail for ID ${productId}:`, error);
+      console.error(`❌ Failed to fetch SKU products for VirtualProductID ${virtualProductId}:`, error);
       setProductDetailError(error.message);
-      
-      // 仍然可以继续原有的处理逻辑
-      console.log(`Continuing with fallback product page navigation...`);
       
     } finally {
       setLoadingProductDetail(false);
