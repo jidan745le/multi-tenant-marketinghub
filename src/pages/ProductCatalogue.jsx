@@ -72,9 +72,9 @@ function ProductCataloguePage() {
       const detailUrl = `/${lang || 'en_GB'}/${brand || currentBrandCode}/product-detail/${firstSkuId}`;
       
       console.log(`🚀 Navigating to product detail page: ${detailUrl}`);
-      
+      window.open(detailUrl, '_blank');
       // 导航到产品详情页面
-      navigate(detailUrl);
+      // navigate(detailUrl);
       
     } catch (error) {
       console.error(`❌ Failed to fetch SKU products for VirtualProductID ${virtualProductId}:`, error);

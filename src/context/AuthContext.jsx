@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useDispatch } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { clearUserData, setUserData } from '../store/slices/userSlice';
 import apiClient from '../utils/apiClient';
 import CookieService from '../utils/cookieService';
 
@@ -21,6 +23,7 @@ export const AuthProvider = ({ children }) => {
     const [returnUrl, setReturnUrl] = useState(null);
     const navigate = useNavigate();
     const location = useLocation();
+    const dispatch = useDispatch();
 
     // Map short locale (e.g., 'en') from LoginPage to app language code (e.g., 'en_GB')
     const mapLocaleToAppLanguage = (locale) => {
@@ -34,6 +37,33 @@ export const AuthProvider = ({ children }) => {
         if (!locale) return 'en_GB';
         const normalized = String(locale).toLowerCase();
         return mapping[normalized] || (normalized.length === 2 ? `${normalized}_${normalized.toUpperCase()}` : 'en_GB');
+    };
+
+    // Check if user has required permissions to access main app
+    const hasRequiredPermissions = (permissions) => {
+        if (!permissions || !Array.isArray(permissions)) {
+            console.warn('⚠️ 权限数据不存在或格式错误:', permissions);
+            return false;
+        }
+        
+        const requiredPermissions = [
+            'marketinghub:theme:kendo',
+            'marketinghub:theme:bosch',
+            'marketinghub:system:admin'
+        ];
+
+        const hasPermission = requiredPermissions.some(permission => 
+            permissions.includes(permission)
+        );
+
+        console.log('🔍 权限检查详情:', {
+            userPermissions: permissions,
+            requiredPermissions,
+            hasMatchingPermission: hasPermission,
+            matchingPermissions: permissions.filter(p => requiredPermissions.includes(p))
+        });
+
+        return hasPermission;
     };
 
     useEffect(() => {
@@ -55,11 +85,18 @@ export const AuthProvider = ({ children }) => {
             setIsAuthenticated(true);
             if (userInfo) {
                 setUser(userInfo);
+                // 将存储的用户数据同步到Redux
+                dispatch(setUserData({
+                    user: userInfo,
+                    permissions: userInfo.permissions || [],
+                    roles: userInfo.roles || []
+                }));
             }
         } else {
             setToken(null);
             setIsAuthenticated(false);
             setUser(null);
+            dispatch(clearUserData());
         }
 
         setLoading(false);
@@ -92,6 +129,13 @@ export const AuthProvider = ({ children }) => {
             setIsAuthenticated(true);
             setUser(userData);
             setLoading(false);
+
+            // 将用户数据存储到Redux
+            dispatch(setUserData({
+                user: userData,
+                permissions: userData.permissions || [],
+                roles: userData.roles || []
+            }));
 
             // 根据登录页面的URL参数设置localStorage的租户信息
             const pathSegments = location.pathname.split('/').filter(Boolean);
@@ -129,16 +173,30 @@ export const AuthProvider = ({ children }) => {
                 console.warn('Failed to set localStorage:', error);
             }
 
-            // 处理登录成功后的重定向
-            if (returnUrl) {
-                setTimeout(() => {
-                    window.location.href = returnUrl;
-                });
+            // 检查用户权限并进行相应的重定向
+            console.log('🔍 开始权限检查:', userData.permissions);
+            const hasPermissions = hasRequiredPermissions(userData.permissions);
+            console.log('🔍 权限检查结果:', hasPermissions);
+
+            if (hasPermissions) {
+                // 用户有访问权限，进行正常重定向
+                if (returnUrl) {
+                    console.log('✅ 用户有权限，跳转到返回URL:', returnUrl);
+                    setTimeout(() => {
+                        window.location.href = returnUrl;
+                    });
+                } else {
+                    console.log('✅ 用户有权限，跳转到默认页面:', `/${appLanguage}/${brand}/category`);
+                    // 直接跳转到正确的默认页面，而不是通过dashboard
+                    setTimeout(() => {
+                        navigate(`/${appLanguage}/${brand}/category`);
+                    }, 100);
+                }
             } else {
-                console.log('Navigating to default page...');
-                // 直接跳转到正确的默认页面，而不是通过dashboard
+                // 用户没有访问权限，重定向到感谢页面
+                console.log('❌ 用户没有必要权限，跳转到感谢页面:', `/${tenantFromPath}/ThankYou?theme=${themeParam}&locale=${localeParam}`);
                 setTimeout(() => {
-                    navigate(`/${appLanguage}/${brand}/category`);
+                    navigate(`/${tenantFromPath}/ThankYou?theme=${themeParam}&locale=${localeParam}`);
                 }, 100);
             }
             return true;
@@ -173,6 +231,9 @@ export const AuthProvider = ({ children }) => {
     const logout = () => {
         // 使用CookieService清除认证信息
         CookieService.clearAuth();
+
+        // 清除Redux用户状态
+        dispatch(clearUserData());
 
         // 设置logout标志，防止ProtectedRoute干扰
         sessionStorage.setItem('logout_in_progress', 'true');

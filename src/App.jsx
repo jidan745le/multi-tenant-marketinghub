@@ -75,12 +75,13 @@ const fetchStrapiThemes = async (dispatch, languageCode = 'en_GB') => {
   // Import CookieService for auth token
   const { default: CookieService } = await import('./utils/cookieService');
   
-  // 检查是否是登录页面且用户未认证，如果是则不进行主题数据请求
+  // 检查是否是登录页面且用户未认证，或者是ThankYou页面，如果是则不进行主题数据请求
   const isLoginPage = typeof window !== 'undefined' && window.location.pathname.endsWith('/Login');
+  const isThankYouPage = typeof window !== 'undefined' && window.location.pathname.endsWith('/ThankYou');
   const isAuthenticated = !!CookieService.getToken();
   
-  if (isLoginPage && !isAuthenticated) {
-    console.log('🚫 登录页面且未认证，跳过Strapi主题数据请求');
+  if ((isLoginPage && !isAuthenticated) || isThankYouPage) {
+    console.log('🚫 登录页面且未认证或ThankYou页面，跳过Strapi主题数据请求');
     return null;
   }
   
@@ -149,6 +150,38 @@ const fetchStrapiThemes = async (dispatch, languageCode = 'en_GB') => {
     
     if (!hasValidData) {
       console.warn(`⚠️ ${languageCode}语言的主题数据为空 (locale=${locale}), 数据:`, result);
+      
+      // 检查是否是因为权限问题导致的空数据数组
+      // 当API返回 { data: [], meta: { pagination: { total: 0 } } } 时，说明没有权限访问主题数据
+      const isPermissionIssue = result.data && Array.isArray(result.data) && result.data.length === 0 && 
+                                result.meta && result.meta.pagination && result.meta.pagination.total >= 0;
+      
+      if (isPermissionIssue) {
+        console.log(`🚫 检测到权限问题，准备重定向到 ThankYou 页面`);
+        
+        // 获取当前租户信息以构建正确的重定向路径
+        let tenantName = 'default';
+        try {
+          const storedTenant = localStorage.getItem('mh_tenant');
+          if (storedTenant) {
+            const parsed = JSON.parse(storedTenant);
+            if (parsed && parsed.tenant) {
+              tenantName = parsed.tenant;
+            }
+          }
+        } catch (_) {}
+        
+        // 重定向到 ThankYou 页面
+        const redirectPath = `/${tenantName}/ThankYou`;
+        console.log(`➡️ 重定向到: ${redirectPath}`);
+        
+        // 使用 window.location.href 进行重定向
+        if (typeof window !== 'undefined') {
+          window.location.href = redirectPath;
+        }
+        
+        return null;
+      }
       
       // 如果当前不是默认语言，尝试回退到默认语言
       if (languageCode !== 'en_GB') {
@@ -276,6 +309,13 @@ function RouterContent() {
   // 监听认证状态变化，重新获取主题数据 (只监听认证状态，不监听语言变化)
   useEffect(() => {
     if (isAuthenticated) {
+      // 检查是否是ThankYou页面，如果是则不请求主题数据
+      const isCurrentThankYouPage = window.location.pathname.endsWith('/ThankYou');
+      if (isCurrentThankYouPage) {
+        console.log('🚫 ThankYou页面，跳过认证状态变化主题数据请求');
+        return;
+      }
+      
       const currentLanguage = i18n.language || 'en_GB';
       console.log(`🔐 用户登录，重新加载主题数据: ${currentLanguage}`);
       // 强制重新获取主题数据，因为现在有认证token了
@@ -289,6 +329,7 @@ function RouterContent() {
   const isSignUpPage = window.location.pathname.split('/').pop().includes('Register');
   const isVerificationSentPage = window.location.pathname.endsWith('/VerificationSent');
   const isEmailVerificationPage = window.location.pathname.endsWith('/VerifyEmail');
+  const isThankYouPage = window.location.pathname.endsWith('/ThankYou');
   return (
     <ThemeProviderWrapper>
       <CssBaseline />
@@ -302,7 +343,7 @@ function RouterContent() {
         }}
       >
         {/* 顶部导航栏 - 登录页面不显示 */}
-        {!isLoginPage && !isSignUpPage && !isVerificationSentPage && !isEmailVerificationPage && <TopBar />}
+        {!isLoginPage && !isSignUpPage && !isVerificationSentPage && !isEmailVerificationPage && !isThankYouPage && <TopBar />}
         
         {/* 主要内容区域 */}
         <Box 
@@ -328,9 +369,11 @@ function AppContent() {
   
   // 在组件挂载时请求初始 Strapi themes
   useEffect(() => {
-    // 检查是否是登录页面，如果是则不进行主题数据请求
+    // 检查是否是登录页面或ThankYou页面，如果是则不进行主题数据请求
     const isLoginPage = window.location.pathname.endsWith('/Login');
-    if (isLoginPage) {
+    const isThankYouPage = window.location.pathname.endsWith('/ThankYou');
+    if (isLoginPage || isThankYouPage) {
+      console.log('🚫 登录页面或ThankYou页面，跳过初始主题数据请求');
       return;
     }
     
@@ -342,10 +385,11 @@ function AppContent() {
   // 监听i18n语言变化 (避免重复监听)
   useEffect(() => {
     const handleLanguageChange = (newLanguage) => {
-      // 检查是否是登录页面，如果是则不进行主题数据请求
+      // 检查是否是登录页面或ThankYou页面，如果是则不进行主题数据请求
       const isLoginPage = window.location.pathname.endsWith('/Login');
-      if (isLoginPage) {
-        console.log('🚫 登录页面，跳过语言变化主题数据请求');
+      const isThankYouPage = window.location.pathname.endsWith('/ThankYou');
+      if (isLoginPage || isThankYouPage) {
+        console.log('🚫 登录页面或ThankYou页面，跳过语言变化主题数据请求');
         return;
       }
       

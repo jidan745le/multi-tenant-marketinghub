@@ -109,6 +109,7 @@ const adminMenuItems = [
   { id: 'data-sheet-config', label: 'Data Sheet Config', iconName: 'bar_chart' },
   { id: 'mass-download', label: 'Mass Download', iconName: 'download_2' },
   { id: 'social-profile', label: 'Social Profile', iconName: 'public' },
+  { id: 'user-management', label: 'User Management', iconName: 'group' },
 ];
 
 function AdminLayout() {
