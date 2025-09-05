@@ -121,7 +121,7 @@ const ProductCard = ({
   
   const currentModelNumber = activeSku ? activeSku.material : modelNumber;
   const currentTitle = activeSku ? 
-    title.replace(/\d+mm\/\d+"/, activeSku.size) : 
+    `${title} - ${activeSku.size}` : 
     title;
   const currentImageUrl = activeSku && activeSku.imageUrl ? activeSku.imageUrl : '';
 
@@ -223,7 +223,7 @@ const ProductCard = ({
                 ...(currentImageUrl && {
                   backgroundImage: `url(${currentImageUrl})`,
                   backgroundPosition: 'center',
-                  backgroundSize: 'cover',
+                  backgroundSize: 'contain', // 改为contain以完整显示图片
                   backgroundRepeat: 'no-repeat'
                 }),
                 filter: isImageHover ? 'blur(2px)' : 'none',

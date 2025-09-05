@@ -240,9 +240,9 @@ const ProductDetailPage = () => {
       finalReleaseDate: '2025-06-01'
     },
     skus: [
-      { size: '160mm/6"', material: '90257', finish: 'Nickel Iron Plated', standard: '' },
-      { size: '180mm/6"', material: '90258', finish: 'Nickel Iron Plated', standard: '' },
-      { size: '200mm/6"', material: '90259', finish: 'Nickel Iron Plated', standard: '' }
+      { size: '160mm/6"', material: 'A01010501', finish: 'Nickel Iron Plated', standard: '' },
+      { size: '180mm/6"', material: 'A01010502', finish: 'Nickel Iron Plated', standard: '' },
+      { size: '200mm/6"', material: 'A01010503', finish: 'Nickel Iron Plated', standard: '' }
     ],
     basicData: {
       brand: 'Kendo',
@@ -286,7 +286,9 @@ const ProductDetailPage = () => {
           ...prev,
           id: productCardInfo?.productNumber || String(routeProductId),
           name: productCardInfo?.productName || prev.name,
-          image: productCardInfo?.imageUrl || prev.image,
+          image: productCardInfo?.thumbnailUrl ? `https://pim-test.kendo.com${productCardInfo.thumbnailUrl}` : 
+                 productCardInfo?.imageUrl ? `https://pim-test.kendo.com${productCardInfo.imageUrl}` : 
+                 prev.image,
           status: {
             lifecycle: productCardInfo?.lifeCycleStatus || prev.status.lifecycle,
             regionalLaunchDate: productCardInfo?.regionalLaunchDate || prev.status.regionalLaunchDate,
@@ -447,6 +449,15 @@ const ProductDetailPage = () => {
     </Box>
   );
 
+  const renderMarketingDataSection = () => (
+    <Box>
+      <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1, fontSize: '30px',fontFamily: '"Roboto", sans-serif',fontWeight: 900 }}>
+        <Box component='img' src={documentIcon} alt='document' sx={{ width: 36, height: 36}} />
+        Marketing Data
+      </Typography>
+    </Box>
+  );
+
   return (
     <Box sx={{ 
       display: 'flex', 
@@ -494,7 +505,28 @@ const ProductDetailPage = () => {
           <Box sx={{ p: 3 }}>
           <Grid container spacing={3} sx={{mt: 1}}>
             <Grid item xs={12}>
-              <ProductCard onDownloadClick={() => console.log('download clicked')} />
+              <ProductCard 
+                announcementPrefix="New Version Available:"
+                announcementLinkText={productData.name || "Product Information"}
+                statusText={"In Development"}
+                modelNumber={productData.basicData?.modelNumber || productData.id}
+                title={productData.name || "Product Title"}
+                lifeCycleStatus={productData.status?.lifecycle || "Active"}
+                regionalLaunchDate={productData.status?.regionalLaunchDate || "2025-01-01"}
+                enrichmentStatus={productData.status?.enrichmentStatus || "Global data ready"}
+                finalReleaseDate={productData.status?.finalReleaseDate || "2025-06-01"}
+                skuData={[
+                  { 
+                    size: '160mm/6"', 
+                    material: productData.basicData?.modelNumber || productData.id, 
+                    finish: 'Nickel Iron Plated', 
+                    imageUrl: productData.image || '/assets/productcard_image.png' 
+                  },
+                  { size: '180mm/6"', material: 'A01010502', finish: 'Nickel Iron Plated', imageUrl: '/assets/productcard_image.png'  },
+                  { size: '200mm/6"', material: 'A01010503', finish: 'Nickel Iron Plated', imageUrl: ''  },
+                ]}
+                onDownloadClick={() => console.log('download clicked')} 
+              />
             </Grid>
           </Grid>
 
@@ -505,6 +537,11 @@ const ProductDetailPage = () => {
               Basic Data
             </Typography>
             {renderBasicDataSection()}
+          </Box>
+
+          {/* Marketing Data 部分 */}
+          <Box sx={{ mt: 12 }}>
+            {renderMarketingDataSection()}
           </Box>
             </Box>
           </Box>
