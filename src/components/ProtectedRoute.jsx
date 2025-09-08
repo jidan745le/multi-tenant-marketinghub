@@ -3,8 +3,19 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, user, token } = useAuth();
   const location = useLocation();
+  
+  console.log('🔒 ProtectedRoute 检查:', {
+    isAuthenticated,
+    loading,
+    hasUser: !!user,
+    userEmail: user?.email || 'no user',
+    hasToken: !!token,
+    tokenPreview: token ? token.substring(0, 20) + '...' : 'no token',
+    currentPath: location.pathname,
+    timestamp: new Date().toISOString()
+  });
 
   // Show loading spinner while checking authentication
   if (loading) {

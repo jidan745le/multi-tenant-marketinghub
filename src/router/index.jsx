@@ -30,6 +30,8 @@ const LegalPrivacyPage = Loader(lazy(() => import('../pages/LegalPrivacyPage')))
 const SignUpPage = Loader(lazy(() => import('../pages/SignUpPage')));
 const VerificationSentPage = Loader(lazy(() => import('../pages/VerificationSentPage')));
 const EmailVerificationPage = Loader(lazy(() => import('../pages/EmailVerificationPage')));
+const ThankYouPage = Loader(lazy(() => import('../pages/ThankYouPage')));
+const UserManagement = Loader(lazy(() => import('../pages/UserManagement')));
 const ProductDetailPage = Loader(lazy(() => import('../pages/ProductDetailPage')));
 
 const router = [
@@ -51,6 +53,10 @@ const router = [
   {
     path: '/:tenant/VerifyEmail',
     element: <EmailVerificationPage />
+  },
+  {
+    path: '/:tenant/ThankYou',
+    element: <ThankYouPage />
   },
   
   // 根路径重定向到默认语言和品牌的产品目录
@@ -95,6 +101,10 @@ const router = [
   {
     path: '/:lang/:brand/videos',
     element: <ProtectedRoute><Videos /></ProtectedRoute>
+  },
+  {
+    path: '/:lang/:brand/product-detail/:id',
+    element: <ProtectedRoute><ProductDetailPage /></ProtectedRoute>
   },
   {
     path: '/:lang/:brand/brand-book',
@@ -155,6 +165,10 @@ const router = [
       {
         path: 'social-profile',
         element: <SocialProfileSettings />
+      },
+      {
+        path: 'user-management',
+        element: <UserManagement />
       },
       {
         path: 'under-construction',

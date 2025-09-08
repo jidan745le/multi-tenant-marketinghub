@@ -1,0 +1,180 @@
+/* Thank You Page Styles */
+.pageContainer {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.thankYouSide {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  background-color: #ffffff;
+  position: relative;
+  z-index: 1;
+}
+
+.imageSide {
+  flex: 1;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative;
+}
+
+.thankYouContent {
+  max-width: 500px;
+  width: 100%;
+  text-align: center;
+  margin-top: 40px;
+}
+
+.title {
+  font-size: 2.5rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 30px;
+  line-height: 1.2;
+}
+
+.message {
+  margin-bottom: 40px;
+}
+
+.message p {
+  font-size: 1.1rem;
+  color: #666;
+  line-height: 1.6;
+  margin-bottom: 15px;
+}
+
+.actionSection {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  align-items: center;
+}
+
+.backToLoginButton {
+  background-color: var(--primary-color, #1976d2);
+  color: white;
+  border: 2px solid var(--primary-color, #1976d2);
+  padding: 12px 30px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-block;
+  min-width: 200px;
+}
+
+.backToLoginButton:hover {
+  background-color: var(--hover-color, #1565c0);
+  border-color: var(--hover-color, #1565c0);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.backToLoginButton:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Error States */
+.errorPage {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  padding: 20px;
+  text-align: center;
+  background-color: #f5f5f5;
+}
+
+.errorTitle {
+  font-size: 2rem;
+  font-weight: 600;
+  color: #d32f2f;
+  margin-bottom: 20px;
+}
+
+.errorMessage {
+  font-size: 1.1rem;
+  color: #666;
+  margin-bottom: 30px;
+  max-width: 500px;
+}
+
+.retryButton {
+  background-color: #1976d2;
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.retryButton:hover {
+  background-color: #1565c0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .pageContainer {
+    flex-direction: column;
+  }
+  
+  .thankYouSide {
+    flex: 2;
+    padding: 20px;
+  }
+  
+  .imageSide {
+    flex: 1;
+    min-height: 200px;
+  }
+  
+  .title {
+    font-size: 2rem;
+  }
+  
+  .message p {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .thankYouSide {
+    padding: 15px;
+  }
+  
+  .title {
+    font-size: 1.8rem;
+    margin-bottom: 20px;
+  }
+  
+  .thankYouContent {
+    margin-top: 20px;
+  }
+  
+  .backToLoginButton {
+    padding: 10px 25px;
+    font-size: 0.9rem;
+    min-width: 180px;
+  }
+}
+
+/* Loading Animation */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

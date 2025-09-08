@@ -71,16 +71,17 @@ const getLocaleForAPI = (languageCode) => {
 };
 
 // Strapi API 请求函数 - 更新为支持语言参数的Redux action
-const fetchStrapiThemes = async (dispatch, languageCode = 'en_GB') => {
+const fetchStrapiThemes = async (dispatch, languageCode = 'en_US') => {
   // Import CookieService for auth token
   const { default: CookieService } = await import('./utils/cookieService');
   
   // 检查是否是登录页面且用户未认证，如果是则不进行主题数据请求
   const isLoginPage = typeof window !== 'undefined' && window.location.pathname.endsWith('/Login');
+  const isThankYouPage = typeof window !== 'undefined' && window.location.pathname.endsWith('/ThankYou');
   const isAuthenticated = !!CookieService.getToken();
   
-  if (isLoginPage && !isAuthenticated) {
-    console.log('🚫 登录页面且未认证，跳过Strapi主题数据请求');
+  if ((isLoginPage && !isAuthenticated) || isThankYouPage) {
+    console.log('🚫 登录页面且未认证或ThankYou页面，跳过Strapi主题数据请求');
     return null;
   }
   
@@ -143,26 +144,7 @@ const fetchStrapiThemes = async (dispatch, languageCode = 'en_GB') => {
     }
 
     const result = await response.json();
-    
-    // 检查API是否返回有效数据
-    const hasValidData = result.data && Array.isArray(result.data) && result.data.length > 0;
-    
-    if (!hasValidData) {
-      console.warn(`⚠️ ${languageCode}语言的主题数据为空 (locale=${locale}), 数据:`, result);
-      
-      // 如果当前不是默认语言，尝试回退到默认语言
-      if (languageCode !== 'en_GB') {
-        console.log(`🔄 回退到默认语言 en_GB`);
-        return await fetchStrapiThemes(dispatch, 'en_GB');
-      } else {
-        // 如果连默认语言都没有数据，记录错误但不抛出异常
-        console.error(`❌ 默认语言${languageCode}也没有主题数据`);
-        return null;
-      }
-    }
-    
     console.log(`✅ 成功获取${languageCode}语言的主题数据 (locale=${locale})`);
-    console.log(`🗃️ 将数据存储到缓存，键值: ${languageCode}`);
     dispatch(fetchThemes.fulfilled({ ...result, languageCode }));
     return result;
     
@@ -174,44 +156,16 @@ const fetchStrapiThemes = async (dispatch, languageCode = 'en_GB') => {
 };
 
 // 带缓存检查的主题获取函数
-const fetchThemesWithCache = async (dispatch, getState, languageCode = 'en_GB') => {
+const fetchThemesWithCache = async (dispatch, getState, languageCode = 'en_US') => {
   const state = getState();
-  const cachedData = state.themes.languageCache[languageCode];
+  const hasCache = state.themes.languageCache[languageCode];
   
-  // 检查缓存数据是否有效（不为空且包含实际数据）
-  const hasValidCache = cachedData && 
-                       cachedData.brands && 
-                       Array.isArray(cachedData.brands) && 
-                       cachedData.brands.length > 0;
-
-  // 调试信息：显示缓存状态
-  const cacheKeys = Object.keys(state.themes.languageCache);
-  console.log(`🔍 缓存检查: 查找语言=${languageCode}, 现有缓存键=[${cacheKeys.join(', ')}], 找到缓存=${!!cachedData}, 缓存有效=${hasValidCache}`);
-  
-  if (cachedData) {
-    console.log(`🔍 缓存数据详情 ${languageCode}:`, {
-      hasBrands: !!cachedData.brands,
-      brandsLength: cachedData.brands?.length || 0,
-      hasLanguages: !!cachedData.languages,
-      languagesLength: cachedData.languages?.length || 0,
-      hasPages: !!cachedData.pages,
-      pagesLength: cachedData.pages?.length || 0,
-      lastUpdated: cachedData.lastUpdated,
-      isFromAPI: cachedData.isFromAPI
-    });
-  }
-
-  if (hasValidCache) {
-    console.log(`✅ 使用${languageCode}语言的有效缓存数据`);
-    // 如果有有效缓存，直接设置当前语言
+  if (hasCache) {
+    console.log(`✅ 使用${languageCode}语言的缓存数据`);
+    // 如果有缓存，直接设置当前语言
     const { setCurrentLanguage } = await import('./store/slices/themesSlice');
     dispatch(setCurrentLanguage(languageCode));
-    return cachedData;
-  } else if (cachedData && !hasValidCache) {
-    console.warn(`⚠️ ${languageCode}语言的缓存数据无效，将重新请求`);
-    // 清除无效缓存
-    const { clearLanguageCache } = await import('./store/slices/themesSlice');
-    dispatch(clearLanguageCache(languageCode));
+    return hasCache;
   }
   
   console.log(`🔄 请求${languageCode}语言的新数据`);
@@ -273,22 +227,31 @@ function RouterContent() {
     loadTranslationsFromRedux();
   }, [loadTranslationsFromRedux]);
 
-  // 监听认证状态变化，重新获取主题数据 (只监听认证状态，不监听语言变化)
+  // 监听认证状态变化，重新获取主题数据
   useEffect(() => {
+    console.log('🔍 App.jsx - 认证状态变化:', {
+      isAuthenticated,
+      currentPath: window.location.pathname,
+      currentLanguage: i18n.language
+    });
+    
     if (isAuthenticated) {
-      const currentLanguage = i18n.language || 'en_GB';
+      const currentLanguage = i18n.language || 'en_US';
       console.log(`🔐 用户登录，重新加载主题数据: ${currentLanguage}`);
       // 强制重新获取主题数据，因为现在有认证token了
-      // 使用缓存机制，避免重复请求
-      fetchThemesWithCache(store.dispatch, store.getState, currentLanguage);
+      // 登录后立即请求，不管当前是否在登录页面
+      fetchStrapiThemes(store.dispatch, currentLanguage);
+    } else {
+      console.log('❌ App.jsx - 用户未认证，不请求主题数据');
     }
-  }, [isAuthenticated]); // 只监听认证状态变化，移除 i18n.language 依赖
+  }, [isAuthenticated, i18n.language]);
   
   // 检查是否是登录页面
   const isLoginPage = window.location.pathname.endsWith('/Login');
   const isSignUpPage = window.location.pathname.split('/').pop().includes('Register');
   const isVerificationSentPage = window.location.pathname.endsWith('/VerificationSent');
   const isEmailVerificationPage = window.location.pathname.endsWith('/VerifyEmail');
+  const isThankYouPage = window.location.pathname.endsWith('/ThankYou');
   const isProductDetailPage = window.location.pathname.includes('/product-detail');
   return (
     <ThemeProviderWrapper>
@@ -302,8 +265,10 @@ function RouterContent() {
           overflow: 'hidden' 
         }}
       >
+        {/* 顶部导航栏 - 登录页面不显示 */}
+
         {/* 顶部导航栏 - 登录页面和PDP页面不显示 */}
-        {!isLoginPage && !isSignUpPage && !isVerificationSentPage && !isEmailVerificationPage && !isProductDetailPage && <TopBar />}
+        {!isLoginPage && !isSignUpPage && !isVerificationSentPage && !isEmailVerificationPage && !isProductDetailPage &&!isThankYouPage && <TopBar />}
         
         {/* 主要内容区域 */}
         <Box 
@@ -332,10 +297,12 @@ function AppContent() {
     // 检查是否是登录页面，如果是则不进行主题数据请求
     const isLoginPage = window.location.pathname.endsWith('/Login');
     if (isLoginPage) {
+      console.log('🚫 登录页面，跳过主题数据请求');
       return;
     }
     
-    const currentLanguage = i18n.language || 'en_GB';
+    const currentLanguage = i18n.language || 'en_US';
+    console.log(`🚀 初始化加载主题数据: ${currentLanguage}`);
     fetchThemesWithCache(store.dispatch, store.getState, currentLanguage);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // 只在组件挂载时执行一次，忽略i18n.language依赖以避免重复调用
@@ -350,18 +317,7 @@ function AppContent() {
         return;
       }
       
-      // 调试信息：显示语言变化详情
-      const currentPath = window.location.pathname;
-      const pathSegments = currentPath.split('/').filter(Boolean);
-      const urlLanguage = pathSegments[0];
-      
-      console.log(`🌐 i18n语言变化事件:`, {
-        newLanguage,
-        urlLanguage,
-        currentPath,
-        pathSegments
-      });
-      
+      console.log(`🌐 i18n语言变化事件: ${newLanguage}`);
       fetchThemesWithCache(store.dispatch, store.getState, newLanguage);
     };
 
