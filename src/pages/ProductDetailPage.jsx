@@ -322,7 +322,7 @@ const ProductDetailPage = () => {
             productDimensions: sapData?.productDimensions ?? prev.sapDetail.productDimensions,
             consolidationSkuNumbers: sapData?.consolidationSkuNumbers ?? prev.sapDetail.consolidationSkuNumbers,
             factoryInstruction: sapData?.factoryInstructionCn ?? prev.sapDetail.factoryInstruction
-          }
+                    }
         }));
       } catch (e) {
         console.error('load product by id failed', e);
@@ -494,8 +494,8 @@ const ProductDetailPage = () => {
         scrollbarWidth: 'none',
         msOverflowStyle: 'none'
       }} ref={contentScrollRef}>
-        <Box sx={{ px: 3, pt: 0, pb: 3, maxWidth: 1400, minWidth: 1400, mx: 'auto' }}>
-          <Box sx={{ bgcolor: 'white', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', border: '1px solid #eee', p: 0, minWidth: '1000px' }}>
+        <Box sx={{ px: 3, pt: 0, pb: 0, maxWidth: 1360, minWidth: 1360, mx: 'auto' }}>
+          <Box sx={{ bgcolor: 'white', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', border: '1px solid #eee', p: 0, width: '100%' }}>
             {/* 最顶部功能栏 */}
             <TopActionsBar />
 

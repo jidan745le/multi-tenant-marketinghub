@@ -320,7 +320,7 @@ const ProductCard = ({
           borderRadius: 1, 
           border: '0.97px solid #e6e6e6', 
           flexShrink: 0, 
-          width: 998,
+          width: '198%',
           height: 192, 
           position: 'relative', 
           overflow: 'visible', 
