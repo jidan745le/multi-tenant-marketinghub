@@ -59,10 +59,10 @@ const ActionButton = styled(IconButton)(({ theme }) => ({
 
 const StatusSwitch = styled(Switch)(({ theme }) => ({
   '& .MuiSwitch-switchBase.Mui-checked': {
-    color: theme.palette.success.main,
+    color: theme.palette.primary.main,
   },
   '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-    backgroundColor: theme.palette.success.main,
+    backgroundColor: theme.palette.primary.main,
   },
 }));
 
@@ -98,14 +98,26 @@ function UserManagement() {
 
   // Form states
   const [newUser, setNewUser] = useState({
-    name: '',
+    firstName: '',
+    lastName: '',
     email: '',
     password: '',
+    phone: '',
+    address: '',
+    country: '',
+    partnerId: '',
+    preferredLanguage: '',
+    isActive: true,
     roleIds: [],
+    themeIds: [],
+    dealerId: '',
+    dealerName: '',
+    dealerFbLink: '',
   });
   const [editingUser, setEditingUser] = useState(null);
   const [userToDelete, setUserToDelete] = useState(null);
   const [availableRoles, setAvailableRoles] = useState([]);
+  const [availableThemes, setAvailableThemes] = useState([]);
 
   // Snackbar state
   const [snackbar, setSnackbar] = useState({
@@ -133,11 +145,21 @@ function UserManagement() {
     }
   }, [page, limit]);
 
-  // Load available roles
+  // Load available roles and themes
   const loadRoles = useCallback(async () => {
     try {
-      const roles = await UserManagementApiService.getAllRoles();
-      setAvailableRoles(roles || []);
+      const allRoles = await UserManagementApiService.getAllRoles();
+      
+      // Separate roles and themes based on _viewer suffix
+      const themes = (allRoles || []).filter(role => 
+        role.name.toLowerCase().includes('_viewer')
+      );
+      const roles = (allRoles || []).filter(role => 
+        !role.name.toLowerCase().includes('_viewer')
+      );
+      
+      setAvailableRoles(roles);
+      setAvailableThemes(themes);
     } catch (err) {
       console.error('Failed to load roles:', err);
     }
@@ -157,8 +179,8 @@ function UserManagement() {
   const validateUserForm = (userData) => {
     const errors = {};
     
-    if (!userData.name?.trim()) {
-      errors.name = 'Name is required';
+    if (!userData.firstName?.trim()) {
+      errors.firstName = 'First name is required';
     }
     
     if (!userData.email?.trim()) {
@@ -185,10 +207,36 @@ function UserManagement() {
     }
 
     try {
-      await UserManagementApiService.createUser(newUser);
+      // Combine role IDs and theme IDs for creation and combine name
+      const userWithAllRoles = {
+        ...newUser,
+        name: `${newUser.firstName} ${newUser.lastName || ''}`.trim(),
+        roleIds: [
+          ...(newUser.roleIds || []),
+          ...(newUser.themeIds || [])
+        ]
+      };
+      
+      await UserManagementApiService.createUser(userWithAllRoles);
       showSnackbar('User created successfully');
       setAddUserDialog(false);
-      setNewUser({ name: '', email: '', password: '', roleIds: [] });
+      setNewUser({ 
+        firstName: '', 
+        lastName: '',
+        email: '', 
+        password: '', 
+        phone: '', 
+        address: '', 
+        country: '', 
+        partnerId: '', 
+        preferredLanguage: '', 
+        isActive: true,
+        roleIds: [], 
+        themeIds: [],
+        dealerId: '',
+        dealerName: '',
+        dealerFbLink: '',
+      });
       setFormErrors({});
       loadUsers();
     } catch (err) {
@@ -204,12 +252,22 @@ function UserManagement() {
     }
 
     try {
-      // Update user basic information
-      await UserManagementApiService.updateUser(editingUser.id, editingUser);
+      // Update user basic information with combined name
+      const userUpdateData = {
+        ...editingUser,
+        name: `${editingUser.firstName || ''} ${editingUser.lastName || ''}`.trim()
+      };
+      await UserManagementApiService.updateUser(editingUser.id, userUpdateData);
       
-      // Update user roles if roleIds are provided
-      if (editingUser.roleIds) {
-        await UserManagementApiService.assignRoles(editingUser.id, editingUser.roleIds);
+      // Combine role IDs and theme IDs for role assignment
+      const allRoleIds = [
+        ...(editingUser.roleIds || []),
+        ...(editingUser.themeIds || [])
+      ];
+      
+      // Update user roles if any roles are provided
+      if (allRoleIds.length > 0) {
+        await UserManagementApiService.assignRoles(editingUser.id, allRoleIds);
       }
       
       showSnackbar('User updated successfully');
@@ -253,16 +311,35 @@ function UserManagement() {
     setEditUserDialog(true);
     setFormErrors({});
     
-    // Load user's current roles
+    // Load user's current roles and separate them into roles and themes
     try {
       const userRoles = await UserManagementApiService.getUserRoles(user.id);
+      const allUserRoles = userRoles.roles || [];
+      
+      const themeRoleIds = allUserRoles
+        .filter(role => role.name.toLowerCase().includes('_viewer'))
+        .map(role => role.id);
+      
+      const regularRoleIds = allUserRoles
+        .filter(role => !role.name.toLowerCase().includes('_viewer'))
+        .map(role => role.id);
+        
       setEditingUser({ 
         ...user, 
-        roleIds: userRoles.roles?.map(role => role.id) || [] 
+        firstName: user.name ? user.name.split(' ')[0] : '',
+        lastName: user.name ? user.name.split(' ').slice(1).join(' ') : '',
+        roleIds: regularRoleIds,
+        themeIds: themeRoleIds
       });
     } catch (err) {
       console.error('Failed to load user roles:', err);
-      setEditingUser({ ...user, roleIds: [] });
+      setEditingUser({ 
+        ...user, 
+        firstName: user.name ? user.name.split(' ')[0] : '',
+        lastName: user.name ? user.name.split(' ').slice(1).join(' ') : '',
+        roleIds: [], 
+        themeIds: [] 
+      });
     }
   };
 
@@ -315,7 +392,23 @@ function UserManagement() {
           <PrimaryButton
             variant="contained"
             onClick={() => {
-              setNewUser({ name: '', email: '', password: '', roleIds: [] });
+              setNewUser({ 
+                firstName: '', 
+                lastName: '',
+                email: '', 
+                password: '', 
+                phone: '', 
+                address: '', 
+                country: '', 
+                partnerId: '', 
+                preferredLanguage: '', 
+                isActive: true,
+                roleIds: [], 
+                themeIds: [],
+                dealerId: '',
+                dealerName: '',
+                dealerFbLink: '',
+              });
               setFormErrors({});
               setAddUserDialog(true);
             }}
@@ -385,7 +478,7 @@ function UserManagement() {
                       nonThemeRoles.map((role) => (
                         <Chip
                           key={role.id}
-                          label={role.name}
+                          label={role.name.toUpperCase()}
                           size="small"
                           variant="outlined"
                           sx={{ mr: 0.5, mb: 0.5 }}
@@ -400,7 +493,7 @@ function UserManagement() {
                       themeRoles.map((role) => (
                         <Chip
                           key={role.id}
-                          label={role.name.replace('_viewer', '')}
+                          label={role.name.replace('_viewer', '').toUpperCase()}
                           size="small"
                           color="primary"
                           variant="outlined"
@@ -463,6 +556,22 @@ function UserManagement() {
           page={page}
           onChange={(event, value) => setPage(value)}
           color="primary"
+          sx={{
+            '& .MuiPaginationItem-root': {
+              color: 'text.primary',
+            },
+            '& .MuiPaginationItem-root.Mui-selected': {
+              backgroundColor: 'primary.main',
+              color: 'white',
+              '&:hover': {
+                backgroundColor: 'primary.dark',
+              },
+            },
+            '& .MuiPaginationItem-root:hover': {
+              backgroundColor: 'primary.light',
+              color: 'white',
+            },
+          }}
         />
       </Box>
 
@@ -476,15 +585,26 @@ function UserManagement() {
         <DialogTitle>Add New User</DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            {/* Basic Data Section */}
+            <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>Basic Data</Typography>
+            
             <TextField
-              label="Full Name"
-              value={newUser.name}
-              onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-              error={!!formErrors.name}
-              helperText={formErrors.name}
+              label="First Name"
+              value={newUser.firstName}
+              onChange={(e) => setNewUser({ ...newUser, firstName: e.target.value })}
+              error={!!formErrors.firstName}
+              helperText={formErrors.firstName}
               required
               fullWidth
             />
+            
+            <TextField
+              label="Last Name"
+              value={newUser.lastName}
+              onChange={(e) => setNewUser({ ...newUser, lastName: e.target.value })}
+              fullWidth
+            />
+            
             <TextField
               label="Email"
               type="email"
@@ -495,6 +615,7 @@ function UserManagement() {
               required
               fullWidth
             />
+            
             <TextField
               label="Password"
               type="password"
@@ -505,8 +626,82 @@ function UserManagement() {
               required
               fullWidth
             />
+            
+            <TextField
+              label="Mobile"
+              value={newUser.phone}
+              onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
+              fullWidth
+            />
+            
+            <TextField
+              label="Address"
+              value={newUser.address}
+              onChange={(e) => setNewUser({ ...newUser, address: e.target.value })}
+              fullWidth
+            />
+            
             <FormControl fullWidth>
-              <InputLabel>Roles</InputLabel>
+              <InputLabel>Country</InputLabel>
+              <Select
+                value={newUser.country}
+                onChange={(e) => setNewUser({ ...newUser, country: e.target.value })}
+              >
+                <MenuItem value="China">China</MenuItem>
+                <MenuItem value="USA">USA</MenuItem>
+                <MenuItem value="Germany">Germany</MenuItem>
+                <MenuItem value="Japan">Japan</MenuItem>
+                <MenuItem value="Other">Other</MenuItem>
+              </Select>
+            </FormControl>
+            
+            <FormControl fullWidth>
+              <InputLabel>Language</InputLabel>
+              <Select
+                value={newUser.preferredLanguage}
+                onChange={(e) => setNewUser({ ...newUser, preferredLanguage: e.target.value })}
+              >
+                <MenuItem value="Chinese">Chinese</MenuItem>
+                <MenuItem value="English">English</MenuItem>
+                <MenuItem value="German">German</MenuItem>
+                <MenuItem value="Japanese">Japanese</MenuItem>
+              </Select>
+            </FormControl>
+            
+            <TextField
+              label="Partner ID"
+              value={newUser.partnerId}
+              onChange={(e) => setNewUser({ ...newUser, partnerId: e.target.value })}
+              fullWidth
+            />
+            
+            <FormControl fullWidth>
+              <InputLabel>Themes</InputLabel>
+              <Select
+                multiple
+                value={newUser.themeIds}
+                onChange={(e) => setNewUser({ ...newUser, themeIds: e.target.value })}
+                renderValue={(selected) =>
+                  selected.map(themeId => {
+                    const theme = availableThemes.find(t => t.id === themeId);
+                    return theme?.name.replace('_viewer', '').toUpperCase() || themeId;
+                  }).join(', ')
+                }
+              >
+                {availableThemes.map((theme) => (
+                  <MenuItem key={theme.id} value={theme.id}>
+                    <Checkbox checked={newUser.themeIds.indexOf(theme.id) > -1} />
+                    {theme.name.replace('_viewer', '').toUpperCase()}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            {/* Rights & Roles Section */}
+            <Typography variant="h6" sx={{ mt: 3, mb: 1 }}>Rights & Roles</Typography>
+            
+            <FormControl fullWidth>
+              <InputLabel>Role</InputLabel>
               <Select
                 multiple
                 value={newUser.roleIds}
@@ -514,24 +709,60 @@ function UserManagement() {
                 renderValue={(selected) =>
                   selected.map(roleId => {
                     const role = availableRoles.find(r => r.id === roleId);
-                    return role?.name || roleId;
+                    return role?.name.toUpperCase() || roleId;
                   }).join(', ')
                 }
               >
                 {availableRoles.map((role) => (
                   <MenuItem key={role.id} value={role.id}>
                     <Checkbox checked={newUser.roleIds.indexOf(role.id) > -1} />
-                    {role.name}
+                    {role.name.toUpperCase()}
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
+
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={newUser.isActive}
+                  onChange={(e) => setNewUser({ ...newUser, isActive: e.target.checked })}
+                />
+              }
+              label={"Activate Status: " + (newUser.isActive ? 'Yes' : 'No')}
+            />
+
+            {/* Dealer Data Section */}
+            <Typography variant="h6" sx={{ mt: 3, mb: 1 }}>Dealer Data (Optional)</Typography>
+            
+            <TextField
+              label="Dealer ID"
+              value={newUser.dealerId || ''}
+              onChange={(e) => setNewUser({ ...newUser, dealerId: e.target.value })}
+              fullWidth
+            />
+            
+            <TextField
+              label="Dealer Name"
+              value={newUser.dealerName || ''}
+              onChange={(e) => setNewUser({ ...newUser, dealerName: e.target.value })}
+              fullWidth
+            />
+            
+            <TextField
+              label="Dealer FB Link"
+              value={newUser.dealerFbLink || ''}
+              onChange={(e) => setNewUser({ ...newUser, dealerFbLink: e.target.value })}
+              fullWidth
+            />
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setAddUserDialog(false)}>Cancel</Button>
+          <Button onClick={() => setAddUserDialog(false)} variant="outlined">
+            CANCEL
+          </Button>
           <PrimaryButton onClick={handleAddUser} variant="contained">
-            Add User
+            SUBMIT
           </PrimaryButton>
         </DialogActions>
       </Dialog>
@@ -547,25 +778,44 @@ function UserManagement() {
         <DialogContent>
           {editingUser && (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+              {/* Basic Data Section */}
+              <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>Basic Data</Typography>
+              
               <TextField
-                label="Full Name"
-                value={editingUser.name}
-                onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
-                error={!!formErrors.name}
-                helperText={formErrors.name}
+                label="First Name"
+                value={editingUser.firstName || (editingUser.name ? editingUser.name.split(' ')[0] : '')}
+                onChange={(e) => setEditingUser({ ...editingUser, firstName: e.target.value })}
+                error={!!formErrors.firstName}
+                helperText={formErrors.firstName}
                 required
                 fullWidth
               />
+              
+              <TextField
+                label="Last Name"
+                value={editingUser.lastName || (editingUser.name ? editingUser.name.split(' ').slice(1).join(' ') : '')}
+                onChange={(e) => setEditingUser({ ...editingUser, lastName: e.target.value })}
+                fullWidth
+              />
+              
               <TextField
                 label="Email"
                 type="email"
-                value={editingUser.email}
+                value={editingUser.email || ''}
                 onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
                 error={!!formErrors.email}
                 helperText={formErrors.email}
                 required
                 fullWidth
               />
+              
+              <TextField
+                label="Mobile"
+                value={editingUser.phone || ''}
+                onChange={(e) => setEditingUser({ ...editingUser, phone: e.target.value })}
+                fullWidth
+              />
+              
               <TextField
                 label="New Password (leave empty to keep current)"
                 type="password"
@@ -575,17 +825,75 @@ function UserManagement() {
                 helperText={formErrors.password}
                 fullWidth
               />
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={editingUser.isActive}
-                    onChange={(e) => setEditingUser({ ...editingUser, isActive: e.target.checked })}
-                  />
-                }
-                label="Active"
+              
+              <TextField
+                label="Address"
+                value={editingUser.address || ''}
+                onChange={(e) => setEditingUser({ ...editingUser, address: e.target.value })}
+                fullWidth
               />
+              
               <FormControl fullWidth>
-                <InputLabel>Roles</InputLabel>
+                <InputLabel>Country</InputLabel>
+                <Select
+                  value={editingUser.country || ''}
+                  onChange={(e) => setEditingUser({ ...editingUser, country: e.target.value })}
+                >
+                  <MenuItem value="China">China</MenuItem>
+                  <MenuItem value="USA">USA</MenuItem>
+                  <MenuItem value="Germany">Germany</MenuItem>
+                  <MenuItem value="Japan">Japan</MenuItem>
+                  <MenuItem value="Other">Other</MenuItem>
+                </Select>
+              </FormControl>
+              
+              <FormControl fullWidth>
+                <InputLabel>Language</InputLabel>
+                <Select
+                  value={editingUser.preferredLanguage || ''}
+                  onChange={(e) => setEditingUser({ ...editingUser, preferredLanguage: e.target.value })}
+                >
+                  <MenuItem value="Chinese">Chinese</MenuItem>
+                  <MenuItem value="English">English</MenuItem>
+                  <MenuItem value="German">German</MenuItem>
+                  <MenuItem value="Japanese">Japanese</MenuItem>
+                </Select>
+              </FormControl>
+              
+              <TextField
+                label="Partner ID"
+                value={editingUser.partnerId || ''}
+                onChange={(e) => setEditingUser({ ...editingUser, partnerId: e.target.value })}
+                fullWidth
+              />
+              
+              <FormControl fullWidth>
+                <InputLabel>Themes</InputLabel>
+                <Select
+                  multiple
+                  value={editingUser.themeIds || []}
+                  onChange={(e) => setEditingUser({ ...editingUser, themeIds: e.target.value })}
+                  renderValue={(selected) =>
+                    selected.map(themeId => {
+                      const theme = availableThemes.find(t => t.id === themeId);
+                      return theme?.name.replace('_viewer', '').toUpperCase() || themeId;
+                    }).join(', ')
+                  }
+                >
+                  {availableThemes.map((theme) => (
+                    <MenuItem key={theme.id} value={theme.id}>
+                      <Checkbox checked={(editingUser.themeIds || []).indexOf(theme.id) > -1} />
+                      {theme.name.replace('_viewer', '').toUpperCase()}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              {/* Rights & Roles Section */}
+              <Typography variant="h6" sx={{ mt: 3, mb: 1 }}>Rights & Roles</Typography>
+              
+              <FormControl fullWidth>
+                <InputLabel>Role</InputLabel>
                 <Select
                   multiple
                   value={editingUser.roleIds || []}
@@ -593,7 +901,7 @@ function UserManagement() {
                   renderValue={(selected) =>
                     selected.map(roleId => {
                       const role = availableRoles.find(r => r.id === roleId);
-                      return role?.name || roleId;
+                      return role?.name.toUpperCase() || roleId;
                     }).join(', ')
                   }
                 >
@@ -601,7 +909,7 @@ function UserManagement() {
                     <MenuItem key={role.id} value={role.id}>
                       <Checkbox checked={(editingUser.roleIds || []).indexOf(role.id) > -1} />
                       <Box>
-                        <Typography variant="body1">{role.name}</Typography>
+                        <Typography variant="body1">{role.name.toUpperCase()}</Typography>
                         {role.description && (
                           <Typography variant="body2" color="text.secondary">
                             {role.description}
@@ -612,13 +920,49 @@ function UserManagement() {
                   ))}
                 </Select>
               </FormControl>
+
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={editingUser.isActive !== false}
+                    onChange={(e) => setEditingUser({ ...editingUser, isActive: e.target.checked })}
+                  />
+                }
+                label={"Activate Status: " + (editingUser.isActive ? 'Yes' : 'No')}
+              />
+
+              {/* Dealer Data Section */}
+              <Typography variant="h6" sx={{ mt: 3, mb: 1 }}>Dealer Data (Optional)</Typography>
+              
+              <TextField
+                label="Dealer ID"
+                value={editingUser.dealerId || ''}
+                onChange={(e) => setEditingUser({ ...editingUser, dealerId: e.target.value })}
+                fullWidth
+              />
+              
+              <TextField
+                label="Dealer Name"
+                value={editingUser.dealerName || ''}
+                onChange={(e) => setEditingUser({ ...editingUser, dealerName: e.target.value })}
+                fullWidth
+              />
+              
+              <TextField
+                label="Dealer FB Link"
+                value={editingUser.dealerFbLink || ''}
+                onChange={(e) => setEditingUser({ ...editingUser, dealerFbLink: e.target.value })}
+                fullWidth
+              />
             </Box>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setEditUserDialog(false)}>Cancel</Button>
+          <Button onClick={() => setEditUserDialog(false)} variant="outlined">
+            CANCEL
+          </Button>
           <PrimaryButton onClick={handleEditUser} variant="contained">
-            Update User
+            SUBMIT
           </PrimaryButton>
         </DialogActions>
       </Dialog>
