@@ -805,19 +805,21 @@ class ProductDetailApiService {
         downloadUrl: image.fullpath || '',
         fileName: image.filename || '',
         basicInfo: {
-          modelNumber: this.extractMetadataValue(image.metadata, 'modelNumber') || '',
-          imageType: this.extractMetadataValue(image.metadata, 'imageType') || 'Main',
-          imageSize: this.formatFileSize(image.filesize),
-          cameraAngle: this.extractMetadataValue(image.metadata, 'cameraAngle') || 'Main Front',
-          appliedBrand: this.extractMetadataValue(image.metadata, 'brand') || 'Kendo',
-          lightingSetup: this.extractMetadataValue(image.metadata, 'lighting') || 'Auto'
+          modelNumber: this.extractMetadataValue(image.metadata, 'modelNumber'),
+          imageType: this.extractMetadataValue(image.metadata, 'imageType'),
+          lockDate: this.extractMetadataValue(image.metadata, 'lockDate'),
+          countryRestrictions: this.extractMetadataValue(image.metadata, 'countryRestrictions'),
+          usageRights: this.extractMetadataValue(image.metadata, 'usageRights'),
+          approvalStatus: this.extractMetadataValue(image.metadata, 'approvalStatus')
         },
         technical: {
-          totalPixels: this.extractMetadataValue(image.metadata, 'totalPixels') || '0',
-          cameraBody: this.extractMetadataValue(image.metadata, 'camera') || 'Unknown',
-          resolution: this.extractMetadataValue(image.metadata, 'resolution') || 'Unknown',
-          createdDate: this.extractMetadataValue(image.metadata, 'createdDate') || '',
-          imageSize: this.formatFileSize(image.filesize)
+          colorSpace: this.extractMetadataValue(image.metadata, 'colorSpace'),
+          colorProfile: this.extractMetadataValue(image.metadata, 'colorProfile'),
+          resolution: this.extractMetadataValue(image.metadata, 'resolution'),
+          dimensions: this.extractMetadataValue(image.metadata, 'dimensions'),
+          size: this.formatFileSize(image.filesize),
+          createdOn: this.extractMetadataValue(image.metadata, 'createdDate'),
+          changeDate: this.extractMetadataValue(image.metadata, 'changeDate')
         }
       };
     });

@@ -44,6 +44,7 @@ function LookAndFeel() {
   const [onwhiteLogoPreview, setOnwhiteLogoPreview] = useState(null);
   const [oncolorLogoPreview, setOncolorLogoPreview] = useState(null);
   const [faviconPreview, setFaviconPreview] = useState(null);
+  const [fallbackImagePreview, setFallbackImagePreview] = useState(null);
 
   // 配置数据状态
   const [primaryColor, setPrimaryColor] = useState('');
@@ -55,6 +56,7 @@ function LookAndFeel() {
     onwhite_logo: false,
     oncolor_logo: false,
     favicon: false,
+    fallback_image: false,
   });
   
   // 保存状态和通知
@@ -67,6 +69,7 @@ function LookAndFeel() {
     onwhite_logo: null,
     oncolor_logo: null,
     favicon: null,
+    fallback_image: null,
   });
 
   // 更新图片上传成功后的ID记录
@@ -130,6 +133,7 @@ function LookAndFeel() {
   // 初始化图片预览
   useEffect(() => {
     console.log('初始化图片预览，currentBrand:', currentBrand);
+    
     if (currentBrand) {
       const baseUrl = import.meta.env.VITE_STRAPI_BASE_URL || '';
       
@@ -178,11 +182,23 @@ function LookAndFeel() {
       } else {
         setFaviconPreview(null);
       }
+
+      // 设置 fallback image
+      if (currentBrand.fallback_image?.url) {
+        const fallbackUrl = `${baseUrl}${currentBrand.fallback_image.url}`;
+        setFallbackImagePreview(fallbackUrl);
+      } else if (currentBrand.strapiData?.theme_logos?.fallback_image?.url) {
+        const fallbackUrl = `${baseUrl}${currentBrand.strapiData.theme_logos.fallback_image.url}`;
+        setFallbackImagePreview(fallbackUrl);
+      } else {
+        setFallbackImagePreview(null);
+      }
     } else {
       setBrandLogoPreview(null);
       setOnwhiteLogoPreview(null);
       setOncolorLogoPreview(null);
       setFaviconPreview(null);
+      setFallbackImagePreview(null);
     }
   }, [currentBrand]);
 
@@ -211,6 +227,9 @@ function LookAndFeel() {
         break;
       case 'favicon':
         setFaviconPreview(blobUrl);
+        break;
+      case 'fallback_image':
+        setFallbackImagePreview(blobUrl);
         break;
     }
 
@@ -251,6 +270,11 @@ function LookAndFeel() {
             setFaviconPreview(faviconUrl ? `${baseUrl}${faviconUrl}` : null);
             break;
           }
+          case 'fallback_image': {
+            const fallbackUrl = currentBrand.fallback_image?.url || currentBrand.strapiData?.theme_logos?.fallback_image?.url;
+            setFallbackImagePreview(fallbackUrl ? `${baseUrl}${fallbackUrl}` : null);
+            break;
+          }
         }
       }
       
@@ -277,6 +301,9 @@ function LookAndFeel() {
         break;
       case 'favicon':
         setFaviconPreview(null);
+        break;
+      case 'fallback_image':
+        setFallbackImagePreview(null);
         break;
     }
   };
@@ -309,6 +336,11 @@ function LookAndFeel() {
       // 添加theme_logo更新数据
       if (uploadedImageIds.theme_logo) {
         updateData.theme_logo = uploadedImageIds.theme_logo;
+      }
+
+      // 处理 fallback_image - 单独处理，因为它不在 theme_logos 中
+      if (uploadedImageIds.fallback_image) {
+        updateData.fallback_image = uploadedImageIds.fallback_image;
       }
 
       // 处理theme_logos中的各个logo - 使用通用格式化函数
@@ -344,6 +376,7 @@ function LookAndFeel() {
         onwhite_logo: null,
         oncolor_logo: null,
         favicon: null,
+        fallback_image: null,
       });
 
     } catch (error) {
@@ -547,6 +580,23 @@ function LookAndFeel() {
               image={faviconPreview} 
               logoType="favicon" 
               isUploading={uploadingStates.favicon}
+              onUpload={handleImageUpload}
+              onDelete={handleImageDelete}
+            />
+          </Grid>
+        </Grid>
+      </SectionCard>
+
+      {/* Coming Soon 部分 */}
+      <SectionCard>
+        <SectionTitle>Coming Soon</SectionTitle>
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={4}>
+            <ImageUpload 
+              title="FALLBACK IMAGE"
+              image={fallbackImagePreview} 
+              logoType="fallback_image" 
+              isUploading={uploadingStates.fallback_image}
               onUpload={handleImageUpload}
               onDelete={handleImageDelete}
             />
