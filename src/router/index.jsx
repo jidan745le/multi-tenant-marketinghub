@@ -32,6 +32,7 @@ const VerificationSentPage = Loader(lazy(() => import('../pages/VerificationSent
 const EmailVerificationPage = Loader(lazy(() => import('../pages/EmailVerificationPage')));
 const ThankYouPage = Loader(lazy(() => import('../pages/ThankYouPage')));
 const UserManagement = Loader(lazy(() => import('../pages/UserManagement')));
+const DerivateManagement = Loader(lazy(() => import('../pages/DerivateManagement')));
 const ProductDetailPage = Loader(lazy(() => import('../pages/ProductDetailPage')));
 
 const router = [
@@ -169,6 +170,10 @@ const router = [
       {
         path: 'user-management',
         element: <UserManagement />
+      },
+      {
+        path: 'derivate-management',
+        element: <DerivateManagement />
       },
       {
         path: 'under-construction',

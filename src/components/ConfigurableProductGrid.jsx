@@ -136,27 +136,10 @@ const ConfigurableProductGrid = ({
           
           // 支持不同的返回格式
           if (result && typeof result === 'object') {
-            if (result.list && Array.isArray(result.list) && typeof result.totalSize !== 'undefined') {
               // 真实API格式: { startIndex: number, totalSize: number, pageSize: number, list: [] }
               setProducts(result.list);
               setTotalPages(Math.ceil((result.totalSize || 0) / pageSize));
-            } else if (result.data && Array.isArray(result.data.list)) {
-              // 格式: { data: { list: [], total: number } }
-              setProducts(result.data.list);
-              setTotalPages(Math.ceil((result.data.total || 0) / pageSize));
-            } else if (Array.isArray(result.data)) {
-              // 格式: { data: [] }
-              setProducts(result.data);
-              setTotalPages(Math.ceil(result.data.length / pageSize));
-            } else if (Array.isArray(result)) {
-              // 格式: []
-              setProducts(result);
-              setTotalPages(Math.ceil(result.length / pageSize));
-            } else if (result.list && Array.isArray(result.list)) {
-              // 格式: { list: [], total: number }
-              setProducts(result.list);
-              setTotalPages(Math.ceil((result.total || 0) / pageSize));
-            }
+            
           }
         } catch (error) {
           if (!isCancelled) {

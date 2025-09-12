@@ -303,8 +303,8 @@ const ProductCard = ({
         onSelect(product, event.target.checked);
     };
 
-    const handleProductClick = () => {
-        onProductClick?.(product);
+    const handleProductClick = (isAssetType) => {
+        onProductClick?.(product, isAssetType);
     };
 
     const handleDownloadClick = () => {
@@ -391,7 +391,7 @@ const ProductCard = ({
                             <Icon type="preview" />
                         </ActionButton>
                     )}
-                    <ActionButton onClick={handleDownloadClick}>
+                    <ActionButton onClick={() => handleDownloadClick(isAssetType)}>
                         <Icon type="download" />
                     </ActionButton>
                 </QuickActions>

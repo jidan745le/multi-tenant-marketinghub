@@ -1,9 +1,10 @@
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 // 导入配置
 import { createMediaCatalogueConfig } from '../config/kendoMediaConfig';
 
 // 导入组件
+import MediaDownloadDialog from '../components/MediaDownloadDialog';
 import ProductCatalogue from '../components/ProductCatalogue';
 
 // 导入钩子 (基于reference代码)
@@ -14,6 +15,10 @@ const MediaCatalogue = () => {
   // 使用品牌和语言钩子 (基于reference代码)
   const { currentBrand, currentBrandCode } = useBrand();
   const { currentLanguage } = useLanguage();
+  
+  // 下载弹窗状态
+  const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
+  const [selectedMediaForDownload, setSelectedMediaForDownload] = useState(null);
 
   // 根据当前品牌动态创建配置
   const config = useMemo(() => {
@@ -24,24 +29,29 @@ const MediaCatalogue = () => {
   }, [currentBrandCode]);
 
   // 处理媒体点击 (基于reference代码逻辑)
-  const handleMediaClick = useCallback((media) => {
+  const handleMediaClick = useCallback((media, isAssetType) => {
     console.log('Media clicked:', media);
     // 可以在这里添加媒体预览逻辑
   }, []);
 
   // 处理媒体下载 (基于reference代码逻辑)
   const handleMediaDownload = useCallback((media) => {
-    console.log('Media download:', media);
-    // 可以在这里添加下载逻辑
-    if (media.downloadUrl) {
-      // 模拟下载
-      const link = document.createElement('a');
-      link.href = media.downloadUrl;
-      link.download = media.filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
+    console.log('Media download clicked:', media);
+    setSelectedMediaForDownload(media);
+    setDownloadDialogOpen(true);
+  }, []);
+
+  // 处理下载弹窗关闭
+  const handleDownloadDialogClose = useCallback(() => {
+    setDownloadDialogOpen(false);
+    setSelectedMediaForDownload(null);
+  }, []);
+
+  // 处理实际下载执行
+  const handleDownloadExecute = useCallback((downloadData) => {
+    console.log('Download executed with data:', downloadData);
+    // 这里不调用实际API，只是展示交互
+    alert(`Download simulated for media: ${downloadData.selectedMedia?.filename || 'Unknown'}\nDerivates: ${downloadData.selectedDerivates.join(', ')}\nOption: ${downloadData.downloadOption}`);
   }, []);
 
   // 处理批量搜索 (基于reference代码逻辑)
@@ -59,13 +69,23 @@ const MediaCatalogue = () => {
   }, [currentBrand, currentLanguage]);
 
   return (
-    <ProductCatalogue
-      key={currentBrandCode} // 确保品牌切换时组件重新渲染
-      config={config}
-      onProductClick={handleMediaClick}
-      onProductDownload={handleMediaDownload}
-      onMassSearch={handleMassSearch}
-    />
+    <>
+      <ProductCatalogue
+        key={currentBrandCode} // 确保品牌切换时组件重新渲染
+        config={config}
+        onProductClick={handleMediaClick}
+        onProductDownload={handleMediaDownload}
+        onMassSearch={handleMassSearch}
+      />
+      
+      {/* 媒体下载弹窗 */}
+      <MediaDownloadDialog
+        open={downloadDialogOpen}
+        onClose={handleDownloadDialogClose}
+        selectedMedia={selectedMediaForDownload}
+        onDownload={handleDownloadExecute}
+      />
+    </>
   );
 };
 
