@@ -1,6 +1,6 @@
 import React, { memo, useState, useRef } from 'react';
 import PropTypes from 'prop-types';
-import { Box, Typography, Button, Menu, MenuItem } from '@mui/material';
+import { Box, Typography, Button } from '@mui/material';
 import UnifiedSkuTable from './UnifiedSkuTable';
 import { useTheme } from '../hooks/useTheme';
 
@@ -33,6 +33,9 @@ const ProductCard = ({
   regionalLaunchDate = '2025-01-01',
   enrichmentStatus = 'Global data ready',
   finalReleaseDate = '2025-06-01',
+  infoPairs,
+  infoLabelMinWidth = '155px',
+  infoValueMinWidth = '118px',
   skuData = [
     { size: '160mm/6"', material: '90257', finish: 'Nickel Iron Plated', imageUrl: '/assets/productcard_image.png' },
     { size: '180mm/6"', material: '90258', finish: 'Nickel Iron Plated', imageUrl: '' },
@@ -124,6 +127,24 @@ const ProductCard = ({
     `${title} - ${activeSku.size}` : 
     title;
   const currentImageUrl = activeSku && activeSku.imageUrl ? activeSku.imageUrl : '';
+  
+  // 动态信息对：支持外部传入，否则使用默认
+  const defaultInfoPairs = [
+    { label: 'Life Cycle Status', value: lifeCycleStatus, withStatus: true },
+    { label: 'Regional Launch Date', value: regionalLaunchDate },
+    { label: 'Enrichment Status', value: enrichmentStatus },
+    { label: 'Final Release Date', value: finalReleaseDate }
+  ];
+  const effectiveInfoPairs = (infoPairs && Array.isArray(infoPairs) ? infoPairs : defaultInfoPairs)
+    .filter(pair => pair && pair.value !== undefined && pair.value !== null && pair.value !== '');
+  const chunkPairsToRows = (pairs, size = 2) => {
+    const rows = [];
+    for (let i = 0; i < pairs.length; i += size) {
+      rows.push(pairs.slice(i, i + size));
+    }
+    return rows;
+  };
+  const infoRows = chunkPairsToRows(effectiveInfoPairs, 2);
 
   const handleDownloadImage = () => {
     const url = activeSku && activeSku.imageUrl ? activeSku.imageUrl : '';
@@ -320,7 +341,7 @@ const ProductCard = ({
           borderRadius: 1, 
           border: '0.97px solid #e6e6e6', 
           flexShrink: 0, 
-          width: '198%',
+          width: '160%',
           height: 192, 
           position: 'relative', 
           overflow: 'visible', 
@@ -337,19 +358,26 @@ const ProductCard = ({
             top: 7.56 
           }}>
             {/* 信息行 */}
-            <InfoRow items={[
-              { value: 'Life Cycle Status', isLabel: true, cellStyle: { minWidth: '130px', flex: '1 1 25%' } },
-              { value: lifeCycleStatus, withStatus: true, cellStyle: { py: 0.97, minWidth: '111px', flex: '1 1 20%' } },
-              { value: 'Regional Launch Date', isLabel: true, cellStyle: { minWidth: '165px', flex: '1 1 30%', ml: 3.3 } },
-              { value: regionalLaunchDate, cellStyle: { minWidth: '118px', flex: '1 1 25%' } }
-            ]} />
-            
-            <InfoRow items={[
-              { value: 'Enrichment Status', isLabel: true, cellStyle: { minWidth: '134px', flex: '1 1 25%' } },
-              { value: enrichmentStatus, cellStyle: { py: 0.97, minWidth: '118px', flex: '1 1 20%' }, textStyle: { whiteSpace: 'nowrap' } },
-              { value: 'Final Release Date', isLabel: true, cellStyle: { minWidth: '139px', flex: '1 1 30%', ml: 2 } },
-              { value: finalReleaseDate, cellStyle: { minWidth: '118px', flex: '1 1 25%', ml: 2.9 } }
-            ]} />
+            {infoRows.map((pairs, rowIndex) => {
+              const items = [];
+              pairs.forEach((pair, idx) => {
+                const isSecond = idx === 1;
+                items.push({
+                  value: pair.label,
+                  isLabel: true,
+                  cellStyle: { minWidth: pair.labelMinWidth || infoLabelMinWidth, flex: '1 1 25%', ...(isSecond ? { ml: 3 } : {}) }
+                });
+                items.push({
+                  value: pair.value,
+                  withStatus: !!pair.withStatus,
+                  cellStyle: { py: 0.97, minWidth: pair.valueMinWidth || infoValueMinWidth, flex: '1 1 20%' },
+                  textStyle: { whiteSpace: 'nowrap' }
+                });
+              });
+              return (
+                <InfoRow key={rowIndex} items={items} />
+              );
+            })}
           </Box>
           <Box sx={{ 
             background: '#ffffff', 
@@ -442,6 +470,15 @@ ProductCard.propTypes = {
   regionalLaunchDate: PropTypes.string,
   enrichmentStatus: PropTypes.string,
   finalReleaseDate: PropTypes.string,
+  infoPairs: PropTypes.arrayOf(
+    PropTypes.shape({
+      label: PropTypes.string.isRequired,
+      value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+      withStatus: PropTypes.bool
+    })
+  ),
+  infoLabelMinWidth: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  infoValueMinWidth: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   skuData: PropTypes.arrayOf(
     PropTypes.shape({
       size: PropTypes.string.isRequired,

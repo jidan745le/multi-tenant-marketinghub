@@ -97,14 +97,14 @@ const StatusValue = ({ statusText }) => (
   </Box>
 );
 
-const Form = ({ items, columns = 2 }) => {
-  const pairsPerRow = columns === 1 ? 1 : 2;
+const Form = ({ items, columns = 'double' }) => {
+  const pairsPerRow = columns === 'single' ? 1 : 2;
   const rows = [];
   for (let i = 0; i < items.length; i += pairsPerRow) {
     rows.push(items.slice(i, i + pairsPerRow));
   }
 
-  const isSinglePairPerRow = columns === 1; // 单列则不分配固定宽度
+  const isSinglePairPerRow = columns === 'single'; // 单列则不分配固定宽度
 
   return (
     <Box sx={commonStyles.formContainer}>
@@ -136,7 +136,7 @@ Form.propTypes = {
       type: PropTypes.oneOf(['text', 'status'])
     })
   ).isRequired,
-  columns: PropTypes.oneOf([1, 2])
+  columns: PropTypes.oneOf(['single', 'double'])
 };
 
 export default memo(Form);

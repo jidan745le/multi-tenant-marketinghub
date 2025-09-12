@@ -40,7 +40,8 @@ const ProductSidebar = ({
   const theme = useTheme();
   return (
     <Box sx={{ 
-      width: 380, 
+      width: { xs: 280, sm: 320, md: 360, lg: 380 }, 
+      minWidth: 316,
       bgcolor: '#333333', 
       color: 'white'
     }}>
@@ -71,7 +72,7 @@ const ProductSidebar = ({
         marginTop: 4, 
         ml: 0.5,
         overflow: 'auto',
-        maxHeight: 'calc(100vh - 100px)',
+        maxHeight: 'calc(100vh - 150px)',
         '&::-webkit-scrollbar': {
           display: 'none'
         },
@@ -152,14 +153,14 @@ const ProductSidebar = ({
                   key={index}
                   variant="body2"
                   sx={{
-                    fontSize: '1rem',
+                    fontSize: '1.05rem',
                     py: 0.5,
                     px: 1,
                     ml: -1,
                     pl: 2,
                     cursor: 'pointer',
                     color: 'rgba(255,255,255,0.8)',
-                    textTransform: 'uppercase',
+                    textTransform: 'none',
                     letterSpacing: '0.3px',
                     lineHeight: '2.4',
                     fontWeight: 400,
