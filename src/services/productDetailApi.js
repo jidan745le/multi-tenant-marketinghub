@@ -395,6 +395,22 @@ class ProductDetailApiService {
             }
           }
         }
+
+        parent {
+          __typename
+          ... on object_Product {
+            children {
+            __typename
+            ...on object_Product {
+              id
+              Size
+              MainMaterial
+              SurfaceFinish
+              ApplicableStandard              
+          }
+        }
+      }
+    }
       }
     }
   `;
@@ -418,7 +434,8 @@ class ProductDetailApiService {
       packagingData: this.transformPackagingData(product),
       packagingSpec: this.transformPackagingSpecData(product),
       marketingCollaterals: this.transformMarketingCollateralsData(product),
-      afterService: this.transformAfterServiceData(product)
+      afterService: this.transformAfterServiceData(product),
+      skuData: this.transformSkuData(product)
     };
   }
 
@@ -868,6 +885,20 @@ class ProductDetailApiService {
       console.error('Error fetching product detail:', error);
       throw error;
     }
+  }
+
+  // SKU数据转换
+  transformSkuData(product) {
+    // 从 parent.children 中获取 SKU 数据
+    const children = product.parent?.children || [];
+
+    return children.map(child => ({
+      productNumber: child.id || '',
+      size: child.Size || '',
+      mainMaterial: child.MainMaterial || '',
+      surfaceFinish: child.SurfaceFinish || '',
+      applicableStandard: child.ApplicableStandard || ''
+    }));
   }
 
   // 批量获取产品详情

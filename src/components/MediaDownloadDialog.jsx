@@ -1,24 +1,24 @@
 import CloseIcon from '@mui/icons-material/Close';
 import {
-    Box,
-    Button,
-    Checkbox,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogTitle,
-    FormControl,
-    FormControlLabel,
-    FormHelperText,
-    InputAdornment,
-    List,
-    MenuItem,
-    OutlinedInput,
-    Radio,
-    RadioGroup,
-    Select,
-    Typography,
-    useTheme
+  Box,
+  Button,
+  Checkbox,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControl,
+  FormControlLabel,
+  FormHelperText,
+  InputAdornment,
+  List,
+  MenuItem,
+  OutlinedInput,
+  Radio,
+  RadioGroup,
+  Select,
+  Typography,
+  useTheme
 } from '@mui/material';
 import IconButton from '@mui/material/IconButton';
 import { useState } from 'react';
@@ -149,7 +149,7 @@ const MediaDownloadDialog = ({
         
         <List component="div" sx={{ display: 'flex', flexDirection: 'column', padding: 0 }}>
           {mockDerivateData.map((item, index) => (
-            <Box key={`${item.label}-${index}`}>
+            <Box key={`${item.label}-${index}`} sx={{ display: 'flex', flexDirection: 'column' }}>
               <Typography
                 sx={{
                   height: '20px',
