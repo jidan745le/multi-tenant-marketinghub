@@ -2,29 +2,29 @@
 const PIM_GRAPHQL_URL = 'https://pim-test.kendo.com/pimcore-graphql-webservices/products';
 const API_KEY = '4fe5b9cb2dc6015250c46f9332c195ae';
 class ProductDetailApiService {
-    constructor() {
-        this.baseURL = PIM_GRAPHQL_URL;
-    }
+  constructor() {
+    this.baseURL = PIM_GRAPHQL_URL;
+  }
 
-    // 获取请求头
-    getHeaders() {
-        return {
-            'Content-Type': 'application/json',
-            'X-API-Key': API_KEY,
-        };
-    }
+  // 获取请求头
+  getHeaders() {
+    return {
+      'Content-Type': 'application/json',
+      'X-API-Key': API_KEY,
+    };
+  }
 
-    // 处理API响应
-    async handleResponse(response) {
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-        }
-        return response.json();
+  // 处理API响应
+  async handleResponse(response) {
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
+    return response.json();
+  }
 
-    // GraphQL查询语句
-    getProductQuery = `
+  // 完整的GraphQL查询语句
+  getProductQuery = `
     query getProduct($id: Int!) {
       getProduct(id: $id) {
         id
@@ -34,7 +34,6 @@ class ProductDetailApiService {
         ShortDescription_en: ShortDescription(language: "en")
         LongDescription_en: LongDescription(language: "en")
         CategoryName
-        ABC
         
         # BASIC CARD INFO
         ProductLabel
@@ -48,10 +47,7 @@ class ProductDetailApiService {
           fullpath
           assetThumb: fullpath(thumbnail: "content")
           assetThumb2: fullpath(thumbnail: "content", format: "webp")
-          resolutions(thumbnail: "content", types: [2, 5]) {
-            resolution
-            url
-          }
+
         }
         
         # BASIC DATA
@@ -61,15 +57,11 @@ class ProductDetailApiService {
         version
         CustomerFacingProductCode
         Sellable
-        id
         classname
         CountryOfOrigin
         Warranty
         modificationDate
-        LifecycleStatus
-        EnrichmentStatus
         FirstShipmentDate
-        creationDate
         
         # SAP DETAIL
         MeasurementUnitIN
@@ -85,26 +77,7 @@ class ProductDetailApiService {
         LongDescription
         PackagingContains
         
-        ExplodedImage {
-          image {
-            id
-          }
-        }
-        
-        OnWhite {
-          image {
-            filename
-            fullpath
-            id
-            filesize
-            srcset(thumbnail: "content") {
-              descriptor
-              url
-              __typename
-            }
-          }
-        }
-        
+        # ICONS
         Icons {
           crop {
             cropWidth
@@ -113,40 +86,76 @@ class ProductDetailApiService {
             filename
             fullpath
             filesize
-            duration
+            metadata {
+              data
+              name
+              type
+              language
+            }
           }
         }
         
-        ProductDimensions
-        InnerBoxQuantity
+        # QR CODES
+        WebsiteLinkDE
         
+        # EANS
+        InnerBoxEANCode
+        MasterCartonEANCode
+        
+        # PACKAGING DATA
+        InnerBoxQuantity
+        UnitPackingMC
+        INSizeWxHxL
+        InnerBoxGrossWeight
+        InnerBoxSizeLcm
+        InnerBoxSizeWcm
+        InnerBoxSizeHcm
+        InnerBoxVolumeM3
+        MCQuantity
+        MeasurementUnitMC
+        MCSizeWxHxL
+        MCNetWeight
+        MCGrossWeight
+        MCSizeLcm
+        MCSizeWcm
+        MCSizeHcm
+        MCVolumeM3
+        SAPPackagingType
+        UnitPackingItem
+        PCSInUnitPackingItem
+        MeasurementUnitItem
+        ItemSizeWxHxL
+        ItemNetWeight
+        ItemGrossWeight
+        ItemSizeLcm
+        ItemSizeWcm
+        ItemSizeHcm
+        ItemVolumeM3
+        
+        # SPECS
         Specs {
           __typename
           description
           id
           name
-          
           ... on csGroup {
             description
             id
             name
             features {
               __typename
-              
               ... on csFeatureInput {
                 description
                 id
                 name
                 text
               }
-              
               ... on csFeatureSelect {
                 description
                 id
                 name
                 selection
               }
-              
               ... on csFeatureNumeric {
                 description
                 id
@@ -154,6 +163,48 @@ class ProductDetailApiService {
                 number
                 title
               }
+              ... on csFeatureQuantityValue {
+                description
+                name
+                type
+                quantityvalue {
+                  unit {
+                    id
+                    longname
+                    abbreviation
+                  }
+                  value
+                }
+              }
+              ... on csFeatureBooleanSelect {
+                description
+                id
+                name
+                title
+                checked
+              }
+            }
+          }
+        }
+        
+        # LOGO MARKING
+        AdditionalPrinting
+        Logo1
+        Logo2
+        
+        # BUNDLES & RELATIONSHIPS
+        Bundle {
+          __typename
+          ... on object_Product {
+            ProductName
+            id
+            VirtualProductID
+            Main {
+              id
+              filename
+              fullpath
+              assetThumb: fullpath(thumbnail: "content")
+              assetThumb2: fullpath(thumbnail: "content", format: "webp")
             }
           }
         }
@@ -162,186 +213,681 @@ class ProductDetailApiService {
           element {
             ... on object_Product {
               ProductName
+              id
+              VirtualProductID
+              Main {
+                id
+                filename
+                fullpath
+                assetThumb: fullpath(thumbnail: "content")
+                assetThumb2: fullpath(thumbnail: "content", format: "webp")
+              }
             }
           }
         }
         
-        InnerCartonArtwork {
+        Accessories {
+          element {
+            ... on object_Product {
+              ProductName
+              id
+              VirtualProductID
+              Main {
+                id
+                filename
+                fullpath
+                assetThumb: fullpath(thumbnail: "content")
+                assetThumb2: fullpath(thumbnail: "content", format: "webp")
+              }
+            }
+          }
+        }
+        
+        # MARKETING COLLATERALS
+        OnWhite {
+          image {
+            filename
+            fullpath
+            id
+            filesize
+            assetThumb: fullpath(thumbnail: "content")
+            assetThumb2: fullpath(thumbnail: "content", format: "webp")
+            metadata {
+              data
+              name
+              type
+              language
+            }
+          }
+        }
+        
+        Lifestyles {
+          image {
+            filename
+            fullpath
+            id
+            filesize
+            assetThumb: fullpath(thumbnail: "content")
+            assetThumb2: fullpath(thumbnail: "content", format: "webp")
+            metadata {
+              data
+              name
+              type
+              language
+            }
+          }
+        }
+        
+        ProductVideos {
+          ... on asset {
+            filename
+            fullpath
+            id
+            filesize
+            assetThumb2: fullpath(thumbnail: "content", format: "webp")
+            metadata {
+              data
+              name
+              type
+              language
+            }
+          }
+        }
+        
+        CategoryVideos {
+          ... on asset {
+            filename
+            fullpath
+            id
+            filesize
+            assetThumb2: fullpath(thumbnail: "content", format: "webp")
+            metadata {
+              data
+              name
+              type
+              language
+            }
+          }
+        }
+        
+        # AFTER SERVICE
+        Manuals {
           __typename
           ... on asset {
-            dimensions {
-              width
-            }
-            data
             filename
+            fullpath
+            id
+            filesize
+            assetThumb2: fullpath(thumbnail: "content", format: "webp")
+            metadata {
+              data
+              name
+              type
+              language
+            }
           }
         }
         
-        MCVolumeM3
-        ProductType
-        DigitalAssets
+        RepairGuides {
+          __typename
+          ... on asset {
+            filename
+            fullpath
+            id
+            filesize
+            assetThumb2: fullpath(thumbnail: "content", format: "webp")
+            metadata {
+              data
+              name
+              type
+              language
+            }
+          }
+        }
+        
+        PackingGuideline {
+          __typename
+          ... on asset {
+            filename
+            fullpath
+            id
+            filesize
+            assetThumb2: fullpath(thumbnail: "content", format: "webp")
+            metadata {
+              data
+              name
+              type
+              language
+            }
+          }
+        }
+        
+        ProductDrawing {
+          __typename
+          ... on asset {
+            filename
+            fullpath
+            id
+            filesize
+            assetThumb2: fullpath(thumbnail: "content", format: "webp")
+            metadata {
+              data
+              name
+              type
+              language
+            }
+          }
+        }
+        
+        ProductPatent {
+          __typename
+          ... on asset {
+            filename
+            fullpath
+            id
+            filesize
+            assetThumb2: fullpath(thumbnail: "content", format: "webp")
+            metadata {
+              data
+              name
+              type
+              language
+            }
+          }
+        }
       }
     }
   `;
 
-    // 数据转换函数
-    transformProductData(rawData) {
-        const product = rawData.data?.getProduct;
-        if (!product) {
-            throw new Error('Product not found');
-        }
-
-        // 转换产品卡片信息
-        const productCardInfo = {
-            productNumber: product.VirtualProductID || product.id || '',
-            productName: product.ProductName_en || product.ProductName || '',
-            developmentStatus: product.EnrichmentStatus || 'Unknown',
-            lifeCycleStatus: product.LifecycleStatus || 'Unknown',
-            enrichmentStatus: product.EnrichmentStatus || 'Unknown',
-            regionalLaunchDate: product.OnlineDate ? new Date(product.OnlineDate).toISOString().split('T')[0] : '',
-            finalReleaseDate: product.FirstShipmentDate ? new Date(product.FirstShipmentDate).toISOString().split('T')[0] : '',
-            imageUrl: product.Main?.fullpath || product.OnWhite?.image?.fullpath || '',
-            thumbnailUrl: product.Main?.assetThumb || product.Main?.assetThumb2 || ''
-        };
-
-        // 转换基础数据
-        const basicData = {
-            brand: product.Brand || '',
-            region: 'EMEA', // 默认值，可根据实际情况调整
-            productType: product.ProductType || '',
-            modelNumber: product.VirtualProductID || product.id || '',
-            version: product.version?.toString() || '1.0',
-            customerFacingModel: product.CustomerFacingProductCode || product.VirtualProductID || '',
-            productSeries: product.CategoryName || '',
-            sellable: product.Sellable || false,
-            recognition: null, // 数据中未提供
-            productNumber: product.VirtualProductID || product.id || '',
-            productClassification: product.classname || null,
-            countryOfOrigin: product.CountryOfOrigin || '',
-            warranty: product.Warranty || '',
-            lastChangedOn: product.modificationDate ? new Date(product.modificationDate).toISOString().split('T')[0] : '',
-            lifeCycleStatus: product.LifecycleStatus || '',
-            enrichmentStatus: product.EnrichmentStatus || '',
-            firstShippingDate: product.FirstShipmentDate ? new Date(product.FirstShipmentDate).toISOString().split('T')[0] : '',
-            createdOn: product.creationDate ? new Date(product.creationDate).toISOString().split('T')[0] : ''
-        };
-
-        // 转换SAP数据
-        const sapData = {
-            basicUnitOfMeasurement: product.MeasurementUnitIN || 'EA',
-            productDimensions: product.ProductDimensions || undefined,
-            consolidationSkuNumbers: product.ConsolidationSKUNumbers || undefined,
-            factoryInstructionCn: product.FactoryInstructionCN || '',
-            sapShortDescriptionEn: product.SAPShortDescriptionEN || ''
-        };
-
-        // 转换营销数据
-        const marketingData = {
-            modelName: product.VirtualProductID || product.ProductName || '',
-            categoryBullets: this.extractCategoryBullets(product),
-            popShortDescription: product.ShortDescription_en || product.ShortDescription || '',
-            longDescription: product.LongDescription_en || product.LongDescription || '',
-            packagingContains: product.PackagingContains || '',
-            specifications: this.extractSpecifications(product.Specs)
-        };
-
-        return {
-            productCardInfo,
-            basicData,
-            sapData,
-            marketingData
-        };
+  // 主要数据转换函数
+  transformProductData(rawData) {
+    const product = rawData.data?.getProduct;
+    if (!product) {
+      throw new Error('Product not found');
     }
 
-    // 提取分类标签
-    extractCategoryBullets(product) {
-        const bullets = [];
+    return {
+      productCardInfo: this.transformProductCardInfo(product),
+      basicData: this.transformBasicData(product),
+      sapData: this.transformSapData(product),
+      marketingData: this.transformMarketingData(product),
+      referenceRelationship: this.transformReferenceRelationshipData(product),
+      iconsPictures: this.transformIconsPicturesData(product),
+      qrCodes: this.transformQrCodesData(product),
+      eans: this.transformEansData(product),
+      packagingData: this.transformPackagingData(product),
+      packagingSpec: this.transformPackagingSpecData(product),
+      marketingCollaterals: this.transformMarketingCollateralsData(product),
+      afterService: this.transformAfterServiceData(product)
+    };
+  }
 
-        if (product.CategoryName) {
-            bullets.push(product.CategoryName);
+  // 产品卡片信息转换
+  transformProductCardInfo(product) {
+    return {
+      productNumber: product.VirtualProductID || product.CustomerFacingProductCode || product.id || '',
+      productName: product.ProductName_en || product.ProductName || '',
+      developmentStatus: this.getDevelopmentStatus(product.EnrichmentStatus, product.LifecycleStatus),
+      lifeCycleStatus: product.LifecycleStatus || 'Unknown',
+      enrichmentStatus: product.EnrichmentStatus || 'Unknown',
+      regionalLaunchDate: this.formatDate(product.OnlineDate),
+      finalReleaseDate: this.formatDate(product.FirstShipmentDate),
+      imageUrl: product.Main?.fullpath || '',
+      thumbnailUrl: product.Main?.assetThumb || product.Main?.assetThumb2 || ''
+    };
+  }
+
+  // 基础数据转换
+  transformBasicData(product) {
+    return {
+      brand: product.Brand || 'KENDO',
+      region: 'EMEA', // 默认值
+      productType: product.ProductType || 'Kit',
+      modelNumber: product.VirtualProductID || product.id || '',
+      version: product.version?.toString() || '1.0',
+      customerFacingModel: product.CustomerFacingProductCode || product.VirtualProductID || '',
+      productSeries: product.CategoryName || '',
+      sellable: Boolean(product.Sellable),
+      recognition: null,
+      productNumber: product.VirtualProductID || product.id || '',
+      productClassification: product.classname || null,
+      countryOfOrigin: product.CountryOfOrigin || '',
+      warranty: product.Warranty || '',
+      lastChangedOn: this.formatDate(product.modificationDate),
+      lifeCycleStatus: product.LifecycleStatus || '',
+      enrichmentStatus: product.EnrichmentStatus || '',
+      firstShippingDate: this.formatDate(product.FirstShipmentDate),
+      createdOn: this.formatDate(product.creationDate)
+    };
+  }
+
+  // SAP数据转换
+  transformSapData(product) {
+    return {
+      basicUnitOfMeasurement: product.MeasurementUnitIN || 'EA',
+      productDimensions: product.ProductDimensions,
+      consolidationSkuNumbers: product.ConsolidationSKUNumbers,
+      factoryInstructionCn: product.FactoryInstructionCN || '',
+      sapShortDescriptionEn: product.SAPShortDescriptionEN || ''
+    };
+  }
+
+  // 营销数据转换
+  transformMarketingData(product) {
+    return {
+      modelName: product.VirtualProductID || product.ProductName || '',
+      categoryBullets: this.extractCategoryBullets(product),
+      popShortDescription: product.ShortDescription_en || product.ShortDescription || '',
+      longDescription: product.LongDescription_en || product.LongDescription || '',
+      packagingContains: product.PackagingContains || '',
+      specifications: this.extractSpecifications(product.Specs)
+    };
+  }
+
+  // 关系数据转换
+  transformReferenceRelationshipData(product) {
+    return {
+      bundles: this.transformBundles(product.Bundle),
+      components: this.transformComponents(product.Components),
+      accessories: this.transformAccessories(product.Accessories)
+    };
+  }
+
+  // 图标和图片数据转换
+  transformIconsPicturesData(product) {
+    const icons = [];
+    if (product.Icons && Array.isArray(product.Icons)) {
+      product.Icons.forEach(icon => {
+        if (icon.image) {
+          icons.push({
+            imageUrl: icon.image.fullpath || '',
+            type: this.extractIconType(icon.image.metadata)
+          });
         }
-
-        if (product.ProductLabel) {
-            bullets.push(product.ProductLabel);
-        }
-
-        if (product.Brand && product.CategoryName) {
-            bullets.push(`${product.Brand} ${product.CategoryName}`);
-        }
-
-        if (product.ProductName_en) {
-            bullets.push(product.ProductName_en);
-        }
-
-        return bullets.filter((bullet, index, self) => self.indexOf(bullet) === index); // 去重
+      });
     }
+    return { icons };
+  }
 
-    // 提取规格信息
-    extractSpecifications(specs) {
-        if (!specs || !Array.isArray(specs)) return '';
+  // 二维码数据转换
+  transformQrCodesData(product) {
+    const qrCodes = [];
+    if (product.WebsiteLinkDE) {
+      qrCodes.push({
+        name: 'Website Link',
+        link: product.WebsiteLinkDE
+      });
+    }
+    return { qrCodes };
+  }
 
-        const specStrings = [];
+  // EAN数据转换
+  transformEansData(product) {
+    const eans = [];
+    if (product.InnerBoxEANCode) {
+      eans.push({
+        name: 'Inner Box EAN',
+        eanCode: product.InnerBoxEANCode
+      });
+    }
+    if (product.MasterCartonEANCode) {
+      eans.push({
+        name: 'Master Carton EAN',
+        eanCode: product.MasterCartonEANCode
+      });
+    }
+    return { eans };
+  }
 
-        specs.forEach(spec => {
-            if (spec.__typename === 'csGroup' && spec.features) {
-                spec.features.forEach(feature => {
-                    if (feature.__typename === 'csFeatureInput' && feature.text) {
-                        specStrings.push(`${feature.name}: ${feature.text}`);
-                    } else if (feature.__typename === 'csFeatureSelect' && feature.selection) {
-                        specStrings.push(`${feature.name}: ${feature.selection}`);
-                    } else if (feature.__typename === 'csFeatureNumeric' && feature.number) {
-                        specStrings.push(`${feature.name}: ${feature.number}`);
-                    }
-                });
+  // 包装数据转换
+  transformPackagingData(product) {
+    const headers = ['DIMENSIONS', 'ITEM', 'INNER BOX', 'MASTER CARTON'];
+    const rows = [
+      [
+        'Packaging Type',
+        product.UnitPackingItem || 'Color Box',
+        'Brown Carton Box',
+        product.UnitPackingMC || 'Brown carton box'
+      ],
+      [
+        'Quantity(pcs)',
+        parseInt(product.PCSInUnitPackingItem) || 1,
+        parseInt(product.InnerBoxQuantity) || 0,
+        parseInt(product.MCQuantity) || 0
+      ],
+      [
+        'Net Weight(kg)',
+        parseFloat(product.ItemNetWeight) || 0,
+        0, // Inner box net weight not provided in data
+        parseFloat(product.MCNetWeight) || 0
+      ],
+      [
+        'Gross Weight(kg)',
+        parseFloat(product.ItemGrossWeight) || 0,
+        parseFloat(product.InnerBoxGrossWeight) || 0,
+        parseFloat(product.MCGrossWeight) || 0
+      ],
+      [
+        'L×W×H(cm)',
+        product.ItemSizeWxHxL || `${product.ItemSizeLcm}×${product.ItemSizeWcm}×${product.ItemSizeHcm}`,
+        product.INSizeWxHxL || `${product.InnerBoxSizeLcm}×${product.InnerBoxSizeWcm}×${product.InnerBoxSizeHcm}`,
+        product.MCSizeWxHxL || `${product.MCSizeLcm}×${product.MCSizeWcm}×${product.MCSizeHcm}`
+      ],
+      [
+        'Volume(m³)',
+        parseFloat(product.ItemVolumeM3) || 0,
+        parseFloat(product.InnerBoxVolumeM3) || 0,
+        parseFloat(product.MCVolumeM3) || 0
+      ]
+    ];
+
+    return { headers, rows };
+  }
+
+  // 包装规格数据转换
+  transformPackagingSpecData(product) {
+    const technicalSpecs = [];
+    const logoMarking = [];
+
+    // 从Specs中提取技术规格
+    if (product.Specs && Array.isArray(product.Specs)) {
+      product.Specs.forEach(spec => {
+        if (spec.__typename === 'csGroup' && spec.features) {
+          spec.features.forEach(feature => {
+            const specItem = this.transformSpecFeature(feature);
+            if (specItem) {
+              technicalSpecs.push(specItem);
             }
+          });
+        }
+      });
+    }
+
+    // Logo标记信息
+    if (product.Logo1) {
+      logoMarking.push({
+        featureName: 'Logo 1',
+        value: product.Logo1,
+        additionalInfo: product.AdditionalPrinting
+      });
+    }
+    if (product.Logo2) {
+      logoMarking.push({
+        featureName: 'Logo 2',
+        value: product.Logo2
+      });
+    }
+
+    return { technicalSpecs, logoMarking };
+  }
+
+  // 营销宣传材料数据转换
+  transformMarketingCollateralsData(product) {
+    return {
+      onWhite: this.transformImageCollection(product.OnWhite),
+      actionLifestyle: this.transformImageCollection(product.Lifestyles),
+      videos: this.transformVideoCollection([
+        ...(product.ProductVideos || []),
+        ...(product.CategoryVideos || [])
+      ])
+    };
+  }
+
+  // 售后服务数据转换
+  transformAfterServiceData(product) {
+    return {
+      manuals: this.transformAfterServiceCollection(product.Manuals),
+      repairGuide: this.transformAfterServiceCollection(product.RepairGuides),
+      packaging: this.transformAfterServiceCollection(product.PackingGuideline),
+      drawing: this.transformAfterServiceCollection(product.ProductDrawing),
+      patent: this.transformAfterServiceCollection(product.ProductPatent)
+    };
+  }
+
+  // 辅助函数
+  formatDate(dateString) {
+    if (!dateString) return '';
+    try {
+      return new Date(dateString).toISOString().split('T')[0];
+    } catch {
+      return '';
+    }
+  }
+
+  getDevelopmentStatus(enrichmentStatus, lifecycleStatus) {
+    if (lifecycleStatus === 'Active' && enrichmentStatus) {
+      return 'READY FOR LAUNCH';
+    }
+    if (enrichmentStatus === 'Local Data Ready') {
+      return 'IN DEVELOPMENT';
+    }
+    return enrichmentStatus || lifecycleStatus || 'Unknown';
+  }
+
+  extractCategoryBullets(product) {
+    const bullets = [];
+    const items = [
+      product.CategoryName,
+      product.ProductLabel,
+      product.ProductName_en,
+      product.Brand && product.CategoryName ? `${product.Brand} ${product.CategoryName}` : null
+    ];
+
+    items.forEach(item => {
+      if (item && !bullets.includes(item)) {
+        bullets.push(item);
+      }
+    });
+
+    return bullets;
+  }
+
+  extractSpecifications(specs) {
+    if (!specs || !Array.isArray(specs)) return '';
+
+    const specStrings = [];
+    specs.forEach(spec => {
+      if (spec.__typename === 'csGroup' && spec.features) {
+        spec.features.forEach(feature => {
+          const specText = this.getFeatureText(feature);
+          if (specText) {
+            specStrings.push(specText);
+          }
         });
+      }
+    });
 
-        return specStrings.join(', ');
-    }
+    return specStrings.join(', ');
+  }
 
-    // 获取产品详情
-    async getProductDetail(id) {
-        try {
-            const response = await fetch(this.baseURL, {
-                method: 'POST',
-                headers: this.getHeaders(),
-                body: JSON.stringify({
-                    query: this.getProductQuery,
-                    variables: { id: parseInt(id) }
-                }),
-            });
-
-            const rawData = await this.handleResponse(response);
-
-            // 检查GraphQL错误
-            if (rawData.errors) {
-                throw new Error(rawData.errors[0]?.message || 'GraphQL query failed');
-            }
-
-            return this.transformProductData(rawData);
-        } catch (error) {
-            console.error('Error fetching product detail:', error);
-            throw error;
+  getFeatureText(feature) {
+    switch (feature.__typename) {
+      case 'csFeatureInput':
+        return feature.text ? `${feature.name}: ${feature.text}` : null;
+      case 'csFeatureSelect':
+        return feature.selection ? `${feature.name}: ${feature.selection}` : null;
+      case 'csFeatureNumeric':
+        return feature.number ? `${feature.name}: ${feature.number}` : null;
+      case 'csFeatureQuantityValue':
+        if (feature.quantityvalue && feature.quantityvalue.value) {
+          const unit = feature.quantityvalue.unit?.abbreviation || '';
+          return `${feature.name}: ${feature.quantityvalue.value}${unit}`;
         }
+        return null;
+      case 'csFeatureBooleanSelect':
+        return feature.checked ? `${feature.name}: Yes` : null;
+      default:
+        return null;
+    }
+  }
+
+  transformSpecFeature(feature) {
+    const text = this.getFeatureText(feature);
+    if (!text) return null;
+
+    const [name, value] = text.split(': ');
+    let unit = '';
+
+    if (feature.__typename === 'csFeatureQuantityValue' && feature.quantityvalue?.unit) {
+      unit = feature.quantityvalue.unit.abbreviation;
     }
 
-    // 批量获取产品详情
-    async getProductDetails(ids) {
-        try {
-            const promises = ids.map(id => this.getProductDetail(id));
-            const results = await Promise.allSettled(promises);
+    return {
+      featureName: name,
+      value: value,
+      unit: unit
+    };
+  }
 
-            return results.map((result, index) => ({
-                id: ids[index],
-                success: result.status === 'fulfilled',
-                data: result.status === 'fulfilled' ? result.value : null,
-                error: result.status === 'rejected' ? result.reason.message : null
-            }));
-        } catch (error) {
-            console.error('Error fetching product details:', error);
-            throw error;
+  transformBundles(bundles) {
+    if (!bundles || !Array.isArray(bundles)) return [];
+
+    return bundles.map(bundle => ({
+      productNumber: bundle.VirtualProductID || bundle.id || '',
+      productName: bundle.ProductName || '',
+      imageUrl: bundle.Main?.fullpath || ''
+    }));
+  }
+
+  transformComponents(components) {
+    if (!components || !Array.isArray(components)) return [];
+
+    return components.map(comp => ({
+      productNumber: comp.element?.VirtualProductID || comp.element?.id || '',
+      productName: comp.element?.ProductName || '',
+      imageUrl: comp.element?.Main?.fullpath || ''
+    }));
+  }
+
+  transformAccessories(accessories) {
+    if (!accessories || !Array.isArray(accessories)) return [];
+
+    return accessories.map(acc => ({
+      imageUrl: acc.element?.Main?.fullpath || '',
+      model: acc.element?.VirtualProductID || acc.element?.id || '',
+      name: acc.element?.ProductName || '',
+      quantity: 1 // 默认数量
+    }));
+  }
+
+  extractIconType(metadata) {
+    if (!metadata || !Array.isArray(metadata)) return 'icon';
+
+    const typeMetadata = metadata.find(m => m.name === 'type');
+    return typeMetadata?.data || 'icon';
+  }
+
+  transformImageCollection(imageCollection) {
+    if (!imageCollection || !Array.isArray(imageCollection)) return [];
+
+    return imageCollection.map(item => {
+      const image = item.image || item;
+      return {
+        imageUrl: image.fullpath || '',
+        thumbnailUrl: image.assetThumb || image.assetThumb2 || '',
+        downloadUrl: image.fullpath || '',
+        fileName: image.filename || '',
+        basicInfo: {
+          modelNumber: this.extractMetadataValue(image.metadata, 'modelNumber') || '',
+          imageType: this.extractMetadataValue(image.metadata, 'imageType') || 'Main',
+          imageSize: this.formatFileSize(image.filesize),
+          cameraAngle: this.extractMetadataValue(image.metadata, 'cameraAngle') || 'Main Front',
+          appliedBrand: this.extractMetadataValue(image.metadata, 'brand') || 'Kendo',
+          lightingSetup: this.extractMetadataValue(image.metadata, 'lighting') || 'Auto'
+        },
+        technical: {
+          totalPixels: this.extractMetadataValue(image.metadata, 'totalPixels') || '0',
+          cameraBody: this.extractMetadataValue(image.metadata, 'camera') || 'Unknown',
+          resolution: this.extractMetadataValue(image.metadata, 'resolution') || 'Unknown',
+          createdDate: this.extractMetadataValue(image.metadata, 'createdDate') || '',
+          imageSize: this.formatFileSize(image.filesize)
         }
+      };
+    });
+  }
+
+  transformVideoCollection(videos) {
+    if (!videos || !Array.isArray(videos)) return [];
+
+    return videos.map(video => ({
+      thumbnailUrl: video.assetThumb2 || '',
+      downloadUrl: video.fullpath || '',
+      videoTitle: this.extractMetadataValue(video.metadata, 'title') || video.filename || '',
+      language: this.extractMetadataValue(video.metadata, 'language') || 'English',
+      type: this.extractMetadataValue(video.metadata, 'type') || 'Demo',
+      format: 'Video',
+      duration: this.extractMetadataValue(video.metadata, 'duration') || '0:00'
+    }));
+  }
+
+  transformAfterServiceCollection(collection) {
+    if (!collection || !Array.isArray(collection)) return [];
+
+    return collection.map(item => ({
+      thumbnailUrl: item.assetThumb2 || '',
+      downloadUrl: item.fullpath || '',
+      fileName: item.filename || '',
+      title: this.extractMetadataValue(item.metadata, 'title') || item.filename || ''
+    }));
+  }
+
+  extractMetadataValue(metadata, key) {
+    if (!metadata || !Array.isArray(metadata)) return '';
+    const item = metadata.find(m => m.name === key);
+    return item?.data || '';
+  }
+
+  formatFileSize(bytes) {
+    if (!bytes) return '0 MB';
+    const mb = bytes / (1024 * 1024);
+    return `${mb.toFixed(2)} MB`;
+  }
+
+  // 获取产品详情
+  async getProductDetail(id) {
+    try {
+      const response = await fetch(this.baseURL, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          query: this.getProductQuery,
+          variables: { id: parseInt(id) }
+        }),
+      });
+
+      const rawData = await this.handleResponse(response);
+
+      // 检查GraphQL错误
+      if (rawData.errors) {
+        throw new Error(rawData.errors[0]?.message || 'GraphQL query failed');
+      }
+      console.log('transformProductData', this.transformProductData(rawData));
+
+      return this.transformProductData(rawData);
+    } catch (error) {
+      console.error('Error fetching product detail:', error);
+      throw error;
     }
+  }
+
+  // 批量获取产品详情
+  async getProductDetails(ids) {
+    try {
+      const promises = ids.map(id => this.getProductDetail(id));
+      const results = await Promise.allSettled(promises);
+
+      return results.map((result, index) => ({
+        id: ids[index],
+        success: result.status === 'fulfilled',
+        data: result.status === 'fulfilled' ? result.value : null,
+        error: result.status === 'rejected' ? result.reason.message : null
+      }));
+    } catch (error) {
+      console.error('Error fetching product details:', error);
+      throw error;
+    }
+  }
 }
 
 export default new ProductDetailApiService();
+
