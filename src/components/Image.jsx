@@ -120,7 +120,7 @@ const Image = ({
           top: '32.23px',
           width: '412.44px'
         }}>
-          {imageInfo.fileName || 'Image File Name'}
+          {displayedMainImage?.fileName || imageInfo.fileName || 'Image File Name'}
         </Typography>
 
         {/* 下载按钮 */}
@@ -183,13 +183,13 @@ const Image = ({
               display: 'flex',
               flexDirection: 'column',
               gap: 0,
-              alignItems: 'flex-start',
-              justifyContent: 'flex-end',
+              alignItems: 'center',
+              justifyContent: 'center',
               alignSelf: 'stretch',
               flex: 1,
               position: 'relative',
               overflow: 'hidden',
-              objectFit: 'cover'
+              objectFit: 'contain'
             }}
           />
         </Box>
@@ -287,29 +287,29 @@ const Image = ({
             gap: '8px'
           }}>
             <Typography sx={{ fontSize: '11.5px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-              {imageInfo.modelNumber || '90330'}
+              {displayedMainImage?.basicInfo?.modelNumber || imageInfo.modelNumber || '-'}
             </Typography>
             <Typography sx={{ fontSize: '11.5px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-              {imageInfo.imageType || 'External Image'}
+              {displayedMainImage?.basicInfo?.imageType || imageInfo.imageType || '-'}
             </Typography>
             <Typography sx={{ fontSize: '11.5px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-              {imageInfo.lockDate || '2025-01-01'}
+              {displayedMainImage?.basicInfo?.lockDate || imageInfo.lockDate || '-'}
             </Typography>
             <Typography sx={{ fontSize: '11.5px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-              {imageInfo.countryRestrictions || 'None'}
+              {displayedMainImage?.basicInfo?.countryRestrictions || imageInfo.countryRestrictions || '-'}
             </Typography>
             <Typography sx={{ fontSize: '11.5px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-              {imageInfo.usageRights || 'Standard'}
+              {displayedMainImage?.basicInfo?.usageRights || imageInfo.usageRights || '-'}
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               <Box sx={{
-                background: '#6eb82a',
+                // background: '#6eb82a',
                 borderRadius: '50%',
                 width: '4.28px',
                 height: '4.46px'
               }} />
               <Typography sx={{ fontSize: '11.5px', color: '#6eb82a', fontFamily: '"Open Sans", sans-serif' }}>
-                {imageInfo.approvalStatus || 'Published'}
+                {displayedMainImage?.basicInfo?.approvalStatus || imageInfo.approvalStatus || '-'}
               </Typography>
             </Box>
           </Box>
@@ -357,25 +357,25 @@ const Image = ({
             gap: '8px'
           }}>
             <Typography sx={{ fontSize: '11.5px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-              {imageInfo.colorSpace || 'RGB'}
+              {displayedMainImage?.technical?.colorSpace || imageInfo.colorSpace || '-'}
             </Typography>
             <Typography sx={{ fontSize: '11.5px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-              {imageInfo.colorProfile || 'sRGB'}
+              {displayedMainImage?.technical?.colorProfile || imageInfo.colorProfile || '-'}
             </Typography>
             <Typography sx={{ fontSize: '11.5px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-              {imageInfo.resolution || '300 dpi'}
+              {displayedMainImage?.technical?.resolution || imageInfo.resolution || '-'}
             </Typography>
             <Typography sx={{ fontSize: '11.5px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-              {imageInfo.dimensions || '17.14 x 13.65'}
+              {displayedMainImage?.technical?.dimensions || imageInfo.dimensions || '-'}
             </Typography>
             <Typography sx={{ fontSize: '11.5px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-              {imageInfo.size || '150 kb'}
+              {displayedMainImage?.technical?.size || imageInfo.size || '-'}
             </Typography>
             <Typography sx={{ fontSize: '11.5px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-              {imageInfo.createdOn || '2025-01-01'}
+              {displayedMainImage?.technical?.createdOn || imageInfo.createdOn || '-'}
             </Typography>
             <Typography sx={{ fontSize: '11.5px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-              {imageInfo.changeDate || '2025-01-01'}
+              {displayedMainImage?.technical?.changeDate || imageInfo.changeDate || '-'}
             </Typography>
           </Box>
         </Box>
@@ -428,13 +428,13 @@ const Image = ({
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 0,
-                alignItems: 'flex-start',
-                justifyContent: 'flex-end',
+                alignItems: 'center',
+                justifyContent: 'center',
                 alignSelf: 'stretch',
                 flex: 1,
                 position: 'relative',
                 overflow: 'hidden',
-                objectFit: 'cover'
+                objectFit: 'contain'
               }}
             />
           </Box>

@@ -19,7 +19,8 @@ const PackagingTable = ({
       alignItems: 'flex-start',
       justifyContent: 'flex-start',
       flexShrink: 0,
-      position: 'relative'
+      position: 'relative',
+      width: '100%'
     },
     // 表格行
     tableRow: {
@@ -35,8 +36,8 @@ const PackagingTable = ({
       position: 'relative',
       width: '100%'
     },
-    // 单元格容器
-    cellContainer: {
+    // 单元格容器 - 第一列
+    firstCellContainer: {
       display: 'flex',
       flexDirection: 'column',
       gap: 0,
@@ -44,7 +45,19 @@ const PackagingTable = ({
       justifyContent: 'center',
       alignSelf: 'stretch',
       flexShrink: 0,
-      width: { xs: '20%', sm: '20%', md: '20%', lg: '20%' },
+      width: '23.5%',
+      position: 'relative'
+    },
+    // 单元格容器 - 其他列
+    cellContainer: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 0,
+      alignItems: 'flex-start',
+      justifyContent: 'center',
+      alignSelf: 'stretch',
+      flexShrink: 1,
+      width: 'calc(76.5% / 3)',
       position: 'relative'
     },
     // 文本容器
@@ -90,7 +103,7 @@ const PackagingTable = ({
     // 列标题文本样式
     columnHeaderText: {
       color: primaryColor,
-      textAlign: 'center',
+      textAlign: 'left',
       fontFamily: '"Open Sans", sans-serif',
       fontSize: '13px',
       lineHeight: '140%',
@@ -106,7 +119,7 @@ const PackagingTable = ({
     // 数据文本样式
     dataText: {
       color: '#4d4d4d',
-      textAlign: 'center',
+      textAlign: 'left',
       fontFamily: '"Open Sans", sans-serif',
       fontSize: '12.5px',
       lineHeight: '140%',
@@ -141,27 +154,12 @@ const PackagingTable = ({
     <Box sx={commonStyles.tableContainer}>
       {/* 表头行 */}
       <Box sx={commonStyles.tableRow}>
-        {/* 主标题单元格 */}
-        <Box sx={{
-          ...commonStyles.cellContainer,
-          background: `${primaryColor}15`,
-          borderStyle: 'solid',
-          borderColor: `${primaryColor}15`,
-          borderWidth: '0.79px 0px 0.79px 0px'
-        }}>
-          <Box sx={commonStyles.textContainer}>
-            <Typography sx={commonStyles.headerText}>
-              DIMENSIONS
-            </Typography>
-          </Box>
-        </Box>
-
         {/* 列标题单元格 */}
         {columns.map((column, index) => (
           <Box
             key={index}
             sx={{
-              ...commonStyles.cellContainer,
+              ...(index === 0 ? commonStyles.firstCellContainer : commonStyles.cellContainer),
               background: `${primaryColor}15`,
               borderStyle: 'solid',
               borderColor: `${primaryColor}15`,
@@ -180,43 +178,25 @@ const PackagingTable = ({
       {/* 数据行 */}
       {data.map((row, rowIndex) => (
         <Box key={rowIndex} sx={commonStyles.tableRow}>
-          {/* 行标题单元格 */}
-          <Box sx={{
-            ...commonStyles.cellContainer,
-            background: '#fafafa',
-            borderStyle: 'solid',
-            borderColor: '#e6e6e6',
-            borderWidth: '0.79px 0px 0.79px 0px'
-          }}>
-            <Box sx={commonStyles.textContainer}>
-              <Typography sx={commonStyles.rowHeaderText}>
-                {row.label}
-              </Typography>
-            </Box>
-          </Box>
-
-          {/* 数据单元格 */}
-          {columns.map((column, cellIndex) => {
-            const value = row.values[cellIndex] || ''; // 如果数据不存在，使用空字符串
-            return (
-              <Box
-                key={cellIndex}
-                sx={{
-                  ...commonStyles.cellContainer,
-                  background: '#ffffff',
-                  borderStyle: 'solid',
-                  borderColor: '#e6e6e6',
-                  borderWidth: '0.79px 0px 0.79px 0px'
-                }}
-              >
-                <Box sx={commonStyles.dataTextContainer}>
-                  <Typography sx={commonStyles.dataText}>
-                    {value}
-                  </Typography>
-                </Box>
+          {/* 数据单元格 - 现在包含所有列，包括第一列 */}
+          {row.values.map((value, cellIndex) => (
+            <Box
+              key={cellIndex}
+              sx={{
+                ...(cellIndex === 0 ? commonStyles.firstCellContainer : commonStyles.cellContainer),
+                background: cellIndex === 0 ? '#fafafa' : '#ffffff', // 第一列作为行标题
+                borderStyle: 'solid',
+                borderColor: '#e6e6e6',
+                borderWidth: '0.79px 0px 0.79px 0px'
+              }}
+            >
+              <Box sx={cellIndex === 0 ? commonStyles.textContainer : commonStyles.dataTextContainer}>
+                <Typography sx={cellIndex === 0 ? commonStyles.rowHeaderText : commonStyles.dataText}>
+                  {value || ''}
+                </Typography>
               </Box>
-            );
-          })}
+            </Box>
+          ))}
         </Box>
       ))}
     </Box>
@@ -226,7 +206,6 @@ const PackagingTable = ({
 PackagingTable.propTypes = {
   data: PropTypes.arrayOf(
     PropTypes.shape({
-      label: PropTypes.string.isRequired,
       values: PropTypes.arrayOf(PropTypes.string).isRequired
     })
   ),

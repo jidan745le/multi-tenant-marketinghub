@@ -5,23 +5,8 @@ import UnifiedSkuTable from './UnifiedSkuTable';
 import { useTheme } from '../hooks/useTheme';
 
 
-// 三角形角标组件
-const SmallTriangleIcon = ({ expanded, color = '#ffffff' }) => (
-  <Box
-    component="span"
-    sx={{
-      width: 0,
-      height: 0,
-      borderLeft: '4px solid transparent',
-      borderRight: '4px solid transparent',
-      borderTop: expanded ? 'none' : `6px solid ${color}`,
-      borderBottom: expanded ? `6px solid ${color}` : 'none',
-      transition: 'all 0.15s ease-in-out',
-      display: 'inline-block',
-      ml: 3.5
-    }}
-  />
-);
+// 移除重复的SmallTriangleIcon定义，从共享组件导入
+import SmallTriangleIcon from './SmallTriangleIcon';
 
 const ProductCard = ({
   announcementPrefix = 'New Version Available:',
@@ -29,11 +14,7 @@ const ProductCard = ({
   statusText = 'In Development',
   modelNumber = '90330',
   title = 'Big Capacity Black Roller Cabinet with 6 Drawer - 160mm/6"',
-  lifeCycleStatus = 'Active',
-  regionalLaunchDate = '2025-01-01',
-  enrichmentStatus = 'Global data ready',
-  finalReleaseDate = '2025-06-01',
-  infoPairs,
+  infoPairs, // 统一使用infoPairs，移除单独的状态props
   infoLabelMinWidth = '155px',
   infoValueMinWidth = '118px',
   skuData = [
@@ -46,31 +27,48 @@ const ProductCard = ({
   const { primaryColor } = useTheme();
   const [skuAnchorEl, setSkuAnchorEl] = useState(null);
   
-  const commonStyles = {
-    // Typography样式
-    labelText: {
+  // 提取样式常量 - 使用useMemo缓存
+  const styles = React.useMemo(() => ({
+    // 基础字体样式
+    baseText: {
       color: '#4d4d4d',
       fontFamily: '"Open Sans", sans-serif',
       fontSize: 12,
       lineHeight: '14px',
-      letterSpacing: '0.5px',
-      fontWeight: 600,
       flex: 1,
       textOverflow: 'ellipsis',
       overflow: 'hidden'
+    },
+    // 容器尺寸常量
+    dimensions: {
+      cardHeight: 291,
+      cardWidth: 282,
+      imageHeight: 265,
+      imageWidth: 276,
+      rightContentWidth: 'calc(100% - 278.39px)',
+      rightContentMinWidth: '481.66px'
+    },
+    // 颜色常量
+    colors: {
+      text: '#4d4d4d',
+      border: '#cccccc',
+      white: '#ffffff',
+      background: '#ffffff',
+      lightBorder: '#e6e6e6'
+    }
+  }), []);
+
+  const commonStyles = {
+    labelText: {
+      ...styles.baseText,
+      letterSpacing: '0.5px',
+      fontWeight: 600
     },
     valueText: {
-      color: '#4d4d4d',
-      fontFamily: '"Open Sans", sans-serif',
-      fontSize: 12,
-      lineHeight: '14px',
+      ...styles.baseText,
       letterSpacing: '0.4px',
-      fontWeight: 400,
-      flex: 1,
-      textOverflow: 'ellipsis',
-      overflow: 'hidden'
+      fontWeight: 400
     },
-    // Box容器样式
     infoRow: {
       display: 'flex',
       flexDirection: 'row',
@@ -122,18 +120,19 @@ const ProductCard = ({
   const [isImageHover, setIsImageHover] = useState(false);
   const [isDownloadActive, setIsDownloadActive] = useState(false);
   
-  const currentModelNumber = activeSku ? activeSku.material : modelNumber;
+  // const currentModelNumber = activeSku ? activeSku.material : modelNumber;
+  const currentModelNumber = modelNumber;
   const currentTitle = activeSku ? 
     `${title} - ${activeSku.size}` : 
     title;
   const currentImageUrl = activeSku && activeSku.imageUrl ? activeSku.imageUrl : '';
   
-  // 动态信息对：支持外部传入，否则使用默认
+  // 动态信息对：支持外部传入，否则使用默认值
   const defaultInfoPairs = [
-    { label: 'Life Cycle Status', value: lifeCycleStatus, withStatus: true },
-    { label: 'Regional Launch Date', value: regionalLaunchDate },
-    { label: 'Enrichment Status', value: enrichmentStatus },
-    { label: 'Final Release Date', value: finalReleaseDate }
+    { label: 'Life Cycle Status', value: 'Active', withStatus: true },
+    { label: 'Regional Launch Date', value: '2025-01-01' },
+    { label: 'Enrichment Status', value: 'Global data ready' },
+    { label: 'Final Release Date', value: '2025-06-01' }
   ];
   const effectiveInfoPairs = (infoPairs && Array.isArray(infoPairs) ? infoPairs : defaultInfoPairs)
     .filter(pair => pair && pair.value !== undefined && pair.value !== null && pair.value !== '');
@@ -146,7 +145,8 @@ const ProductCard = ({
   };
   const infoRows = chunkPairsToRows(effectiveInfoPairs, 2);
 
-  const handleDownloadImage = () => {
+  // 优化事件处理函数 - 使用useCallback
+  const handleDownloadImage = React.useCallback(() => {
     const url = activeSku && activeSku.imageUrl ? activeSku.imageUrl : '';
     if (!url) return;
     const fileName = url.split('/').pop() || 'image';
@@ -158,22 +158,23 @@ const ProductCard = ({
     link.click();
     document.body.removeChild(link);
     if (onDownloadClick) onDownloadClick();
-  };
+  }, [activeSku, onDownloadClick]);
 
-  // 开关
-  const handleOpenSkuMenu = (event) => {
+  const handleOpenSkuMenu = React.useCallback((event) => {
     if (isSkuDropdownOpen) {
       setSkuAnchorEl(null);
     } else {
       setSkuAnchorEl(event.currentTarget);
     }
-  };
-  const handleSkuSelect = (sku) => {
+  }, [isSkuDropdownOpen]);
+
+  const handleSkuSelect = React.useCallback((sku) => {
     setSelectedSku(sku);
-  };
+    setSkuAnchorEl(null); // 选择后关闭下拉框
+  }, []);
 
   return (
-    <Box sx={{ boxSizing: 'border-box', flexShrink: 0, height: 291, position: 'relative' }}>
+    <Box sx={{ boxSizing: 'border-box', flexShrink: 0, height: styles.dimensions.cardHeight, position: 'relative' }}>
       {/* 图片下方文案 */}
       <Box sx={{
         textAlign: 'center',
@@ -181,7 +182,7 @@ const ProductCard = ({
         position: 'absolute', 
         left: 0, 
         top: 264, 
-        width: 282, 
+        width: styles.dimensions.cardWidth, 
         height: 30,
         display: 'flex', 
         flexDirection: 'column', 
@@ -215,13 +216,13 @@ const ProductCard = ({
       </Box>
 
       {/* 左侧图片与状态 */}
-      <Box sx={{ width: 276, height: 260, position: 'static' }}>
+      <Box sx={{ width: styles.dimensions.imageWidth, height: 260, position: 'static' }}>
         {/* 图片容器 */}
         <Box sx={{
-          background: '#ffffff',
-          border: '0.97px solid #cccccc',
-          width: 276, 
-          height: 265, 
+          background: styles.colors.background,
+          border: `0.97px solid ${styles.colors.border}`,
+          width: styles.dimensions.imageWidth, 
+          height: styles.dimensions.imageHeight, 
           position: 'absolute', 
           left: 0.05, 
           top: -13,
@@ -462,19 +463,16 @@ const ProductCard = ({
 ProductCard.propTypes = {
   announcementPrefix: PropTypes.string,
   announcementLinkText: PropTypes.string,
-  previewImage: PropTypes.string,
   statusText: PropTypes.string,
   modelNumber: PropTypes.string,
   title: PropTypes.string,
-  lifeCycleStatus: PropTypes.string,
-  regionalLaunchDate: PropTypes.string,
-  enrichmentStatus: PropTypes.string,
-  finalReleaseDate: PropTypes.string,
   infoPairs: PropTypes.arrayOf(
     PropTypes.shape({
       label: PropTypes.string.isRequired,
       value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-      withStatus: PropTypes.bool
+      withStatus: PropTypes.bool,
+      labelMinWidth: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+      valueMinWidth: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
     })
   ),
   infoLabelMinWidth: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
@@ -483,7 +481,8 @@ ProductCard.propTypes = {
     PropTypes.shape({
       size: PropTypes.string.isRequired,
       material: PropTypes.string.isRequired,
-      finish: PropTypes.string.isRequired
+      finish: PropTypes.string.isRequired,
+      imageUrl: PropTypes.string
     })
   ),
   onDownloadClick: PropTypes.func,

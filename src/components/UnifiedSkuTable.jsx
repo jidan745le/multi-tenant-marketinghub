@@ -96,14 +96,14 @@ const UnifiedSkuTable = ({
 
   const columnWidths = isDropdown ? {
     size: '145px',
-    material: '96px',
-    finish: '128px',
+    material: '190px',
+    finish: '240px',
     standard: '128px'
   } : {
     size: '189.91px',
-    material: '189.91px',
-    finish: '189.91px',
-    standard: '189.91px'
+    material: '220px',
+    finish: '300px',
+    standard: '200px'
   };
 
   // const fontSize = isDropdown ? '12px' : '11.6px';

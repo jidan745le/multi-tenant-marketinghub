@@ -335,7 +335,9 @@ MediaListTable.propTypes = {
       language: PropTypes.string.isRequired,
       type: PropTypes.string.isRequired,
       format: PropTypes.string.isRequired,
-      duration: PropTypes.string.isRequired
+      duration: PropTypes.string.isRequired,
+      downloadUrl: PropTypes.string,
+      videoUrl: PropTypes.string
     })
   ),
   columns: PropTypes.arrayOf(PropTypes.string),

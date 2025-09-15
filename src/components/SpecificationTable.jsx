@@ -297,7 +297,7 @@ const SpecificationTable = ({
               width: index === 0
                 ? { xs: 'calc(100% / 3)', sm: '265.15px', md: '250px', lg: '250px' }
                 : index === 1
-                ? { xs: 'calc(100% / 3)', sm: '168.16px', md: '200px', lg: '250px' }
+                ? { xs: 'calc(100% / 3)', sm: '200px', md: '250px', lg: '300px' }
                 : { xs: 'calc(100% / 3)', sm: '165.72px', md: '200px', lg: '250px' }
             }}
           >
@@ -356,7 +356,7 @@ const SpecificationTable = ({
                 </Box>
 
                 {/* 值单元格 */}
-                <Box sx={{ ...commonStyles.valueCell, width: { xs: 'calc(100% / 3)', sm: '168.16px', md: '200px', lg: '250px' } }}>
+                <Box sx={{ ...commonStyles.valueCell, width: { xs: 'calc(100% / 3)', sm: '200px', md: '250px', lg: '300px' } }}>
                   <Box sx={commonStyles.cellBox}>
                     <Typography sx={commonStyles.valueText}>
                       {item.value || ''}

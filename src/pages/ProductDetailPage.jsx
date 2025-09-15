@@ -52,46 +52,15 @@ import labelIcon from '../assets/icon/labelIcon.png';
 import serviceIcon from '../assets/icon/serviceIcon.png';
 
 import image1 from '../assets/image/image1.png';
-import image2 from '../assets/image/image2.png';
-import image3 from '../assets/image/image3.png';
-import qrImage1 from '../assets/image/imageQR1.png';
-import qrImage2 from '../assets/image/imageQR2.png';
-import qrImage3 from '../assets/image/imageQR3.png';
-import eanImage1 from '../assets/image/imageEcode1.png';
-import eanImage2 from '../assets/image/imageEcode2.png';
-import eanImage3 from '../assets/image/imageEcode3.png';
+// import qrImage1 from '../assets/image/imageQR1.png';
+// import eanImage1 from '../assets/image/imageEcode1.png';
 import accessoryImage1 from '../assets/image/A1.png';
-import accessoryImage2 from '../assets/image/A2.png';
-import accessoryImage3 from '../assets/image/A3.png';
 import bundleImage1 from '../assets/image/B1.png';
-import bundleImage2 from '../assets/image/B2.png';
 import componentImage1 from '../assets/image/C1.png';
-import componentImage2 from '../assets/image/C2.png';
-import componentImage3 from '../assets/image/C3.png';
-import onWhiteImage1 from '../assets/image/O1.png';
-import onWhiteImage2 from '../assets/image/O2.png';
-import onWhiteImage3 from '../assets/image/O3.png';
-import onWhiteImage4 from '../assets/image/O4.png';
-import videoImage1 from '../assets/image/V1.png';
-import videoImage2 from '../assets/image/V2.png';
+// import videoImage1 from '../assets/image/V1.png';
 
-// 三角形角标（与侧边栏一致风格，可配置颜色）
-const SmallTriangleIcon = ({ expanded, color = '#000' }) => (
-  <Box
-    component="span"
-    sx={{
-      width: 0,
-      height: 0,
-      borderLeft: '4px solid transparent',
-      borderRight: '4px solid transparent',
-      borderTop: expanded ? 'none' : `6px solid ${color}`,
-      borderBottom: expanded ? `6px solid ${color}` : 'none',
-      transition: 'all 0.15s ease-in-out',
-      display: 'inline-block',
-      ml: 0.5
-    }}
-  />
-);
+// 导入共享的三角形角标组件
+import SmallTriangleIcon from '../components/SmallTriangleIcon';
 
 
 const ProductDetailPage = () => {
@@ -296,15 +265,13 @@ const ProductDetailPage = () => {
   
 
 
-  // 调试信息
-  useEffect(() => {
-    console.log('PDP Page Data:', getPdpPageData);
-    console.log('Product Card Data:', productCardData);
-    console.log('Table Data:', tableData);
-  }, [getPdpPageData, productCardData, tableData]);
-
-  // 路由参数 id 与产品数据状态（防止数据空的情况，待优化）
+  // 路由参数 id 与产品数据状态
   const { id: routeProductId } = useParams();
+  
+  // 添加加载和错误状态
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
   const [productData, setProductData] = useState({
     id: '90330',
     name: 'Big Capacity Black Roller Cabinet with 6 Drawer - 160mm/6"',
@@ -356,6 +323,21 @@ const ProductDetailPage = () => {
     }
   });
 
+  // 调试信息 - 仅在开发环境启用 (移到productData定义之后)
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      console.log('Strapi PDP Page Data:', getPdpPageData);
+      console.log('Product Card Strapi Config:', productCardData);
+      console.log('SAP Form Strapi Config:', sapFormData);
+      console.log('Table Data:', tableData);
+      console.log('完整PIM数据结构:', productData);
+      console.log('ProductCard特定调试:');
+      console.log('ProductCard Fields从Strapi:', productCardData?.fields);
+      console.log('ProductCardInfo从PIM:', productData.productCardInfo);
+      console.log('Status从兼容层:', productData.status);
+    }
+  }, [getPdpPageData, productCardData, tableData, sapFormData, productData]);
+
   //方法，方法
   // 字段值获取方法
   const getFieldValue = React.useCallback((field, fallback = '-') => {
@@ -371,45 +353,175 @@ const ProductDetailPage = () => {
               .replace(/^[a-z]/, s => s.toUpperCase());
   }, []);
 
-  //待改进：左是strapi的取值，右是pim对应的值
-  const basicValueGetterMap = React.useMemo(() => ({
-    brand:            (d) => d.basicData?.brand,
-    productNumber:    (d) => d.basicData?.productNumber,
-    region:           (d) => d.basicData?.region,
-    productClassification: (d) => d.basicData?.productClassification,
-    productType:      (d) => d.basicData?.productType,
-    countryOfOrigin:  (d) => d.basicData?.countryOfOrigin,
-    modelNumber:      (d) => d.basicData?.modelNumber,
-    warranty:         (d) => d.basicData?.warranty,
-    version:          (d) => d.basicData?.version,
-    lastChangedOn:    (d) => d.basicData?.lastChangedOn,
-    customerFacingModel: (d) => d.basicData?.customerFacingModel,
-    lifecycleStatus:  (d) => d.basicData?.lifecycleStatus,
-    productSeries:    (d) => d.basicData?.productSeries,
-    enrichmentStatus: (d) => d.basicData?.enrichmentStatus,
-    sellable:         (d) => d.basicData?.sellable,
-    firstShippingDate:(d) => d.basicData?.firstShippingDate,
-    recognition:      (d) => d.basicData?.recognition,
-    createdOn:        (d) => d.basicData?.createdOn
+  // 通用的动态数据获取器
+  const getValueByPath = React.useCallback((obj, path, transformer = null) => {
+    if (!obj || !path) return undefined;
+    
+    try {
+      // 支持嵌套路径，如 'basicData.brand' 或 'marketingData.categoryBullets'
+      const value = path.split('.').reduce((current, key) => {
+        return current && current[key];
+      }, obj);
+      
+      // 支持数据转换器
+      if (transformer && value !== undefined) {
+        return transformer(value);
+      }
+      
+      return value;
+    } catch (error) {
+      console.warn(`Error accessing path ${path}:`, error);
+      return undefined;
+    }
+  }, []);
+
+  // 简化版数据转换器
+  const dataTransformers = React.useMemo(() => ({
+    arrayToString: (value) => Array.isArray(value) ? value.join(', ') : value,
+    booleanToString: (value) => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : value,
+    formatDate: (value) => {
+      if (!value) return '';
+      try {
+        return new Date(value).toLocaleDateString();
+      } catch {
+        return value;
+      }
+    }
   }), []);
 
-  const sapValueGetterMap = React.useMemo(() => ({
-    basicUnitofMeasurement: (d) => d.sapDetail?.basicUnitOfMeasurement,
-    productDimensions:      (d) => d.sapDetail?.productDimensions,
-    consolidationSkuNumbers:(d) => d.sapDetail?.consolidationSkuNumbers,
-    factoryInstructionCn:     (d) => d.sapDetail?.factoryInstruction,
-    sapShortDescriptionEn:     (d) => d.sapDetail?.sapShortDescription
+
+  // 简化版数据转换器映射
+  const transformerMappings = React.useMemo(() => ({
+    sellable: 'booleanToString',
+    categoryBullets: 'arrayToString',
+    // lastChangedOn: 'formatDate',
+    // firstShippingDate: 'formatDate',
+    // createdOn: 'formatDate'
   }), []);
 
+  // 完整的字段路径映射 - 支持PIM接口数据结构
+  const getFieldPath = React.useCallback((fieldName, context) => {
+    // 详细的字段路径映射表 - 基于PIM接口返回结构
+    const pathMaps = {
+      // ProductCard字段映射 (对应PIM的productCardInfo)
+      productNumber: 'productCardInfo.productNumber',
+      productName: 'productCardInfo.productName',
+      developmentStatus: 'productCardInfo.developmentStatus',
+      lifeCycleStatus: 'productCardInfo.lifeCycleStatus',
+      lifecycle: 'productCardInfo.lifeCycleStatus',
+      enrichmentStatus: 'productCardInfo.enrichmentStatus',
+      regionalLaunchDate: 'productCardInfo.regionalLaunchDate',
+      finalReleaseDate: 'productCardInfo.finalReleaseDate',
+      
+      // Basic Data字段映射 (对应PIM的basicData)
+      brand: 'basicData.brand',
+      region: 'basicData.region',
+      productType: 'basicData.productType',
+      modelNumber: 'basicData.modelNumber',
+      version: 'basicData.version',
+      customerFacingModel: 'basicData.customerFacingModel',
+      productSeries: 'basicData.productSeries',
+      sellable: 'basicData.sellable',
+      recognition: 'basicData.recognition',
+      productClassification: 'basicData.productClassification',
+      countryOfOrigin: 'basicData.countryOfOrigin',
+      warranty: 'basicData.warranty',
+      lastChangedOn: 'basicData.lastChangedOn',
+      firstShippingDate: 'basicData.firstShippingDate',
+      createdOn: 'basicData.createdOn',
+      
+      // SAP Detail字段映射 (对应PIM的sapData)
+      basicUnitOfMeasurement: 'sapData.basicUnitOfMeasurement',
+      basicUnitofMeasurement: 'sapData.basicUnitOfMeasurement',
+      productDimensions: 'sapData.productDimensions',
+      consolidationSkuNumbers: 'sapData.consolidationSkuNumbers',
+      factoryInstructionCn: 'sapData.factoryInstructionCn',
+      factoryInstruction: 'sapData.factoryInstructionCn',
+      sapShortDescriptionEn: 'sapData.sapShortDescriptionEn',
+      
+      // Marketing Data字段映射 (对应PIM的marketingData)
+      modelName: 'marketingData.modelName',
+      categoryBullets: 'marketingData.categoryBullets',
+      popShortDescription: 'marketingData.popShortDescription',
+      longDescription: 'marketingData.longDescription',
+      packagingContains: 'marketingData.packagingContains',
+      specifications: 'marketingData.specifications'
+    };
+    
+    // 如果有特殊映射，使用特殊映射
+    if (pathMaps[fieldName]) {
+      return pathMaps[fieldName];
+    }
+    
+    // 否则按约定生成路径 (兼容原有逻辑)
+    switch (context) {
+      case 'basic': return `basicData.${fieldName}`;
+      case 'sap': return `sapData.${fieldName}`;
+      case 'marketing': return `marketingData.${fieldName}`;
+      case 'productCard': return `productCardInfo.${fieldName}`;
+      default: return `${fieldName}`;
+    }
+  }, []);
 
-  const marketingValueGetterMap = React.useMemo(() => ({
-    modelName:         (d) => d.marketingData?.modelName,
-    categoryBullets:   (d) => (d.marketingData?.categoryBullets || []).join(', '),
-    popShortDescription: (d) => d.marketingData?.popShortDescription,
-    longDescription:   (d) => d.marketingData?.longDescription,
-    packagingContains: (d) => d.marketingData?.packagingContains,
-    specifications:    (d) => d.marketingData?.specifications
-  }), []);
+  // 简化版映射器构建函数
+  const buildGetterMap = React.useCallback((fields, context) => {
+    if (!fields || !Array.isArray(fields)) return {};
+    
+    const getterMap = {};
+    
+    fields.forEach(field => {
+      const fieldName = field.fieldName;
+      if (!fieldName) return;
+      
+      // 简化优先级：字段配置 > 约定路径
+      const pimPath = field.pimMappingPath || getFieldPath(fieldName, context);
+      const transformer = transformerMappings[fieldName];
+      
+      getterMap[fieldName] = (data) => {
+        const transformerFn = transformer ? dataTransformers[transformer] : null;
+        return getValueByPath(data, pimPath, transformerFn);
+      };
+    });
+    
+    return getterMap;
+  }, [getFieldPath, transformerMappings, dataTransformers, getValueByPath]);
+
+  // 使用简化版映射器
+  const basicValueGetterMap = React.useMemo(() => 
+    buildGetterMap(basicFormData?.fields, 'basic'), 
+    [buildGetterMap, basicFormData?.fields]
+  );
+
+  // 优化后的SAP映射 - 基于正确的映射方式进行改进
+  const sapValueGetterMap = React.useMemo(() => {
+    // 如果有Strapi配置，尝试使用动态映射
+    if (sapFormData?.fields && sapFormData.fields.length > 0) {
+      const dynamicMap = buildGetterMap(sapFormData.fields, 'sap');
+      // 验证动态映射是否有效
+      if (Object.keys(dynamicMap).length > 0) {
+        return dynamicMap;
+      }
+    }
+    
+    // 回退到优化前的正确映射方式
+    return {
+      basicUnitofMeasurement: (d) => d.sapDetail?.basicUnitOfMeasurement,
+      productDimensions: (d) => d.sapDetail?.productDimensions,
+      consolidationSkuNumbers: (d) => d.sapDetail?.consolidationSkuNumbers,
+      factoryInstructionCn: (d) => d.sapDetail?.factoryInstruction,
+      sapShortDescriptionEn: (d) => d.sapDetail?.sapShortDescription
+    };
+  }, [buildGetterMap, sapFormData?.fields]);
+
+  const marketingValueGetterMap = React.useMemo(() => 
+    buildGetterMap(marketingFormData?.fields, 'marketing'), 
+    [buildGetterMap, marketingFormData?.fields]
+  );
+
+  const productCardValueGetterMap = React.useMemo(() => 
+    buildGetterMap(productCardData?.fields, 'productCard'), 
+    [buildGetterMap, productCardData?.fields]
+  );
 
   const buildItemsFromFields = React.useCallback((formData, getterMap, sourceData) => {
     if (!formData?.fields) return [];
@@ -432,25 +544,171 @@ const ProductDetailPage = () => {
     buildItemsFromFields(basicFormData, basicValueGetterMap, productData), [buildItemsFromFields, basicFormData, basicValueGetterMap, productData]
   );
 
-  const sapFormItems = React.useMemo(() => 
-    buildItemsFromFields(sapFormData, sapValueGetterMap, productData), [buildItemsFromFields, sapFormData, sapValueGetterMap, productData]
-  );
+
+  // 优化后的SAP表单项构建 - 基于正确的映射方式
+  const sapFormItems = React.useMemo(() => {
+    // 如果有Strapi配置且动态映射有效，使用动态构建
+    if (sapFormData?.fields && sapFormData.fields.length > 0) {
+      const dynamicItems = buildItemsFromFields(sapFormData, sapValueGetterMap, productData);
+      if (dynamicItems && dynamicItems.length > 0) {
+        return dynamicItems;
+      }
+    }
+    
+    // 否则使用优化前的正确映射方式作为回退
+    return [
+      {
+        label: 'Basic Unit of Measurement',
+        value: productData.sapDetail?.basicUnitOfMeasurement || '-',
+        type: 'text'
+      },
+      {
+        label: 'Product Dimensions',
+        value: productData.sapDetail?.productDimensions || '-',
+        type: 'text'
+      },
+      {
+        label: 'Consolidation SKU Numbers',
+        value: productData.sapDetail?.consolidationSkuNumbers || '-',
+        type: 'text'
+      },
+      {
+        label: 'Factory Instruction',
+        value: productData.sapDetail?.factoryInstruction || '-',
+        type: 'text'
+      }
+    ];
+  }, [sapFormData, sapValueGetterMap, productData, buildItemsFromFields]);
   
   const marketingFormItems = React.useMemo(() => 
     buildItemsFromFields(marketingFormData, marketingValueGetterMap, productData), [buildItemsFromFields, marketingFormData, marketingValueGetterMap, productData]
   );
 
+  // 简化版ProductCard infoPairs生成器
+  const generateProductCardInfoPairs = React.useCallback(() => {
+    // 默认字段配置 - 按照UI显示顺序
+    const defaultFields = [
+      { fieldName: 'lifecycle', title: 'Life Cycle Status', withStatus: true },
+      { fieldName: 'finalReleaseDate', title: 'Final Release Date' },
+      { fieldName: 'regionalLaunchDate', title: 'Regional Launch Date' },
+      { fieldName: 'enrichmentStatus', title: 'Enrichment Status' }
+    ];
+
+    // 使用Strapi配置或默认配置
+    const fields = productCardData?.fields?.filter(field => field.type === 'Field') || defaultFields;
+    
+    if (import.meta.env.DEV) {
+      console.log('ProductCard Debug Info:');
+      console.log('Strapi ProductCard Fields:', productCardData?.fields);
+      console.log('Filtered Fields:', fields);
+      console.log('Default Fields:', defaultFields);
+      console.log('ProductCard Value Getter Map:', productCardValueGetterMap);
+      console.log('Product Data Status:', productData.status);
+      console.log('Product Data ProductCardInfo:', productData.productCardInfo);
+    }
+    
+    const result = fields.map((field, index) => {
+      const fieldName = field.fieldName || defaultFields[index]?.fieldName;
+      const label = field.title || field.label || defaultFields[index]?.title || fieldName;
+      
+      // 获取PIM数据
+      const getter = productCardValueGetterMap?.[fieldName];
+      const pimValue = getter ? getter(productData) : undefined;
+      
+      // ProductCard字段特殊处理：有PIM数据显示PIM数据，没有就显示"Unknown"
+      let finalValue;
+      if (pimValue && pimValue !== '' && pimValue !== null && pimValue !== undefined) {
+        finalValue = pimValue;
+      } else {
+        // 检查兼容层数据
+        const compatValue = productData.status?.[fieldName];
+        if (compatValue && compatValue !== '' && compatValue !== null && compatValue !== undefined) {
+          finalValue = compatValue;
+        } else {
+          finalValue = 'Unknown';
+        }
+      }
+      
+      if (import.meta.env.DEV) {
+        console.log(`Field [${index}]: ${fieldName}`);
+        console.log(`  - Label: ${label}`);
+        console.log(`  - Getter exists: ${!!getter}`);
+        console.log(`  - PIM Value: ${pimValue}`);
+        console.log(`  - Compat Value: ${productData.status?.[fieldName]}`);
+        console.log(`  - Final Value: ${finalValue}`);
+      }
+      
+      return {
+        label,
+        value: finalValue,
+        withStatus: field.withStatus ?? (index === 0) // 第一个字段默认显示状态
+      };
+    });
+    
+    if (import.meta.env.DEV) {
+      console.log('🔍 Final ProductCard InfoPairs:', result);
+    }
+    return result;
+  }, [productCardData, productCardValueGetterMap, productData]);
 
 
-  // ProductCard 配置
+
+  // 简化版ProductCard配置
   const productCardConfig = React.useMemo(() => ({
     modelNumberField: productCardData?.modelNumberField || 'modelNumber',
-    // modelNameField: productCardData?.modelNameField || 'modelName',
-    // thumbnailUrlField: productCardData?.thumbnailUrlField || 'thumbnailUrl',
-    filename: productCardData?.filename || 'product'
+    announcementPrefix: productCardData?.announcementPrefix || 'New Version Available:',
+    statusText: productCardData?.statusText || 'In Development'
   }), [productCardData]);
 
-  console.log('productCardConfig', productCardConfig);
+  // After Service 图片 - 使用PIM数据 - 移动到这里避免Hook顺序问题
+  const afterServiceAssets = React.useMemo(() => {
+    const pimAfterService = productData.afterService;
+    
+    return {
+      manuals: pimAfterService?.manuals?.[0] ? {
+        image: pimAfterService.manuals[0].thumbnailUrl ? `https://pim-test.kendo.com${pimAfterService.manuals[0].thumbnailUrl}` : manualsImage,
+        modelNumber: productData.basicData?.modelNumber || '',
+        productType: productData.basicData?.productNumber || '',
+        name: pimAfterService.manuals[0].title || ''
+      } : {
+        image: manualsImage,
+        modelNumber: '',
+        productType: '',
+        name: ''
+      },
+      repairGuides: pimAfterService?.repairGuide?.map(guide => ({
+        image: guide.thumbnailUrl ? `https://pim-test.kendo.com${guide.thumbnailUrl}` : repairGuideImage,
+        modelNumber: productData.basicData?.modelNumber || '',
+        productType: guide.title ? `${productData.basicData?.productNumber || ''} - ${guide.title}` : '',
+        name: guide.title || ''
+      })) || [],
+      // Packaging 列表
+      packagings: pimAfterService?.packaging?.map(pack => ({
+        image: pack.thumbnailUrl ? `https://pim-test.kendo.com${pack.thumbnailUrl}` : packagingImage,
+        modelNumber: productData.basicData?.modelNumber || '',
+        productType: productData.basicData?.productNumber || '',
+        name: pack.title || ''
+      })) || [],
+      // Drawing 列表
+      drawings: pimAfterService?.drawing?.map(drawing => ({
+        image: drawing.thumbnailUrl ? `https://pim-test.kendo.com${drawing.thumbnailUrl}` : drawingImage,
+        modelNumber: productData.basicData?.modelNumber || '',
+        productType: productData.basicData?.productNumber || '',
+        name: drawing.title || ''
+      })) || [],
+      // Patent 列表
+      patents: pimAfterService?.patent?.map(patent => ({
+        image: patent.thumbnailUrl ? `https://pim-test.kendo.com${patent.thumbnailUrl}` : patentImage,
+        modelNumber: productData.basicData?.modelNumber || '',
+        productType: productData.basicData?.productNumber || '',
+        name: patent.title || ''
+      })) || []
+    };
+  }, [productData.afterService, productData.basicData]);
+
+  if (import.meta.env.DEV) {
+    console.log('productCardConfig', productCardConfig);
+  }
 
   // 导航栏
   const [expandedSections, setExpandedSections] = useState({
@@ -556,29 +814,76 @@ const ProductDetailPage = () => {
     container.scrollTo({ top: offsetTop, behavior: 'smooth' });
   };
 
-  // 顶部操作栏：点击处理[待改动]
-  const handleShare = () => { console.log('share clicked'); };
-  const handleExport = () => { console.log('export clicked'); };
-  const handleDownload = () => { console.log('download clicked'); };
+  // 优化的事件处理函数 - 使用useCallback避免重复创建
+  const handleShare = React.useCallback(() => { 
+    console.log('share clicked'); 
+  }, []);
+  
+  const handleExport = React.useCallback(() => { 
+    console.log('export clicked'); 
+  }, []);
+  
+  const handleDownload = React.useCallback(() => { 
+    console.log('download clicked'); 
+  }, []);
 
-  // 样式常量
-  const topButtonBaseSx = {
-    bgcolor: '#f7f7f7',
-    borderColor: '#cccccc',
-    color: '#333333',
-    textTransform: 'uppercase',
-    height: '40px',
-    borderRadius: '3.87px',
-    fontSize: '15px',
-    lineHeight: '20px',
-    letterSpacing: '0.25px',
-    fontFamily: '"Roboto-Medium", sans-serif',
-    fontWeight: 700,
-    '& .MuiButton-startIcon svg': { fontSize: 22 },
-    '& .MuiButton-startIcon img': { width: 26.5, height: 26.5 },
-    '&:hover': { bgcolor: '#eaeaea', borderColor: '#cccccc', color: '#333333' }
-  };
-  const menuIconSx = { display: 'block' };
+  // 图片点击处理
+  const handleImageClick = React.useCallback((image, index) => {
+    console.log('Image clicked:', image, index);
+  }, []);
+
+  // QR码相关点击处理
+  const handleQRLinkClick = React.useCallback((item, index) => {
+    console.log('QR Link clicked:', item, index);
+  }, []);
+
+  const handleQRImageClick = React.useCallback((item, index) => {
+    console.log('QR Image clicked:', item, index);
+  }, []);
+
+  // EAN码处理
+  const handleEANDownloadClick = React.useCallback((item, index) => {
+    console.log('EAN Download clicked:', item, index);
+  }, []);
+
+  const handleEANImageClick = React.useCallback((item, index) => {
+    console.log('EAN Image clicked:', item, index);
+  }, []);
+
+  // 样式常量 - 移到组件外部避免重复创建
+  const styles = React.useMemo(() => ({
+    topButtonBase: {
+      bgcolor: '#f7f7f7',
+      borderColor: '#cccccc',
+      color: '#333333',
+      textTransform: 'uppercase',
+      height: '40px',
+      borderRadius: '3.87px',
+      fontSize: '15px',
+      lineHeight: '20px',
+      letterSpacing: '0.25px',
+      fontFamily: '"Roboto-Medium", sans-serif',
+      fontWeight: 700,
+      '& .MuiButton-startIcon svg': { fontSize: 22 },
+      '& .MuiButton-startIcon img': { width: 26.5, height: 26.5 },
+      '&:hover': { bgcolor: '#eaeaea', borderColor: '#cccccc', color: '#333333' }
+    },
+    menuIcon: { display: 'block' },
+    sectionTitle: {
+      color: '#4d4d4d',
+      fontFamily: '"Open Sans", sans-serif',
+      fontSize: '24.5px',
+      fontWeight: 520
+    },
+    whiteButton: {
+      bgcolor: '#ffffff',
+      borderColor: '#cccccc',
+      color: '#333333',
+      px: 2,
+      width: 'auto',
+      '&:hover': { bgcolor: '#eaeaea', borderColor: '#cccccc', color: '#000000' }
+    }
+  }), []);
 
   // 顶部动作栏组件
   const TopActionsBar = () => {
@@ -624,12 +929,12 @@ const ProductDetailPage = () => {
           <Button
             variant="outlined"
             size="small"
-            startIcon={<Box component="img" src={databaseIcon} alt="database" sx={menuIconSx} />}
-            endIcon={<SmallTriangleIcon expanded={basicMenu.open} />}
+            startIcon={<Box component="img" src={databaseIcon} alt="database" sx={styles.menuIcon} />}
+              endIcon={<SmallTriangleIcon expanded={basicMenu.open} color="#000" />}
             onClick={basicMenu.openMenu}
             aria-haspopup="menu"
             aria-expanded={basicMenu.open ? 'true' : undefined}
-            sx={{ ...topButtonBaseSx, width: '160px' }}
+            sx={{ ...styles.topButtonBase, width: '160px' }}
           >
             Basic PDP
           </Button>
@@ -646,12 +951,12 @@ const ProductDetailPage = () => {
           <Button
             variant="outlined"
             size="small"
-            startIcon={<Box component="img" src={languageIcon} alt="language" sx={menuIconSx} />}
-            endIcon={<SmallTriangleIcon expanded={languageMenu.open} />}
+            startIcon={<Box component="img" src={languageIcon} alt="language" sx={styles.menuIcon} />}
+            endIcon={<SmallTriangleIcon expanded={languageMenu.open} color="#000" />}
             onClick={languageMenu.openMenu}
             aria-haspopup="menu"
             aria-expanded={languageMenu.open ? 'true' : undefined}
-            sx={{ ...topButtonBaseSx, width: '160px' }}
+            sx={{ ...styles.topButtonBase, width: '160px' }}
           >
             English
           </Button>
@@ -713,17 +1018,35 @@ const ProductDetailPage = () => {
   
   
 
-  // 根据id加载产品详情
+  // 根据id加载产品详情 - 优化版本
   useEffect(() => {
     let mounted = true;
     const load = async () => {
-      if (!routeProductId) return;
+      if (!routeProductId) {
+        setLoading(false);
+        return;
+      }
+      
       try {
+        setLoading(true);
+        setError(null);
+        
         const detail = await ProductDetailApiService.getProductDetail(routeProductId);
-        console.log('ProductDetailPage fetched detail:', detail);
-        if (!mounted || !detail) return;
+        
+        if (import.meta.env.DEV) {
+          console.log('ProductDetailPage fetched detail:', detail);
+        }
+        
+        if (!mounted) return;
+        
+        if (!detail) {
+          setError('Product not found');
+          setLoading(false);
+          return;
+        }
         const { 
           productCardInfo, 
+          skuData, 
           basicData, 
           sapData, 
           marketingData, 
@@ -737,75 +1060,82 @@ const ProductDetailPage = () => {
           afterService
         } = detail;
         
+        if (import.meta.env.DEV) {
+          console.log('productCardInfo', productCardInfo);
+          console.log('basicData', basicData);
+          console.log('skuData', skuData);
+          console.log('sapData', sapData);
+          console.log('marketingData', marketingData);
+          console.log('referenceRelationship', referenceRelationship);
+          console.log('iconsPictures', iconsPictures);
+          console.log('qrCodes', qrCodes);
+          console.log('eans', eans);
+          console.log('packagingData', packagingData);
+          console.log('packagingSpec', packagingSpec);
+          console.log('marketingCollaterals', marketingCollaterals);
+          console.log('afterService', afterService);
+        }
         
-        setProductData(prev => ({
-          ...prev,
+        // 直接使用PIM接口返回的数据结构
+        setProductData({
+          // 保持兼容性的基本信息
           id: productCardInfo?.productNumber || String(routeProductId),
-          name: productCardInfo?.productName || prev.name,
+          name: productCardInfo?.productName || 'Unknown Product',
           image: productCardInfo?.thumbnailUrl ? `https://pim-test.kendo.com${productCardInfo.thumbnailUrl}` : 
                  productCardInfo?.imageUrl ? `https://pim-test.kendo.com${productCardInfo.imageUrl}` : 
-                 prev.image,
+                 '/assets/productcard_image.png',
+          
+          // 直接使用PIM返回的数据结构
+          productCardInfo: productCardInfo || {},
+          skuData: skuData || [],
+          basicData: basicData || {},
+          sapData: sapData || {},
+          marketingData: marketingData || {},
+          referenceRelationship: referenceRelationship || {},
+          iconsPictures: iconsPictures || {},
+          qrCodes: qrCodes || {},
+          eans: eans || {},
+          packagingData: packagingData || {},
+          packagingSpec: packagingSpec || {},
+          marketingCollaterals: marketingCollaterals || {},
+          afterService: afterService || {},
+          
+          // 兼容旧版本的数据结构
           status: {
-            lifecycle: productCardInfo?.lifeCycleStatus || prev.status.lifecycle,
-            regionalLaunchDate: productCardInfo?.regionalLaunchDate || prev.status.regionalLaunchDate,
-            enrichmentStatus: productCardInfo?.enrichmentStatus || prev.status.enrichmentStatus,
-            finalReleaseDate: productCardInfo?.finalReleaseDate || prev.status.finalReleaseDate
-          },
-          basicData: {
-            ...prev.basicData,
-            brand: basicData?.brand ?? prev.basicData.brand,
-            productNumber: basicData?.productNumber ?? prev.basicData.productNumber,
-            region: basicData?.region ?? prev.basicData.region,
-            productType: basicData?.productType ?? prev.basicData.productType,
-            modelNumber: basicData?.modelNumber ?? prev.basicData.modelNumber,
-            version: basicData?.version ?? prev.basicData.version,
-            customerFacingModel: basicData?.customerFacingModel ?? prev.basicData.customerFacingModel,
-            productSeries: basicData?.productSeries ?? prev.basicData.productSeries,
-            sellable: basicData?.sellable ?? prev.basicData.sellable,
-            recognition: basicData?.recognition ?? prev.basicData.recognition,
-            productClassification: basicData?.productClassification ?? prev.basicData.productClassification,
-            countryOfOrigin: basicData?.countryOfOrigin ?? prev.basicData.countryOfOrigin,
-            warranty: basicData?.warranty ?? prev.basicData.warranty,
-            lastChangedOn: basicData?.lastChangedOn ?? prev.basicData.lastChangedOn,
-            lifecycleStatus: basicData?.lifeCycleStatus ?? prev.basicData.lifecycleStatus,
-            enrichmentStatus: basicData?.enrichmentStatus ?? prev.basicData.enrichmentStatus,
-            firstShippingDate: basicData?.firstShippingDate ?? prev.basicData.firstShippingDate,
-            createdOn: basicData?.createdOn ?? prev.basicData.createdOn
+            lifecycle: productCardInfo?.lifeCycleStatus || 'Active',
+            regionalLaunchDate: productCardInfo?.regionalLaunchDate || '',
+            enrichmentStatus: productCardInfo?.enrichmentStatus || '',
+            finalReleaseDate: productCardInfo?.finalReleaseDate || ''
           },
           sapDetail: {
-            ...prev.sapDetail,
-            basicUnitOfMeasurement: sapData?.basicUnitOfMeasurement ?? prev.sapDetail.basicUnitOfMeasurement,
-            productDimensions: sapData?.productDimensions ?? prev.sapDetail.productDimensions,
-            consolidationSkuNumbers: sapData?.consolidationSkuNumbers ?? prev.sapDetail.consolidationSkuNumbers,
-            factoryInstruction: sapData?.factoryInstructionCn ?? prev.sapDetail.factoryInstruction
+            basicUnitOfMeasurement: sapData?.basicUnitOfMeasurement || '',
+            productDimensions: sapData?.productDimensions || '',
+            consolidationSkuNumbers: sapData?.consolidationSkuNumbers || '',
+            factoryInstruction: sapData?.factoryInstructionCn || ''
           },
-          marketingData: {
-            modelName: marketingData?.modelName ?? prev.marketingData.modelName,
-            categoryBullets: marketingData?.categoryBullets ?? prev.marketingData.categoryBullets,
-            popShortDescription: marketingData?.popShortDescription ?? prev.marketingData.popShortDescription,
-            longDescription: marketingData?.longDescription ?? prev.marketingData.longDescription,
-            packagingContains: marketingData?.packagingContains ?? prev.marketingData.packagingContains,
-            specifications: marketingData?.specifications ?? prev.marketingData.specifications
-          },
-          // 新增PIM数据
-          pimData: {
-            referenceRelationship,
-            iconsPictures,
-            qrCodes,
-            eans,
-            packagingData,
-            packagingSpec,
-            marketingCollaterals,
-            afterService
-          }
-        }));
+          skus: skuData?.map((sku, index) => ({
+            size: sku.size || '',
+            material: sku.mainMaterial||'',
+            finish: sku.surfaceFinish || '',
+            standard: sku.applicableStandard || '',
+            imageUrl: sku.imageUrl || (index === 0 && productCardInfo?.imageUrl) || ''
+          })) || []
+        });
+        
+        setLoading(false);
       } catch (e) {
         console.error('load product by id failed', e);
+        if (mounted) {
+          setError(e.message || 'Failed to load product');
+          setLoading(false);
+        }
       }
     };
     load();
     return () => { mounted = false; };
   }, [routeProductId]);
+
+  
 
 
   const navigationItems = [
@@ -860,40 +1190,30 @@ const ProductDetailPage = () => {
     }));
   };
   
-  //初步完成，待优化
+  //待优化
   const renderProductDataSection = () => (
     <Grid container spacing={3} sx={{mt: 1}}>
       <Grid item xs={12}>
         <ProductCard 
-          announcementPrefix="New Version Available:"
-          announcementLinkText={
-            productData.basicData?.productSeries
-          }
-          statusText={"In Development"}
+          announcementPrefix={productCardConfig.announcementPrefix}
+          announcementLinkText={productData.basicData?.productSeries}
+          statusText={productCardConfig.statusText}
           modelNumber={
-            productData.basicData?.[productCardConfig.modelNumberField] ??
+            productData.productCardInfo?.[productCardConfig.modelNumberField] ??
+            productData.productCardInfo?.productNumber ??
             productData.basicData?.modelNumber ??
-            productData.basicData?.productNumber ??
             productData.id
           }
-          title={productData.name || "Product Title"}
+          title={productData.productCardInfo?.productName || productData.name || "Product Title"}
           strapiData={productCardData}
-          infoPairs={[
-            { label: PRODUCT_FIELDS[0] || 'Lifecycle', value: productData.status?.lifecycle || 'Active', withStatus: true },
-            { label: PRODUCT_FIELDS[1] || 'Regional Launch Date', value: productData.status?.regionalLaunchDate || '2025-01-01' },
-            { label: PRODUCT_FIELDS[2] || 'Enrichment Status', value: productData.status?.enrichmentStatus || 'Global data ready' },
-            { label: PRODUCT_FIELDS[3] || 'Final Release Date', value: productData.status?.finalReleaseDate || '2025-06-01' }
-          ]}
-          skuData={[
-            { 
-              size: '160mm/6"', 
-              material: productData.basicData?.modelNumber || productData.id, 
-              finish: 'Nickel Iron Plated', 
-              imageUrl: productData.image || '/assets/productcard_image.png' 
-            },
-            { size: '180mm/6"', material: 'A01010502', finish: 'Nickel Iron Plated', imageUrl: '/assets/productcard_image.png'  },
-            { size: '200mm/6"', material: 'A01010503', finish: 'Nickel Iron Plated', imageUrl: ''  },
-          ]}
+          infoPairs={generateProductCardInfoPairs()}
+          skuData={productData.skuData?.map((sku, index) => ({
+            size: sku.size || '',
+            material: sku.mainMaterial||'',
+            finish: sku.surfaceFinish || '',
+            // standard: sku.applicableStandard || '',
+            imageUrl: sku.imageUrl || sku.image || (index === 0 ? productData.image : null)
+          })) || []}
           infoLabelMinWidth="155px"
           infoValueMinWidth="118px"
           onDownloadClick={() => console.log('download clicked')} 
@@ -902,6 +1222,45 @@ const ProductDetailPage = () => {
     </Grid>
   );
 
+  if (import.meta.env.DEV) {
+    console.log('productData111', productData);
+  }
+
+  // 加载状态
+  if (loading) {
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        bgcolor: '#f5f5f5'
+      }}>
+        <Typography variant="h6">Loading...</Typography>
+      </Box>
+    );
+  }
+
+  // 错误状态
+  if (error) {
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        bgcolor: '#f5f5f5',
+        flexDirection: 'column',
+        gap: 2
+      }}>
+        <Typography variant="h6" color="error">Error: {error}</Typography>
+        <Button variant="contained" onClick={() => window.location.reload()}>
+          Retry
+        </Button>
+      </Box>
+    );
+  }
+
   //初步完成，待优化
   const renderBasicDataSection = () => (
     <Box>
@@ -909,35 +1268,41 @@ const ProductDetailPage = () => {
       <Typography ref={skuDataTitleRef} variant="h6" sx={{ mb: 2, fontSize: '24px', fontFamily: '"Open Sans", sans-serif', fontWeight: 520, color:'#4d4d4d' }}>
        {tableData?.title|| 'SKU Data'}
       </Typography>
-      <Box sx={{ mb: 3, mt: 3.5 }}>
-        <UnifiedSkuTable 
-          data={productData.skus} 
-          variant="detail" 
-          showStandard={true} 
-        />
-      </Box>
+      {productData.skus && productData.skus.length > 0 && (
+        <Box sx={{ mb: 3, mt: 3.5 }}>
+          <UnifiedSkuTable 
+            data={productData.skus} 
+            variant="detail" 
+            showStandard={true} 
+          />
+        </Box>
+      )}
 
       {/* Basic Data */}
       <Typography ref={basicDataTitleRef} variant="h6" sx={{ mb: 2 , fontSize: '24px', fontFamily: '"Open Sans", sans-serif', fontWeight: 580, color:'#4d4d4d' }}>
         {basicFormData?.title || 'Basic Data'}
       </Typography>
-      <Box sx={{ mb: 3, mt: 3 }}>
-        <Form
-          columns={basicFormData?.columnType || "double"}
-          items={basicFormItems}
-        />
-      </Box>
+      {basicFormItems && basicFormItems.length > 0 && (
+        <Box sx={{ mb: 3, mt: 3 }}>
+          <Form
+            columns={basicFormData?.columnType || "double"}
+            items={basicFormItems}
+          />
+        </Box>
+      )}
 
       {/* SAP Detail */}
       <Typography ref={sapDetailTitleRef} variant="h6" sx={{ mb: 2, fontSize: '24.5px', fontFamily: '"Open Sans", sans-serif', fontWeight: 520, color:'#4d4d4d' }}>
         {sapFormData?.title || 'SAP Detail'}
       </Typography>
-      <Box sx={{ mb: 3, mt: 3 }}>
-        <Form
-          columns={sapFormData?.columnType || "single"}
-          items={sapFormItems}
-        />
-      </Box>
+      {sapFormItems && sapFormItems.length > 0 && (
+        <Box sx={{ mb: 3, mt: 3 }}>
+          <Form
+            columns={sapFormData?.columnType || "single"}
+            items={sapFormItems}
+          />
+        </Box>
+      )}
     </Box>
   );
 
@@ -974,7 +1339,7 @@ const ProductDetailPage = () => {
               }
               onClick={() => console.log('Show languages clicked')}
               sx={{
-                ...topButtonBaseSx,
+                ...styles.topButtonBase,
                 bgcolor: '#ffffff',
                 borderColor: '#cccccc',
                 color: '#333333',
@@ -997,7 +1362,7 @@ const ProductDetailPage = () => {
               }
               onClick={() => console.log('Download languages clicked')}
               sx={{
-                ...topButtonBaseSx,
+                ...styles.topButtonBase,
                 bgcolor: '#ffffff',
                 borderColor: '#cccccc',
                 color: '#333333',
@@ -1012,12 +1377,14 @@ const ProductDetailPage = () => {
           )}
         </Box>
       </Box>
-      <Box sx={{ mb: 3, mt: 3 }}>
-        <Form
-          columns={marketingFormData?.columnType || "single"}
-          items={marketingFormItems}
-        />
-      </Box>
+      {marketingFormItems && marketingFormItems.length > 0 && (
+        <Box sx={{ mb: 3, mt: 3 }}>
+          <Form
+            columns={marketingFormData?.columnType || "single"}
+            items={marketingFormItems}
+          />
+        </Box>
+      )}
       {/* Icons & Pictures */}
       <Box sx={{ 
         display: 'flex',
@@ -1048,7 +1415,7 @@ const ProductDetailPage = () => {
               }
               onClick={() => console.log('Download languages clicked')}
               sx={{
-                ...topButtonBaseSx,
+                ...styles.topButtonBase,
                 bgcolor: '#ffffff',
                 borderColor: '#cccccc',
                 color: '#333333',
@@ -1063,21 +1430,18 @@ const ProductDetailPage = () => {
           </Box>
         )}
       </Box>
-      <Box sx={{ mb: 3 }}>
-        <Image 
-          type={ iconsAndPicturesData?.type || "simple"}
-          // images={productData.pimData?.iconsPictures?.icons?.map(icon => ({
-          //   src: icon.imageUrl ? `https://pim-test.kendo.com${icon.imageUrl}` : image1,
-          //   alt: icon.type || 'Icon'
-          // })) || [
-          images={ [
-            { src: image1, alt: 'Image 1' },
-            { src: image2, alt: 'Image 2' },
-            { src: image3, alt: 'Image 3' }
-          ]}
-          onImageClick={(image, index) => console.log('Image clicked:', image, index)}
-        />
-      </Box>     
+      {productData.iconsPictures?.icons && productData.iconsPictures.icons.length > 0 && (
+        <Box sx={{ mb: 3 }}>
+          <Image 
+            type={ iconsAndPicturesData?.type || "simple"}
+            images={productData.iconsPictures.icons.map(icon => ({
+              src: icon.thumbnailUrl? `https://pim-test.kendo.com${icon.thumbnailUrl}` : image1,
+              alt: icon.type || ''
+            }))}
+            onImageClick={handleImageClick}
+          />
+        </Box>
+      )}     
       {/* QR Codes */}
       <Box sx={{ 
         display: 'flex',
@@ -1108,7 +1472,7 @@ const ProductDetailPage = () => {
               }
               onClick={() => console.log('Download languages clicked')}
               sx={{
-                ...topButtonBaseSx,
+                ...styles.topButtonBase,
                 bgcolor: '#ffffff',
                 borderColor: '#cccccc',
                 color: '#333333',
@@ -1125,23 +1489,20 @@ const ProductDetailPage = () => {
       </Box>
       
       {/* QR Code Table */}
-      <Box sx={{ mb: 3 }}>
-        <UnifiedInfoTable 
-          type="qrcode"
-          // data={productData.pimData?.qrCodes?.qrCodes?.map(qr => ({
-          //   image: qrImage1, // 使用默认QR码图片
-          //   name: qr.name || 'QR Code',
-          //   link: qr.link || '#'
-          // })) || [
-          data={ [
-            { image: qrImage1, name: 'QR Code 1', link: 'https://example.com/qr1' },
-            { image: qrImage2, name: 'QR Code 2', link: 'https://example.com/qr2' },
-            { image: qrImage3, name: 'QR Code 3', link: 'https://example.com/qr3' }
-          ]}
-          onLinkClick={(item, index) => console.log('QR Link clicked:', item, index)}
-          onImageClick={(item, index) => console.log('QR Image clicked:', item, index)}
-        />
-      </Box>
+      {productData.qrCodes?.qrCodes && productData.qrCodes.qrCodes.length > 0 && (
+        <Box sx={{ mb: 3 }}>
+          <UnifiedInfoTable 
+            type="qrcode"
+            data={productData.qrCodes.qrCodes.map(qr => ({
+              // image: qr.imageUrl ? `https://pim-test.kendo.com${qr.imageUrl}` : qrImage1,
+              name: qr.name || '',
+              link: qr.link || ''
+            }))}
+            onLinkClick={handleQRLinkClick}
+            onImageClick={handleQRImageClick}
+          />
+        </Box>
+      )}
       
       {/* EANS */}
       <Box sx={{ 
@@ -1173,7 +1534,7 @@ const ProductDetailPage = () => {
               }
               onClick={() => console.log('Download languages clicked')}
               sx={{
-                ...topButtonBaseSx,
+                ...styles.topButtonBase,
                 bgcolor: '#ffffff',
                 borderColor: '#cccccc',
                 color: '#333333',
@@ -1190,23 +1551,20 @@ const ProductDetailPage = () => {
       </Box>
       
       {/* EAN Code Table */}
-      <Box sx={{ mb: 3 }}>
-        <UnifiedInfoTable 
-          type="barcode"
-          // data={productData.pimData?.eans?.eans?.map(ean => ({
-          //   image: eanImage1, // 使用默认EAN图片
-          //   name: ean.name || 'EAN Code',
-          //   eanCode: ean.eanCode || ''
-          // })) || [
-          data={ [
-            { image: eanImage1, name: 'Single Product EAN', eanCode: '6903366101012' },
-            { image: eanImage2, name: 'Inner Box EAN Code', eanCode: '6903366101012' },
-            { image: eanImage3, name: 'Master Carton EAN Code', eanCode: '6903366101012' }
-          ]}
-          onDownloadClick={(item, index) => console.log('EAN Download clicked:', item, index)}
-          onImageClick={(item, index) => console.log('EAN Image clicked:', item, index)}
-        />
-      </Box>
+      {productData.eans?.eans && productData.eans.eans.length > 0 && (
+        <Box sx={{ mb: 3 }}>
+          <UnifiedInfoTable 
+            type="barcode"
+            data={productData.eans.eans.map(ean => ({
+              // image: ean.imageUrl ? `https://pim-test.kendo.com${ean.imageUrl}` : eanImage1,
+              name: ean.name || '',
+              eanCode: ean.eanCode || ''
+            }))}
+            onDownloadClick={handleEANDownloadClick}
+            onImageClick={handleEANImageClick}
+          />
+        </Box>
+      )}
     </Box>
   );
 
@@ -1218,29 +1576,27 @@ const ProductDetailPage = () => {
       </Typography>
       
       {/* Bundles Product Grid */}
-      <Box sx={{ mb: 3 }}>
-        <ProductCardGrid 
-          // products={productData.pimData?.referenceRelationship?.bundles?.map(bundle => ({
-          //   image: bundle.imageUrl ? `https://pim-test.kendo.com${bundle.imageUrl}` : bundleImage1,
-          //   name: bundle.productName || 'Bundle Product',
-          //   code: bundle.productNumber || 'B001'
-          // })) || [
-          products={ [
-            {
-              image: bundleImage1,
-              name: 'Bundle Product 1',
-              code: 'B001'
-            },
-            {
-              image: bundleImage2,
-              name: 'Bundle Product 2',
-              code: 'B002'
-            }
-          ]}
-          onProductClick={(product, index) => console.log('Bundle Product clicked:', product, index)}
-          onImageClick={(product, index) => console.log('Bundle Image clicked:', product, index)}
-        />
-      </Box>
+      {productData.referenceRelationship?.bundles && productData.referenceRelationship.bundles.length > 0 ? (
+        <Box sx={{ mb: 3 }}>
+          <ProductCardGrid 
+            products={productData.referenceRelationship.bundles.map(bundle => ({
+              image: bundle.imageUrl ? `https://pim-test.kendo.com${bundle.imageUrl}` : bundleImage1,
+              name: bundle.productName || '',
+              code: bundle.productNumber || ''
+            }))}
+            onProductClick={(product, index) => console.log('Bundle Product clicked:', product, index)}
+            onImageClick={(product, index) => console.log('Bundle Image clicked:', product, index)}
+          />
+        </Box>
+      ) : (
+        <Box sx={{ mb: 3 }}>
+          <ProductCardGrid 
+            products={[]}
+            onProductClick={(product, index) => console.log('Bundle Product clicked:', product, index)}
+            onImageClick={(product, index) => console.log('Bundle Image clicked:', product, index)}
+          />
+        </Box>
+      )}
 
       {/* Components */}
       <Typography ref={componentsTitleRef} variant="h6" sx={{ mb: 2.5 , fontSize: '24px', fontFamily: '"Open Sans", sans-serif', fontWeight: 580 }}>
@@ -1248,34 +1604,27 @@ const ProductDetailPage = () => {
       </Typography>
       
       {/* Components Product Grid */}
-      <Box sx={{ mb: 3 }}>
-        <ProductCardGrid 
-          // products={productData.pimData?.referenceRelationship?.components?.map(component => ({
-          //   image: component.imageUrl ? `https://pim-test.kendo.com${component.imageUrl}` : componentImage1,
-          //   name: component.productName || 'Component Product',
-          //   code: component.productNumber || 'C001'
-          // })) || [
-          products={ [
-            {
-              image: componentImage1,
-              name: 'Component Product 1',
-              code: 'C001'
-            },
-            {
-              image: componentImage2,
-              name: 'Component Product 2',
-              code: 'C002'
-            },
-            {
-              image: componentImage3,
-              name: 'Component Product 3',
-              code: 'C003'
-            }
-          ]}
-          onProductClick={(product, index) => console.log('Component Product clicked:', product, index)}
-          onImageClick={(product, index) => console.log('Component Image clicked:', product, index)}
-        />
-      </Box>
+      {productData.referenceRelationship?.components && productData.referenceRelationship.components.length > 0 ? (
+        <Box sx={{ mb: 3 }}>
+          <ProductCardGrid 
+            products={productData.referenceRelationship.components.map(component => ({
+              image: component.imageUrl ? `https://pim-test.kendo.com${component.imageUrl}` : componentImage1,
+              name: component.productName || '',
+              code: component.productNumber || ''
+            }))}
+            onProductClick={(product, index) => console.log('Component Product clicked:', product, index)}
+            onImageClick={(product, index) => console.log('Component Image clicked:', product, index)}
+          />
+        </Box>
+      ) : (
+        <Box sx={{ mb: 3 }}>
+          <ProductCardGrid 
+            products={[]}
+            onProductClick={(product, index) => console.log('Component Product clicked:', product, index)}
+            onImageClick={(product, index) => console.log('Component Image clicked:', product, index)}
+          />
+        </Box>
+      )}
 
       {/* Accessories */}
       <Typography ref={accessoriesTitleRef} variant="h6" sx={{ mb: 2.5, fontSize: '24.5px', fontFamily: '"Open Sans", sans-serif', fontWeight: 520}}>
@@ -1286,32 +1635,12 @@ const ProductDetailPage = () => {
       <Box sx={{ mb: 3 }}>
         <UnifiedInfoTable 
           type={"accessory"}
-          // data={productData.pimData?.referenceRelationship?.accessories?.map(accessory => ({
-          //   image: accessory.imageUrl ? `https://pim-test.kendo.com${accessory.imageUrl}` : accessoryImage1,
-          //   model: accessory.model || 'Unknown',
-          //   name: accessory.name || 'Accessory',
-          //   quantity: accessory.quantity || '1'
-          // })) || [
-          data={ [
-            {
-              image: accessoryImage1,
-              model: '90257',
-              name: '47cm / 19" Plastic Tools Box',
-              quantity: '1'
-            },
-            {
-              image: accessoryImage2,
-              model: '90256', 
-              name: '42cm / 17" Plastic Tools Box',
-              quantity: '1'
-            },
-            {
-              image: accessoryImage3,
-              model: '90162',
-              name: '32cm / 12" Multifunctional Nylon Open Mouth Tool Bag',
-              quantity: '1'
-            }
-          ]}
+          data={productData.referenceRelationship?.accessories?.map(accessory => ({
+            image: accessory.imageUrl ? `https://pim-test.kendo.com${accessory.imageUrl}` : accessoryImage1,
+            model: accessory.model || '',
+            name: accessory.name || '',
+            quantity: accessory.quantity || ''
+          })) || []}
           onImageClick={(item, index) => console.log('Accessory Image clicked:', item, index)}
         />
       </Box>
@@ -1349,7 +1678,7 @@ const ProductDetailPage = () => {
               }
               onClick={() => console.log('Download languages clicked')}
               sx={{
-                ...topButtonBaseSx,
+                ...styles.topButtonBase,
                 bgcolor: '#ffffff',
                 borderColor: '#cccccc',
                 color: '#333333',
@@ -1368,53 +1697,10 @@ const ProductDetailPage = () => {
       {/* Packaging Table */}
       <Box sx={{ mb: 3 }}>
         <PackagingTable 
-          data={productData.pimData?.packagingData?.rows?.map(row => ({
-            label: row[0],
-            values: row.slice(1)
-          })) || [
-          // data={ [
-            {
-              label: 'Packaging Type',
-              values: ['PP Card Hanger', 'Brown Carton Box', 'Brown Carton Box']
-            },
-            {
-              label: 'Quantity(pcs)',
-              values: ['1', '6', '60']
-            },
-            {
-              label: 'Measurement Unit Type',
-              values: ['-', 'pc', 'pc']
-            },
-            {
-              label: 'Size Wx Hx L(cm)',
-              values: ['-', '-', '23x25x38']
-            },
-            {
-              label: 'Net Weight(kg)',
-              values: ['0.216', '0', '12.96']
-            },
-            {
-              label: 'Gross Weight(kg)',
-              values: ['0', '0', '14']
-            },
-            {
-              label: 'Size L(cm)',
-              values: ['0', '0', '38']
-            },
-            {
-              label: 'Size W(cm)',
-              values: ['0', '0', '23']
-            },
-            {
-              label: 'Size H(cm)',
-              values: ['0', '0', '25']
-            },
-            {
-              label: 'Volume(M3)',
-              values: ['0', '0', '0.021855']
-            }
-          ]}
-          columns={productData.pimData?.packagingData?.headers || ['ITEM', 'INNER BOX', 'MASTER CARTON']}
+          data={productData.packagingData?.rows?.map(row => ({
+            values: row || []
+          })) || []}
+          columns={productData.packagingData?.headers || []}
         />
       </Box>
     </Box>
@@ -1451,7 +1737,7 @@ const ProductDetailPage = () => {
               }
               onClick={() => console.log('Show languages clicked')}
               sx={{
-                ...topButtonBaseSx,
+                ...styles.topButtonBase,
                 bgcolor: '#ffffff',
                 borderColor: '#cccccc',
                 color: '#333333',
@@ -1474,7 +1760,7 @@ const ProductDetailPage = () => {
               }
               onClick={() => console.log('Download languages clicked')}
               sx={{
-                ...topButtonBaseSx,
+                ...styles.topButtonBase,
                 bgcolor: '#ffffff',
                 borderColor: '#cccccc',
                 color: '#333333',
@@ -1497,116 +1783,22 @@ const ProductDetailPage = () => {
             {
               title: 'TECHNICAL SPECS',
               icon: 'straighten',
-              items: productData.pimData?.packagingSpec?.technicalSpecs?.map(spec => ({
+              items: productData.packagingSpec?.technicalSpecs?.map(spec => ({
                 feature: spec.featureName || '',
                 value: spec.value || '',
                 unit: spec.unit || '',
                 showQuestion: true
-              })) || [
-              // items: [
-                {
-                  feature: 'Material - Body I',
-                  value: 'C55 High carbon steel',
-                  unit: '',
-                  showQuestion: true
-                },
-                {
-                  feature: 'Material - Handle I',
-                  value: 'TPR',
-                  unit: '',
-                  showQuestion: true
-                },
-                {
-                  feature: 'Surface Finish I',
-                  value: 'Nickel Iron Plated',
-                  unit: '',
-                  showQuestion: true
-                },
-                {
-                  feature: 'Hardness- Body',
-                  value: '40-52',
-                  unit: '',
-                  showQuestion: true
-                },
-                {
-                  feature: 'Hardness Rivet(HRC)',
-                  value: '25-50',
-                  unit: '',
-                  showQuestion: true
-                },
-                {
-                  feature: 'Hardness - Cutting Edge(HRC)',
-                  value: '50-62',
-                  unit: '',
-                  showQuestion: true
-                },
-                {
-                  feature: 'Size - Metric(mm)',
-                  value: '160',
-                  unit: 'mm',
-                  showQuestion: true
-                },
-                {
-                  feature: 'Size - Inch(")',
-                  value: '6',
-                  unit: '',
-                  showQuestion: true
-                },
-                {
-                  feature: 'Cutting Capacity.Soft(mm)',
-                  value: '2.6',
-                  unit: 'mm',
-                  showQuestion: true
-                },
-                {
-                  feature: 'Cutting Capacity - Medium(mm)',
-                  value: '2',
-                  unit: '',
-                  showQuestion: true
-                },
-                {
-                  feature: 'Cutting CapacityHard(mm)',
-                  value: '',
-                  unit: '',
-                  showQuestion: true
-                },
-                {
-                  feature: 'Jaws Opening(mm)',
-                  value: '',
-                  unit: '',
-                  showQuestion: true
-                }
-              ]
+              })) || []
             },
             {
               title: 'LOGO MARKING',
               icon: 'category',
-              items: productData.pimData?.packagingSpec?.logoMarking?.map(logo => ({
+              items: productData.packagingSpec?.logoMarking?.map(logo => ({
                 feature: logo.featureName || '',
                 value: logo.value || '',
                 unit: '',
                 showQuestion: true
-              })) || [
-              // items: [
-                {
-                  feature: 'AdditionalPrinting',
-                  value: '',
-                  unit: '',
-                  showQuestion: true
-                },
-                {
-                  feature: 'Logo 1',
-                  value: 'Laser printed',
-                  unit: '',
-                  showQuestion: true
-                },
-                {
-                  feature: 'Logo 2',
-                  value: 'Embossed',
-                  unit: '',
-                  showQuestion: true
-                }
-              ]
+              })) || []
             }
           ]}
           columns={['Feature Name', 'Value', 'Unit']}
@@ -1646,7 +1838,7 @@ const ProductDetailPage = () => {
               }
               onClick={() => console.log('Download languages clicked')}
               sx={{
-                ...topButtonBaseSx,
+                ...styles.topButtonBase,
                 bgcolor: '#ffffff',
                 borderColor: '#cccccc',
                 color: '#333333',
@@ -1662,30 +1854,28 @@ const ProductDetailPage = () => {
         )}
       </Box>
       {/* On White Images */}
-      <Box sx={{ mb: 3 }}>
-        <Image 
-          type={ onWhiteData?.type || "gallery"}
-          mainImage=
-          {productData.pimData?.marketingCollaterals?.onWhite?.[0] ? {
-            src: `https://pim-test.kendo.com${productData.pimData.marketingCollaterals.onWhite[0].imageUrl}`,
-            alt: 'On White 1',
-            fileName: productData.pimData.marketingCollaterals.onWhite[0].fileName || 'ON-WHITE-1.PSD'
-          } : 
-          { src: onWhiteImage1, alt: 'On White 1', fileName: 'ON-WHITE-1.PSD' }}
-          // thumbnailImages={productData.pimData?.marketingCollaterals?.onWhite?.map((img, index) => ({
-          //   src: `https://pim-test.kendo.com${img.imageUrl}`,
-          //   alt: `On White ${index + 1}`,
-          //   fileName: img.fileName || `ON-WHITE-${index + 1}.PSD`
-          // })) || [
-          thumbnailImages={ [
-            { src: onWhiteImage1, alt: 'On White 1', fileName: 'ON-WHITE-1.PSD' },
-            { src: onWhiteImage2, alt: 'On White 2', fileName: 'ON-WHITE-2.PSD' },
-            { src: onWhiteImage3, alt: 'On White 3', fileName: 'ON-WHITE-3.PSD' },
-            { src: onWhiteImage4, alt: 'On White 4', fileName: 'ON-WHITE-4.PSD' }
-          ]}
-          onImageSelect={(image, index) => console.log('On White selected:', index, image)}
-        />
-      </Box>
+      {productData.marketingCollaterals?.onWhite && productData.marketingCollaterals.onWhite.length > 0 && (
+        <Box sx={{ mb: 3 }}>
+          <Image 
+            type={ onWhiteData?.type || "gallery"}
+            mainImage={{
+              src: `https://pim-test.kendo.com${productData.marketingCollaterals.onWhite[0].thumbnailUrl}`,
+              alt: productData.marketingCollaterals.onWhite[0].altText || '',
+              fileName: productData.marketingCollaterals.onWhite[0].fileName || ''
+            }}
+            thumbnailImages={productData.marketingCollaterals.onWhite.map((img) => ({
+              src: `https://pim-test.kendo.com${img.thumbnailUrl}`,
+              alt: img.altText || '',
+              fileName: img.fileName || '',
+              basicInfo: img.basicInfo || {},
+              technical: img.technical || {},
+              downloadUrl: img.downloadUrl || '',
+              imageUrl: img.imageUrl || ''
+            }))}
+            onImageSelect={(image, index) => console.log('On White selected:', index, image)}
+          />
+        </Box>
+      )}
       <Box sx={{ 
         display: 'flex',
         flexDirection: 'row',
@@ -1715,7 +1905,7 @@ const ProductDetailPage = () => {
               }
               onClick={() => console.log('Download languages clicked')}
               sx={{
-                ...topButtonBaseSx,
+                ...styles.topButtonBase,
                 bgcolor: '#ffffff',
                 borderColor: '#cccccc',
                 color: '#333333',
@@ -1731,27 +1921,28 @@ const ProductDetailPage = () => {
         )}
       </Box>
       {/* Action & Lifestyle Images */}
-      <Box sx={{ mb: 3 }}>
-        <Image 
-          type={ actionAndLifestyleData?.type || "gallery"}
-          mainImage={productData.pimData?.marketingCollaterals?.actionLifestyle?.[0] ? {
-            src: `https://pim-test.kendo.com${productData.pimData.marketingCollaterals.actionLifestyle[0].imageUrl}`,
-            alt: 'Action & Lifestyle 1',
-            fileName: productData.pimData.marketingCollaterals.actionLifestyle[0].fileName || 'ACTION-1.PSD'
-          } : { src: onWhiteImage2, alt: 'On White 2', fileName: 'ON-WHITE-2.PSD' }}
-          // thumbnailImages={productData.pimData?.marketingCollaterals?.actionLifestyle?.map((img, index) => ({
-          //   src: `https://pim-test.kendo.com${img.imageUrl}`,
-          //   alt: `Action & Lifestyle ${index + 1}`,
-          //   fileName: img.fileName || `ACTION-${index + 1}.PSD`
-          // })) || [
-          thumbnailImages={ [
-            { src: onWhiteImage2, alt: 'On White 2', fileName: 'ON-WHITE-2.PSD' },
-            { src: onWhiteImage1, alt: 'On White 1', fileName: 'ON-WHITE-1.PSD' },
-            { src: onWhiteImage4, alt: 'On White 4', fileName: 'ON-WHITE-4.PSD' }
-          ]}
-          onImageSelect={(image, index) => console.log('Action & Lifestyle selected:', index, image)}
-        />
-      </Box>
+      {productData.marketingCollaterals?.actionLifestyle && productData.marketingCollaterals.actionLifestyle.length > 0 && (
+        <Box sx={{ mb: 3 }}>
+          <Image 
+            type={ actionAndLifestyleData?.type || "gallery"}
+            mainImage={{
+              src: `https://pim-test.kendo.com${productData.marketingCollaterals.actionLifestyle[0].thumbnailUrl}`,
+              alt: productData.marketingCollaterals.actionLifestyle[0].altText || '',
+              fileName: productData.marketingCollaterals.actionLifestyle[0].fileName || ''
+            }}
+            thumbnailImages={productData.marketingCollaterals.actionLifestyle.map((img) => ({
+              src: `https://pim-test.kendo.com${img.thumbnailUrl}`,
+              alt: img.altText || '',
+              fileName: img.fileName || '',
+              basicInfo: img.basicInfo || {},
+              technical: img.technical || {},
+              downloadUrl: img.downloadUrl || '',
+              imageUrl: img.imageUrl || ''
+            }))}
+            onImageSelect={(image, index) => console.log('Action & Lifestyle selected:', index, image)}
+          />
+        </Box>
+      )}
       <Box sx={{ 
         display: 'flex',
         flexDirection: 'row',
@@ -1781,7 +1972,7 @@ const ProductDetailPage = () => {
               }
               onClick={() => console.log('Download languages clicked')}
               sx={{
-                ...topButtonBaseSx,
+                ...styles.topButtonBase,
                 bgcolor: '#ffffff',
                 borderColor: '#cccccc',
                 color: '#333333',
@@ -1800,148 +1991,41 @@ const ProductDetailPage = () => {
       {/* Videos Media List */}
       <Box sx={{ mb: 3 }}>
         <MediaListTable
-          data={productData.pimData?.marketingCollaterals?.videos?.map(video => ({
-            image: video.thumbnailUrl ? `https://pim-test.kendo.com${video.thumbnailUrl}` : videoImage1,
-            name: video.videoTitle || 'Video',
-            language: video.language || 'English',
-            type: video.type || 'Walk Around',
-            format: video.format || 'Video',
-            duration: video.duration || '0:00'
-          })) || [
-            {
-              image: videoImage1,
-              name: 'Kendo Black Roller Cabinet with 6 Drawer',
-              language: 'English',
-              type: 'Walk Around',
-              format: 'Video',
-              duration: '0:31'
-            },
-            {
-              image: videoImage2,
-              name: 'Kendo at the International Hardware Store',
-              language: 'English',
-              type: 'Walk Around',
-              format: 'Video',
-              duration: '0:51'
+          data={productData.marketingCollaterals?.videos?.map(video => ({
+            image: video.thumbnailUrl ? `https://pim-test.kendo.com${video.thumbnailUrl}` : '',
+            name: video.videoTitle || '',
+            language: video.language || '',
+            type: video.type || '',
+            format: video.format || '',
+            duration: video.duration || '',
+            downloadUrl: video.downloadUrl || '',
+            videoUrl: video.downloadUrl ? `https://pim-test.kendo.com${video.downloadUrl}` : ''
+          })) || []}
+          onViewClick={(item) => {
+            if (item.videoUrl) {
+              window.open(item.videoUrl, '_blank');
+            } else {
+              console.log('No video URL available for:', item);
             }
-          ]}
-          onViewClick={(item) => console.log('View video:', item)}
-          onDownloadClick={(item) => console.log('Download video:', item)}
+          }}
+          onDownloadClick={(item) => {
+            if (item.videoUrl) {
+              const link = document.createElement('a');
+              link.href = item.videoUrl;
+              link.download = item.name || 'video';
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+            } else {
+              console.log('No download URL available for:', item);
+            }
+          }}
         />
       </Box>
     </Box>
     
   );
 
-  // After Service 图片 - 使用PIM数据
-  const afterServiceAssets = React.useMemo(() => {
-    const pimAfterService = productData.pimData?.afterService;
-    
-    return {
-      manuals: pimAfterService?.manuals?.[0] ? {
-        image: pimAfterService.manuals[0].thumbnailUrl ? `https://pim-test.kendo.com${pimAfterService.manuals[0].thumbnailUrl}` : manualsImage,
-        modelNumber: productData.basicData?.modelNumber || '35462',
-        productType: productData.basicData?.productNumber || '90330',
-        name: pimAfterService.manuals[0].title || productData.name || 'Big Capacity Black Roller Cabinet with 6 Drawer'
-      } : {
-        image: manualsImage,
-        modelNumber: '35462',
-        productType: '90330',
-        name: 'Big Capacity Black Roller Cabinet with 6 Drawer'
-      },
-      repairGuides: pimAfterService?.repairGuide?.map(guide => ({
-        image: guide.thumbnailUrl ? `https://pim-test.kendo.com${guide.thumbnailUrl}` : repairGuideImage,
-        modelNumber: productData.basicData?.modelNumber || '35462',
-        productType: `${productData.basicData?.productNumber || '90330'} - ${guide.title || 'Guide'}`,
-        name: guide.title || productData.name || 'Big Capacity Black Roller Cabinet with 6 Drawer'
-      })) || [
-        {
-          image: repairGuideImage,
-          modelNumber: '35462',
-          productType: '90330 - English US',
-          name: 'Big Capacity Black Roller Cabinet with 6 Drawer'
-        },
-        {
-          image: repairGuideImage,
-          modelNumber: '35462',
-          productType: '90330 - German',
-          name: 'Big Capacity Black Roller Cabinet with 6 Drawer'
-        },
-        {
-          image: repairGuideImage,
-          modelNumber: '35462',
-          productType: '90330 - Chinese',
-          name: 'Big Capacity Black Roller Cabinet with 6 Drawer'
-        }
-      ],
-      // Packaging 列表
-      packagings: pimAfterService?.packaging?.map(pack => ({
-        image: pack.thumbnailUrl ? `https://pim-test.kendo.com${pack.thumbnailUrl}` : packagingImage,
-        modelNumber: productData.basicData?.modelNumber || '35462',
-        productType: productData.basicData?.productNumber || '90330',
-        name: pack.title || productData.name || 'Big Capacity Black Roller Cabinet with 6 Drawer'
-      })) || [
-        {
-          image: packagingImage,
-          modelNumber: '35462',
-          productType: '90330',
-          name: 'Big Capacity Black Roller Cabinet with 6 Drawer'
-        },
-        {
-          image: packagingImage,
-          modelNumber: '35462',
-          productType: '90330',
-          name: 'Big Capacity Black Roller Cabinet with 6 Drawer'
-        },
-        {
-          image: packagingImage,
-          modelNumber: '35462',
-          productType: '90330',
-          name: 'Big Capacity Black Roller Cabinet with 6 Drawer'
-        }
-      ],
-      // Drawing 列表
-      drawings: pimAfterService?.drawing?.map(drawing => ({
-        image: drawing.thumbnailUrl ? `https://pim-test.kendo.com${drawing.thumbnailUrl}` : drawingImage,
-        modelNumber: productData.basicData?.modelNumber || '35462',
-        productType: productData.basicData?.productNumber || '90330',
-        name: drawing.title || productData.name || 'Big Capacity Black Roller Cabinet with 6 Drawer'
-      })) || [
-        {
-          image: drawingImage,
-          modelNumber: '35462',
-          productType: '90330',
-          name: 'Big Capacity Black Roller Cabinet with 6 Drawer'
-        },
-        {
-          image: drawingImage,
-          modelNumber: '35462',
-          productType: '90330',
-          name: 'Big Capacity Black Roller Cabinet with 6 Drawer'
-        }
-      ],
-      // Patent 列表
-      patents: pimAfterService?.patent?.map(patent => ({
-        image: patent.thumbnailUrl ? `https://pim-test.kendo.com${patent.thumbnailUrl}` : patentImage,
-        modelNumber: productData.basicData?.modelNumber || '35462',
-        productType: productData.basicData?.productNumber || '90330',
-        name: patent.title || productData.name || 'Big Capacity Black Roller Cabinet with 6 Drawer'
-      })) || [
-        {
-          image: patentImage,
-          modelNumber: '35462',
-          productType: '90330',
-          name: 'Big Capacity Black Roller Cabinet with 6 Drawer'
-        },
-        {
-          image: patentImage,
-          modelNumber: '35462',
-          productType: '90330',
-          name: 'Big Capacity Black Roller Cabinet with 6 Drawer'
-        }
-      ]
-    };
-  }, [productData.pimData?.afterService, productData.basicData, productData.name]);
 
   const renderAfterServiceSection = () => (
     <Box>
@@ -1949,75 +2033,85 @@ const ProductDetailPage = () => {
       <Typography ref={manualsTitleRef} variant="h6" sx={{ mb: 3.5, fontSize: '24px', fontFamily: '"Open Sans", sans-serif', fontWeight: 520, color:'#4d4d4d'}}>
         Manuals
       </Typography>
-      <Box sx={{ mb: 3 }}>
-        <DigitalAssetCard 
-          product={afterServiceAssets.manuals}
-          cardActionsConfig={{
-            show_file_type: false,
-            show_eyebrow: true,
-            show_open_pdf: true,
-            show_open_product_page: true,
-            show_preview_media: true
-          }}
-          onDownload={() => console.log('download manuals')}
-        />
-      </Box>
+      {productData.afterService?.manuals && productData.afterService.manuals.length > 0 && afterServiceAssets.manuals.name && (
+        <Box sx={{ mb: 3 }}>
+          <DigitalAssetCard 
+            product={afterServiceAssets.manuals}
+            cardActionsConfig={{
+              show_file_type: false,
+              show_eyebrow: true,
+              show_open_pdf: true,
+              show_open_product_page: true,
+              show_preview_media: true
+            }}
+            onDownload={() => console.log('download manuals')}
+          />
+        </Box>
+      )}
 
       {/* Repair  Guide*/}
       <Typography ref={repairGuideTitleRef} variant="h6" sx={{ mb: 3.5 , fontSize: '24px', fontFamily: '"Open Sans", sans-serif', fontWeight: 580, color:'#4d4d4d' }}>
         Repair Guide
       </Typography>
-      <Box sx={{ mb: 3, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-        {afterServiceAssets.repairGuides.map((asset, idx) => (
-          <DigitalAssetCard 
-            key={`repair-guide-${idx}`}
-            product={asset}
-            onDownload={() => console.log('download repair guide', idx)}
-          />
-        ))}
-      </Box>
+      {productData.afterService?.repairGuide && productData.afterService.repairGuide.length > 0 && (
+        <Box sx={{ mb: 3, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+          {afterServiceAssets.repairGuides.map((asset, idx) => (
+            <DigitalAssetCard 
+              key={`repair-guide-${idx}`}
+              product={asset}
+              onDownload={() => console.log('download repair guide', idx)}
+            />
+          ))}
+        </Box>
+      )}
 
       {/* Packaging */}
       <Typography ref={packagingTitleRef} variant="h6" sx={{ mb: 3.5, fontSize: '24.5px', fontFamily: '"Open Sans", sans-serif', fontWeight: 520, color:'#4d4d4d' }}>
         Packaging
       </Typography>
-      <Box sx={{ mb: 3, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-        {afterServiceAssets.packagings.map((asset, idx) => (
-          <DigitalAssetCard 
-            key={`packaging-${idx}`}
-            product={asset}
-            onDownload={() => console.log('download packaging', idx)}
-          />
-        ))}
-      </Box>
+      {productData.afterService?.packaging && productData.afterService.packaging.length > 0 && (
+        <Box sx={{ mb: 3, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+          {afterServiceAssets.packagings.map((asset, idx) => (
+            <DigitalAssetCard 
+              key={`packaging-${idx}`}
+              product={asset}
+              onDownload={() => console.log('download packaging', idx)}
+            />
+          ))}
+        </Box>
+      )}
 
       {/* Drawing */}
       <Typography ref={drawingTitleRef} variant="h6" sx={{ mb: 3.5, fontSize: '24.5px', fontFamily: '"Open Sans", sans-serif', fontWeight: 520, color:'#4d4d4d' }}>
         Drawing
       </Typography>
-      <Box sx={{ mb: 3, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-        {afterServiceAssets.drawings.map((asset, idx) => (
-          <DigitalAssetCard 
-            key={`drawing-${idx}`}
-            product={asset}
-            onDownload={() => console.log('download drawing', idx)}
-          />
-        ))}
-      </Box>
+      {productData.afterService?.drawing && productData.afterService.drawing.length > 0 && (
+        <Box sx={{ mb: 3, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+          {afterServiceAssets.drawings.map((asset, idx) => (
+            <DigitalAssetCard 
+              key={`drawing-${idx}`}
+              product={asset}
+              onDownload={() => console.log('download drawing', idx)}
+            />
+          ))}
+        </Box>
+      )}
 
       {/* Patent */}
       <Typography ref={patentTitleRef} variant="h6" sx={{ mb: 3.5, fontSize: '24.5px', fontFamily: '"Open Sans", sans-serif', fontWeight: 520, color:'#4d4d4d' }}>
         Patent
       </Typography>
-      <Box sx={{ mb: 3, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-        {afterServiceAssets.patents.map((asset, idx) => (
-          <DigitalAssetCard 
-            key={`patent-${idx}`}
-            product={asset}
-            onDownload={() => console.log('download patent', idx)}
-          />
-        ))}
-      </Box>
+      {productData.afterService?.patent && productData.afterService.patent.length > 0 && (
+        <Box sx={{ mb: 3, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+          {afterServiceAssets.patents.map((asset, idx) => (
+            <DigitalAssetCard 
+              key={`patent-${idx}`}
+              product={asset}
+              onDownload={() => console.log('download patent', idx)}
+            />
+          ))}
+        </Box>
+      )}
     </Box>
   );
 
