@@ -45,7 +45,6 @@ class ProductDetailApiService {
           id
           filename
           fullpath
-          assetThumb: fullpath(thumbnail: "content")
           assetThumb2: fullpath(thumbnail: "content", format: "webp")
 
         }
@@ -64,7 +63,7 @@ class ProductDetailApiService {
         FirstShipmentDate
         
         # SAP DETAIL
-        MeasurementUnitIN
+        BasicUnitOfMeasurement
         ProductDimensions
         ConsolidationSKUNumbers
         FactoryInstructionCN
@@ -86,6 +85,7 @@ class ProductDetailApiService {
             filename
             fullpath
             filesize
+            assetThumb2: fullpath(thumbnail: "content", format: "webp")
             metadata {
               data
               name
@@ -203,7 +203,6 @@ class ProductDetailApiService {
               id
               filename
               fullpath
-              assetThumb: fullpath(thumbnail: "content")
               assetThumb2: fullpath(thumbnail: "content", format: "webp")
             }
           }
@@ -219,7 +218,6 @@ class ProductDetailApiService {
                 id
                 filename
                 fullpath
-                assetThumb: fullpath(thumbnail: "content")
                 assetThumb2: fullpath(thumbnail: "content", format: "webp")
               }
             }
@@ -236,7 +234,6 @@ class ProductDetailApiService {
                 id
                 filename
                 fullpath
-                assetThumb: fullpath(thumbnail: "content")
                 assetThumb2: fullpath(thumbnail: "content", format: "webp")
               }
             }
@@ -250,7 +247,6 @@ class ProductDetailApiService {
             fullpath
             id
             filesize
-            assetThumb: fullpath(thumbnail: "content")
             assetThumb2: fullpath(thumbnail: "content", format: "webp")
             metadata {
               data
@@ -267,7 +263,6 @@ class ProductDetailApiService {
             fullpath
             id
             filesize
-            assetThumb: fullpath(thumbnail: "content")
             assetThumb2: fullpath(thumbnail: "content", format: "webp")
             metadata {
               data
@@ -445,23 +440,23 @@ class ProductDetailApiService {
       productNumber: product.VirtualProductID || product.CustomerFacingProductCode || product.id || '',
       productName: product.ProductName_en || product.ProductName || '',
       developmentStatus: this.getDevelopmentStatus(product.EnrichmentStatus, product.LifecycleStatus),
-      lifeCycleStatus: product.LifecycleStatus || 'Unknown',
-      enrichmentStatus: product.EnrichmentStatus || 'Unknown',
+      lifeCycleStatus: product.LifecycleStatus || '',
+      enrichmentStatus: product.EnrichmentStatus || '',
       regionalLaunchDate: this.formatDate(product.OnlineDate),
       finalReleaseDate: this.formatDate(product.FirstShipmentDate),
       imageUrl: product.Main?.fullpath || '',
-      thumbnailUrl: product.Main?.assetThumb || product.Main?.assetThumb2 || ''
+      thumbnailUrl: product.Main?.assetThumb2 || ''
     };
   }
 
   // 基础数据转换
   transformBasicData(product) {
     return {
-      brand: product.Brand || 'KENDO',
-      region: 'EMEA', // 默认值
-      productType: product.ProductType || 'Kit',
+      brand: product.Brand || '',
+      region: product.Region || '',
+      productType: product.ProductType || '',
       modelNumber: product.VirtualProductID || product.id || '',
-      version: product.version?.toString() || '1.0',
+      version: product.version?.toString() || '',
       customerFacingModel: product.CustomerFacingProductCode || product.VirtualProductID || '',
       productSeries: product.CategoryName || '',
       sellable: Boolean(product.Sellable),
@@ -481,7 +476,7 @@ class ProductDetailApiService {
   // SAP数据转换
   transformSapData(product) {
     return {
-      basicUnitOfMeasurement: product.MeasurementUnitIN || 'EA',
+      basicUnitOfMeasurement: product.BasicUnitOfMeasurement || '',
       productDimensions: product.ProductDimensions,
       consolidationSkuNumbers: product.ConsolidationSKUNumbers,
       factoryInstructionCn: product.FactoryInstructionCN || '',
@@ -518,7 +513,8 @@ class ProductDetailApiService {
         if (icon.image) {
           icons.push({
             imageUrl: icon.image.fullpath || '',
-            type: this.extractIconType(icon.image.metadata)
+            type: this.extractIconType(icon.image.metadata),
+            thumbnailUrl: icon.image.assetThumb2 || ''
           });
         }
       });
@@ -562,13 +558,13 @@ class ProductDetailApiService {
     const rows = [
       [
         'Packaging Type',
-        product.UnitPackingItem || 'Color Box',
-        'Brown Carton Box',
-        product.UnitPackingMC || 'Brown carton box'
+        product.UnitPackingItem || '',
+        '',
+        product.UnitPackingMC || ''
       ],
       [
         'Quantity(pcs)',
-        parseInt(product.PCSInUnitPackingItem) || 1,
+        parseInt(product.PCSInUnitPackingItem) || 0,
         parseInt(product.InnerBoxQuantity) || 0,
         parseInt(product.MCQuantity) || 0
       ],
@@ -621,19 +617,25 @@ class ProductDetailApiService {
     }
 
     // Logo标记信息
-    if (product.Logo1) {
-      logoMarking.push({
-        featureName: 'Logo 1',
-        value: product.Logo1,
-        additionalInfo: product.AdditionalPrinting
-      });
-    }
-    if (product.Logo2) {
-      logoMarking.push({
-        featureName: 'Logo 2',
-        value: product.Logo2
-      });
-    }
+
+    logoMarking.push({
+      featureName: 'Logo 1',
+      value: product.Logo1,
+    });
+
+
+    logoMarking.push({
+      featureName: 'Logo 2',
+      value: product.Logo2
+    });
+
+
+
+    logoMarking.push({
+      featureName: 'AdditionalPrinting',
+      value: product.AdditionalPrinting
+    });
+
 
     return { technicalSpecs, logoMarking };
   }
@@ -678,7 +680,7 @@ class ProductDetailApiService {
     if (enrichmentStatus === 'Local Data Ready') {
       return 'IN DEVELOPMENT';
     }
-    return enrichmentStatus || lifecycleStatus || 'Unknown';
+    return enrichmentStatus || lifecycleStatus || '';
   }
 
   extractCategoryBullets(product) {
@@ -783,7 +785,7 @@ class ProductDetailApiService {
       imageUrl: acc.element?.Main?.fullpath || '',
       model: acc.element?.VirtualProductID || acc.element?.id || '',
       name: acc.element?.ProductName || '',
-      quantity: 1 // 默认数量
+      quantity: parseInt(acc.element?.Quantity) || 0
     }));
   }
 
@@ -791,7 +793,7 @@ class ProductDetailApiService {
     if (!metadata || !Array.isArray(metadata)) return 'icon';
 
     const typeMetadata = metadata.find(m => m.name === 'type');
-    return typeMetadata?.data || 'icon';
+    return typeMetadata?.data || '';
   }
 
   transformImageCollection(imageCollection) {
@@ -801,7 +803,7 @@ class ProductDetailApiService {
       const image = item.image || item;
       return {
         imageUrl: image.fullpath || '',
-        thumbnailUrl: image.assetThumb || image.assetThumb2 || '',
+        thumbnailUrl: image.assetThumb2 || '',
         downloadUrl: image.fullpath || '',
         fileName: image.filename || '',
         basicInfo: {
@@ -832,10 +834,10 @@ class ProductDetailApiService {
       thumbnailUrl: video.assetThumb2 || '',
       downloadUrl: video.fullpath || '',
       videoTitle: this.extractMetadataValue(video.metadata, 'title') || video.filename || '',
-      language: this.extractMetadataValue(video.metadata, 'language') || 'English',
-      type: this.extractMetadataValue(video.metadata, 'type') || 'Demo',
+      language: this.extractMetadataValue(video.metadata, 'language') || '',
+      type: this.extractMetadataValue(video.metadata, 'type') || '',
       format: 'Video',
-      duration: this.extractMetadataValue(video.metadata, 'duration') || '0:00'
+      duration: this.extractMetadataValue(video.metadata, 'duration') || ''
     }));
   }
 
@@ -857,7 +859,7 @@ class ProductDetailApiService {
   }
 
   formatFileSize(bytes) {
-    if (!bytes) return '0 MB';
+    if (!bytes) return '';
     const mb = bytes / (1024 * 1024);
     return `${mb.toFixed(2)} MB`;
   }
