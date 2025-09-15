@@ -99,6 +99,7 @@ class ProductDetailApiService {
         WebsiteLinkDE
         
         # EANS
+        SingleProductEAN
         InnerBoxEANCode
         MasterCartonEANCode
         
@@ -537,6 +538,13 @@ class ProductDetailApiService {
   // EAN数据转换
   transformEansData(product) {
     const eans = [];
+    if (product.SingleProductEAN) {
+      eans.push({
+        name: 'Single Product EAN',
+        eanCode: product.SingleProductEAN
+      });
+    }
+
     if (product.InnerBoxEANCode) {
       eans.push({
         name: 'Inner Box EAN',
