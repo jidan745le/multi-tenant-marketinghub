@@ -341,40 +341,121 @@ class ProductDetailApiService {
           }
         }
         
-        PackingGuideline {
-          __typename
-          ... on asset {
-            filename
-            fullpath
-            id
-            filesize
-            assetThumb2: fullpath(thumbnail: "content", format: "webp")
-            metadata {
-              data
-              name
-              type
-              language
-            }
-          }
+      #packaging
+    InnerCartonArtwork{
+      ... on asset {
+        filename
+        fullpath
+        id
+        filesize
+        assetThumb2: fullpath(thumbnail: "content", format: "webp")
+        metadata {
+          data
+          name
+          type
+          language
         }
-        
-        ProductDrawing {
-          __typename
-          ... on asset {
-            filename
-            fullpath
-            id
-            filesize
-            assetThumb2: fullpath(thumbnail: "content", format: "webp")
-            metadata {
-              data
-              name
-              type
-              language
-            }
-          }
+      }
+    }
+    
+    MasterCartonArtwork{
+      ... on asset {
+        filename
+        fullpath
+        id
+        filesize
+        assetThumb2: fullpath(thumbnail: "content", format: "webp")
+        metadata {
+          data
+          name
+          type
+          language
         }
+      }
+    }
+    
+    PackingGuideline {
+      ... on asset {
+        filename
+        fullpath
+        id
+        filesize
+        assetThumb2: fullpath(thumbnail: "content", format: "webp")
+        metadata {
+          data
+          name
+          type
+          language
+        }
+      }
+    }
+    
+    SalesPackagingArtwork {
+      ... on asset {
+        filename
+        fullpath
+        id
+        filesize
+        assetThumb2: fullpath(thumbnail: "content", format: "webp")
+        metadata {
+          data
+          name
+          type
+          language
+        }
+      }
+    }
         
+   #DRAWING
+    MoldDrawing {
+      ... on asset {
+        filename
+        fullpath
+        id
+        filesize
+        assetThumb2: fullpath(thumbnail: "content", format: "webp")
+        metadata {
+          data
+          name
+          type
+          language
+        }
+      }
+    }   
+    
+    ProductDrawing {
+      ... on asset {
+        filename
+        fullpath
+        id
+        filesize
+        assetThumb2: fullpath(thumbnail: "content", format: "webp")
+        metadata {
+          data
+          name
+          type
+          language
+        }
+      }
+    }
+    
+    ProductLineDrawing {
+      ... on asset {
+        filename
+        fullpath
+        id
+        filesize
+        assetThumb2: fullpath(thumbnail: "content", format: "webp")
+        metadata {
+          data
+          name
+          type
+          language
+        }
+      }
+    }
+     
+    #PATENT
         ProductPatent {
           __typename
           ... on asset {
@@ -662,11 +743,26 @@ class ProductDetailApiService {
 
   // 售后服务数据转换
   transformAfterServiceData(product) {
+    // 合并所有包装相关的数据
+    const packagingData = [
+      ...this.transformAfterServiceCollection(product.PackingGuideline),
+      ...this.transformAfterServiceCollection(product.InnerCartonArtwork),
+      ...this.transformAfterServiceCollection(product.MasterCartonArtwork),
+      ...this.transformAfterServiceCollection(product.SalesPackagingArtwork)
+    ];
+
+    // 合并所有绘图相关的数据
+    const drawingData = [
+      ...this.transformAfterServiceCollection(product.ProductDrawing),
+      ...this.transformAfterServiceCollection(product.MoldDrawing),
+      ...this.transformAfterServiceCollection(product.ProductLineDrawing)
+    ];
+
     return {
       manuals: this.transformAfterServiceCollection(product.Manuals),
       repairGuide: this.transformAfterServiceCollection(product.RepairGuides),
-      packaging: this.transformAfterServiceCollection(product.PackingGuideline),
-      drawing: this.transformAfterServiceCollection(product.ProductDrawing),
+      packaging: packagingData,
+      drawing: drawingData,
       patent: this.transformAfterServiceCollection(product.ProductPatent)
     };
   }
