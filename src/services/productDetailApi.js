@@ -187,6 +187,62 @@ class ProductDetailApiService {
             }
           }
         }
+
+    # MarketingFeatures     
+    MarketingFeatures {
+      __typename
+      description
+      id
+      name
+      ... on csGroup {
+        description
+        id
+        name
+        features {
+          __typename
+          ... on csFeatureInput {
+            description
+            id
+            name
+            text
+          }
+          ... on csFeatureSelect {
+            description
+            id
+            name
+            selection
+          }
+          ... on csFeatureNumeric {
+            description
+            id
+            name
+            number
+            title
+          }
+          ... on csFeatureQuantityValue {
+            description
+            name
+            type
+            quantityvalue {
+              unit {
+                id
+                longname
+                abbreviation
+              }
+              value
+            }
+          }
+          ... on csFeatureBooleanSelect {
+            description
+            id
+            name
+            title
+            checked
+          }
+        }
+      }
+    }
+        
         
         # LOGO MARKING
         AdditionalPrinting
@@ -574,7 +630,7 @@ class ProductDetailApiService {
       popShortDescription: product.ShortDescription_en || product.ShortDescription || '',
       longDescription: product.LongDescription_en || product.LongDescription || '',
       packagingContains: product.PackagingContains || '',
-      specifications: this.extractSpecifications(product.Specs)
+      specifications: this.extractSpecifications(product.Specs)//这里未来应该改成marketingfeatures 待确认
     };
   }
 
@@ -689,6 +745,7 @@ class ProductDetailApiService {
   // 包装规格数据转换
   transformPackagingSpecData(product) {
     const technicalSpecs = [];
+    const marketingFeatures = [];
     const logoMarking = [];
 
     // 从Specs中提取技术规格
@@ -701,6 +758,15 @@ class ProductDetailApiService {
               technicalSpecs.push(specItem);
             }
           });
+        }
+      });
+    }
+
+    if (product.MarketingFeatures && Array.isArray(product.MarketingFeatures)) {
+      product.MarketingFeatures.forEach(feature => {
+        const specItem = this.transformSpecFeature(feature);
+        if (specItem) {
+          marketingFeatures.push(specItem);
         }
       });
     }
