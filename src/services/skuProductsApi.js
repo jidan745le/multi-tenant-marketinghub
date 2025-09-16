@@ -35,6 +35,7 @@ const buildSKUQuery = (virtualProductId, first = 12, after = 0) => {
           id
           Brand
           VirtualProductID
+          CustomerFacingProductCode
           objectType
         }
       }

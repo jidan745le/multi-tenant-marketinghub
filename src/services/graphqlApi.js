@@ -100,6 +100,7 @@ const buildGraphQLQuery = (filters = {}, first = 100, after = 0, brand = 'kendo'
           Brand
           ERPMaterialCode
           VirtualProductID
+          CustomerFacingProductCode
           ProductName_en: ProductName(language: "en")
           ProductName_de: ProductName(language: "de")
           ShortDescription_en: ShortDescription(language: "en")

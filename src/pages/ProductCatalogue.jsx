@@ -64,7 +64,7 @@ function ProductCataloguePage() {
       
       // 选择第一个SKU产品的ID
       const firstSku = skuProducts[0];
-      const firstSkuId = firstSku.id;
+      const firstSkuId = firstSku.CustomerFacingProductCode;
       
       console.log(`🎯 Selecting first SKU with ID: ${firstSkuId}`, firstSku);
       

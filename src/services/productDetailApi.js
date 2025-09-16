@@ -25,168 +25,174 @@ class ProductDetailApiService {
 
   // 完整的GraphQL查询语句
   getProductQuery = `
-    query getProduct($id: Int!) {
-      getProduct(id: $id) {
-        id
-        VirtualProductID
-        ProductName_en: ProductName(language: "en")
-        ProductName_de: ProductName(language: "de")
-        ShortDescription_en: ShortDescription(language: "en")
-        LongDescription_en: LongDescription(language: "en")
-        CategoryName
-        
-        # BASIC CARD INFO
-        ProductLabel
-        LifecycleStatus
-        OnlineDate
-        EnrichmentStatus
-        creationDate
-        Main {
-          id
-          filename
-          fullpath
-          assetThumb2: fullpath(thumbnail: "content", format: "webp")
-
-        }
-        
-        # BASIC DATA
-        Brand
-        ProductType
-        VirtualProductID
-        version
-        CustomerFacingProductCode
-        Sellable
-        classname
-        CountryOfOrigin
-        Warranty
-        modificationDate
-        FirstShipmentDate
-        
-        # SAP DETAIL
-        BasicUnitOfMeasurement
-        ProductDimensions
-        ConsolidationSKUNumbers
-        FactoryInstructionCN
-        SAPShortDescriptionEN
-        
-        # MARKETING COPY
-        ProductName
-        CategoryID
-        ShortDescription
-        LongDescription
-        PackagingContains
-        
-        # ICONS
-        Icons {
-          crop {
-            cropWidth
-          }
-          image {
-            filename
-            fullpath
-            filesize
-            assetThumb2: fullpath(thumbnail: "content", format: "webp")
-            metadata {
-              data
-              name
-              type
-              language
-            }
-          }
-        }
-        
-        # QR CODES
-        WebsiteLinkDE
-        
-        # EANS
-        SingleProductEAN
-        InnerBoxEANCode
-        MasterCartonEANCode
-        
-        # PACKAGING DATA
-        InnerBoxQuantity
-        UnitPackingMC
-        INSizeWxHxL
-        InnerBoxGrossWeight
-        InnerBoxSizeLcm
-        InnerBoxSizeWcm
-        InnerBoxSizeHcm
-        InnerBoxVolumeM3
-        MCQuantity
-        MeasurementUnitMC
-        MCSizeWxHxL
-        MCNetWeight
-        MCGrossWeight
-        MCSizeLcm
-        MCSizeWcm
-        MCSizeHcm
-        MCVolumeM3
-        SAPPackagingType
-        UnitPackingItem
-        PCSInUnitPackingItem
-        MeasurementUnitItem
-        ItemSizeWxHxL
-        ItemNetWeight
-        ItemGrossWeight
-        ItemSizeLcm
-        ItemSizeWcm
-        ItemSizeHcm
-        ItemVolumeM3
-        
-        # SPECS
-        Specs {
-          __typename
-          description
-          id
-          name
-          ... on csGroup {
-            description
+    query getProductListing($first: Int!, $after: Int!, $filter: String) {
+      getProductListing(first: $first, after: $after, filter: $filter) {
+        edges {
+          cursor
+          node {
             id
-            name
-            features {
-              __typename
-              ... on csFeatureInput {
-                description
-                id
-                name
-                text
+            VirtualProductID
+            ProductName_en: ProductName(language: "en")
+            ProductName_de: ProductName(language: "de")
+            ShortDescription_en: ShortDescription(language: "en")
+            LongDescription_en: LongDescription(language: "en")
+            CategoryName
+            
+            # BASIC CARD INFO
+            ProductLabel
+            LifecycleStatus
+            OnlineDate
+            EnrichmentStatus
+            creationDate
+            Main {
+              id
+              filename
+              fullpath
+              assetThumb2: fullpath(thumbnail: "content", format: "webp")
+
+            }
+            
+            # BASIC DATA
+            Brand
+            ProductType
+            VirtualProductID
+            version
+            CustomerFacingProductCode
+            Sellable
+            classname
+            CountryOfOrigin
+            Warranty
+            modificationDate
+            FirstShipmentDate
+            
+            # SAP DETAIL
+            BasicUnitOfMeasurement
+            ProductDimensions
+            ConsolidationSKUNumbers
+            FactoryInstructionCN
+            SAPShortDescriptionEN
+            
+            # MARKETING COPY
+            ProductName
+            CategoryID
+            ShortDescription
+            LongDescription
+            PackagingContains
+            
+            # ICONS
+            Icons {
+              crop {
+                cropWidth
               }
-              ... on csFeatureSelect {
-                description
-                id
-                name
-                selection
-              }
-              ... on csFeatureNumeric {
-                description
-                id
-                name
-                number
-                title
-              }
-              ... on csFeatureQuantityValue {
-                description
-                name
-                type
-                quantityvalue {
-                  unit {
-                    id
-                    longname
-                    abbreviation
-                  }
-                  value
+              image {
+                filename
+                fullpath
+                filesize
+                assetThumb2: fullpath(thumbnail: "content", format: "webp")
+                metadata {
+                  data
+                  name
+                  type
+                  language
                 }
               }
-              ... on csFeatureBooleanSelect {
+            }
+            
+            # QR CODES
+            WebsiteLinkDE
+            
+            # EANS
+            SingleProductEAN
+            InnerBoxEANCode
+            MasterCartonEANCode
+            
+            # PACKAGING DATA
+            InnerBoxQuantity
+            UnitPackingMC
+            INSizeWxHxL
+            InnerBoxGrossWeight
+            InnerBoxSizeLcm
+            InnerBoxSizeWcm
+            InnerBoxSizeHcm
+            InnerBoxVolumeM3
+            MCQuantity
+            MeasurementUnitMC
+            MCSizeWxHxL
+            MCNetWeight
+            MCGrossWeight
+            MCSizeLcm
+            MCSizeWcm
+            MCSizeHcm
+            MCVolumeM3
+            SAPPackagingType
+            UnitPackingItem
+            PCSInUnitPackingItem
+            MeasurementUnitItem
+            ItemSizeWxHxL
+            ItemNetWeight
+            ItemGrossWeight
+            ItemSizeLcm
+            ItemSizeWcm
+            ItemSizeHcm
+            ItemVolumeM3
+            
+            # SPECS
+            Specs {
+              __typename
+              description
+              id
+              name
+              ... on csGroup {
                 description
                 id
-                name
-                title
-                checked
+                name                
+                features {
+                  __typename
+                  ... on csFeatureInput {
+                    description
+                    id
+                    name
+                    text
+                    title
+                  }
+                  ... on csFeatureSelect {
+                    description
+                    id
+                    name
+                    selection
+                    title
+                  }
+                  ... on csFeatureNumeric {
+                    description
+                    id
+                    name
+                    number
+                    title
+                  }
+                  ... on csFeatureQuantityValue {
+                    description
+                    name
+                    type
+                    title
+                    quantityvalue {
+                      unit {
+                        id
+                        longname
+                        abbreviation
+                      }
+                      value
+                    }
+                  }
+                  ... on csFeatureBooleanSelect {
+                    description
+                    id
+                    name
+                    title
+                    checked
+                  }
+                }
               }
             }
-          }
-        }
 
     # MarketingFeatures     
     MarketingFeatures {
@@ -205,12 +211,14 @@ class ProductDetailApiService {
             id
             name
             text
+            title
           }
           ... on csFeatureSelect {
             description
             id
             name
             selection
+            title
           }
           ... on csFeatureNumeric {
             description
@@ -223,6 +231,7 @@ class ProductDetailApiService {
             description
             name
             type
+            title
             quantityvalue {
               unit {
                 id
@@ -256,6 +265,7 @@ class ProductDetailApiService {
             ProductName
             id
             VirtualProductID
+            CustomerFacingProductCode
             Main {
               id
               filename
@@ -271,6 +281,7 @@ class ProductDetailApiService {
               ProductName
               id
               VirtualProductID
+              CustomerFacingProductCode
               Main {
                 id
                 filename
@@ -287,6 +298,7 @@ class ProductDetailApiService {
               ProductName
               id
               VirtualProductID
+              CustomerFacingProductCode
               Main {
                 id
                 filename
@@ -296,6 +308,21 @@ class ProductDetailApiService {
             }
           }
         }
+
+    Successor {
+      ... on object_Product {
+        ProductName
+        CustomerFacingProductCode
+        id
+        VirtualProductID
+        Main {
+          id
+          filename
+          fullpath
+          assetThumb2: fullpath(thumbnail: "content", format: "webp")
+        }
+      }
+    }
         
         # MARKETING COLLATERALS
         OnWhite {
@@ -533,24 +560,27 @@ class ProductDetailApiService {
           __typename
           ... on object_Product {
             children {
-            __typename
-            ...on object_Product {
-              id
-              Size
-              MainMaterial
-              SurfaceFinish
-              ApplicableStandard              
+              __typename
+              ...on object_Product {
+                id
+                CustomerFacingProductCode
+                Size
+                MainMaterial
+                SurfaceFinish
+                ApplicableStandard              
+              }
+            }
           }
         }
-      }
-    }
+          }
+        }
       }
     }
   `;
 
   // 主要数据转换函数
   transformProductData(rawData) {
-    const product = rawData.data?.getProduct;
+    const product = rawData.data?.getProductListing?.edges?.[0]?.node;
     if (!product) {
       throw new Error('Product not found');
     }
@@ -568,14 +598,27 @@ class ProductDetailApiService {
       packagingSpec: this.transformPackagingSpecData(product),
       marketingCollaterals: this.transformMarketingCollateralsData(product),
       afterService: this.transformAfterServiceData(product),
-      skuData: this.transformSkuData(product)
+      skuData: this.transformSkuData(product),
+      successor: this.transformSuccessorData(product)
     };
+  }
+
+  transformSuccessorData(product) {
+    const successor = product.Successor;
+    if (!successor || !Array.isArray(successor)) return [];
+
+    return successor.map(successor => ({
+      productNumber: successor.CustomerFacingProductCode || successor.VirtualProductID || successor.id || '',
+      productName: successor.ProductName || '',
+      imageUrl: successor.Main?.fullpath || ''
+    }));
+
   }
 
   // 产品卡片信息转换
   transformProductCardInfo(product) {
     return {
-      productNumber: product.VirtualProductID || product.CustomerFacingProductCode || product.id || '',
+      productNumber: product.CustomerFacingProductCode || product.id || '',
       productName: product.ProductName_en || product.ProductName || '',
       developmentStatus: this.getDevelopmentStatus(product.EnrichmentStatus, product.LifecycleStatus),
       lifeCycleStatus: product.LifecycleStatus || '',
@@ -892,19 +935,18 @@ class ProductDetailApiService {
   getFeatureText(feature) {
     switch (feature.__typename) {
       case 'csFeatureInput':
-        return feature.text ? `${feature.name}: ${feature.text}` : null;
+        return feature.text ? `${feature.title}: ${feature.text}` : null;
       case 'csFeatureSelect':
-        return feature.selection ? `${feature.name}: ${feature.selection}` : null;
+        return feature.selection ? `${feature.title}: ${feature.selection}` : null;
       case 'csFeatureNumeric':
-        return feature.number ? `${feature.name}: ${feature.number}` : null;
+        return feature.number ? `${feature.title}: ${feature.number}` : null;
       case 'csFeatureQuantityValue':
         if (feature.quantityvalue && feature.quantityvalue.value) {
-          const unit = feature.quantityvalue.unit?.abbreviation || '';
-          return `${feature.name}: ${feature.quantityvalue.value}${unit}`;
+          return `${feature.title}: ${feature.quantityvalue.value}`;
         }
         return null;
       case 'csFeatureBooleanSelect':
-        return feature.checked ? `${feature.name}: Yes` : null;
+        return feature.checked ? `${feature.title}: Yes` : null;
       default:
         return null;
     }
@@ -932,7 +974,7 @@ class ProductDetailApiService {
     if (!bundles || !Array.isArray(bundles)) return [];
 
     return bundles.map(bundle => ({
-      productNumber: bundle.VirtualProductID || bundle.id || '',
+      productNumber: bundle.CustomerFacingProductCode || bundle.VirtualProductID || bundle.id || '',
       productName: bundle.ProductName || '',
       imageUrl: bundle.Main?.fullpath || ''
     }));
@@ -942,7 +984,7 @@ class ProductDetailApiService {
     if (!components || !Array.isArray(components)) return [];
 
     return components.map(comp => ({
-      productNumber: comp.element?.VirtualProductID || comp.element?.id || '',
+      productNumber: comp.element?.CustomerFacingProductCode || comp.element?.VirtualProductID || comp.element?.id || '',
       productName: comp.element?.ProductName || '',
       imageUrl: comp.element?.Main?.fullpath || ''
     }));
@@ -953,7 +995,7 @@ class ProductDetailApiService {
 
     return accessories.map(acc => ({
       imageUrl: acc.element?.Main?.fullpath || '',
-      model: acc.element?.VirtualProductID || acc.element?.id || '',
+      model: acc.element?.CustomerFacingProductCode || acc.element?.VirtualProductID || acc.element?.id || '',
       name: acc.element?.ProductName || '',
       quantity: parseInt(acc.element?.Quantity) || 0
     }));
@@ -1035,14 +1077,17 @@ class ProductDetailApiService {
   }
 
   // 获取产品详情
-  async getProductDetail(id) {
+  async getProductDetail(skuid) {
     try {
+      const filterString = JSON.stringify({
+        CustomerFacingProductCode: { "$like": skuid }
+      });
       const response = await fetch(this.baseURL, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({
           query: this.getProductQuery,
-          variables: { id: parseInt(id) }
+          variables: { first: 1, after: 0, filter: filterString }
         }),
       });
 
@@ -1067,7 +1112,7 @@ class ProductDetailApiService {
     const children = product.parent?.children || [];
 
     return children.map(child => ({
-      productNumber: child.id || '',
+      productNumber: child.CustomerFacingProductCode || child.id || '',
       size: child.Size || '',
       mainMaterial: child.MainMaterial || '',
       surfaceFinish: child.SurfaceFinish || '',
@@ -1076,13 +1121,13 @@ class ProductDetailApiService {
   }
 
   // 批量获取产品详情
-  async getProductDetails(ids) {
+  async getProductDetails(skuids) {
     try {
-      const promises = ids.map(id => this.getProductDetail(id));
+      const promises = skuids.map(skuid => this.getProductDetail(skuid));
       const results = await Promise.allSettled(promises);
 
       return results.map((result, index) => ({
-        id: ids[index],
+        id: skuids[index],
         success: result.status === 'fulfilled',
         data: result.status === 'fulfilled' ? result.value : null,
         error: result.status === 'rejected' ? result.reason.message : null
