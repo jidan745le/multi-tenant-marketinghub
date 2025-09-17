@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { Box, Typography, Button } from '@mui/material';
 import UnifiedSkuTable from './UnifiedSkuTable';
 import { useTheme } from '../hooks/useTheme';
+import downloadIcon from '../assets/icon/download.png';
 
 
 // 移除重复的SmallTriangleIcon定义，从共享组件导入
@@ -145,6 +146,8 @@ const ProductCard = ({
   };
   const infoRows = chunkPairsToRows(effectiveInfoPairs, 2);
 
+  const showSkuSelect = Array.isArray(skuData) && skuData.length >= 2;
+
   // 优化事件处理函数 - 使用useCallback
   const handleDownloadImage = React.useCallback(() => {
     const url = activeSku && activeSku.imageUrl ? activeSku.imageUrl : '';
@@ -245,7 +248,7 @@ const ProductCard = ({
                 ...(currentImageUrl && {
                   backgroundImage: `url(${currentImageUrl})`,
                   backgroundPosition: 'center',
-                  backgroundSize: 'contain', // 改为contain以完整显示图片
+                  backgroundSize: 'contain', 
                   backgroundRepeat: 'no-repeat'
                 }),
                 filter: isImageHover ? 'blur(2px)' : 'none',
@@ -267,25 +270,50 @@ const ProductCard = ({
                 onMouseUp={() => setIsDownloadActive(false)}
                 onMouseLeave={() => setIsDownloadActive(false)}
                 sx={{ 
-                  width: 16, 
-                  height: 16, 
+                  width: 50, 
+                  height: 50, 
+                  top: 16,
+                  left: 16,
                   cursor: onDownloadClick ? 'pointer' : 'default',
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'center',
+                  position: 'relative',
                   transform: isDownloadActive ? 'translateY(-1px) scale(0.98)' : 'none',
                   transition: 'transform 120ms ease, box-shadow 120ms ease',
                   boxShadow: isDownloadActive ? '0 3px 8px rgba(0,0,0,0.3)' : 'none'
                 }}
               >
+                {/* vector0.png */}
                 <Box 
-                  component="img" 
-                  src="/assets/vector0.png" 
-                  alt="download" 
                   sx={{ 
                     width: 50, 
                     height: 50,
-                    display: 'block'
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    zIndex: 1,
+                    bgcolor: primaryColor,
+                    WebkitMask: 'url(/assets/vector0.png) no-repeat center / contain',
+                    mask: 'url(/assets/vector0.png) no-repeat center / contain',
+                    display: 'inline-block'
+                  }} 
+                />
+                {/* downloadIcon */}
+                <Box 
+                  component="img" 
+                  src={downloadIcon} 
+                  alt="download icon" 
+                  sx={{ 
+                    width: 28, 
+                    height: 29,
+                    position: 'relative',
+                    // top: 26,
+                    // left: 26,
+                    top: 10,
+                    left: 10,
+                    zIndex: 2,
+                    filter: 'brightness(0) invert(1)'
                   }} 
                 />
               </Box>
@@ -392,66 +420,70 @@ const ProductCard = ({
             top: 142.81,
             overflow: 'visible'
           }}>
-            <Button
-              variant="contained"
-              onClick={handleOpenSkuMenu}
-              endIcon={<SmallTriangleIcon expanded={isSkuDropdownOpen} />}
-              aria-label="Select SKU"
-              sx={{
-                background: primaryColor,
-                borderRadius: 1,
-                border: `0.97px solid ${primaryColor}dd`,
-                p: '11.6px 7.73px',
-                width: 128,
-                height: 26,
-                minWidth: 'auto',
-                textTransform: 'none',
-                position: 'relative',
-                '&:hover': {
-                  border: `0.97px solid ${primaryColor}dd`,
-                },
-                '& .MuiButton-endIcon': {
-                  marginLeft: '4px',
-                  marginRight: '0px'
-                }
-              }}
-            >
-              <Typography sx={{ 
-                color: '#ffffff', 
-                fontFamily: 'Open Sans, sans-serif', 
-                fontSize: 11.5, 
-                lineHeight: '16px', 
-                letterSpacing: '0.4px', 
-                fontWeight: 500,
-                textOverflow: 'ellipsis', 
-                overflow: 'hidden',
-                whiteSpace: 'nowrap',
-                ml: -0.5,
-                mt: 0.3
-              }}>
-                Select SKU
-              </Typography>
-            </Button>
-            {isSkuDropdownOpen && (
-              <Box 
-                ref={skuTableRef}
-                sx={{ 
-                  position: 'absolute', 
-                  top: 34,
-                  left: 0,
-                  zIndex: 2000,
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                  borderRadius: '4px'
-                }}
-              >
-                <UnifiedSkuTable 
-                  data={skuData} 
-                  selectedSku={selectedSku}
-                  onSkuSelect={handleSkuSelect}
-                  variant="dropdown"
-                  showStandard={false}
-                />
-              </Box>
+            {showSkuSelect && (
+              <>
+                <Button
+                  variant="contained"
+                  onClick={handleOpenSkuMenu}
+                  endIcon={<SmallTriangleIcon expanded={isSkuDropdownOpen} />}
+                  aria-label="Select SKU"
+                  sx={{
+                    background: primaryColor,
+                    borderRadius: 1,
+                    border: `0.97px solid ${primaryColor}dd`,
+                    p: '11.6px 7.73px',
+                    width: 128,
+                    height: 26,
+                    minWidth: 'auto',
+                    textTransform: 'none',
+                    position: 'relative',
+                    '&:hover': {
+                      border: `0.97px solid ${primaryColor}dd`,
+                    },
+                    '& .MuiButton-endIcon': {
+                      marginLeft: '4px',
+                      marginRight: '0px'
+                    }
+                  }}
+                >
+                  <Typography sx={{ 
+                    color: '#ffffff', 
+                    fontFamily: 'Open Sans, sans-serif', 
+                    fontSize: 11.5, 
+                    lineHeight: '16px', 
+                    letterSpacing: '0.4px', 
+                    fontWeight: 500,
+                    textOverflow: 'ellipsis', 
+                    overflow: 'hidden',
+                    whiteSpace: 'nowrap',
+                    ml: -0.5,
+                    mt: 0.3
+                  }}>
+                    Select SKU
+                  </Typography>
+                </Button>
+                {isSkuDropdownOpen && (
+                  <Box 
+                    ref={skuTableRef}
+                    sx={{ 
+                      position: 'absolute', 
+                      top: 34,
+                      left: 0,
+                      zIndex: 2000,
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                      borderRadius: '4px'
+                    }}
+                  >
+                    <UnifiedSkuTable 
+                      data={skuData} 
+                      selectedSku={selectedSku}
+                      onSkuSelect={handleSkuSelect}
+                      variant="dropdown"
+                      showStandard={false}
+                    />
+                  </Box>
+                )}
+              </>
             )}
           </Box>
         </Box>

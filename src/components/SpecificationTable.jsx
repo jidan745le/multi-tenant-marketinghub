@@ -11,6 +11,31 @@ const SpecificationTable = ({
   columns = ['Feature Name', 'Value', 'Unit']
 }) => {
   const { primaryColor } = useTheme();
+  const mixWithWhite = (hexColor, amount = 0.15) => {
+    try {
+      const hex = hexColor.replace('#', '');
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      const mix = (c) => Math.round((1 - amount) * 255 + amount * c);
+      const toHex = (n) => n.toString(16).padStart(2, '0');
+      return `#${toHex(mix(r))}${toHex(mix(g))}${toHex(mix(b))}`;
+    } catch {
+      return hexColor;
+    }
+  };
+  const ThemedGlyph = ({ src, size = 16 }) => (
+    <Box
+      sx={{
+        width: `${size}px`,
+        height: `${size}px`,
+        bgcolor: primaryColor,
+        WebkitMask: `url(${src}) no-repeat center / contain`,
+        mask: `url(${src}) no-repeat center / contain`,
+        display: 'inline-block'
+      }}
+    />
+  );
   
   // 控制每个分组的展开/折叠
   const [expandedGroups, setExpandedGroups] = useState(
@@ -43,7 +68,7 @@ const SpecificationTable = ({
     },
     // 表头行
     headerRow: {
-      background: `${primaryColor}05`,
+      background: mixWithWhite(primaryColor, 0.06),
       display: 'flex',
       flexDirection: 'row',
       gap: 0,
@@ -77,9 +102,9 @@ const SpecificationTable = ({
     },
     // 分组标题行
     groupHeaderRow: {
-      background: `${primaryColor}15`,
+      background: mixWithWhite(primaryColor, 0.15),
       borderStyle: 'solid',
-      borderColor: `${primaryColor}20`,
+      borderColor: mixWithWhite(primaryColor, 0.30),
       borderWidth: '0.83px 0px 0.83px 0px',
       display: 'flex',
       flexDirection: 'row',
@@ -319,16 +344,7 @@ const SpecificationTable = ({
                 onClick={() => toggleGroup(groupIndex)}
                 aria-label={expandedGroups[groupIndex] ? 'collapse' : 'expand'}
               >
-                <Box
-                  component="img"
-                  src={expandedGroups[groupIndex] ? disturbIcon : addIcon}
-                  alt={expandedGroups[groupIndex] ? 'collapse' : 'expand'}
-                  sx={{
-                    width: '16px',
-                    height: '16px',
-                    objectFit: 'contain'
-                  }}
-                />
+                <ThemedGlyph src={expandedGroups[groupIndex] ? disturbIcon : addIcon} />
               </IconButton>
               <Typography sx={commonStyles.groupHeaderText}>
                 {group.title}

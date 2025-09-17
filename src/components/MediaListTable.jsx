@@ -12,6 +12,19 @@ const MediaListTable = ({
   onDownloadClick
 }) => {
   const { primaryColor } = useTheme();
+  const mixWithWhite = (hexColor, amount = 0.15) => {
+    try {
+      const hex = hexColor.replace('#', '');
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      const mix = (c) => Math.round((1 - amount) * 255 + amount * c);
+      const toHex = (n) => n.toString(16).padStart(2, '0');
+      return `#${toHex(mix(r))}${toHex(mix(g))}${toHex(mix(b))}`;
+    } catch {
+      return hexColor;
+    }
+  };
 
   // 公共样式定义
   const commonStyles = {
@@ -29,9 +42,9 @@ const MediaListTable = ({
     },
     // 表头行
     headerRow: {
-      background: `${primaryColor}15`,
+      background: mixWithWhite(primaryColor, 0.15),
       borderStyle: 'solid',
-      borderColor: 'rgba(0, 0, 0, 0.12)',
+      borderColor: mixWithWhite(primaryColor, 0.30),
       borderWidth: '0px 0px 0.87px 0px',
       display: 'flex',
       flexDirection: 'row',
@@ -231,7 +244,8 @@ const MediaListTable = ({
           maskPosition: 'center',
           WebkitMaskPosition: 'center',
           maskSize: 'contain',
-          WebkitMaskSize: 'contain'
+          WebkitMaskSize: 'contain',
+          transition: 'background-color 0.2s ease'
         }}
       />
     </Box>

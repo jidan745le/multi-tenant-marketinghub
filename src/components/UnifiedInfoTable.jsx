@@ -20,6 +20,21 @@ const UnifiedInfoTable = ({
   const { primaryColor } = useTheme();
   const { t } = useTranslation();
 
+  // 与白色混合，得到非透明浅色
+  const mixWithWhite = (hexColor, amount = 0.15) => {
+    try {
+      const hex = hexColor.replace('#', '');
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      const mix = (c) => Math.round((1 - amount) * 255 + amount * c);
+      const toHex = (n) => n.toString(16).padStart(2, '0');
+      return `#${toHex(mix(r))}${toHex(mix(g))}${toHex(mix(b))}`;
+    } catch {
+      return hexColor;
+    }
+  };
+
   // 生成条形码图片
   const generateBarcode = (eanCode) => {
     try {
@@ -192,9 +207,9 @@ const UnifiedInfoTable = ({
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0, alignItems: 'flex-start', justifyContent: 'flex-start', flexShrink: 0, position: 'relative', width: '100%' }}>
       {/* Header */}
       <Box sx={{
-        background: `${primaryColor}15`,
+        background: mixWithWhite(primaryColor, 0.15),
         borderStyle: 'solid',
-        borderColor: `${primaryColor}30`,
+        borderColor: mixWithWhite(primaryColor, 0.30),
         borderWidth: '0.97px 0px 0.97px 0px',
         display: 'flex',
         flexDirection: 'row',
@@ -226,7 +241,7 @@ const UnifiedInfoTable = ({
 
       {/* Rows */}
       {data.map((item, index) => (
-        <Box key={index} sx={{ background: '#ffffff', borderStyle: 'solid', borderColor: '#b3b3b3', borderWidth: '0px 0px 0.48px 0px', display: 'flex', flexDirection: 'row', gap: 0, alignItems: 'center', justifyContent: 'flex-start', alignSelf: 'stretch', flexShrink: 0, position: 'relative', '&:hover': { backgroundColor: '#f9f9f9' } }}>
+        <Box key={index} sx={{ background: '#ffffff', borderStyle: 'solid', borderColor: '#b3b3b3', borderWidth: '0px 0px 0.48px 0px', display: 'flex', flexDirection: 'row', gap: 0, alignItems: 'center', justifyContent: 'flex-start', alignSelf: 'stretch', flexShrink: 0, position: 'relative', '&:hover': { backgroundColor: mixWithWhite(primaryColor, 0.10) } }}>
           {/* col 1 - image */}
           <Box sx={{ padding: '7.73px', display: 'flex', flexDirection: 'row', gap: 0, alignItems: 'center', justifyContent: 'flex-start', flexShrink: 0, width: { xs: '25%', sm: '25%', md: '25%', lg: '25%' }, position: 'relative', minHeight: cellMinHeight }}>
             <DynamicImage item={item} index={index} />

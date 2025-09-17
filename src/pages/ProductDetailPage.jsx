@@ -885,6 +885,20 @@ const ProductDetailPage = () => {
     }
   }), []);
 
+  // 覆盖色，全都盖成主题色
+  const ThemedIcon = React.useCallback(({ src, size = 36 }) => (
+    <Box
+      sx={{
+        width: `${size}px`,
+        height: `${size}px`,
+        bgcolor: primaryColor,
+        WebkitMask: `url(${src}) no-repeat center / contain`,
+        mask: `url(${src}) no-repeat center / contain`,
+        display: 'inline-block'
+      }}
+    />
+  ), [primaryColor]);
+
   // 顶部动作栏组件
   const TopActionsBar = () => {
     const basicMenu = useMenu();
@@ -1143,13 +1157,13 @@ const ProductDetailPage = () => {
       id: 'basic-data',
       title: 'BASIC DATA',
       icon: <Box component='img' src={documentIcon} alt='document' sx={{ width: 16, height: 16 }} />,
-      subItems: ['Sku Data', 'Basic Data', 'Sap Detail']
+      subItems: ((Array.isArray(productData?.skuData) && productData.skuData.length >= 2) ? ['SKU Data', 'Basic Data', 'SAP Detail'] : ['Basic Data', 'SAP Detail'])
     },
     {
       id: 'marketing-data',
       title: 'MARKETING DATA',
       icon: <Box component='img' src={documentIcon} alt='document' sx={{ width: 16, height: 16 }} />,
-      subItems: ['Marketing Copy', 'Icons & Pictures', 'Qr Codes', 'Eans']
+      subItems: ['Marketing Copy', 'Icons & Pictures', 'QR Codes', 'EANs']
     },
     {
       id: 'reference-relationship',
@@ -1173,13 +1187,13 @@ const ProductDetailPage = () => {
       id: 'marketing-collaterals',
       title: 'MARKETING COLLATERALS',
       icon: <Box component='img' src={documentIcon} alt='document' sx={{ width: 16, height: 16 }} />,
-      subItems: ['On white', 'Action & Lifestyle', 'Videos']
+      subItems: ['On White', 'Action & Lifestyle', 'Videos']
     },
     {
       id: 'after-service',
       title: 'AFTER SERVICE',
       icon: <Box component='img' src={documentIcon} alt='document' sx={{ width: 16, height: 16 }} />,
-      subItems: ['Manuals', 'Repair guide', 'Packaging', 'Drawing', 'Patent']
+      subItems: ['Manuals', 'Repair Guide', 'Packaging', 'Drawing', 'Patent']
     }
   ];
 
@@ -1265,17 +1279,21 @@ const ProductDetailPage = () => {
   const renderBasicDataSection = () => (
     <Box>
       {/* SKU Data */}
-      <Typography ref={skuDataTitleRef} variant="h6" sx={{ mb: 2, fontSize: '24px', fontFamily: '"Open Sans", sans-serif', fontWeight: 520, color:'#4d4d4d' }}>
-       {tableData?.title|| 'SKU Data'}
-      </Typography>
-      {productData.skus && productData.skus.length > 0 && (
-        <Box sx={{ mb: 3, mt: 3.5 }}>
-          <UnifiedSkuTable 
-            data={productData.skus} 
-            variant="detail" 
-            showStandard={true} 
-          />
-        </Box>
+      {Array.isArray(productData?.skuData) && productData.skuData.length >= 2 && (
+        <>
+          <Typography ref={skuDataTitleRef} variant="h6" sx={{ mb: 2, fontSize: '24px', fontFamily: '"Open Sans", sans-serif', fontWeight: 520, color:'#4d4d4d' }}>
+           {tableData?.title|| 'SKU Data'}
+          </Typography>
+          {productData.skus && productData.skus.length > 0 && (
+            <Box sx={{ mb: 3, mt: 3.5 }}>
+              <UnifiedSkuTable 
+                data={productData.skus} 
+                variant="detail" 
+                showStandard={true} 
+              />
+            </Box>
+          )}
+        </>
       )}
 
       {/* Basic Data */}
@@ -2176,7 +2194,7 @@ const ProductDetailPage = () => {
           {/* Basic Data 部分 */}
           <Box sx={{ mt: 12 }}>
             <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1, fontSize: '30px',fontFamily: '"Roboto", sans-serif',fontWeight: 900 }}>
-              <Box component='img' src={documentIcon} alt='document' sx={{ width: 36, height: 36}} />
+              <ThemedIcon src={documentIcon} />
               Basic Data
             </Typography>
             {renderBasicDataSection()}
@@ -2185,7 +2203,7 @@ const ProductDetailPage = () => {
           {/* Marketing Data 部分 */}
           <Box sx={{ mt: 11 }}>
           <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1, fontSize: '30px',fontFamily: '"Roboto", sans-serif',fontWeight: 900 }}>
-            <Box component='img' src={marketingIcon} alt='marketing' sx={{ width: 36, height: 36}} />
+            <ThemedIcon src={marketingIcon} />
             Marketing Data
           </Typography>
             {renderMarketingDataSection()}
@@ -2194,7 +2212,7 @@ const ProductDetailPage = () => {
           {/* References & Relationships 部分 */}
           <Box sx={{ mt: 11 }}>
           <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1, fontSize: '30px',fontFamily: '"Roboto", sans-serif',fontWeight: 900 }}>
-            <Box component='img' src={referIcon} alt='refer' sx={{ width: 36, height: 36}} />
+            <ThemedIcon src={referIcon} />
             References & Relationships
           </Typography>
             {renderReferencesRelationshipsSection()}
@@ -2203,7 +2221,7 @@ const ProductDetailPage = () => {
           {/* Packaging & Logistics 部分 */}
           <Box sx={{ mt: 11 }}>
           <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1, fontSize: '30px',fontFamily: '"Roboto", sans-serif',fontWeight: 900 }}>
-            <Box component='img' src={packIcon} alt='pack' sx={{ width: 36, height: 36}} />
+            <ThemedIcon src={packIcon} />
             Packaging & Logistics
           </Typography>
             {renderPackagingLogisticsSection()}
@@ -2211,7 +2229,7 @@ const ProductDetailPage = () => {
           {/* USPS & Benefits 部分 */}
           <Box sx={{ mt: 11 }}>
           <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1, fontSize: '30px',fontFamily: '"Roboto", sans-serif',fontWeight: 900 }}>
-            <Box component='img' src={specIcon} alt='spec' sx={{ width: 36, height: 36}} />
+            <ThemedIcon src={specIcon} />
             USPS & Benefits
           </Typography>
             {renderUSPSBenefitsSection()}
@@ -2219,7 +2237,7 @@ const ProductDetailPage = () => {
           {/* Marketing Collaterals 部分 */}
           <Box sx={{ mt: 11 }}>
           <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1, fontSize: '30px',fontFamily: '"Roboto", sans-serif',fontWeight: 900 }}>
-            <Box component='img' src={labelIcon} alt='label' sx={{ width: 36, height: 36}} />
+            <ThemedIcon src={labelIcon} />
             Marketing Collaterals
           </Typography>
             {renderMarketingCollateralsSection()}
@@ -2227,7 +2245,7 @@ const ProductDetailPage = () => {
           {/* After Service 部分 */}
           <Box sx={{ mt: 11 }}>
           <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1, fontSize: '30px',fontFamily: '"Roboto", sans-serif',fontWeight: 900 }}>
-            <Box component='img' src={serviceIcon} alt='service' sx={{ width: 36, height: 36}} />
+            <ThemedIcon src={serviceIcon} />
             After Service
           </Typography>
             {renderAfterServiceSection()}

@@ -8,6 +8,19 @@ const PackagingTable = ({
   columns = ['ITEM', 'INNER BOX', 'MASTER CARTON']
 }) => {
   const { primaryColor } = useTheme();
+  const mixWithWhite = (hexColor, amount = 0.15) => {
+    try {
+      const hex = hexColor.replace('#', '');
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      const mix = (c) => Math.round((1 - amount) * 255 + amount * c);
+      const toHex = (n) => n.toString(16).padStart(2, '0');
+      return `#${toHex(mix(r))}${toHex(mix(g))}${toHex(mix(b))}`;
+    } catch {
+      return hexColor;
+    }
+  };
 
   // 公共样式定义
   const commonStyles = {
@@ -160,9 +173,9 @@ const PackagingTable = ({
             key={index}
             sx={{
               ...(index === 0 ? commonStyles.firstCellContainer : commonStyles.cellContainer),
-              background: `${primaryColor}15`,
+              background: mixWithWhite(primaryColor, 0.15),
               borderStyle: 'solid',
-              borderColor: `${primaryColor}15`,
+              borderColor: mixWithWhite(primaryColor, 0.25),
               borderWidth: '0.79px 0px 0.79px 0px'
             }}
           >

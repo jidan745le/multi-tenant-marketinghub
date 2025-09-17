@@ -237,9 +237,9 @@ const BrandbookPage = () => {
     >
       {/* 左侧目录导航 */}
       <Box sx={{ 
-        width: 'min(280px, 25vw)', 
-        minWidth: 'min(280px, 20vw)',
-        maxWidth: 'min(280px, 30vw)',
+         width: '280px', 
+         minWidth: '280px',
+         maxWidth: '280px',
         height: '100%',
         flexShrink: 0
       }}>

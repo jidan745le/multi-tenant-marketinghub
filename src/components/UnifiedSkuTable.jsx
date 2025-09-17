@@ -12,6 +12,24 @@ const UnifiedSkuTable = ({
 }) => {
   const { primaryColor } = useTheme();
   const isDropdown = variant === 'dropdown';
+
+  // 混色：非透明主题色浅色
+  const mixWithWhite = (hexColor, amount = 0.15) => {
+    try {
+      const hex = hexColor.replace('#', '');
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      const mix = (c) => Math.round((1 - amount) * 255 + amount * c);
+      const nr = mix(r);
+      const ng = mix(g);
+      const nb = mix(b);
+      const toHex = (n) => n.toString(16).padStart(2, '0');
+      return `#${toHex(nr)}${toHex(ng)}${toHex(nb)}`;
+    } catch {
+      return hexColor;
+    }
+  };
   
   const containerStyles = isDropdown ? {
     borderRadius: '3.2px',
@@ -39,9 +57,9 @@ const UnifiedSkuTable = ({
   };
 
   const headerStyles = isDropdown ? {
-    background: '#ffede6',
+    background: mixWithWhite(primaryColor, 0.15),
     borderRadius: '3.2px 3.2px 0px 0px',
-    border: '0.77px solid #ffdbcc',
+    border: `0.77px solid ${mixWithWhite(primaryColor, 0.30)}`,
     borderWidth: '0.77px 0px 0.77px 0px',
     display: 'flex',
     flexDirection: 'row',
@@ -54,9 +72,9 @@ const UnifiedSkuTable = ({
     height: 'auto',
     position: 'relative'
   } : {
-    background: '#ffede6',
+    background: mixWithWhite(primaryColor, 0.15),
     borderStyle: 'solid',
-    borderColor: '#ffdbcc',
+    borderColor: mixWithWhite(primaryColor, 0.30),
     borderWidth: '0.97px 0px 0.97px 0px',
     display: 'flex',
     flexDirection: 'row',
@@ -174,7 +192,7 @@ const UnifiedSkuTable = ({
         const isSelected = selectedSku && selectedSku.material === sku.material && selectedSku.size === sku.size;
         
         const rowStyles = isDropdown ? {
-          background: isSelected ? '#f5f5f5' : '#ffffff',
+          background: isSelected ? mixWithWhite(primaryColor, 0.20) : '#ffffff',
           border: '0.39px solid #b3b3b3',
           borderWidth: '0px 0px 0.39px 0px',
           display: 'flex',
@@ -188,7 +206,7 @@ const UnifiedSkuTable = ({
           borderRadius: index === data.length - 1 ? '0px 0px 3.2px 3.2px' : '0px',
           cursor: onSkuSelect ? 'pointer' : 'default',
           '&:hover': onSkuSelect ? {
-            background: isSelected ? '#e8e8e8' : '#f5f5f5'
+            background: isSelected ? mixWithWhite(primaryColor, 0.26) : mixWithWhite(primaryColor, 0.18)
           } : {}
         } : {
           background: '#ffffff',

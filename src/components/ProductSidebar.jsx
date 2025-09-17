@@ -6,29 +6,9 @@ import {
   AccordionSummary,
   AccordionDetails
 } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
-
-
-// 三角形角标
-const TriangleIcon = ({ expanded, ...props }) => (
-  <Box
-    component="span"
-    sx={{
-      width: 0,
-      height: 0,
-      borderLeft: '4px solid transparent',
-      borderRight: '4px solid transparent',
-      borderTop: expanded ? 'none' : '6px solid white',
-      borderBottom: expanded ? '6px solid white' : 'none',
-      transition: 'all 0.15s ease-in-out',
-      transform: expanded ? 'rotate(0deg)' : 'rotate(-90deg)',
-      transformOrigin: 'center',
-      display: 'inline-block',
-      marginRight: '8px',
-      ...props.sx
-    }}
-  />
-);
+import { useTheme as useMuiTheme } from '@mui/material/styles';
+import { useTheme as useAppTheme } from '../hooks/useTheme';
+import SmallTriangleIcon from './SmallTriangleIcon';
 
 const ProductSidebar = ({ 
   navigationItems = [],
@@ -37,7 +17,15 @@ const ProductSidebar = ({
   onNavigate = () => {},
   brandName = 'KENDO'
 }) => {
-  const theme = useTheme();
+  const theme = useMuiTheme();
+  const { currentBrand, brandLogo } = useAppTheme();
+  console.log('ProductSidebar: currentBrand', currentBrand);
+  console.log('ProductSidebar: brandLogo', brandLogo);
+  const baseUrl = import.meta.env.VITE_STRAPI_BASE_URL || '';
+  const resolvedLogoUrl = brandLogo?.url
+    ? (brandLogo.url.startsWith('http') ? brandLogo.url : `${baseUrl}${brandLogo.url}`)
+    : '/assets/pdp_logo_mock.png';
+  const resolvedBrandName = brandName || (currentBrand ? currentBrand.toUpperCase() : 'KENDO');
   return (
     <Box sx={{ 
       width: { xs: 280, sm: 320, md: 360, lg: 380 }, 
@@ -56,11 +44,12 @@ const ProductSidebar = ({
       }}>
         <Box
           component="img"
-          src="/assets/pdp_logo_mock.png"
-          alt={brandName}
+          src={resolvedLogoUrl}
+          alt={resolvedBrandName}
           sx={{
-            height: '46px',
+            height: '26px',
             width: 'auto',
+            ml: 2.5,
             objectFit: 'contain'
           }}
         />
@@ -112,7 +101,7 @@ const ProductSidebar = ({
             }}
           >
             <AccordionSummary
-              expandIcon={<TriangleIcon expanded={expandedSections[item.id]} />}
+              expandIcon={<SmallTriangleIcon expanded={expandedSections[item.id]} color="#ffffff" />}
               sx={{ 
                 px: 1,
                 '& .MuiAccordionSummary-content': {
