@@ -128,7 +128,7 @@ const BrandbookContent = ({ data, onSectionInView }) => {
           }}>
             {/* 左侧图片 */}
             <Box sx={{ 
-              flex: '0 0 min(290px, 30vw)',
+              flex: '0 0 290px',
               display: 'flex',
               alignItems: 'stretch'
             }}>
@@ -297,7 +297,7 @@ const BrandbookContent = ({ data, onSectionInView }) => {
         
         <Grid container spacing={3} sx={{ flexWrap: 'nowrap', overflow: 'auto' }}>
           {data.colors.map((color, colorIndex) => (
-            <Grid item key={color.id || colorIndex} sx={{ minWidth: 0, flex: '0 0 min(270px, calc(100vw / 6))' }}>
+            <Grid item key={color.id || colorIndex} sx={{ minWidth: 0, flex: '0 0 270px' }}>
               <Paper 
                 id={`color-section-${colorIndex}`}
                 ref={(el) => registerSectionRef(`color-${colorIndex}`, el)}
@@ -372,7 +372,7 @@ const BrandbookContent = ({ data, onSectionInView }) => {
         
         <Grid container spacing={3} sx={{ flexWrap: 'nowrap', overflow: 'auto' }}>
           {data.fonts.map((font, fontIndex) => (
-            <Grid item key={font.id || fontIndex} sx={{ minWidth: 0, flex: '0 0 min(270px, calc(100vw / 6))' }}>
+            <Grid item key={font.id || fontIndex} sx={{ minWidth: 0, flex: '0 0 270px' }}>
               <Paper 
                 id={`font-section-${fontIndex}`}
                 ref={(el) => registerSectionRef(`font-${fontIndex}`, el)}
@@ -561,7 +561,7 @@ const BrandbookContent = ({ data, onSectionInView }) => {
             gap: 2, 
             alignItems: 'center',
             marginLeft: 'auto',
-            marginRight: 'min(60px, 3vw)',
+            marginRight: 'min(55px, 3vw)',
             flexWrap: 'wrap'
           }}>
             {/* 搜索框 */}
@@ -574,8 +574,7 @@ const BrandbookContent = ({ data, onSectionInView }) => {
                 startAdornment: <Search sx={{ color: 'text.secondary', mr: 1 }} />,
               }}
               sx={{ 
-                minWidth: 'min(200px, 15vw)',
-                width: 'min(200px, 15vw)',
+                minWidth: 200,
                 '& .MuiOutlinedInput-root': {
                   backgroundColor: 'white',
                   borderRadius: 1
@@ -584,7 +583,7 @@ const BrandbookContent = ({ data, onSectionInView }) => {
             />
             
             {/* Download All 下拉框 */}
-            <FormControl size="small" sx={{ minWidth: 'min(180px, 12vw)' }}>
+            <FormControl size="small" sx={{ minWidth: 180 }}>
               <InputLabel>DOWNLOAD ALL</InputLabel>
               <Select
                 value=""
@@ -601,7 +600,7 @@ const BrandbookContent = ({ data, onSectionInView }) => {
             
             {/* Language 下拉框 */}
             {list?.language !== false && (
-              <FormControl size="small" sx={{ minWidth: 'min(130px, 10vw)' }}>
+              <FormControl size="small" sx={{ minWidth: 130 }}>
                 <InputLabel>LANGUAGE</InputLabel>
                 <Select
                   value={selectedLanguages[sectionId] || ''}
@@ -627,7 +626,7 @@ const BrandbookContent = ({ data, onSectionInView }) => {
             )}
             
             {/* Date Created 下拉框 */}
-            <FormControl size="small" sx={{ minWidth: 'min(160px, 12vw)' }}>
+            <FormControl size="small" sx={{ minWidth: 160 }}>
               <InputLabel>DATE CREATED</InputLabel>
               <Select
                 value={currentSelectedDate}
