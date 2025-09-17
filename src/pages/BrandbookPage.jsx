@@ -7,6 +7,7 @@ import {
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import React, { useCallback, useMemo, useState, useEffect } from 'react';
+import { Navigate, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { useBrand } from '../hooks/useBrand';
 import { selectBrandBookPagesByBrand } from '../store/slices/themesSlice';
@@ -23,6 +24,7 @@ const MainContainer = styled(Box)(({ theme }) => ({
 
 const BrandbookPage = () => {
   const { currentBrand, currentBrandCode } = useBrand();
+  const { lang, brand } = useParams();
   const brandbookPages = useSelector(selectBrandBookPagesByBrand(currentBrandCode));
   
   const isLoading = useSelector(state => state.themes.loading);
@@ -37,11 +39,12 @@ const BrandbookPage = () => {
     catelogs: []
   });
   const [assetsLoading, setAssetsLoading] = useState(false);
+  const isBosch = ((brand || currentBrandCode) || '').toLowerCase() === 'bosch';
 
   // 从PIM获取
   useEffect(() => {
     const fetchAssets = async () => {
-      if (!currentBrandCode) return;
+      if (!currentBrandCode || isBosch) return;
 
       setAssetsLoading(true);
       try {
@@ -62,7 +65,7 @@ const BrandbookPage = () => {
     };
 
     fetchAssets();
-  }, [currentBrandCode]);
+  }, [currentBrandCode, isBosch]);
 
 
   const getBrandbookData = () => {
@@ -210,6 +213,11 @@ const BrandbookPage = () => {
   const handleSectionInView = useCallback((sectionId) => {
     setActiveSection(sectionId);
   }, []);
+
+  // Bosch 主题无 brandbook，直接跳转至 homepage
+  if (isBosch) {
+    return <Navigate to={`/${lang || 'en_GB'}/${brand || currentBrandCode}/home`} replace />;
+  }
 
   // 加载状态
   if (isLoading || assetsLoading) {

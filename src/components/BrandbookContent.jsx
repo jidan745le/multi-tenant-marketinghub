@@ -471,7 +471,7 @@ const BrandbookContent = ({ data, onSectionInView }) => {
 
   // 渲染媒体资源
   const renderMediaSection = (items, title, sectionId, list) => {
-    console.log(`🔍 renderMediaSection called:`, {
+    console.log(`renderMediaSection called:`, {
       sectionId,
       title,
       itemsCount: items?.length || 0,
