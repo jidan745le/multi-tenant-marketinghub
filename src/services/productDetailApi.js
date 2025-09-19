@@ -64,6 +64,11 @@ class ProductDetailApiService {
             Warranty
             modificationDate
             FirstShipmentDate
+            ERPMaterialCode
+            ABC
+            PriceListUSD
+            ExportRestrictions
+            InchMeasurementUnitMarkets
             
             # SAP DETAIL
             BasicUnitOfMeasurement
@@ -633,6 +638,8 @@ class ProductDetailApiService {
   // 基础数据转换
   transformBasicData(product) {
     return {
+      productName: product.ProductName_en || product.ProductName || '',
+      onlineDate: this.formatDate(product.OnlineDate),
       brand: product.Brand || '',
       region: product.Region || '',
       productType: product.ProductType || '',
@@ -650,7 +657,12 @@ class ProductDetailApiService {
       lifeCycleStatus: product.LifecycleStatus || '',
       enrichmentStatus: product.EnrichmentStatus || '',
       firstShippingDate: this.formatDate(product.FirstShipmentDate),
-      createdOn: this.formatDate(product.creationDate)
+      createdOn: this.formatDate(product.creationDate),
+      erpMaterialCode: product.ERPMaterialCode || '',
+      abc: product.ABC || '',
+      priceListUSD: product.PriceListUSD || '',
+      exportRestrictions: product.ExportRestrictions || '',
+      inchMeasurementUnitMarkets: product.InchMeasurementUnitMarkets || ''
     };
   }
 
