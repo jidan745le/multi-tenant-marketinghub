@@ -140,6 +140,48 @@ const fetchStrapiThemes = async (dispatch, languageCode = 'en_US') => {
     });
 
     if (!response.ok) {
+      // Handle 401 Unauthorized specifically
+      if (response.status === 401) {
+        console.warn('🚨 Theme API returned 401, token expired - redirecting to login...');
+        
+        // Clear authentication data
+        const { default: CookieService } = await import('./utils/cookieService');
+        CookieService.clearAuth();
+        
+        // Build login redirect URL from current path
+        const currentPath = window.location.pathname;
+        const pathSegments = currentPath.split('/').filter(Boolean);
+        
+        let tenantName = 'Kendo';
+        let theme = 'kendo';
+        let locale = 'en';
+        
+        // Try to extract tenant/theme info from current path
+        if (pathSegments.length >= 2) {
+          // Format: /:lang/:brand/:page
+          locale = pathSegments[0] || 'en';
+          theme = pathSegments[1] || 'kendo';
+          tenantName = pathSegments[1]?.charAt(0).toUpperCase() + pathSegments[1]?.slice(1) || 'Kendo';
+        } else if (pathSegments.length === 1) {
+          // Format: /:tenant or /:lang
+          const segment = pathSegments[0];
+          if (segment.length === 2) {
+            // Likely a language code
+            locale = segment;
+          } else {
+            // Likely a tenant name
+            tenantName = segment.charAt(0).toUpperCase() + segment.slice(1);
+            theme = segment.toLowerCase();
+          }
+        }
+        
+        // Redirect to login page
+        const loginUrl = `/${tenantName}/Login?theme=${theme}&locale=${locale}`;
+        console.log('🔄 Redirecting to login from theme API:', loginUrl);
+        window.location.href = loginUrl;
+        return null; // Exit early
+      }
+      
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 

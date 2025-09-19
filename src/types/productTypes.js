@@ -33,6 +33,11 @@
  * @property {string} enrichmentStatus - "Local Data Ready"
  * @property {string} firstShippingDate - "2025-01-01"
  * @property {string} createdOn - "2025-01-01"
+ * @property {string} erpMaterialCode - ERP Material Code
+ * @property {string} abc - ABC classification
+ * @property {string} priceListUSD - Price list in USD
+ * @property {string} exportRestrictions - Export restrictions information
+ * @property {string} inchMeasurementUnitMarkets - Inch measurement unit markets
  */
 
 // SAP Data

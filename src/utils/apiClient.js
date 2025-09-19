@@ -7,6 +7,54 @@ class ApiClient {
     }
 
     /**
+     * Handle 401 Unauthorized errors by redirecting to login page
+     * @param {Error} error - The error object
+     */
+    handleUnauthorizedError(error) {
+        if (error.response?.status === 401) {
+            console.warn('🚨 Token expired or unauthorized access detected, redirecting to login...');
+
+            // Clear authentication data
+            CookieService.clearAuth();
+
+            // Build login redirect URL
+            const currentPath = window.location.pathname;
+            const pathSegments = currentPath.split('/').filter(Boolean);
+
+            let tenantName = 'Kendo';
+            let theme = 'kendo';
+            let locale = 'en';
+
+            // Try to extract tenant/theme info from current path
+            if (pathSegments.length >= 2) {
+                // Format: /:lang/:brand/:page
+                locale = pathSegments[0] || 'en';
+                theme = pathSegments[1] || 'kendo';
+                tenantName = pathSegments[1]?.charAt(0).toUpperCase() + pathSegments[1]?.slice(1) || 'Kendo';
+            } else if (pathSegments.length === 1) {
+                // Format: /:tenant or /:lang
+                const segment = pathSegments[0];
+                if (segment.length === 2) {
+                    // Likely a language code
+                    locale = segment;
+                } else {
+                    // Likely a tenant name
+                    tenantName = segment.charAt(0).toUpperCase() + segment.slice(1);
+                    theme = segment.toLowerCase();
+                }
+            }
+
+            // Redirect to login page
+            const loginUrl = `/${tenantName}/Login?theme=${theme}&locale=${locale}`;
+            console.log('🔄 Redirecting to login:', loginUrl);
+            window.location.href = loginUrl;
+
+            return true; // Indicates the error was handled
+        }
+        return false; // Error was not handled
+    }
+
+    /**
      * Make an HTTP request
      * @param {string} endpoint - API endpoint
      * @param {Object} options - Request options
@@ -45,8 +93,13 @@ class ApiClient {
 
             return response;
         } catch (error) {
-            // If it's already our custom error, re-throw it
+            // If it's already our custom error, check for 401 and handle it
             if (error.response) {
+                // Handle 401 Unauthorized errors
+                if (this.handleUnauthorizedError(error)) {
+                    // Error was handled (redirect initiated), don't re-throw
+                    return Promise.reject(error);
+                }
                 throw error;
             }
 
