@@ -76,8 +76,9 @@ const ProductDetailPage = () => {
 
   // 使用自定义 Hook 获取 PDP 页面数据
   const pdpPageData = usePdpPage(currentBrandCode);
-
-  console.log('pdpPageData', pdpPageData);
+  if (import.meta.env.DEV) {
+    console.log('pdpPageData', pdpPageData);
+  }
 
   // 兼容 Marketing+Basic 与 MarketingBasic；写入统一为 MarketingBasic
   const parseLayoutFromUrl = React.useCallback((rawLayout) => {
@@ -86,54 +87,67 @@ const ProductDetailPage = () => {
     const lower = normalized.toLowerCase();
     if (lower.includes('overview')) return 'Overview';
     if (lower.includes('marketing') && lower.includes('basic')) return 'MarketingBasic';
-    return 'Overview';
+    return 'MarketingBasic';
   }, []);
 
   const encodeLayoutForUrl = React.useCallback((tab) => {
     const t = (tab || '').toString().toLowerCase();
     if (t.includes('overview')) return 'Overview';
     if (t.includes('marketing') && t.includes('basic')) return 'MarketingBasic';
-    return 'Overview';
+    return 'MarketingBasic';
   }, []);
 
   // 从URL获取layout参数，默认为'MarketingBasic'
   const layoutFromUrl = searchParams.get('layout') || 'MarketingBasic';
   const normalizedLayoutFromUrl = parseLayoutFromUrl(layoutFromUrl);
   
-  // 拉选择：Overview / Marketing Basic
+  // 下拉选择：Overview / Marketing Basic
   const [basicTab, setBasicTab] = useState(normalizedLayoutFromUrl);
+  // 防抖处理
+  const [, startTransition] = React.useTransition();
+  const updateTabTimerRef = React.useRef(null);
 
   useEffect(() => {
     const newLayoutFromUrl = searchParams.get('layout') || 'MarketingBasic';
     const normalizedLayout = parseLayoutFromUrl(newLayoutFromUrl);
     if (normalizedLayout !== basicTab) {
-      setBasicTab(normalizedLayout);
+      // 这里也在防抖，双重防抖
+      startTransition(() => setBasicTab(normalizedLayout));
     }
   }, [searchParams, basicTab, parseLayoutFromUrl]);
 
-  // 更新basicTab和URL的函数
+  // 更新basicTab和URL
   const updateBasicTabAndUrl = React.useCallback((newTab) => {
-    setBasicTab(newTab);
-    
-    // 更新URL参数
-    const newSearchParams = new URLSearchParams(searchParams);
-    const encoded = encodeLayoutForUrl(newTab);
-    newSearchParams.set('layout', encoded);
-    setSearchParams(newSearchParams, { replace: true });
+    // 防抖，是的防抖
+    if (updateTabTimerRef.current) {
+      clearTimeout(updateTabTimerRef.current);
+    }
+    updateTabTimerRef.current = setTimeout(() => {
+      startTransition(() => {
+        const newSearchParams = new URLSearchParams(searchParams);
+        const encoded = encodeLayoutForUrl(newTab);
+        newSearchParams.set('layout', encoded);
+        setSearchParams(newSearchParams, { replace: true });
+      });
+    }, 120);
   }, [searchParams, setSearchParams, encodeLayoutForUrl]);
 
   // 简化的数据提取函数
     const getPdpPageData = React.useMemo(() => {
     const pages = Array.isArray(pdpPageData?.pages) ? pdpPageData.pages : [];
 
-    console.log('pages', pages);
+    if (import.meta.env.DEV) {
+      console.log('pages', pages);
+    }
 
     let page = null;
     if (pages.length === 1) {
       page = pages[0];
     } else if (pages.length > 1) {
       const desired = (basicTab || '').toLowerCase();
-      console.log('desired', desired);
+      if (import.meta.env.DEV) {
+        console.log('desired', desired);
+      }
       const normalizeName = (tpl) => (
         (tpl?.name || tpl?.title || '').toString().toLowerCase()
       );
@@ -142,23 +156,31 @@ const ProductDetailPage = () => {
       if (desired.includes('overview')) {
         matched = pages.find(tpl => normalizeName(tpl).includes('overview')) || null;
 
-        console.log('matched', matched);
+        if (import.meta.env.DEV) {
+          console.log('matched', matched);
+        }
       } else if (desired.includes('marketing') && desired.includes('basic')) {
         matched = pages.find(tpl => {
           const n = normalizeName(tpl);
           return n.includes('marketing') && n.includes('basic');
         }) || null;
 
-        console.log('matched222', matched);
+        if (import.meta.env.DEV) {
+          console.log('matched', matched);
+        }
       }
       page = matched || pages[0];
-      console.log('page', page);
+      if (import.meta.env.DEV) {
+        console.log('page', page);
+      }
     }
 
     const contentArea = page?.contentArea;
 
 
-    console.log('contentArea', contentArea);
+    if (import.meta.env.DEV) {
+      console.log('contentArea', contentArea);
+    }
 
     if (!Array.isArray(contentArea)) {
       return {
@@ -336,7 +358,9 @@ const ProductDetailPage = () => {
             console.warn('Unknown component type:', componentType);
         }
 
-        console.log('result', mappedData);
+        if (import.meta.env.DEV) {
+          console.log('result', mappedData);
+        }
       }
     });
 
@@ -347,11 +371,6 @@ const ProductDetailPage = () => {
   //productCardData待处理
   const productCardData = getPdpPageData.productCard;
   
-  // 提取字段标题
-  const PRODUCT_FIELDS = (productCardData?.fields || [])
-    .filter(field => field.type === 'Field')
-    .map(field => field.title);
-
   //待处理数据
   const tableData = getPdpPageData.table;
   const basicFormData = getPdpPageData.forms?.find(form => form.title === 'Basic Data');
@@ -1057,13 +1076,13 @@ const ProductDetailPage = () => {
   const TopActionsBar = () => {
     const basicMenu = useMenu();
     const languageMenu = useMenu();
-    const commonMenuProps = {
+    const getMenuProps = (anchorEl) => ({
       PaperProps: {
         elevation: 4,
         sx: {
           borderRadius: 1.5,
           mt: 1,
-          minWidth: 170,//需要修改成随button宽度切换的
+          width: anchorEl ? anchorEl.offsetWidth : undefined,
           bgcolor: 'background.paper',
           '& .MuiMenuItem-root': { py: 1, fontSize: 14 }
         }
@@ -1074,7 +1093,7 @@ const ProductDetailPage = () => {
       },
       anchorOrigin: { vertical: 'bottom', horizontal: 'left' },
       transformOrigin: { vertical: 'top', horizontal: 'left' }
-    };
+    });
     return (
       <Box
         sx={{
@@ -1128,10 +1147,10 @@ const ProductDetailPage = () => {
             anchorEl={basicMenu.anchorEl}
             open={basicMenu.open}
             onClose={basicMenu.closeMenu}
-            {...commonMenuProps}
+            {...getMenuProps(basicMenu.anchorEl)}
           >
-          <MenuItem onClick={() => { updateBasicTabAndUrl('MarketingBasic'); basicMenu.closeMenu(); }}>Marketing Basic</MenuItem>
-          <MenuItem onClick={() => { updateBasicTabAndUrl('Overview'); basicMenu.closeMenu(); }}>Overview</MenuItem>
+          <MenuItem onClick={() => { basicMenu.closeMenu(); updateBasicTabAndUrl('MarketingBasic'); }}>Marketing Basic</MenuItem>
+          <MenuItem onClick={() => { basicMenu.closeMenu(); updateBasicTabAndUrl('Overview'); }}>Overview</MenuItem>
           </Menu>
 
           <Button
@@ -1150,7 +1169,7 @@ const ProductDetailPage = () => {
             anchorEl={languageMenu.anchorEl}
             open={languageMenu.open}
             onClose={languageMenu.closeMenu}
-            {...commonMenuProps}
+            {...getMenuProps(languageMenu.anchorEl)}
           >
             <MenuItem onClick={languageMenu.closeMenu}>English</MenuItem>
           </Menu>
@@ -1391,6 +1410,10 @@ const ProductDetailPage = () => {
             if (k === 'sku data' && !(Array.isArray(productData?.skuData) && productData.skuData.length >= 2)) {
               return false;
             }
+            // 根据basicTab过滤SAP Detail
+            if (k === 'sap detail' && basicTab !== 'MarketingBasic') {
+              return false;
+            }
             if (subSet.has(k)) return false;
             subSet.add(k);
             return true;
@@ -1409,17 +1432,28 @@ const ProductDetailPage = () => {
 
     if (dynamicItems && dynamicItems.length > 0) return dynamicItems;
 
+    const staticSubItems = [];
+    // SKU Data>1就显示
+    if (Array.isArray(productData?.skuData) && productData.skuData.length >= 2) {
+      staticSubItems.push('SKU Data');
+    }
+    //一直会显示Basic Data
+    staticSubItems.push('Basic Data');
+
+    // MarketingBasic下就有SAP Detail
+    if (basicTab === 'MarketingBasic') {
+      staticSubItems.push('SAP Detail');
+    }
+
     return [
       {
         id: 'basic-data',
         title: 'BASIC DATA',
         icon: <Box component='img' src={documentIcon} alt='document' sx={{ width: 16, height: 16 }} />,
-        subItems: ((Array.isArray(productData?.skuData) && productData.skuData.length >= 2)
-          ? ['SKU Data', 'Basic Data', 'SAP Detail']
-          : ['Basic Data', 'SAP Detail'])
+        subItems: staticSubItems
       }
     ];
-  }, [getPdpPageData, productData?.skuData]);
+  }, [getPdpPageData, productData?.skuData, basicTab]);
 
   const handleSectionToggle = (sectionId) => {
     setExpandedSections(prev => ({
@@ -1463,7 +1497,7 @@ const ProductDetailPage = () => {
           onSkuNavigate={(pn) => {
             if (pn) {
               // 保持当前的layout参数
-              const currentLayout = searchParams.get('layout') || 'Overview';
+              const currentLayout = searchParams.get('layout') || 'MarketingBasic';
               // 解析现有layout并按规范重新编码
               const normalized = parseLayoutFromUrl(currentLayout);
               const encoded = encodeLayoutForUrl(normalized);
@@ -2134,6 +2168,26 @@ const ProductDetailPage = () => {
               imageUrl: img.imageUrl || ''
             }))}
             tags={(productData.marketingCollaterals?.onWhite?.[0]?.tags || ['Tool Cabinet...', 'Tool Cabinet...', 'Tool Cabinet...', 'Tool Cabinet...'])}
+            // 标签映射
+            infoLabels={{
+              basic: [
+                { key: 'modelNumber', label: 'Model Number' },
+                { key: 'imageType', label: 'Image Type' },
+                { key: 'lockDate', label: 'Lock Date' },
+                { key: 'countryRestrictions', label: 'Country Restrictions' },
+                { key: 'usageRights', label: 'Usage Rights' },
+                { key: 'approvalStatus', label: 'Approval Status' }
+              ],
+              technical: [
+                { key: 'colorSpace', label: 'Color Space' },
+                { key: 'colorProfile', label: 'Color Profile' },
+                { key: 'resolution', label: 'Resolution' },
+                { key: 'dimensions', label: 'Dimensions' },
+                { key: 'size', label: 'Size' },
+                { key: 'createdOn', label: 'Created On' },
+                { key: 'changeDate', label: 'Change Date' }
+              ]
+            }}
             onImageSelect={(image, index) => console.log('On White selected:', index, image)}
           />
         </Box>

@@ -15,7 +15,27 @@ const Image = ({
   onDownload,
   onImageSelect,
   // 标签行
-  tags = []
+  tags = [],
+  // 可配置的字段标签映射（用于替换硬编码）
+  infoLabels = {
+    basic: [
+      { key: 'modelNumber', label: 'Model Number' },
+      { key: 'imageType', label: 'Image Type' },
+      { key: 'lockDate', label: 'Lock Date' },
+      { key: 'countryRestrictions', label: 'Country Restrictions' },
+      { key: 'usageRights', label: 'Usage rights' },
+      { key: 'approvalStatus', label: 'Approval Status' }
+    ],
+    technical: [
+      { key: 'colorSpace', label: 'Color space' },
+      { key: 'colorProfile', label: 'Color profile' },
+      { key: 'resolution', label: 'Resolution' },
+      { key: 'dimensions', label: 'Dimensions' },
+      { key: 'size', label: 'Size' },
+      { key: 'createdOn', label: 'Created On' },
+      { key: 'changeDate', label: 'Change Date' }
+    ]
+  }
 }) => {
   const { primaryColor } = useTheme();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -103,7 +123,7 @@ const Image = ({
       <Box sx={{
         flexShrink: 0,
         width: { xs: '100%', sm: '100%', md: '100%', lg: '100%' },
-        height: { xs: '340px', sm: '395.65px', md: '425px' },
+        height: { xs: '340px', sm: '395.65px', md: '430px' },
         position: 'relative',
         overflow: 'hidden'
       }}>
@@ -135,7 +155,7 @@ const Image = ({
             justifyContent: 'flex-start',
             position: 'absolute',
             left: '356px',
-            top: '65px'
+            top: '70px',
           }}>
             {tags.map((label, idx) => (
               <Box key={idx} sx={{
@@ -150,14 +170,16 @@ const Image = ({
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
-                overflow: 'hidden'
+                overflow: 'hidden',
               }}>
                 <Box sx={{
                   display: 'flex',
                   flexDirection: 'row',
                   gap: '1.71px',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  padding: '0px 4px',
+                  height: '14px'
                 }}>
                   <Typography sx={{
                     color: primaryColor,
@@ -189,7 +211,7 @@ const Image = ({
             padding: '4px 30px',
             position: 'absolute',
             left: '890px',
-            top: '360px',
+            top: '365px',
             textTransform: 'uppercase',
             color: primaryColor,
             fontSize: '16px',
@@ -258,7 +280,7 @@ const Image = ({
           height: { xs: '240px', sm: '275.81px', md: '290px' },
           position: 'absolute',
           left: { xs: '250px', sm: '319.89px', md: '350px' },
-          top: { xs: '20px', sm: '51.64px', md: '55px' },
+          top: { xs: '20px', sm: '51.64px', md: '68px' },
           overflow: 'hidden'
         }}>
           {/* 背景 */}
@@ -301,7 +323,7 @@ const Image = ({
             Technical
           </Typography>
 
-          {/* 信息内容 */}
+          {/* 信息内容（标签列，动态渲染）*/}
           <Box sx={{
             position: 'absolute',
             left: '13.53px',
@@ -310,28 +332,14 @@ const Image = ({
             flexDirection: 'column',
             gap: '8px'
           }}>
-            {/* 这部分也需要调整现在是固定的，需要动态输入 */}
-            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-              Model Number:
-            </Typography>
-            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-              Image Type:
-            </Typography>
-            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-              Lock Date:
-            </Typography>
-            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-              Country Restrictions:
-            </Typography>
-            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-              Usage rights:
-            </Typography>
-            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-              Approval Status:
-            </Typography>
+            {Array.isArray(infoLabels?.basic) && infoLabels.basic.map((f, i) => (
+              <Typography key={`basic-label-${i}`} sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
+                {f.label}:
+              </Typography>
+            ))}
           </Box>
 
-          {/* 值 */}
+          {/* 值（与标签列对齐，动态渲染）*/}
           <Box sx={{
             position: 'absolute',
             left: '150.53px',
@@ -340,35 +348,25 @@ const Image = ({
             flexDirection: 'column',
             gap: '8px'
           }}>
-            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-              {displayedMainImage?.basicInfo?.modelNumber || imageInfo.modelNumber || '-'}
-            </Typography>
-            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-              {displayedMainImage?.basicInfo?.imageType || imageInfo.imageType || '-'}
-            </Typography>
-            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-              {displayedMainImage?.basicInfo?.lockDate || imageInfo.lockDate || '-'}
-            </Typography>
-            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-              {displayedMainImage?.basicInfo?.countryRestrictions || imageInfo.countryRestrictions || '-'}
-            </Typography>
-            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-              {displayedMainImage?.basicInfo?.usageRights || imageInfo.usageRights || '-'}
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Box sx={{
-                // background: '#6eb82a',
-                borderRadius: '50%',
-                width: '4.28px',
-                height: '4.46px'
-              }} />
-              <Typography sx={{ fontSize: '13px', color: '#6eb82a', fontFamily: '"Open Sans", sans-serif' }}>
-                {displayedMainImage?.basicInfo?.approvalStatus || imageInfo.approvalStatus || '-'}
-              </Typography>
-            </Box>
+            {Array.isArray(infoLabels?.basic) && infoLabels.basic.map((f, i) => {
+              const value = (displayedMainImage?.basicInfo?.[f.key]) ?? (imageInfo?.[f.key]) ?? '-';
+              const isStatus = /status/i.test(f.key);
+              return isStatus ? (
+                <Box key={`basic-value-${i}`} sx={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Box sx={{ borderRadius: '50%', width: '4.28px', height: '4.46px' }} />
+                  <Typography sx={{ fontSize: '13px', color: '#6eb82a', fontFamily: '"Open Sans", sans-serif' }}>
+                    {value || '-'}
+                  </Typography>
+                </Box>
+              ) : (
+                <Typography key={`basic-value-${i}`} sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
+                  {value || '-'}
+                </Typography>
+              );
+            })}
           </Box>
 
-          {/* 技术信息 */}
+          {/* 技术信息（标签列，动态渲染）*/}
           <Box sx={{
             position: 'absolute',
             left: '281.24px',
@@ -377,31 +375,14 @@ const Image = ({
             flexDirection: 'column',
             gap: '8px'
           }}>
-            {/* 这部分还需要调整一下 */}
-            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-              Color space:
-            </Typography>
-            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-              Color profile:
-            </Typography>
-            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-              Resolution:
-            </Typography>
-            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-              Dimensions:
-            </Typography>
-            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-              Size:
-            </Typography>
-            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-              Created On:
-            </Typography>
-            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-              Change Date:
-            </Typography>
+            {Array.isArray(infoLabels?.technical) && infoLabels.technical.map((f, i) => (
+              <Typography key={`tech-label-${i}`} sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
+                {f.label}:
+              </Typography>
+            ))}
           </Box>
 
-          {/* 技术值 */}
+          {/* 技术值（与标签列对齐，动态渲染）*/}
           <Box sx={{
             position: 'absolute',
             left: '390px',
@@ -410,27 +391,15 @@ const Image = ({
             flexDirection: 'column',
             gap: '8px'
           }}>
-            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-              {displayedMainImage?.technical?.colorSpace || imageInfo.colorSpace || '-'}
-            </Typography>
-            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-              {displayedMainImage?.technical?.colorProfile || imageInfo.colorProfile || '-'}
-            </Typography>
-            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-              {displayedMainImage?.technical?.resolution || imageInfo.resolution || '-'}
-            </Typography>
-            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-              {displayedMainImage?.technical?.dimensions || imageInfo.dimensions || '-'}
-            </Typography>
-            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-              {displayedMainImage?.technical?.size || imageInfo.size || '-'}
-            </Typography>
-            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-              {displayedMainImage?.technical?.createdOn || imageInfo.createdOn || '-'}
-            </Typography>
-            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-              {displayedMainImage?.technical?.changeDate || imageInfo.changeDate || '-'}
-            </Typography>
+            {Array.isArray(infoLabels?.technical) && infoLabels.technical.map((f, i) => {
+              const raw = (displayedMainImage?.technical?.[f.key]) ?? (imageInfo?.[f.key]);
+              const value = (raw === undefined || raw === null || raw === '') ? '-' : raw;
+              return (
+                <Typography key={`tech-value-${i}`} sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
+                  {value}
+                </Typography>
+              );
+            })}
           </Box>
         </Box>
       </Box>

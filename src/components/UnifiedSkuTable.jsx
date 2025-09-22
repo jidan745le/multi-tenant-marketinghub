@@ -8,7 +8,14 @@ const UnifiedSkuTable = ({
   selectedSku = null, 
   onSkuSelect,
   variant = 'dropdown', // 'dropdown' | 'detail'
-  showStandard = false
+  showStandard = false,
+  columnLabels = {
+    productNumber: 'Sku Id',
+    size: 'Size/ MainParameter',
+    material: 'Main Material',
+    finish: 'Surface Finish',
+    standard: 'Applicable Standard'
+  }
 }) => {
   const { primaryColor } = useTheme();
   const isDropdown = variant === 'dropdown';
@@ -167,28 +174,28 @@ const UnifiedSkuTable = ({
       <Box sx={headerStyles}>
       <Box sx={{ ...cellStyles, width: columnWidths.productNumber }}>
           <Typography sx={headerTextStyles}>
-            Sku Id
+            {columnLabels.productNumber}
           </Typography>
         </Box>
         <Box sx={{ ...cellStyles, width: columnWidths.size }}>
           <Typography sx={headerTextStyles}>
-            Size/ MainParameter
+            {columnLabels.size}
           </Typography>
         </Box>
         <Box sx={{ ...cellStyles, width: columnWidths.material }}>
           <Typography sx={headerTextStyles}>
-            Main Material
+            {columnLabels.material}
           </Typography>
         </Box>
         <Box sx={{ ...cellStyles, width: columnWidths.finish, justifyContent: 'flex-end' }}>
           <Typography sx={headerTextStyles}>
-            Surface Finish
+            {columnLabels.finish}
           </Typography>
         </Box>
         {showStandard && (
           <Box sx={{ ...cellStyles, width: columnWidths.standard }}>
             <Typography sx={headerTextStyles}>
-              Applicable Standard
+              {columnLabels.standard}
             </Typography>
           </Box>
         )}
