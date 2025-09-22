@@ -66,7 +66,14 @@ class ProductDetailApiService {
             FirstShipmentDate
             ERPMaterialCode
             ABC
-            PriceListUSD
+            PriceListUSD {
+              unit {
+                id
+                longname
+                abbreviation
+              }
+              value
+            }
             ExportRestrictions
             InchMeasurementUnitMarkets
             
@@ -660,7 +667,7 @@ class ProductDetailApiService {
       createdOn: this.formatDate(product.creationDate),
       erpMaterialCode: product.ERPMaterialCode || '',
       abc: product.ABC || '',
-      priceListUSD: product.PriceListUSD || '',
+      priceListUSD: this.formatQuantityValue(product.PriceListUSD),
       exportRestrictions: product.ExportRestrictions || '',
       inchMeasurementUnitMarkets: product.InchMeasurementUnitMarkets || ''
     };
@@ -1086,6 +1093,15 @@ class ProductDetailApiService {
     if (!bytes) return '';
     const mb = bytes / (1024 * 1024);
     return `${mb.toFixed(2)} MB`;
+  }
+
+  formatQuantityValue(quantityValue) {
+    if (!quantityValue || !quantityValue.value) return '';
+
+    const value = quantityValue.value;
+    const unit = quantityValue.unit?.abbreviation || quantityValue.unit?.longname || '';
+
+    return unit ? `${value} ${unit}` : value.toString();
   }
 
   // 获取产品详情
