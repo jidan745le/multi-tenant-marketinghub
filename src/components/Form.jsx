@@ -13,7 +13,7 @@ const commonStyles = {
     fontWeight: 600,
     flex: 1,
     whiteSpace: 'normal',
-    wordBreak: 'break-word'
+    wordBreak: 'break-word',
   },
   valueText: {
     color: '#4d4d4d',
@@ -41,7 +41,7 @@ const commonStyles = {
     p: '7.73px',
     display: 'flex',
     alignItems: 'flex-start',
-    minHeight: 30.93
+    minHeight: 30.93,
   },
   statusContainer: {
     p: '5.8px 7.73px',
@@ -56,21 +56,21 @@ const commonStyles = {
     borderColor: '#e6e6e6',
     borderWidth: '0.97px 0 0.97px 0',
     display: 'flex',
-    flexDirection: 'column'
+    flexDirection: 'column',
   },
   formRow: {
     display: 'flex',
     flexDirection: 'row',
-    alignItems: 'center'
+    alignItems: 'stretch',
   },
   formPair: {
     display: 'flex',
-    flexDirection: 'row'
+    flexDirection: 'row',
   }
 };
 
 const HeaderCell = ({ text }) => (
-  <Box sx={{ ...commonStyles.cellContainer, background: '#fafafa', width: 200 }}>
+  <Box sx={{ ...commonStyles.cellContainer, background: '#fafafa', width: 220 }}>
     <Typography sx={commonStyles.headerText}>
       {text}
     </Typography>
@@ -80,7 +80,7 @@ const HeaderCell = ({ text }) => (
 const ValueCell = ({ children, flexible = false }) => (
   <Box sx={{ 
     ...commonStyles.cellContainer,
-    ...(flexible ? { flex: 1, minWidth: 0 } : { width: 200 })
+    ...(flexible ? { flex: 1, minWidth: 0 } : { width: 260 })
   }}>
     <Typography sx={commonStyles.valueText}>
       {children}

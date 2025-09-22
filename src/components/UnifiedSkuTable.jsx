@@ -113,11 +113,13 @@ const UnifiedSkuTable = ({
   };
 
   const columnWidths = isDropdown ? {
+    productNumber: '105px',
     size: '145px',
     material: '190px',
     finish: '240px',
     standard: '128px'
   } : {
+    productNumber: '145px',
     size: '189.91px',
     material: '220px',
     finish: '300px',
@@ -163,6 +165,11 @@ const UnifiedSkuTable = ({
     <Box sx={containerStyles}>
       {/* Header */}
       <Box sx={headerStyles}>
+      <Box sx={{ ...cellStyles, width: columnWidths.productNumber }}>
+          <Typography sx={headerTextStyles}>
+            Sku Id
+          </Typography>
+        </Box>
         <Box sx={{ ...cellStyles, width: columnWidths.size }}>
           <Typography sx={headerTextStyles}>
             Size/ MainParameter
@@ -206,7 +213,7 @@ const UnifiedSkuTable = ({
           borderRadius: index === data.length - 1 ? '0px 0px 3.2px 3.2px' : '0px',
           cursor: onSkuSelect ? 'pointer' : 'default',
           '&:hover': onSkuSelect ? {
-            background: isSelected ? mixWithWhite(primaryColor, 0.26) : mixWithWhite(primaryColor, 0.18)
+            background: isSelected ? mixWithWhite(primaryColor, 0.06) : mixWithWhite(primaryColor, 0.05)
           } : {}
         } : {
           background: '#ffffff',
@@ -229,6 +236,11 @@ const UnifiedSkuTable = ({
             onClick={() => onSkuSelect && onSkuSelect(sku)}
             sx={rowStyles}
           >
+             <Box sx={{ ...cellStyles, width: columnWidths.productNumber }}>
+              <Typography sx={cellTextStyles}>
+                {sku.productNumber}
+              </Typography>
+            </Box>
             <Box sx={{ ...cellStyles, width: columnWidths.size }}>
               <Typography sx={cellTextStyles}>
                 {sku.size}
@@ -261,6 +273,7 @@ const UnifiedSkuTable = ({
 UnifiedSkuTable.propTypes = {
   data: PropTypes.arrayOf(
     PropTypes.shape({
+      productNumber: PropTypes.string.isRequired,
       size: PropTypes.string.isRequired,
       material: PropTypes.string.isRequired,
       finish: PropTypes.string.isRequired,
@@ -268,6 +281,7 @@ UnifiedSkuTable.propTypes = {
     })
   ),
   selectedSku: PropTypes.shape({
+    productNumber: PropTypes.string,
     size: PropTypes.string,
     material: PropTypes.string,
     finish: PropTypes.string

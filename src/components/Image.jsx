@@ -13,7 +13,9 @@ const Image = ({
   thumbnailImages = [],
   imageInfo = {},
   onDownload,
-  onImageSelect 
+  onImageSelect,
+  // 标签行
+  tags = []
 }) => {
   const { primaryColor } = useTheme();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -110,10 +112,10 @@ const Image = ({
           color: '#000000',
           textAlign: 'left',
           fontFamily: '"Open Sans", sans-serif',
-          fontSize: '16px',
+          fontSize: '20px',
           lineHeight: '140%',
           letterSpacing: '0.34px',
-          fontWeight: 400,
+          fontWeight: 500,
           textTransform: 'uppercase',
           position: 'absolute',
           left: '356px',
@@ -122,6 +124,58 @@ const Image = ({
         }}>
           {displayedMainImage?.fileName || imageInfo.fileName || 'Image File Name'}
         </Typography>
+
+        {/* 标签行 */}
+        {Array.isArray(tags) && tags.length > 0 && (
+          <Box sx={{
+            display: 'flex',
+            flexDirection: 'row',
+            gap: '7.73px',
+            alignItems: 'center',
+            justifyContent: 'flex-start',
+            position: 'absolute',
+            left: '356px',
+            top: '65px'
+          }}>
+            {tags.map((label, idx) => (
+              <Box key={idx} sx={{
+                background: '#fff8f6',
+                borderRadius: '1.71px',
+                borderStyle: 'solid',
+                borderColor: primaryColor,
+                borderWidth: '0.43px',
+                padding: '2.56px 6.83px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                overflow: 'hidden'
+              }}>
+                <Box sx={{
+                  display: 'flex',
+                  flexDirection: 'row',
+                  gap: '1.71px',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Typography sx={{
+                    color: primaryColor,
+                    textAlign: 'left',
+                    fontFamily: '"OpenSans-Regular", sans-serif',
+                    fontSize: '10px',
+                    lineHeight: '10.24px',
+                    letterSpacing: '0.17px',
+                    fontWeight: 400,
+                    textTransform: 'uppercase'
+                  }}>
+                    {label}
+                  </Typography>
+                </Box>
+              </Box>
+            ))}
+          </Box>
+        )}
 
         {/* 下载按钮 */}
         <Button
@@ -222,7 +276,7 @@ const Image = ({
           <Typography sx={{
             color: '#000000',
             fontFamily: '"Open Sans", sans-serif',
-            fontSize: '13px',
+            fontSize: '15px',
             lineHeight: '140%',
             letterSpacing: '0.34px',
             fontWeight: 700,
@@ -236,7 +290,7 @@ const Image = ({
           <Typography sx={{
             color: '#000000',
             fontFamily: '"Open Sans", sans-serif',
-            fontSize: '13px',
+            fontSize: '15px',
             lineHeight: '140%',
             letterSpacing: '0.34px',
             fontWeight: 700,
@@ -257,22 +311,22 @@ const Image = ({
             gap: '8px'
           }}>
             {/* 这部分也需要调整现在是固定的，需要动态输入 */}
-            <Typography sx={{ fontSize: '11.5px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
+            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
               Model Number:
             </Typography>
-            <Typography sx={{ fontSize: '11.5px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
+            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
               Image Type:
             </Typography>
-            <Typography sx={{ fontSize: '11.5px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
+            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
               Lock Date:
             </Typography>
-            <Typography sx={{ fontSize: '11.5px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
+            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
               Country Restrictions:
             </Typography>
-            <Typography sx={{ fontSize: '11.5px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
+            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
               Usage rights:
             </Typography>
-            <Typography sx={{ fontSize: '11.5px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
+            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
               Approval Status:
             </Typography>
           </Box>
@@ -286,19 +340,19 @@ const Image = ({
             flexDirection: 'column',
             gap: '8px'
           }}>
-            <Typography sx={{ fontSize: '11.5px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
+            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
               {displayedMainImage?.basicInfo?.modelNumber || imageInfo.modelNumber || '-'}
             </Typography>
-            <Typography sx={{ fontSize: '11.5px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
+            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
               {displayedMainImage?.basicInfo?.imageType || imageInfo.imageType || '-'}
             </Typography>
-            <Typography sx={{ fontSize: '11.5px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
+            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
               {displayedMainImage?.basicInfo?.lockDate || imageInfo.lockDate || '-'}
             </Typography>
-            <Typography sx={{ fontSize: '11.5px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
+            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
               {displayedMainImage?.basicInfo?.countryRestrictions || imageInfo.countryRestrictions || '-'}
             </Typography>
-            <Typography sx={{ fontSize: '11.5px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
+            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
               {displayedMainImage?.basicInfo?.usageRights || imageInfo.usageRights || '-'}
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -308,7 +362,7 @@ const Image = ({
                 width: '4.28px',
                 height: '4.46px'
               }} />
-              <Typography sx={{ fontSize: '11.5px', color: '#6eb82a', fontFamily: '"Open Sans", sans-serif' }}>
+              <Typography sx={{ fontSize: '13px', color: '#6eb82a', fontFamily: '"Open Sans", sans-serif' }}>
                 {displayedMainImage?.basicInfo?.approvalStatus || imageInfo.approvalStatus || '-'}
               </Typography>
             </Box>
@@ -323,26 +377,26 @@ const Image = ({
             flexDirection: 'column',
             gap: '8px'
           }}>
-            {/* 这步分还需要调整一下 */}
-            <Typography sx={{ fontSize: '11.5px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
+            {/* 这部分还需要调整一下 */}
+            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
               Color space:
             </Typography>
-            <Typography sx={{ fontSize: '11.5px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
+            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
               Color profile:
             </Typography>
-            <Typography sx={{ fontSize: '11.5px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
+            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
               Resolution:
             </Typography>
-            <Typography sx={{ fontSize: '11.5px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
+            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
               Dimensions:
             </Typography>
-            <Typography sx={{ fontSize: '11.5px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
+            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
               Size:
             </Typography>
-            <Typography sx={{ fontSize: '11.5px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
+            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
               Created On:
             </Typography>
-            <Typography sx={{ fontSize: '11.5px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
+            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
               Change Date:
             </Typography>
           </Box>
@@ -356,25 +410,25 @@ const Image = ({
             flexDirection: 'column',
             gap: '8px'
           }}>
-            <Typography sx={{ fontSize: '11.5px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
+            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
               {displayedMainImage?.technical?.colorSpace || imageInfo.colorSpace || '-'}
             </Typography>
-            <Typography sx={{ fontSize: '11.5px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
+            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
               {displayedMainImage?.technical?.colorProfile || imageInfo.colorProfile || '-'}
             </Typography>
-            <Typography sx={{ fontSize: '11.5px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
+            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
               {displayedMainImage?.technical?.resolution || imageInfo.resolution || '-'}
             </Typography>
-            <Typography sx={{ fontSize: '11.5px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
+            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
               {displayedMainImage?.technical?.dimensions || imageInfo.dimensions || '-'}
             </Typography>
-            <Typography sx={{ fontSize: '11.5px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
+            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
               {displayedMainImage?.technical?.size || imageInfo.size || '-'}
             </Typography>
-            <Typography sx={{ fontSize: '11.5px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
+            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
               {displayedMainImage?.technical?.createdOn || imageInfo.createdOn || '-'}
             </Typography>
-            <Typography sx={{ fontSize: '11.5px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
+            <Typography sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
               {displayedMainImage?.technical?.changeDate || imageInfo.changeDate || '-'}
             </Typography>
           </Box>
@@ -482,7 +536,8 @@ Image.propTypes = {
     changeDate: PropTypes.string
   }),
   onDownload: PropTypes.func,
-  onImageSelect: PropTypes.func
+  onImageSelect: PropTypes.func,
+  tags: PropTypes.arrayOf(PropTypes.string)
 };
 
 export default memo(Image);

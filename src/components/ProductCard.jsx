@@ -12,6 +12,7 @@ import SmallTriangleIcon from './SmallTriangleIcon';
 const ProductCard = ({
   announcementPrefix = 'New Version Available:',
   announcementLinkText = 'Big Capacity Drawer Roller Cabinet with 6 Drawers 2024',
+  showAnnouncement = true,
   statusText = 'In Development',
   modelNumber = '90330',
   title = 'Big Capacity Black Roller Cabinet with 6 Drawer - 160mm/6"',
@@ -24,6 +25,8 @@ const ProductCard = ({
     { size: '200mm/6"', material: '90259', finish: 'Nickel Iron Plated', imageUrl: '' }
   ],
   onDownloadClick,
+  onSkuNavigate,
+  productImage,
 }) => {
   const { primaryColor } = useTheme();
   const [skuAnchorEl, setSkuAnchorEl] = useState(null);
@@ -116,17 +119,31 @@ const ProductCard = ({
   const skuTableRef = useRef(null);
   
   const [selectedSku, setSelectedSku] = useState(null);
-  // 默认显示下拉框第一行数据
-  const activeSku = selectedSku || (skuData && skuData.length > 0 ? skuData[0] : null);
+  // 优先使用已选SKU；否则根据当前页面的 modelNumber 在 skuData 中匹配；不再默认取第一行，避免跳到上一产品
+  const activeSku = React.useMemo(() => {
+    if (selectedSku) return selectedSku;
+    if (modelNumber && Array.isArray(skuData)) {
+      const match = skuData.find((s) => s && s.productNumber === modelNumber);
+      if (match) return match;
+    }
+    return null;
+  }, [selectedSku, modelNumber, skuData]);
+  // 首次或路由变更时，同步selectedSku以便下拉表行正确高亮
+  React.useEffect(() => {
+    if (!selectedSku && modelNumber && Array.isArray(skuData)) {
+      const match = skuData.find((s) => s && s.productNumber === modelNumber);
+      if (match) setSelectedSku(match);
+    }
+  }, [modelNumber, skuData, selectedSku]);
   const [isImageHover, setIsImageHover] = useState(false);
   const [isDownloadActive, setIsDownloadActive] = useState(false);
   
-  // const currentModelNumber = activeSku ? activeSku.material : modelNumber;
-  const currentModelNumber = modelNumber;
+  // 选择SKU时，有productNumber就显示，没有就用modelNumber
+  const currentModelNumber = activeSku && activeSku.productNumber ? activeSku.productNumber : modelNumber;
   const currentTitle = activeSku ? 
     `${title} - ${activeSku.size}` : 
     title;
-  const currentImageUrl = activeSku && activeSku.imageUrl ? activeSku.imageUrl : '';
+  const currentImageUrl = (activeSku && activeSku.imageUrl) ? activeSku.imageUrl : (productImage || '');
   
   // 动态信息对：支持外部传入，否则使用默认值
   const defaultInfoPairs = [
@@ -174,49 +191,54 @@ const ProductCard = ({
   const handleSkuSelect = React.useCallback((sku) => {
     setSelectedSku(sku);
     setSkuAnchorEl(null); // 选择后关闭下拉框
-  }, []);
+    if (onSkuNavigate && sku && sku.productNumber) {
+      onSkuNavigate(sku.productNumber);
+    }
+  }, [onSkuNavigate]);
 
   return (
     <Box sx={{ boxSizing: 'border-box', flexShrink: 0, height: styles.dimensions.cardHeight, position: 'relative' }}>
       {/* 图片下方文案 */}
-      <Box sx={{
-        textAlign: 'center',
-        fontFamily: '"Open Sans", sans-serif',
-        position: 'absolute', 
-        left: 0, 
-        top: 264, 
-        width: styles.dimensions.cardWidth, 
-        height: 30,
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        zIndex: 2
-      }}>
-        <Typography sx={{ 
-          color: primaryColor, 
-          fontWeight: 700, 
-          fontSize: 11, 
-          height: 11.5,
-          maxWidth: '100%', 
-          whiteSpace: 'nowrap', 
-          overflow: 'hidden', 
-          textOverflow: 'ellipsis'
+      {showAnnouncement && (
+        <Box sx={{
+          textAlign: 'center',
+          fontFamily: '"Open Sans", sans-serif',
+          position: 'absolute', 
+          left: 0, 
+          top: 264, 
+          width: styles.dimensions.cardWidth, 
+          height: 30,
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          zIndex: 2
         }}>
-          {announcementPrefix}
-        </Typography>
-        <Typography sx={{ 
-          color: 'gray', 
-          textDecoration: 'underline', 
-          fontSize: 12.3, 
-          maxWidth: '100%', 
-          whiteSpace: 'nowrap', 
-          overflow: 'hidden', 
-          textOverflow: 'ellipsis'
-        }}>
-          {announcementLinkText}
-        </Typography>
-      </Box>
+          <Typography sx={{ 
+            color: primaryColor, 
+            fontWeight: 700, 
+            fontSize: 11, 
+            height: 11.5,
+            maxWidth: '100%', 
+            whiteSpace: 'nowrap', 
+            overflow: 'hidden', 
+            textOverflow: 'ellipsis'
+          }}>
+            {announcementPrefix}
+          </Typography>
+          <Typography sx={{ 
+            color: 'gray', 
+            textDecoration: 'underline', 
+            fontSize: 12.3, 
+            maxWidth: '100%', 
+            whiteSpace: 'nowrap', 
+            overflow: 'hidden', 
+            textOverflow: 'ellipsis'
+          }}>
+            {announcementLinkText}
+          </Typography>
+        </Box>
+      )}
 
       {/* 左侧图片与状态 */}
       <Box sx={{ width: styles.dimensions.imageWidth, height: 260, position: 'static' }}>
@@ -324,29 +346,32 @@ const ProductCard = ({
         {/* 状态标签 */}
         <Box sx={{ 
           background: `${primaryColor}15`, 
-          width: 135, 
           height: 31, 
           position: 'absolute', 
-          left: 140, 
+          right: 0, 
           top: -12.5, 
-          boxShadow: `-0.97px 0.97px 2.13px 0px ${primaryColor}40` 
-        }} />
-        <Typography sx={{ 
-          color: primaryColor, 
-          textTransform: 'uppercase', 
-          position: 'absolute', 
-          left: 148, 
-          top: -4.5, 
-          width: 130, 
-          height: 18, 
-          fontFamily: '"Open Sans", sans-serif', 
-          fontSize: 14, 
-          lineHeight: '19.33px', 
-          letterSpacing: '0.1px', 
-          fontWeight: 590 
+          boxShadow: `-0.97px 0.97px 2.13px 0px ${primaryColor}40`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingLeft: '8px',
+          paddingRight: '8px',
+          minWidth: 'fit-content',
+          maxWidth: 'calc(100% - 8px)'
         }}>
-          {statusText}
-        </Typography>
+          <Typography sx={{ 
+            color: primaryColor, 
+            textTransform: 'uppercase', 
+            fontFamily: '"Open Sans", sans-serif', 
+            fontSize: 14, 
+            lineHeight: '19.33px', 
+            letterSpacing: '0.1px', 
+            fontWeight: 590,
+            whiteSpace: 'nowrap'
+          }}>
+            {statusText}
+          </Typography>
+        </Box>
       </Box>
 
       {/* 右侧内容 */}
@@ -476,7 +501,7 @@ const ProductCard = ({
                   >
                     <UnifiedSkuTable 
                       data={skuData} 
-                      selectedSku={selectedSku}
+                      selectedSku={selectedSku || activeSku}
                       onSkuSelect={handleSkuSelect}
                       variant="dropdown"
                       showStandard={false}
@@ -511,6 +536,7 @@ ProductCard.propTypes = {
   infoValueMinWidth: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   skuData: PropTypes.arrayOf(
     PropTypes.shape({
+      productNumber: PropTypes.string,
       size: PropTypes.string.isRequired,
       material: PropTypes.string.isRequired,
       finish: PropTypes.string.isRequired,
@@ -518,6 +544,8 @@ ProductCard.propTypes = {
     })
   ),
   onDownloadClick: PropTypes.func,
+  onSkuNavigate: PropTypes.func,
+  productImage: PropTypes.string,
 };
 
 const MemoizedProductCard = memo(ProductCard);

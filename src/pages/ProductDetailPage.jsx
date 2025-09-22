@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import ProductDetailApiService from '../services/productDetailApi';
 import { useTheme } from '../hooks/useTheme';
@@ -12,6 +12,7 @@ import {
   Grid,
   Button,
   IconButton,
+  LinearProgress,
   Divider,
   Avatar,
   Badge,
@@ -68,13 +69,92 @@ const ProductDetailPage = () => {
   const { primaryColor, currentBrand } = useTheme();
   const { currentBrandCode } = useBrand();
   const currentLanguage = useSelector(selectCurrentLanguage);
+  const navigate = useNavigate();
+  
+  // URL查询参数处理
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // 使用自定义 Hook 获取 PDP 页面数据
   const pdpPageData = usePdpPage(currentBrandCode);
 
+  console.log('pdpPageData', pdpPageData);
+
+  // 兼容 Marketing+Basic 与 MarketingBasic；写入统一为 MarketingBasic
+  const parseLayoutFromUrl = React.useCallback((rawLayout) => {
+    const v = (rawLayout || '').toString();
+    const normalized = v.replace(/\+/g, ''); // 去掉加号
+    const lower = normalized.toLowerCase();
+    if (lower.includes('overview')) return 'Overview';
+    if (lower.includes('marketing') && lower.includes('basic')) return 'MarketingBasic';
+    return 'Overview';
+  }, []);
+
+  const encodeLayoutForUrl = React.useCallback((tab) => {
+    const t = (tab || '').toString().toLowerCase();
+    if (t.includes('overview')) return 'Overview';
+    if (t.includes('marketing') && t.includes('basic')) return 'MarketingBasic';
+    return 'Overview';
+  }, []);
+
+  // 从URL获取layout参数，默认为'MarketingBasic'
+  const layoutFromUrl = searchParams.get('layout') || 'MarketingBasic';
+  const normalizedLayoutFromUrl = parseLayoutFromUrl(layoutFromUrl);
+  
+  // 拉选择：Overview / Marketing Basic
+  const [basicTab, setBasicTab] = useState(normalizedLayoutFromUrl);
+
+  useEffect(() => {
+    const newLayoutFromUrl = searchParams.get('layout') || 'MarketingBasic';
+    const normalizedLayout = parseLayoutFromUrl(newLayoutFromUrl);
+    if (normalizedLayout !== basicTab) {
+      setBasicTab(normalizedLayout);
+    }
+  }, [searchParams, basicTab, parseLayoutFromUrl]);
+
+  // 更新basicTab和URL的函数
+  const updateBasicTabAndUrl = React.useCallback((newTab) => {
+    setBasicTab(newTab);
+    
+    // 更新URL参数
+    const newSearchParams = new URLSearchParams(searchParams);
+    const encoded = encodeLayoutForUrl(newTab);
+    newSearchParams.set('layout', encoded);
+    setSearchParams(newSearchParams, { replace: true });
+  }, [searchParams, setSearchParams, encodeLayoutForUrl]);
+
   // 简化的数据提取函数
-  const getPdpPageData = React.useMemo(() => {
-    const page = pdpPageData?.pages && pdpPageData.pages.length > 0 ? pdpPageData.pages[0] : null;
+    const getPdpPageData = React.useMemo(() => {
+    const pages = Array.isArray(pdpPageData?.pages) ? pdpPageData.pages : [];
+
+    console.log('pages', pages);
+
+    let page = null;
+    if (pages.length === 1) {
+      page = pages[0];
+    } else if (pages.length > 1) {
+      const desired = (basicTab || '').toLowerCase();
+      console.log('desired', desired);
+      const normalizeName = (tpl) => (
+        (tpl?.name || tpl?.title || '').toString().toLowerCase()
+      );
+      
+      let matched = null;
+      if (desired.includes('overview')) {
+        matched = pages.find(tpl => normalizeName(tpl).includes('overview')) || null;
+
+        console.log('matched', matched);
+      } else if (desired.includes('marketing') && desired.includes('basic')) {
+        matched = pages.find(tpl => {
+          const n = normalizeName(tpl);
+          return n.includes('marketing') && n.includes('basic');
+        }) || null;
+
+        console.log('matched222', matched);
+      }
+      page = matched || pages[0];
+      console.log('page', page);
+    }
+
     const contentArea = page?.contentArea;
 
 
@@ -90,11 +170,12 @@ const ProductDetailPage = () => {
         referenceLists: [],
         packagingWidgets: [],
         specificationWidgets: [],
-        mediaWidgets: []
+        mediaWidgets: [],
+        documentWidgets: []
       };
     }
 
-    // 数据映射器 - 类似 Brandbook 的模式
+    // 数据映射器
     const DATA_MAPPERS = {
       'pdp-page.product-card': (block) => ({
         id: block.id,
@@ -112,6 +193,7 @@ const ProductDetailPage = () => {
         id: block.id,
         title: block.title,
         fields: block.fields || [],
+        navPath: block.navPath,
         raw: block
       }),
       
@@ -122,6 +204,7 @@ const ProductDetailPage = () => {
         columnType: block.columnType,
         show: block.showLanguages,
         download: block.showDownload,
+        navPath: block.navPath,
         raw: block
       }),
       
@@ -131,6 +214,7 @@ const ProductDetailPage = () => {
         fields: block.fields || [],
         download: block.showDownload,
         type: block.type,
+        navPath: block.navPath,
         raw: block
       }),
 
@@ -140,6 +224,7 @@ const ProductDetailPage = () => {
         fields: block.fields || [],
         download: block.showDownload,
         type: block.type,
+        navPath: block.navPath,
         raw: block
       }),
       
@@ -148,6 +233,7 @@ const ProductDetailPage = () => {
         title: block.title,
         fields: block.fields || [],
         type: block.type,
+        navPath: block.navPath,
         raw: block
       }),
       
@@ -156,6 +242,7 @@ const ProductDetailPage = () => {
         title: block.title,
         fields: block.fields || [],
         download: block.showDownload,
+        navPath: block.navPath,
         raw: block
       }),
 
@@ -165,6 +252,7 @@ const ProductDetailPage = () => {
         fields: block.fields || [],
         show: block.showLanguages,
         download: block.showDownload,
+        navPath: block.navPath,
         raw: block
       }),
       
@@ -174,6 +262,18 @@ const ProductDetailPage = () => {
         fields: block.fields || [],
         show: block.showPreview,
         download: block.showDownload,
+        navPath: block.navPath,
+        raw: block
+      }),
+      
+      'pdp-page.document-widget-list': (block) => ({
+        id: block.id,
+        title: block.title,
+        fields: block.fields || [],
+        show: block.showPreview,
+        download: block.showDownload,
+        type: block.type,
+        navPath: block.navPath,
         raw: block
       })
     };
@@ -188,7 +288,8 @@ const ProductDetailPage = () => {
       referenceLists: [],
       packagingWidgets: [],
       specificationWidgets: [],
-      mediaWidgets: []
+      mediaWidgets: [],
+      documentWidgets: []
     };
 
     // 遍历 contentArea 并应用映射器
@@ -228,14 +329,19 @@ const ProductDetailPage = () => {
           case 'pdp-page.media-widget-list':
             result.mediaWidgets.push(mappedData);
             break;
+          case 'pdp-page.document-widget-list':
+            result.documentWidgets.push(mappedData);
+            break;
           default:
             console.warn('Unknown component type:', componentType);
         }
+
+        console.log('result', mappedData);
       }
     });
 
     return result;
-  }, [pdpPageData]);
+  }, [pdpPageData, basicTab]);
 
 
   //productCardData待处理
@@ -262,14 +368,21 @@ const ProductDetailPage = () => {
   const packagingData = getPdpPageData.packagingWidgets;
   const specificationData = getPdpPageData.specificationWidgets;
   const mediaData = getPdpPageData.mediaWidgets;
+  const documentData = getPdpPageData.documentWidgets;
+  const manualsData = getPdpPageData.documentWidgets?.find(document => document.title === 'Manuals');
+  const repairGuidesData = getPdpPageData.documentWidgets?.find(document => document.title === 'Repair Guide');
+  const packagingsData = getPdpPageData.documentWidgets?.find(document => document.title === 'Packaging');
+  const drawingsData = getPdpPageData.documentWidgets?.find(document => document.title === 'Drawing');
+  const patentData = getPdpPageData.documentWidgets?.find(document => document.title === 'Patent');
   
 
 
-  // 路由参数 id 与产品数据状态
+  // 从路由参数获取产品ID
   const { id: routeProductId } = useParams();
   
   // 添加加载和错误状态
   const [loading, setLoading] = useState(true);
+  const isFirstLoadRef = React.useRef(true);
   const [error, setError] = useState(null);
   
   const [productData, setProductData] = useState({
@@ -291,21 +404,24 @@ const ProductDetailPage = () => {
       brand: currentBrand || 'Kendo',
       productNumber: '90330',
       region: 'EMEA',
-      productClassification: '-',
       productType: 'Accessory',
       countryOfOrigin: 'China',
       modelNumber: '90330',
       warranty: '1 Year',
-      version: '1.0',
       lastChangedOn: '2025-01-01',
-      customerFacingModel: '90330',
       lifecycleStatus: 'Active',
-      productSeries: 'Roller Cabinet',
       enrichmentStatus: 'Local Data Ready',
       sellable: 'Yes',
       firstShippingDate: '2025-01-01',
-      recognition: '-',
-      createdOn: '2025-01-01'
+      createdOn: '2025-01-01',
+      customerFacingProductCode: '90330',
+      erpMaterialCode: 'ERP-90330',
+      onlineDate: '2025-01-01',
+      productName: 'Roller Cabinet 90330',
+      abc: 'A',
+      priceListUsd: '299.99',
+      exportRestrictions: 'None',
+      inchMeasurementUnitMarkets: 'US, UK'
     },
     sapDetail: {
       basicUnitOfMeasurement: 'BA',
@@ -330,15 +446,15 @@ const ProductDetailPage = () => {
       console.log('Product Card Strapi Config:', productCardData);
       console.log('SAP Form Strapi Config:', sapFormData);
       console.log('Table Data:', tableData);
-      console.log('完整PIM数据结构:', productData);
-      console.log('ProductCard特定调试:');
+      console.log('Document WidgetstableData Data:', documentData);
+      console.log('PIM数据结构:', productData);
       console.log('ProductCard Fields从Strapi:', productCardData?.fields);
       console.log('ProductCardInfo从PIM:', productData.productCardInfo);
-      console.log('Status从兼容层:', productData.status);
+      console.log('Status:', productData.status);
     }
-  }, [getPdpPageData, productCardData, tableData, sapFormData, productData]);
+  }, [getPdpPageData, productCardData, tableData, sapFormData, documentData, productData]);
 
-  //方法，方法
+  //方法，各种方法
   // 字段值获取方法
   const getFieldValue = React.useCallback((field, fallback = '-') => {
     if (!field) return fallback;
@@ -358,7 +474,7 @@ const ProductDetailPage = () => {
     if (!obj || !path) return undefined;
     
     try {
-      // 支持嵌套路径，如 'basicData.brand' 或 'marketingData.categoryBullets'
+      // 支持嵌套路径，比如 'basicData.brand'这种
       const value = path.split('.').reduce((current, key) => {
         return current && current[key];
       }, obj);
@@ -399,9 +515,21 @@ const ProductDetailPage = () => {
     // createdOn: 'formatDate'
   }), []);
 
-  // 完整的字段路径映射 - 支持PIM接口数据结构
+  // 从navPath中提取标题的辅助函数
+  const extractTitleFromNavPath = React.useCallback((navPath, fallbackTitle = '') => {
+    if (!navPath || typeof navPath !== 'string') {
+      return fallbackTitle;
+    }
+    
+    // 提取"/"前的部分
+    const parts = navPath.split('/');
+    const title = parts[0]?.trim();
+    
+    return title || fallbackTitle;
+  }, []);
+
+  // 完整的字段路径映射 - PIM接口返回结构
   const getFieldPath = React.useCallback((fieldName, context) => {
-    // 详细的字段路径映射表 - 基于PIM接口返回结构
     const pathMaps = {
       // ProductCard字段映射 (对应PIM的productCardInfo)
       productNumber: 'productCardInfo.productNumber',
@@ -414,21 +542,24 @@ const ProductDetailPage = () => {
       finalReleaseDate: 'productCardInfo.finalReleaseDate',
       
       // Basic Data字段映射 (对应PIM的basicData)
-      brand: 'basicData.brand',
-      region: 'basicData.region',
-      productType: 'basicData.productType',
-      modelNumber: 'basicData.modelNumber',
-      version: 'basicData.version',
-      customerFacingModel: 'basicData.customerFacingModel',
-      productSeries: 'basicData.productSeries',
-      sellable: 'basicData.sellable',
-      recognition: 'basicData.recognition',
-      productClassification: 'basicData.productClassification',
-      countryOfOrigin: 'basicData.countryOfOrigin',
-      warranty: 'basicData.warranty',
-      lastChangedOn: 'basicData.lastChangedOn',
-      firstShippingDate: 'basicData.firstShippingDate',
-      createdOn: 'basicData.createdOn',
+      modelNumber: 'basicData.modelNumber',        
+      brand: 'basicData.brand',                     
+      region: 'basicData.region',              
+      productType: 'basicData.productType',           
+      customerFacingProductCode: 'basicData.customerFacingProductCode', 
+      sellable: 'basicData.sellable',               
+      countryOfOrigin: 'basicData.countryOfOrigin', 
+      warranty: 'basicData.warranty',                
+      lastChangedOn: 'basicData.lastChangedOn',   
+      firstShippingDate: 'basicData.firstShippingDate', 
+      createdOn: 'basicData.createdOn',           
+      erpMaterialCode: 'basicData.erpMaterialCode',  
+      onlineDate: 'basicData.onlineDate',            
+      basicProductName: 'basicData.productName',     
+      abc: 'basicData.abc',                         
+      priceListUsd: 'basicData.priceListUsd',      
+      exportRestrictions: 'basicData.exportRestrictions', 
+      inchMeasurementUnitMarkets: 'basicData.inchMeasurementUnitMarkets', 
       
       // SAP Detail字段映射 (对应PIM的sapData)
       basicUnitOfMeasurement: 'sapData.basicUnitOfMeasurement',
@@ -453,7 +584,7 @@ const ProductDetailPage = () => {
       return pathMaps[fieldName];
     }
     
-    // 否则按约定生成路径 (兼容原有逻辑)
+    // 否则按约定生成路径：兼容原有逻辑
     switch (context) {
       case 'basic': return `basicData.${fieldName}`;
       case 'sap': return `sapData.${fieldName}`;
@@ -492,7 +623,7 @@ const ProductDetailPage = () => {
     [buildGetterMap, basicFormData?.fields]
   );
 
-  // 优化后的SAP映射 - 基于正确的映射方式进行改进
+  // 动态映射
   const sapValueGetterMap = React.useMemo(() => {
     // 如果有Strapi配置，尝试使用动态映射
     if (sapFormData?.fields && sapFormData.fields.length > 0) {
@@ -503,7 +634,7 @@ const ProductDetailPage = () => {
       }
     }
     
-    // 回退到优化前的正确映射方式
+    // 硬编码方式
     return {
       basicUnitofMeasurement: (d) => d.sapDetail?.basicUnitOfMeasurement,
       productDimensions: (d) => d.sapDetail?.productDimensions,
@@ -522,6 +653,30 @@ const ProductDetailPage = () => {
     buildGetterMap(productCardData?.fields, 'productCard'), 
     [buildGetterMap, productCardData?.fields]
   );
+
+  // 大标题
+  const sectionTitles = React.useMemo(() => {
+    return {
+      basicSection: extractTitleFromNavPath(basicFormData?.navPath, 'Basic Data'),
+    
+      marketingSection: extractTitleFromNavPath(marketingFormData?.navPath, 'Marketing Data'),
+      
+      referencesSection: extractTitleFromNavPath(bundlesData?.navPath || componentsData?.navPath || accessoriesData?.navPath, 'References & Relationships'),
+      
+      packagingSection: extractTitleFromNavPath(packagingData?.[0]?.navPath, 'Packaging & Logistics'),
+      
+      uspsSection: extractTitleFromNavPath(specificationData?.[0]?.navPath, 'USPS & Benefits'),
+      
+      marketingCollateralsSection: extractTitleFromNavPath(onWhiteData?.navPath || actionAndLifestyleData?.navPath || mediaData?.[0]?.navPath, 'Marketing Collaterals'),
+      
+      afterServiceSection: extractTitleFromNavPath(manualsData?.navPath || repairGuidesData?.navPath || packagingsData?.navPath || drawingsData?.navPath || patentData?.navPath, 'After Service'),
+    };
+  }, [
+    extractTitleFromNavPath, basicFormData, marketingFormData,
+    bundlesData, componentsData, accessoriesData,
+    packagingData, specificationData, onWhiteData, actionAndLifestyleData, mediaData,
+    manualsData, repairGuidesData, packagingsData, drawingsData, patentData
+  ]);
 
   const buildItemsFromFields = React.useCallback((formData, getterMap, sourceData) => {
     if (!formData?.fields) return [];
@@ -646,7 +801,7 @@ const ProductDetailPage = () => {
     });
     
     if (import.meta.env.DEV) {
-      console.log('🔍 Final ProductCard InfoPairs:', result);
+      console.log('Final ProductCard InfoPairs:', result);
     }
     return result;
   }, [productCardData, productCardValueGetterMap, productData]);
@@ -657,7 +812,7 @@ const ProductDetailPage = () => {
   const productCardConfig = React.useMemo(() => ({
     modelNumberField: productCardData?.modelNumberField || 'modelNumber',
     announcementPrefix: productCardData?.announcementPrefix || 'New Version Available:',
-    statusText: productCardData?.statusText || 'In Development'
+    // statusText: productCardData?.statusText || 'In Development'
   }), [productCardData]);
 
   // After Service 图片 - 使用PIM数据 - 移动到这里避免Hook顺序问题
@@ -665,17 +820,14 @@ const ProductDetailPage = () => {
     const pimAfterService = productData.afterService;
     
     return {
-      manuals: pimAfterService?.manuals?.[0] ? {
-        image: pimAfterService.manuals[0].thumbnailUrl ? `https://pim-test.kendo.com${pimAfterService.manuals[0].thumbnailUrl}` : manualsImage,
+      manuals: pimAfterService?.manuals?.map(manual => ({
+        image: manual.thumbnailUrl ? `https://pim-test.kendo.com${manual.thumbnailUrl}` : manualsImage,
         modelNumber: productData.basicData?.modelNumber || '',
         productType: productData.basicData?.productNumber || '',
-        name: pimAfterService.manuals[0].title || ''
-      } : {
-        image: manualsImage,
-        modelNumber: '',
-        productType: '',
-        name: ''
-      },
+        name: manual.title || '',
+        show: manual.show || false,
+        download: manual.download || false
+      })) || [],
       repairGuides: pimAfterService?.repairGuide?.map(guide => ({
         image: guide.thumbnailUrl ? `https://pim-test.kendo.com${guide.thumbnailUrl}` : repairGuideImage,
         modelNumber: productData.basicData?.modelNumber || '',
@@ -763,36 +915,39 @@ const ProductDetailPage = () => {
   const normalize = React.useCallback((val) => (val ?? '').toString().trim().toUpperCase(), []);
   const makeKey = React.useCallback((sectionId, subItem) => `${normalize(sectionId)}|${normalize(subItem)}`, [normalize]);
 
-  //声明所有可导航锚点的地方
-  const navAnchorEntries = React.useMemo(() => ([
-    // Basic Data
-    ['basic-data', 'Sku Data', skuDataTitleRef],
-    ['basic-data', 'Basic Data', basicDataTitleRef],
-    ['basic-data', 'Sap Detail', sapDetailTitleRef],
-    // Marketing Data
-    ['marketing-data', 'Marketing Copy', marketingCopyTitleRef],
-    ['marketing-data', 'Icons & Pictures', iconsPicturesTitleRef],
-    ['marketing-data', 'Qr Codes', qrCodesTitleRef],
-    ['marketing-data', 'Eans', eansTitleRef],
-    // References & Relationships
-    ['reference-relationship', 'Bundles', bundlesTitleRef],
-    ['reference-relationship', 'Components', componentsTitleRef],
-    ['reference-relationship', 'Accessories', accessoriesTitleRef],
-    // Packaging & Logistics
-    ['packaging-logistics', 'Packaging Data', packagingDataTitleRef],
-    // USPS & Benefits
-    ['usps-benefits', 'Packaging & Spec', packagingSpecTitleRef],
-    // Marketing Collaterals
-    ['marketing-collaterals', 'On white', onWhiteTitleRef],
-    ['marketing-collaterals', 'Action & Lifestyle', actionLifestyleTitleRef],
-    ['marketing-collaterals', 'Videos', videosTitleRef],
-    // After Service
-    ['after-service', 'Manuals', manualsTitleRef],
-    ['after-service', 'Repair guide', repairGuideTitleRef],
-    ['after-service', 'Packaging', packagingTitleRef],
-    ['after-service', 'Drawing', drawingTitleRef],
-    ['after-service', 'Patent', patentTitleRef]
-  ]), []);
+  // 声明所有可导航锚点的地方
+  const navAnchorEntries = React.useMemo(() => {
+    const entries = [
+      // Basic Data
+      ['basic-data', 'Sku Data', skuDataTitleRef],
+      ['basic-data', 'Basic Data', basicDataTitleRef],
+      ['basic-data', 'Sap Detail', sapDetailTitleRef],
+      // Marketing Data
+      ['marketing-data', 'Marketing Copy', marketingCopyTitleRef],
+      ['marketing-data', 'Icons & Pictures', iconsPicturesTitleRef],
+      ['marketing-data', 'Qr Codes', qrCodesTitleRef],
+      ['marketing-data', 'Eans', eansTitleRef],
+      // References & Relationships
+      ['reference-relationship', 'Bundles', bundlesTitleRef],
+      ['reference-relationship', 'Components', componentsTitleRef],
+      ['reference-relationship', 'Accessories', accessoriesTitleRef],
+      // Packaging & Logistics
+      ['packaging-logistics', 'Packaging Data', packagingDataTitleRef],
+      // USPS & Benefits
+      ['usps-benefits', 'Packaging & Spec', packagingSpecTitleRef],
+      // Marketing Collaterals
+      ['marketing-collaterals', 'On white', onWhiteTitleRef],
+      ['marketing-collaterals', 'Action & Lifestyle', actionLifestyleTitleRef],
+      ['marketing-collaterals', 'Videos', videosTitleRef],
+      // After Service
+      ['after-service', 'Manuals', manualsTitleRef],
+      ['after-service', 'Repair guide', repairGuideTitleRef],
+      ['after-service', 'Packaging', packagingTitleRef],
+      ['after-service', 'Drawing', drawingTitleRef],
+      ['after-service', 'Patent', patentTitleRef]
+    ];
+    return entries;
+  }, []);
 
   // 获得目标 ref的地方
   const navTargetMap = React.useMemo(() => {
@@ -884,7 +1039,6 @@ const ProductDetailPage = () => {
       '&:hover': { bgcolor: '#eaeaea', borderColor: '#cccccc', color: '#000000' }
     }
   }), []);
-
   // 覆盖色，全都盖成主题色
   const ThemedIcon = React.useCallback(({ src, size = 36 }) => (
     <Box
@@ -903,6 +1057,24 @@ const ProductDetailPage = () => {
   const TopActionsBar = () => {
     const basicMenu = useMenu();
     const languageMenu = useMenu();
+    const commonMenuProps = {
+      PaperProps: {
+        elevation: 4,
+        sx: {
+          borderRadius: 1.5,
+          mt: 1,
+          minWidth: 170,//需要修改成随button宽度切换的
+          bgcolor: 'background.paper',
+          '& .MuiMenuItem-root': { py: 1, fontSize: 14 }
+        }
+      },
+      MenuListProps: {
+        dense: false,
+        sx: { py: 0.5 }
+      },
+      anchorOrigin: { vertical: 'bottom', horizontal: 'left' },
+      transformOrigin: { vertical: 'top', horizontal: 'left' }
+    };
     return (
       <Box
         sx={{
@@ -948,18 +1120,18 @@ const ProductDetailPage = () => {
             onClick={basicMenu.openMenu}
             aria-haspopup="menu"
             aria-expanded={basicMenu.open ? 'true' : undefined}
-            sx={{ ...styles.topButtonBase, width: '160px' }}
+          sx={{ ...styles.topButtonBase, width: 'auto', minWidth: '160px', px: 2.5 }}
           >
-            Basic PDP
+          {basicTab === 'MarketingBasic' ? 'Marketing Basic' : basicTab}
           </Button>
           <Menu
             anchorEl={basicMenu.anchorEl}
             open={basicMenu.open}
             onClose={basicMenu.closeMenu}
-            anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-            transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+            {...commonMenuProps}
           >
-            <MenuItem onClick={basicMenu.closeMenu}>Basic PDP</MenuItem>
+          <MenuItem onClick={() => { updateBasicTabAndUrl('MarketingBasic'); basicMenu.closeMenu(); }}>Marketing Basic</MenuItem>
+          <MenuItem onClick={() => { updateBasicTabAndUrl('Overview'); basicMenu.closeMenu(); }}>Overview</MenuItem>
           </Menu>
 
           <Button
@@ -978,8 +1150,7 @@ const ProductDetailPage = () => {
             anchorEl={languageMenu.anchorEl}
             open={languageMenu.open}
             onClose={languageMenu.closeMenu}
-            anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-            transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+            {...commonMenuProps}
           >
             <MenuItem onClick={languageMenu.closeMenu}>English</MenuItem>
           </Menu>
@@ -1042,10 +1213,24 @@ const ProductDetailPage = () => {
       }
       
       try {
-        setLoading(true);
+        if (isFirstLoadRef.current) {
+          setLoading(true);
+        }
         setError(null);
         
+        console.log('API调用参数:', {
+          routeProductId,
+          type: typeof routeProductId,
+          length: routeProductId?.length
+        });
+        
         const detail = await ProductDetailApiService.getProductDetail(routeProductId);
+
+        console.log('API响应结果:', {
+          detail,
+          hasData: !!detail,
+          dataKeys: detail ? Object.keys(detail) : 'no data'
+        }); 
         
         if (import.meta.env.DEV) {
           console.log('ProductDetailPage fetched detail:', detail);
@@ -1071,7 +1256,8 @@ const ProductDetailPage = () => {
           packagingData,
           packagingSpec,
           marketingCollaterals,
-          afterService
+          afterService,
+          successor
         } = detail;
         
         if (import.meta.env.DEV) {
@@ -1088,6 +1274,7 @@ const ProductDetailPage = () => {
           console.log('packagingSpec', packagingSpec);
           console.log('marketingCollaterals', marketingCollaterals);
           console.log('afterService', afterService);
+          console.log('successor', successor);
         }
         
         // 直接使用PIM接口返回的数据结构
@@ -1113,6 +1300,7 @@ const ProductDetailPage = () => {
           packagingSpec: packagingSpec || {},
           marketingCollaterals: marketingCollaterals || {},
           afterService: afterService || {},
+          successor: successor || {},
           
           // 兼容旧版本的数据结构
           status: {
@@ -1128,6 +1316,7 @@ const ProductDetailPage = () => {
             factoryInstruction: sapData?.factoryInstructionCn || ''
           },
           skus: skuData?.map((sku, index) => ({
+            productNumber: sku.productNumber || '',
             size: sku.size || '',
             material: sku.mainMaterial||'',
             finish: sku.surfaceFinish || '',
@@ -1146,56 +1335,91 @@ const ProductDetailPage = () => {
       }
     };
     load();
+    isFirstLoadRef.current = false;
     return () => { mounted = false; };
   }, [routeProductId]);
 
   
 
 
-  const navigationItems = [
-    {
-      id: 'basic-data',
-      title: 'BASIC DATA',
-      icon: <Box component='img' src={documentIcon} alt='document' sx={{ width: 16, height: 16 }} />,
-      subItems: ((Array.isArray(productData?.skuData) && productData.skuData.length >= 2) ? ['SKU Data', 'Basic Data', 'SAP Detail'] : ['Basic Data', 'SAP Detail'])
-    },
-    {
-      id: 'marketing-data',
-      title: 'MARKETING DATA',
-      icon: <Box component='img' src={documentIcon} alt='document' sx={{ width: 16, height: 16 }} />,
-      subItems: ['Marketing Copy', 'Icons & Pictures', 'QR Codes', 'EANs']
-    },
-    {
-      id: 'reference-relationship',
-      title: 'REFERENCE & RELATIONSHIP',
-      icon: <Box component='img' src={documentIcon} alt='document' sx={{ width: 16, height: 16 }} />,
-      subItems: ['Bundles', 'Components', 'Accessories']
-    },
-    {
-      id: 'packaging-logistics',
-      title: 'PACKAGING & LOGISTICS',
-      icon: <Box component='img' src={documentIcon} alt='document' sx={{ width: 16, height: 16 }} />,
-      subItems: ['Packaging Data']
-    },
-    {
-      id: 'usps-benefits',
-      title: 'USPS & BENEFITS',
-      icon: <Box component='img' src={documentIcon} alt='document' sx={{ width: 16, height: 16 }} />,
-      subItems: ['Packaging & Spec']
-    },
-    {
-      id: 'marketing-collaterals',
-      title: 'MARKETING COLLATERALS',
-      icon: <Box component='img' src={documentIcon} alt='document' sx={{ width: 16, height: 16 }} />,
-      subItems: ['On White', 'Action & Lifestyle', 'Videos']
-    },
-    {
-      id: 'after-service',
-      title: 'AFTER SERVICE',
-      icon: <Box component='img' src={documentIcon} alt='document' sx={{ width: 16, height: 16 }} />,
-      subItems: ['Manuals', 'Repair Guide', 'Packaging', 'Drawing', 'Patent']
-    }
-  ];
+  const navigationItems = React.useMemo(() => {
+    const slugify = (s) => (s || '').toString().trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'section';
+    const titleKey = (s) => (s || '').toString().trim().toLowerCase();
+
+    const insertPath = (rootsMap, order, rawPath) => {
+      if (!rawPath || typeof rawPath !== 'string') return;
+      const segments = rawPath.split('/').map(p => p.trim()).filter(Boolean);
+      if (segments.length === 0) return;
+      let parentMap = rootsMap;
+      let parentOrder = order;
+      for (let i = 0; i < segments.length; i += 1) {
+        const seg = segments[i];
+        const key = titleKey(seg);
+        if (!parentMap[key]) {
+          parentMap[key] = { title: seg, id: slugify(seg), childrenMap: Object.create(null), childrenOrder: [] };
+          parentOrder.push(parentMap[key]);
+        }
+        const node = parentMap[key];
+        parentMap = node.childrenMap;
+        parentOrder = node.childrenOrder;
+      }
+    };
+
+    const rootsMap = Object.create(null);
+    const rootsOrder = [];
+
+    const blocks = [];
+    if (getPdpPageData?.table) blocks.push(getPdpPageData.table);
+    (getPdpPageData?.forms || []).forEach(b => blocks.push(b));
+    (getPdpPageData?.images || []).forEach(b => blocks.push(b));
+    (getPdpPageData?.codes || []).forEach(b => blocks.push(b));
+    (getPdpPageData?.referenceLists || []).forEach(b => blocks.push(b));
+    (getPdpPageData?.packagingWidgets || []).forEach(b => blocks.push(b));
+    (getPdpPageData?.specificationWidgets || []).forEach(b => blocks.push(b));
+    (getPdpPageData?.mediaWidgets || []).forEach(b => blocks.push(b));
+    (getPdpPageData?.documentWidgets || []).forEach(b => blocks.push(b));
+
+    blocks.forEach(b => insertPath(rootsMap, rootsOrder, b?.navPath));
+
+    const toNavigationItems = () => {
+      const items = rootsOrder.map(root => {
+        const subSet = new Set();
+        const subs = root.childrenOrder
+          .map(c => c.title)
+          .filter(t => {
+            const k = titleKey(t);
+            if (k === 'sku data' && !(Array.isArray(productData?.skuData) && productData.skuData.length >= 2)) {
+              return false;
+            }
+            if (subSet.has(k)) return false;
+            subSet.add(k);
+            return true;
+          });
+        return {
+          id: root.id,
+          title: (root.title || '').toString().toUpperCase(),
+          icon: <Box component='img' src={documentIcon} alt='document' sx={{ width: 16, height: 16 }} />,
+          subItems: subs
+        };
+      });
+      return items;
+    };
+    //动态目录的地方
+    const dynamicItems = toNavigationItems();
+
+    if (dynamicItems && dynamicItems.length > 0) return dynamicItems;
+
+    return [
+      {
+        id: 'basic-data',
+        title: 'BASIC DATA',
+        icon: <Box component='img' src={documentIcon} alt='document' sx={{ width: 16, height: 16 }} />,
+        subItems: ((Array.isArray(productData?.skuData) && productData.skuData.length >= 2)
+          ? ['SKU Data', 'Basic Data', 'SAP Detail']
+          : ['Basic Data', 'SAP Detail'])
+      }
+    ];
+  }, [getPdpPageData, productData?.skuData]);
 
   const handleSectionToggle = (sectionId) => {
     setExpandedSections(prev => ({
@@ -1209,19 +1433,24 @@ const ProductDetailPage = () => {
     <Grid container spacing={3} sx={{mt: 1}}>
       <Grid item xs={12}>
         <ProductCard 
+          key={routeProductId}
           announcementPrefix={productCardConfig.announcementPrefix}
-          announcementLinkText={productData.basicData?.productSeries}
-          statusText={productCardConfig.statusText}
-          modelNumber={
-            productData.productCardInfo?.[productCardConfig.modelNumberField] ??
-            productData.productCardInfo?.productNumber ??
-            productData.basicData?.modelNumber ??
-            productData.id
-          }
+          announcementLinkText={productData.basicData?.productName}
+          showAnnouncement={!!(productData.successor && (Object.keys(productData.successor).length > 0))}
+          statusText={(() => {
+            const enrichmentStatus = productData?.status?.enrichmentStatus;
+            if (enrichmentStatus == 'Global Data Ready' || enrichmentStatus == 'Deactivated') {
+              return enrichmentStatus;
+            }
+            return 'In Development';
+          })()}
+          modelNumber={routeProductId}
           title={productData.productCardInfo?.productName || productData.name || "Product Title"}
           strapiData={productCardData}
           infoPairs={generateProductCardInfoPairs()}
+          productImage={productData.image}
           skuData={productData.skuData?.map((sku, index) => ({
+            productNumber: sku.productNumber || '',
             size: sku.size || '',
             material: sku.mainMaterial||'',
             finish: sku.surfaceFinish || '',
@@ -1229,15 +1458,25 @@ const ProductDetailPage = () => {
             imageUrl: sku.imageUrl || sku.image || (index === 0 ? productData.image : null)
           })) || []}
           infoLabelMinWidth="155px"
-          infoValueMinWidth="118px"
+          infoValueMinWidth="150px"
           onDownloadClick={() => console.log('download clicked')} 
+          onSkuNavigate={(pn) => {
+            if (pn) {
+              // 保持当前的layout参数
+              const currentLayout = searchParams.get('layout') || 'Overview';
+              // 解析现有layout并按规范重新编码
+              const normalized = parseLayoutFromUrl(currentLayout);
+              const encoded = encodeLayoutForUrl(normalized);
+              navigate(`/${currentLanguage}/${currentBrandCode}/product-detail/${pn}?layout=${encoded}`);
+            }
+          }}
         />
       </Grid>
     </Grid>
   );
 
   if (import.meta.env.DEV) {
-    console.log('productData111', productData);
+    console.log('productData', productData);
   }
 
   // 加载状态
@@ -1257,22 +1496,22 @@ const ProductDetailPage = () => {
 
   // 错误状态
   if (error) {
-    return (
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh',
-        bgcolor: '#f5f5f5',
-        flexDirection: 'column',
-        gap: 2
-      }}>
-        <Typography variant="h6" color="error">Error: {error}</Typography>
-        <Button variant="contained" onClick={() => window.location.reload()}>
-          Retry
-        </Button>
-      </Box>
-    );
+    // return (
+    //   <Box sx={{ 
+    //     display: 'flex', 
+    //     justifyContent: 'center', 
+    //     alignItems: 'center', 
+    //     height: '100vh',
+    //     bgcolor: '#f5f5f5',
+    //     flexDirection: 'column',
+    //     gap: 2
+    //   }}>
+    //     <Typography variant="h6" color="error">Error: {error}</Typography>
+    //     <Button variant="contained" onClick={() => window.location.reload()}>
+    //       Retry
+    //     </Button>
+    //   </Box>
+    // );
   }
 
   //初步完成，待优化
@@ -1310,16 +1549,20 @@ const ProductDetailPage = () => {
       )}
 
       {/* SAP Detail */}
-      <Typography ref={sapDetailTitleRef} variant="h6" sx={{ mb: 2, fontSize: '24.5px', fontFamily: '"Open Sans", sans-serif', fontWeight: 520, color:'#4d4d4d' }}>
-        {sapFormData?.title || 'SAP Detail'}
-      </Typography>
-      {sapFormItems && sapFormItems.length > 0 && (
-        <Box sx={{ mb: 3, mt: 3 }}>
-          <Form
-            columns={sapFormData?.columnType || "single"}
-            items={sapFormItems}
-          />
-        </Box>
+      {basicTab === 'MarketingBasic' && (
+        <>
+          <Typography ref={sapDetailTitleRef} variant="h6" sx={{ mb: 2, fontSize: '24.5px', fontFamily: '"Open Sans", sans-serif', fontWeight: 520, color:'#4d4d4d' }}>
+            {sapFormData?.title || 'SAP Detail'}
+          </Typography>
+          {sapFormItems && sapFormItems.length > 0 && (
+            <Box sx={{ mb: 3, mt: 3 }}>
+              <Form
+                columns={sapFormData?.columnType || "single"}
+                items={sapFormItems}
+              />
+            </Box>
+          )}
+        </>
       )}
     </Box>
   );
@@ -1808,7 +2051,7 @@ const ProductDetailPage = () => {
                 showQuestion: true
               })) || []
             },
-            {
+            ...(basicTab === 'MarketingBasic' ? [{
               title: 'LOGO MARKING',
               icon: 'category',
               items: productData.packagingSpec?.logoMarking?.map(logo => ({
@@ -1817,7 +2060,7 @@ const ProductDetailPage = () => {
                 unit: '',
                 showQuestion: true
               })) || []
-            }
+            }] : [])
           ]}
           columns={['Feature Name', 'Value', 'Unit']}
         />
@@ -1890,6 +2133,7 @@ const ProductDetailPage = () => {
               downloadUrl: img.downloadUrl || '',
               imageUrl: img.imageUrl || ''
             }))}
+            tags={(productData.marketingCollaterals?.onWhite?.[0]?.tags || ['Tool Cabinet...', 'Tool Cabinet...', 'Tool Cabinet...', 'Tool Cabinet...'])}
             onImageSelect={(image, index) => console.log('On White selected:', index, image)}
           />
         </Box>
@@ -2049,27 +2293,30 @@ const ProductDetailPage = () => {
     <Box>
       {/* Manuals */}
       <Typography ref={manualsTitleRef} variant="h6" sx={{ mb: 3.5, fontSize: '24px', fontFamily: '"Open Sans", sans-serif', fontWeight: 520, color:'#4d4d4d'}}>
-        Manuals
+        {manualsData?.title || 'Manuals'}
       </Typography>
-      {productData.afterService?.manuals && productData.afterService.manuals.length > 0 && afterServiceAssets.manuals.name && (
-        <Box sx={{ mb: 3 }}>
-          <DigitalAssetCard 
-            product={afterServiceAssets.manuals}
-            cardActionsConfig={{
-              show_file_type: false,
-              show_eyebrow: true,
-              show_open_pdf: true,
-              show_open_product_page: true,
-              show_preview_media: true
-            }}
-            onDownload={() => console.log('download manuals')}
-          />
+      {productData.afterService?.manuals && productData.afterService.manuals.length > 0 && (
+        <Box sx={{ mb: 3, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+          {afterServiceAssets.manuals.map((asset, idx) => (
+            <DigitalAssetCard 
+              key={`manuals-${idx}`}
+              product={asset}
+              cardActionsConfig={{
+                show_file_type: false,
+                show_eyebrow: true,
+                show_open_pdf: false,
+                show_open_product_page: false,
+                show_preview_media: asset.show || true
+              }}
+              onDownload={() => console.log('download manuals', idx)}
+            />
+          ))}
         </Box>
       )}
 
       {/* Repair  Guide*/}
       <Typography ref={repairGuideTitleRef} variant="h6" sx={{ mb: 3.5 , fontSize: '24px', fontFamily: '"Open Sans", sans-serif', fontWeight: 580, color:'#4d4d4d' }}>
-        Repair Guide
+        {repairGuidesData?.title || 'Repair Guide'}
       </Typography>
       {productData.afterService?.repairGuide && productData.afterService.repairGuide.length > 0 && (
         <Box sx={{ mb: 3, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
@@ -2077,6 +2324,13 @@ const ProductDetailPage = () => {
             <DigitalAssetCard 
               key={`repair-guide-${idx}`}
               product={asset}
+              cardActionsConfig={{
+                show_file_type: false,
+                show_eyebrow: true,
+                show_open_pdf: false,
+                show_open_product_page: false,
+                show_preview_media: asset.show || true
+              }}
               onDownload={() => console.log('download repair guide', idx)}
             />
           ))}
@@ -2084,24 +2338,35 @@ const ProductDetailPage = () => {
       )}
 
       {/* Packaging */}
-      <Typography ref={packagingTitleRef} variant="h6" sx={{ mb: 3.5, fontSize: '24.5px', fontFamily: '"Open Sans", sans-serif', fontWeight: 520, color:'#4d4d4d' }}>
-        Packaging
-      </Typography>
-      {productData.afterService?.packaging && productData.afterService.packaging.length > 0 && (
-        <Box sx={{ mb: 3, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-          {afterServiceAssets.packagings.map((asset, idx) => (
-            <DigitalAssetCard 
-              key={`packaging-${idx}`}
-              product={asset}
-              onDownload={() => console.log('download packaging', idx)}
-            />
-          ))}
-        </Box>
+      {basicTab === 'MarketingBasic' && (
+        <>
+          <Typography ref={packagingTitleRef} variant="h6" sx={{ mb: 3.5, fontSize: '24.5px', fontFamily: '"Open Sans", sans-serif', fontWeight: 520, color:'#4d4d4d' }}>
+            {packagingsData?.title || 'Packaging'}
+          </Typography>
+          {productData.afterService?.packaging && productData.afterService.packaging.length > 0 && (
+            <Box sx={{ mb: 3, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+              {afterServiceAssets.packagings.map((asset, idx) => (
+                <DigitalAssetCard 
+                  key={`packaging-${idx}`}
+                  product={asset}
+                  cardActionsConfig={{
+                    show_file_type: false,
+                    show_eyebrow: true,
+                    show_open_pdf: false,
+                    show_open_product_page: false,
+                    show_preview_media: asset.show || true
+                  }}
+                  onDownload={() => console.log('download packaging', idx)}
+                />
+              ))}
+            </Box>
+          )}
+        </>
       )}
 
       {/* Drawing */}
       <Typography ref={drawingTitleRef} variant="h6" sx={{ mb: 3.5, fontSize: '24.5px', fontFamily: '"Open Sans", sans-serif', fontWeight: 520, color:'#4d4d4d' }}>
-        Drawing
+        {drawingsData?.title || 'Drawing'}
       </Typography>
       {productData.afterService?.drawing && productData.afterService.drawing.length > 0 && (
         <Box sx={{ mb: 3, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
@@ -2109,6 +2374,13 @@ const ProductDetailPage = () => {
             <DigitalAssetCard 
               key={`drawing-${idx}`}
               product={asset}
+              cardActionsConfig={{
+                show_file_type: false,
+                show_eyebrow: true,
+                show_open_pdf: false,
+                show_open_product_page: false,
+                show_preview_media: asset.show || true
+              }}
               onDownload={() => console.log('download drawing', idx)}
             />
           ))}
@@ -2117,7 +2389,7 @@ const ProductDetailPage = () => {
 
       {/* Patent */}
       <Typography ref={patentTitleRef} variant="h6" sx={{ mb: 3.5, fontSize: '24.5px', fontFamily: '"Open Sans", sans-serif', fontWeight: 520, color:'#4d4d4d' }}>
-        Patent
+        {patentData?.title || 'Patent'}
       </Typography>
       {productData.afterService?.patent && productData.afterService.patent.length > 0 && (
         <Box sx={{ mb: 3, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
@@ -2125,6 +2397,13 @@ const ProductDetailPage = () => {
             <DigitalAssetCard 
               key={`patent-${idx}`}
               product={asset}
+              cardActionsConfig={{
+                show_file_type: false,
+                show_eyebrow: true,
+                show_open_pdf: false,
+                show_open_product_page: false,
+                show_preview_media: asset.show || true
+              }}
               onDownload={() => console.log('download patent', idx)}
             />
           ))}
@@ -2181,7 +2460,7 @@ const ProductDetailPage = () => {
           // width: '100%',
           overflow: 'hidden'
         }}>
-          <Box sx={{ bgcolor: 'white', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', border: '1px solid #eee', p: 0, pb: 3, width: '100%' }}>
+          <Box sx={{ bgcolor: 'white', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', border: '1px solid #eee', p: 0, pb: 3, width: '100%', position: 'relative' }}>
             {/* 最顶部功能栏 */}
             <TopActionsBar />
 
@@ -2195,7 +2474,7 @@ const ProductDetailPage = () => {
           <Box sx={{ mt: 12 }}>
             <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1, fontSize: '30px',fontFamily: '"Roboto", sans-serif',fontWeight: 900 }}>
               <ThemedIcon src={documentIcon} />
-              Basic Data
+              {sectionTitles.basicSection}
             </Typography>
             {renderBasicDataSection()}
           </Box>
@@ -2204,7 +2483,7 @@ const ProductDetailPage = () => {
           <Box sx={{ mt: 11 }}>
           <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1, fontSize: '30px',fontFamily: '"Roboto", sans-serif',fontWeight: 900 }}>
             <ThemedIcon src={marketingIcon} />
-            Marketing Data
+            {sectionTitles.marketingSection}
           </Typography>
             {renderMarketingDataSection()}
           </Box>
@@ -2213,7 +2492,7 @@ const ProductDetailPage = () => {
           <Box sx={{ mt: 11 }}>
           <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1, fontSize: '30px',fontFamily: '"Roboto", sans-serif',fontWeight: 900 }}>
             <ThemedIcon src={referIcon} />
-            References & Relationships
+            {sectionTitles.referencesSection}
           </Typography>
             {renderReferencesRelationshipsSection()}
           </Box>
@@ -2222,7 +2501,7 @@ const ProductDetailPage = () => {
           <Box sx={{ mt: 11 }}>
           <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1, fontSize: '30px',fontFamily: '"Roboto", sans-serif',fontWeight: 900 }}>
             <ThemedIcon src={packIcon} />
-            Packaging & Logistics
+            {sectionTitles.packagingSection}
           </Typography>
             {renderPackagingLogisticsSection()}
           </Box>
@@ -2230,7 +2509,7 @@ const ProductDetailPage = () => {
           <Box sx={{ mt: 11 }}>
           <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1, fontSize: '30px',fontFamily: '"Roboto", sans-serif',fontWeight: 900 }}>
             <ThemedIcon src={specIcon} />
-            USPS & Benefits
+            {sectionTitles.uspsSection}
           </Typography>
             {renderUSPSBenefitsSection()}
           </Box>
@@ -2238,7 +2517,7 @@ const ProductDetailPage = () => {
           <Box sx={{ mt: 11 }}>
           <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1, fontSize: '30px',fontFamily: '"Roboto", sans-serif',fontWeight: 900 }}>
             <ThemedIcon src={labelIcon} />
-            Marketing Collaterals
+            {sectionTitles.marketingCollateralsSection}
           </Typography>
             {renderMarketingCollateralsSection()}
           </Box>
@@ -2246,7 +2525,7 @@ const ProductDetailPage = () => {
           <Box sx={{ mt: 11 }}>
           <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1, fontSize: '30px',fontFamily: '"Roboto", sans-serif',fontWeight: 900 }}>
             <ThemedIcon src={serviceIcon} />
-            After Service
+            {sectionTitles.afterServiceSection}
           </Typography>
             {renderAfterServiceSection()}
           </Box>
