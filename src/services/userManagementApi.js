@@ -79,9 +79,24 @@ class UserManagementApiService {
     }
 
     // 获取用户列表
-    async getUsers(page = 1, limit = 10) {
+    async getUsers(page = 1, limit = 10, email = '', theme = '') {
         try {
-            const response = await fetch(`${this.baseURL}?page=${page}&limit=${limit}`, {
+            // Build query parameters
+            const params = new URLSearchParams({
+                page: page.toString(),
+                limit: limit.toString()
+            });
+
+            // Add optional filters
+            if (email && email.trim()) {
+                params.append('email', email.trim());
+            }
+
+            if (theme && theme.trim()) {
+                params.append('theme', theme.trim());
+            }
+
+            const response = await fetch(`${this.baseURL}?${params.toString()}`, {
                 method: 'GET',
                 headers: this.getHeaders(),
             });

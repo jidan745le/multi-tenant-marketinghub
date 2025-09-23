@@ -31,6 +31,7 @@ import {
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import React, { useCallback, useEffect, useState } from 'react';
+import { useBrand } from '../hooks/useBrand';
 import UserManagementApiService from '../services/userManagementApi';
 
 // Styled components
@@ -82,6 +83,9 @@ const PrimaryButton = styled(Button)(({ theme }) => ({
 
 // Main component
 function UserManagement() {
+  // Get current brand/theme from URL
+  const { currentBrandCode } = useBrand();
+  
   // State management
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -90,6 +94,14 @@ function UserManagement() {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [limit] = useState(10);
+
+  // Filter states
+  const [emailSearch, setEmailSearch] = useState('');
+  const [searchTimeout, setSearchTimeout] = useState(null);
+  const [isSearching, setIsSearching] = useState(false);
+  
+  // Use current theme for filtering (without _viewer suffix)
+  const currentTheme = currentBrandCode;
 
   // Dialog states
   const [addUserDialog, setAddUserDialog] = useState(false);
@@ -133,7 +145,8 @@ function UserManagement() {
   const loadUsers = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await UserManagementApiService.getUsers(page, limit);
+      setIsSearching(true);
+      const response = await UserManagementApiService.getUsers(page, limit, emailSearch, currentTheme);
       setUsers(response.users || []);
       setTotal(response.pagination?.total || 0);
       setTotalPages(response.pagination?.pages || 1);
@@ -142,8 +155,9 @@ function UserManagement() {
       showSnackbar('Failed to load users', 'error');
     } finally {
       setLoading(false);
+      setIsSearching(false);
     }
-  }, [page, limit]);
+  }, [page, limit, emailSearch, currentTheme]);
 
   // Load available roles and themes
   const loadRoles = useCallback(async () => {
@@ -170,6 +184,38 @@ function UserManagement() {
     loadUsers();
     loadRoles();
   }, [loadUsers, loadRoles]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+    };
+  }, [searchTimeout]);
+
+  // Handle search with debounce
+  const handleEmailSearch = (value) => {
+    setEmailSearch(value);
+    
+    // Clear existing timeout
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+    
+    // Set new timeout for debounced search
+    const newTimeout = setTimeout(() => {
+      setPage(1); // Reset to first page when searching
+    }, 500);
+    
+    setSearchTimeout(newTimeout);
+  };
+
+  // Clear filters
+  const clearFilters = () => {
+    setEmailSearch('');
+    setPage(1);
+  };
 
   // Utility functions
   const showSnackbar = (message, severity = 'success') => {
@@ -382,10 +428,10 @@ function UserManagement() {
       <HeaderContainer>
         <Box>
           <Typography variant="h4" component="h1" gutterBottom>
-            User Management
+            User Management - {currentBrandCode.toUpperCase()} Theme
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Results {((page - 1) * limit) + 1} - {Math.min(page * limit, total)} of {total} in User Information
+            Results {((page - 1) * limit) + 1} - {Math.min(page * limit, total)} of {total} users {emailSearch ? `(filtered by email: "${emailSearch}")` : `for ${currentBrandCode.toUpperCase()} theme`}
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 2 }}>
@@ -418,12 +464,70 @@ function UserManagement() {
         </Box>
       </HeaderContainer>
 
+      {/* Search and Filter Section */}
+      <Box sx={{ 
+        display: 'flex', 
+        gap: 2, 
+        mb: 3, 
+        p: 2, 
+        backgroundColor: 'background.paper', 
+        borderRadius: 1,
+        boxShadow: 1,
+        alignItems: 'center'
+      }}>
+        <TextField
+          label="Search by Email"
+          variant="outlined"
+          size="small"
+          value={emailSearch}
+          onChange={(e) => handleEmailSearch(e.target.value)}
+          sx={{ minWidth: 250 }}
+          InputProps={{
+            startAdornment: (
+              <span className="material-symbols-outlined" style={{ fontSize: 20, marginRight: 8, color: '#666' }}>
+                search
+              </span>
+            ),
+            endAdornment: isSearching && emailSearch && (
+              <CircularProgress size={16} sx={{ mr: 1 }} />
+            ),
+          }}
+        />
+        
+     
+        
+        {emailSearch && (
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={clearFilters}
+            startIcon={
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+                clear
+              </span>
+            }
+          >
+            Clear Search
+          </Button>
+        )}
+        
+        {emailSearch && (
+          <Box sx={{ display: 'flex', alignItems: 'center', ml: 2 }}>
+            <Typography variant="body2" color="text.secondary">
+              Searching: "{emailSearch}"
+            </Typography>
+          </Box>
+        )}
+      </Box>
+
       {/* Error Alert */}
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
           {error}
         </Alert>
       )}
+
+ 
 
       {/* Users Table */}
       <TableContainer component={Paper} sx={{ boxShadow: 1 }}>
