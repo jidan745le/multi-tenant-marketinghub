@@ -428,8 +428,8 @@ function UserManagement() {
       <HeaderContainer>
         <Box>
           <Typography variant="h4" component="h1" gutterBottom>
-            User Management - {currentBrandCode.toUpperCase()} Theme
-          </Typography>
+            User Management
+                      </Typography>
           <Typography variant="body2" color="text.secondary">
             Results {((page - 1) * limit) + 1} - {Math.min(page * limit, total)} of {total} users {emailSearch ? `(filtered by email: "${emailSearch}")` : `for ${currentBrandCode.toUpperCase()} theme`}
           </Typography>

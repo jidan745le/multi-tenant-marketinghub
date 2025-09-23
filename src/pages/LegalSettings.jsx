@@ -14,6 +14,7 @@ import React, { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { useDispatch, useSelector } from 'react-redux';
 import TurndownService from 'turndown';
+import UploadIcon from '../components/icons/UploadIcon';
 import { SectionCard, SubTitle } from '../components/SettingsComponents';
 import { useBrand } from '../hooks/useBrand';
 import { selectCurrentLanguage } from '../store/slices/themesSlice';
@@ -42,21 +43,16 @@ const MarkdownEditorContainer = styled(Box)(({ theme }) => ({
 
 // 预览按钮
 const PreviewButton = styled(IconButton)(({ theme }) => ({
-  // background: theme.palette.primary.main,
   width: '37px',
   height: '37px',
   position: 'absolute',
-  right: '16px',
-  bottom: '16px',
+  right: '32px',
+  bottom: '24px',
   zIndex: 10,
-  // '&:hover': {
-  //   background: theme.palette.primary.dark,
-  // },
-  // '& img': {
-  //   width: '24px',
-  //   height: '24px',
-  //   filter: 'brightness(0) invert(1)' // 使图标变白
-  // }
+  padding: 0,
+  '&:hover': {
+    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+  },
 }));
 
 // 预览容器
@@ -304,7 +300,7 @@ Enter your terms and conditions in **Markdown** format...
                 }}
               />
               <PreviewButton onClick={() => setPreviewTerms(true)}>
-                <img src="/assets/upload.svg" alt="Preview" />
+                <UploadIcon size={32} color="primary" />
               </PreviewButton>
             </MarkdownEditorContainer>
           </Box>
@@ -393,7 +389,7 @@ Your data is used for:
                 }}
               />
               <PreviewButton onClick={() => setPreviewPrivacy(true)}>
-                <img src="/assets/upload.svg" alt="Preview" />
+                <UploadIcon size={32} color="primary" />
               </PreviewButton>
             </MarkdownEditorContainer>
           </Box>
@@ -449,6 +445,17 @@ Your data is used for:
           onClose={handleCloseNotification} 
           severity={notification.severity}
           variant="filled"
+          sx={{
+            backgroundColor: notification.severity === 'success' 
+              ? (theme) => theme.palette.primary.main 
+              : undefined,
+            '&.MuiAlert-filledSuccess': {
+              backgroundColor: (theme) => theme.palette.primary.main,
+            },
+            '&.MuiAlert-filledError': {
+              backgroundColor: (theme) => theme.palette.error.main,
+            }
+          }}
         >
           {notification.message}
         </Alert>
