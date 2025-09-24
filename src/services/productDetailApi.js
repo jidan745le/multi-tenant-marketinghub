@@ -23,19 +23,24 @@ class ProductDetailApiService {
     return response.json();
   }
 
-  // 完整的GraphQL查询语句
-  getProductQuery = `
-    query getProductListing($first: Int!, $after: Int!, $filter: String) {
-      getProductListing(first: $first, after: $after, filter: $filter) {
+  // 构建filter字符串
+  buildFilterString(filter) {
+    return JSON.stringify(filter).replace(/"/g, '\\"');
+  }
+
+  // 动态构建GraphQL查询语句
+  buildProductQuery(first, after, filter, defaultLanguage) {
+    // 将filter对象转换为GraphQL语法
+    const filterString = this.buildFilterString(filter);
+    return `
+    query getProductListing {
+      getProductListing(first: ${first}, after: ${after}, filter: "${filterString}", defaultLanguage: "${defaultLanguage}") {
         edges {
           cursor
           node {
             id
             VirtualProductID
-            ProductName_en: ProductName(language: "en")
-            ProductName_de: ProductName(language: "de")
-            ShortDescription_en: ShortDescription(language: "en")
-            LongDescription_en: LongDescription(language: "en")
+        
             CategoryName
             
             # BASIC CARD INFO
@@ -588,7 +593,8 @@ class ProductDetailApiService {
         }
       }
     }
-  `;
+    `;
+  }
 
   // 主要数据转换函数
   transformProductData(rawData) {
@@ -631,7 +637,7 @@ class ProductDetailApiService {
   transformProductCardInfo(product) {
     return {
       productNumber: product.CustomerFacingProductCode || product.id || '',
-      productName: product.ProductName_en || product.ProductName || '',
+      productName: product.ProductName || '',
       developmentStatus: this.getDevelopmentStatus(product.EnrichmentStatus, product.LifecycleStatus),
       lifeCycleStatus: product.LifecycleStatus || '',
       enrichmentStatus: product.EnrichmentStatus || '',
@@ -645,7 +651,7 @@ class ProductDetailApiService {
   // 基础数据转换
   transformBasicData(product) {
     return {
-      productName: product.ProductName_en || product.ProductName || '',
+      productName: product.ProductName || '',
       onlineDate: this.formatDate(product.OnlineDate),
       brand: product.Brand || '',
       region: product.Region || '',
@@ -689,8 +695,8 @@ class ProductDetailApiService {
     return {
       modelName: product.VirtualProductID || product.ProductName || '',
       categoryBullets: this.extractCategoryBullets(product),
-      popShortDescription: product.ShortDescription_en || product.ShortDescription || '',
-      longDescription: product.LongDescription_en || product.LongDescription || '',
+      popShortDescription: product.ShortDescription || '',
+      longDescription: product.LongDescription || '',
       packagingContains: product.PackagingContains || '',
       specifications: this.extractSpecifications(product.Specs)//这里未来应该改成marketingfeatures 待确认
     };
@@ -920,7 +926,7 @@ class ProductDetailApiService {
     const items = [
       product.CategoryName,
       product.ProductLabel,
-      product.ProductName_en,
+      product.ProductName,
       product.Brand && product.CategoryName ? `${product.Brand} ${product.CategoryName}` : null
     ];
 
@@ -1037,6 +1043,7 @@ class ProductDetailApiService {
         thumbnailUrl: image.assetThumb2 || '',
         downloadUrl: image.fullpath || '',
         fileName: image.filename || '',
+        keywords: this.extractKeywords(image.metadata), // 新增keywords字段
         basicInfo: {
           modelNumber: this.extractMetadataValue(image.metadata, 'modelNumber'),
           imageType: this.extractMetadataValue(image.metadata, 'imageType'),
@@ -1068,7 +1075,8 @@ class ProductDetailApiService {
       language: this.extractMetadataValue(video.metadata, 'language') || '',
       type: this.extractMetadataValue(video.metadata, 'type') || '',
       format: 'Video',
-      duration: this.extractMetadataValue(video.metadata, 'duration') || ''
+      duration: this.extractMetadataValue(video.metadata, 'duration') || '',
+      keywords: this.extractKeywords(video.metadata, 'Video Key Words') // 新增keywords字段
     }));
   }
 
@@ -1089,6 +1097,20 @@ class ProductDetailApiService {
     return item?.data || '';
   }
 
+  // 提取关键词作为keywords数组
+  extractKeywords(metadata, keywordFieldName = 'Media Key Words') {
+    if (!metadata || !Array.isArray(metadata)) return [];
+    const keywordsItem = metadata.find(m => m.name === keywordFieldName);
+    if (!keywordsItem || !keywordsItem.data) return [];
+
+    // 如果data是字符串，按分号分割；如果已经是数组，直接返回
+    if (typeof keywordsItem.data === 'string') {
+      return keywordsItem.data.split(';').map(keyword => keyword.trim()).filter(keyword => keyword.length > 0);
+    }
+
+    return Array.isArray(keywordsItem.data) ? keywordsItem.data : [];
+  }
+
   formatFileSize(bytes) {
     if (!bytes) return '';
     const mb = bytes / (1024 * 1024);
@@ -1105,17 +1127,18 @@ class ProductDetailApiService {
   }
 
   // 获取产品详情
-  async getProductDetail(skuid) {
+  async getProductDetail(skuid, defaultLanguage = 'en') {
     try {
-      const filterString = JSON.stringify({
+      const filter = {
         CustomerFacingProductCode: { "$like": skuid }
-      });
+      };
+      const query = this.buildProductQuery(1, 0, filter, defaultLanguage);
+
       const response = await fetch(this.baseURL, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({
-          query: this.getProductQuery,
-          variables: { first: 1, after: 0, filter: filterString }
+          query: query
         }),
       });
 
@@ -1149,9 +1172,9 @@ class ProductDetailApiService {
   }
 
   // 批量获取产品详情
-  async getProductDetails(skuids) {
+  async getProductDetails(skuids, defaultLanguage = 'en') {
     try {
-      const promises = skuids.map(skuid => this.getProductDetail(skuid));
+      const promises = skuids.map(skuid => this.getProductDetail(skuid, defaultLanguage));
       const results = await Promise.allSettled(promises);
 
       return results.map((result, index) => ({
