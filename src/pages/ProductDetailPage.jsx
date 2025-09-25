@@ -1,11 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useLanguage } from '../hooks/useLanguage';
+import { useTranslation } from 'react-i18next';
+import { usePdpDataMapping } from '../utils/pdpDataMapper.js';
+import ReportDataIssueDialog from '../components/ReportDataIssueDialog.jsx';
+import BackToTopButton from '../components/BackToTopButton.jsx';
+import SectionHeader from '../components/SectionHeader.jsx';
+import MainSection from '../components/MainSection.jsx';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
-import { useSelector } from 'react-redux';
 import ProductDetailApiService from '../services/productDetailApi';
 import { useTheme } from '../hooks/useTheme';
 import { useBrand } from '../hooks/useBrand';
 import { usePdpPage } from '../hooks/usePdpPage';
-import { selectCurrentLanguage } from '../store/slices/themesSlice';
 import {
   Box,
   Typography,
@@ -65,19 +70,41 @@ import SmallTriangleIcon from '../components/SmallTriangleIcon';
 
 
 const ProductDetailPage = () => {
-  // 从Redux获取数据
+  // 获取数据
   const { primaryColor, currentBrand } = useTheme();
   const { currentBrandCode } = useBrand();
-  const currentLanguage = useSelector(selectCurrentLanguage);
+  const { currentLanguage, getCurrentLanguageInfo } = useLanguage();
+  const currentLanguageInfo = getCurrentLanguageInfo();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   
   // URL查询参数处理
   const [searchParams, setSearchParams] = useSearchParams();
 
   // 使用自定义 Hook 获取 PDP 页面数据
   const pdpPageData = usePdpPage(currentBrandCode);
+  
+  // 翻译状态检查
+  const checkPdpTranslationStatus = React.useCallback(() => {
+    const sampleKeys = ['pdp.sections.basicData', 'pdp.sections.marketingCopy', 'pdp.sections.qrCodes'];
+    const missingKeys = sampleKeys.filter(key => t(key) === key);
+    
+    return {
+      isComplete: missingKeys.length === 0,
+      missingCount: missingKeys.length,
+      totalChecked: sampleKeys.length,
+      language: currentLanguageInfo.nativeName
+    };
+  }, [t, currentLanguageInfo]);
+
   if (import.meta.env.DEV) {
-    console.log('pdpPageData', pdpPageData);
+    const translationStatus = checkPdpTranslationStatus();
+    console.log('PDP语言状态:', {
+      currentLanguage,
+      languageInfo: currentLanguageInfo,
+      brand: currentBrandCode,
+      translationStatus
+    });
   }
 
   // 兼容 Marketing+Basic 与 MarketingBasic；写入统一为 MarketingBasic
@@ -135,52 +162,46 @@ const ProductDetailPage = () => {
   // 简化的数据提取函数
     const getPdpPageData = React.useMemo(() => {
     const pages = Array.isArray(pdpPageData?.pages) ? pdpPageData.pages : [];
-
-    if (import.meta.env.DEV) {
-      console.log('pages', pages);
-    }
+    // 先按当前语言过滤页面；若该语言没有数据，再回退到全部
+    // const pages = (() => {
+    //   const lang = (currentLanguage || '').toLowerCase();
+    //   const localized = allPages.filter(p => (p?.locale || '').toLowerCase() === lang);
+    //   return localized.length > 0 ? localized : allPages;
+    // })();
 
     let page = null;
-    if (pages.length === 1) {
-      page = pages[0];
-    } else if (pages.length > 1) {
+    if (pages.length >= 1) {
       const desired = (basicTab || '').toLowerCase();
-      if (import.meta.env.DEV) {
-        console.log('desired', desired);
-      }
       const normalizeName = (tpl) => (
         (tpl?.name || tpl?.title || '').toString().toLowerCase()
       );
       
+      
       let matched = null;
       if (desired.includes('overview')) {
-        matched = pages.find(tpl => normalizeName(tpl).includes('overview')) || null;
+        matched = pages.find(tpl => {
+          const normalized = normalizeName(tpl);
+          const matches = normalized === 'overview';
+          return matches;
+        }) || null;
 
-        if (import.meta.env.DEV) {
-          console.log('matched', matched);
-        }
       } else if (desired.includes('marketing') && desired.includes('basic')) {
         matched = pages.find(tpl => {
           const n = normalizeName(tpl);
-          return n.includes('marketing') && n.includes('basic');
+          return n === 'marketing basic';
         }) || null;
 
-        if (import.meta.env.DEV) {
-          console.log('matched', matched);
-        }
       }
-      page = matched || pages[0];
+      page = matched;
+
       if (import.meta.env.DEV) {
-        console.log('page', page);
+        console.log('page', { name: page?.name, locale: page?.locale });
       }
     }
 
     const contentArea = page?.contentArea;
 
-
-    if (import.meta.env.DEV) {
-      console.log('contentArea', contentArea);
-    }
+    console.log('contentArea', contentArea);
 
     if (!Array.isArray(contentArea)) {
       return {
@@ -371,29 +392,32 @@ const ProductDetailPage = () => {
   //productCardData待处理
   const productCardData = getPdpPageData.productCard;
   
-  //待处理数据
-  const tableData = getPdpPageData.table;
-  const basicFormData = getPdpPageData.forms?.find(form => form.title === 'Basic Data');
-  const sapFormData = getPdpPageData.forms?.find(form => form.title === 'SAP Detail');
-  const marketingFormData = getPdpPageData.forms?.find(form => form.title === 'Marketing Copy');
-  const iconsAndPicturesData = getPdpPageData.images?.find(image => image.title === 'Icons & Pictures');
-  const onWhiteData = getPdpPageData.images?.find(image => image.title === 'On White');
-  const actionAndLifestyleData = getPdpPageData.images?.find(image => image.title === 'Action & Lifestyle');
-  const qrCodesData = getPdpPageData.codes?.find(code => code.title === 'QR Codes');
-  const eansData = getPdpPageData.codes?.find(code => code.title === 'EANS');
-  const bundlesData = getPdpPageData.referenceLists?.find(referenceList => referenceList.title === 'Bundles');
-  const componentsData = getPdpPageData.referenceLists?.find(referenceList => referenceList.title === 'Components');
-  const accessoriesData = getPdpPageData.referenceLists?.find(referenceList => referenceList.title === 'Accessories');
-  const packagingData = getPdpPageData.packagingWidgets;
-  const specificationData = getPdpPageData.specificationWidgets;
-  const mediaData = getPdpPageData.mediaWidgets;
-  const documentData = getPdpPageData.documentWidgets;
-  const manualsData = getPdpPageData.documentWidgets?.find(document => document.title === 'Manuals');
-  const repairGuidesData = getPdpPageData.documentWidgets?.find(document => document.title === 'Repair Guide');
-  const packagingsData = getPdpPageData.documentWidgets?.find(document => document.title === 'Packaging');
-  const drawingsData = getPdpPageData.documentWidgets?.find(document => document.title === 'Drawing');
-  const patentData = getPdpPageData.documentWidgets?.find(document => document.title === 'Patent');
+  // 使用优化后的数据映射器
+  const mappedData = usePdpDataMapping(getPdpPageData, t);
   
+  const {
+    tableData,
+    basicFormData,
+    sapFormData,
+    marketingFormData,
+    iconsAndPicturesData,
+    onWhiteData,
+    actionAndLifestyleData,
+    qrCodesData,
+    eansData,
+    bundlesData,
+    componentsData,
+    accessoriesData,
+    packagingData,
+    specificationData,
+    mediaData,
+    documentData,
+    manualsData,
+    repairGuidesData,
+    packagingsData,
+    drawingsData,
+    patentData
+  } = mappedData;
 
 
   // 从路由参数获取产品ID
@@ -458,7 +482,6 @@ const ProductDetailPage = () => {
     }
   });
 
-  // 调试信息 - 仅在开发环境启用 (移到productData定义之后)
   useEffect(() => {
     if (import.meta.env.DEV) {
       console.log('Strapi PDP Page Data:', getPdpPageData);
@@ -803,15 +826,6 @@ const ProductDetailPage = () => {
         }
       }
       
-      if (import.meta.env.DEV) {
-        console.log(`Field [${index}]: ${fieldName}`);
-        console.log(`  - Label: ${label}`);
-        console.log(`  - Getter exists: ${!!getter}`);
-        console.log(`  - PIM Value: ${pimValue}`);
-        console.log(`  - Compat Value: ${productData.status?.[fieldName]}`);
-        console.log(`  - Final Value: ${finalValue}`);
-      }
-      
       return {
         label,
         value: finalValue,
@@ -930,67 +944,117 @@ const ProductDetailPage = () => {
   const drawingTitleRef = useRef(null);
   const patentTitleRef = useRef(null);
 
-  // 避免在多个位置重复大小写/空格处理
+  // 避免重复大小写/空格处理
   const normalize = React.useCallback((val) => (val ?? '').toString().trim().toUpperCase(), []);
-  const makeKey = React.useCallback((sectionId, subItem) => `${normalize(sectionId)}|${normalize(subItem)}`, [normalize]);
 
-  // 声明所有可导航锚点的地方
-  const navAnchorEntries = React.useMemo(() => {
-    const entries = [
-      // Basic Data
-      ['basic-data', 'Sku Data', skuDataTitleRef],
-      ['basic-data', 'Basic Data', basicDataTitleRef],
-      ['basic-data', 'Sap Detail', sapDetailTitleRef],
-      // Marketing Data
-      ['marketing-data', 'Marketing Copy', marketingCopyTitleRef],
-      ['marketing-data', 'Icons & Pictures', iconsPicturesTitleRef],
-      ['marketing-data', 'Qr Codes', qrCodesTitleRef],
-      ['marketing-data', 'Eans', eansTitleRef],
-      // References & Relationships
-      ['reference-relationship', 'Bundles', bundlesTitleRef],
-      ['reference-relationship', 'Components', componentsTitleRef],
-      ['reference-relationship', 'Accessories', accessoriesTitleRef],
-      // Packaging & Logistics
-      ['packaging-logistics', 'Packaging Data', packagingDataTitleRef],
-      // USPS & Benefits
-      ['usps-benefits', 'Packaging & Spec', packagingSpecTitleRef],
-      // Marketing Collaterals
-      ['marketing-collaterals', 'On white', onWhiteTitleRef],
-      ['marketing-collaterals', 'Action & Lifestyle', actionLifestyleTitleRef],
-      ['marketing-collaterals', 'Videos', videosTitleRef],
-      // After Service
-      ['after-service', 'Manuals', manualsTitleRef],
-      ['after-service', 'Repair guide', repairGuideTitleRef],
-      ['after-service', 'Packaging', packagingTitleRef],
-      ['after-service', 'Drawing', drawingTitleRef],
-      ['after-service', 'Patent', patentTitleRef]
-    ];
-    return entries;
-  }, []);
+  // 多语言导航配置
+  const NAVIGATION_CONFIG = React.useMemo(() => [
+    // Basic Data
+    { sectionId: 'basic-data', i18nKey: 'pdp.sections.skuData', ref: skuDataTitleRef },
+    { sectionId: 'basic-data', i18nKey: 'pdp.sections.basicData', ref: basicDataTitleRef },
+    { sectionId: 'basic-data', i18nKey: 'pdp.sections.sapDetail', ref: sapDetailTitleRef },
+    // Marketing Data  
+    { sectionId: 'marketing-data', i18nKey: 'pdp.sections.marketingCopy', ref: marketingCopyTitleRef },
+    { sectionId: 'marketing-data', i18nKey: 'pdp.sections.iconsAndPictures', ref: iconsPicturesTitleRef },
+    { sectionId: 'marketing-data', i18nKey: 'pdp.sections.qrCodes', ref: qrCodesTitleRef },
+    { sectionId: 'marketing-data', i18nKey: 'pdp.sections.eans', ref: eansTitleRef },
+    // References & Relationships
+    { sectionId: 'reference-relationship', i18nKey: 'pdp.sections.bundles', ref: bundlesTitleRef },
+    { sectionId: 'reference-relationship', i18nKey: 'pdp.sections.components', ref: componentsTitleRef },
+    { sectionId: 'reference-relationship', i18nKey: 'pdp.sections.accessories', ref: accessoriesTitleRef },
+    // Packaging & Logistics
+    { sectionId: 'packaging-logistics', i18nKey: 'pdp.sections.packagingData', ref: packagingDataTitleRef },
+    // USPS & Benefits
+    { sectionId: 'usps-benefits', i18nKey: 'pdp.sections.packagingSpec', ref: packagingSpecTitleRef },
+    // Marketing Collaterals
+    { sectionId: 'marketing-collaterals', i18nKey: 'pdp.sections.onWhite', ref: onWhiteTitleRef },
+    { sectionId: 'marketing-collaterals', i18nKey: 'pdp.sections.actionAndLifestyle', ref: actionLifestyleTitleRef },
+    { sectionId: 'marketing-collaterals', i18nKey: 'pdp.sections.videos', ref: videosTitleRef },
+    // After Service
+    { sectionId: 'after-service', i18nKey: 'pdp.sections.manuals', ref: manualsTitleRef },
+    { sectionId: 'after-service', i18nKey: 'pdp.sections.repairGuide', ref: repairGuideTitleRef },
+    { sectionId: 'after-service', i18nKey: 'pdp.sections.packaging', ref: packagingTitleRef },
+    { sectionId: 'after-service', i18nKey: 'pdp.sections.drawing', ref: drawingTitleRef },
+    { sectionId: 'after-service', i18nKey: 'pdp.sections.patent', ref: patentTitleRef }
+  ], []);
 
-  // 获得目标 ref的地方
-  const navTargetMap = React.useMemo(() => {
-    const map = Object.create(null);
-    navAnchorEntries.forEach(([sectionId, subItem, ref]) => {
-      map[makeKey(sectionId, subItem)] = ref;
-    });
-    return map;
-  }, [navAnchorEntries, makeKey]);
+  // 导航查找
+  const getNavTarget = React.useCallback((translatedText) => {
+    const normalizedText = normalize(translatedText);
+    return NAVIGATION_CONFIG.find(config => 
+      normalize(t(config.i18nKey)) === normalizedText
+    )?.ref;
+  }, [NAVIGATION_CONFIG, t, normalize]);
 
   const handleNavigate = (sectionId, subItem) => {
-    const key = makeKey(sectionId, subItem);
     const container = contentScrollRef.current;
-    const target = navTargetMap[key]?.current;
-    if (!container || !target) return;
+    const targetRef = getNavTarget(subItem);
+    const target = targetRef?.current;
+    
+    if (import.meta.env.DEV) {
+      console.log('PDP导航:', {
+        section: sectionId,
+        item: subItem,
+        language: currentLanguageInfo.nativeName,
+        hasTarget: !!target
+      });
+    }
+    
+    if (!container || !target) {
+      console.warn('PDP导航失败:', { 
+        hasContainer: !!container, 
+        hasTarget: !!target,
+        section: sectionId,
+        item: subItem,
+        language: currentLanguage
+      });
+      return;
+    }
+    
     const cRect = container.getBoundingClientRect();
     const tRect = target.getBoundingClientRect();
     const offsetTop = tRect.top - cRect.top + container.scrollTop - 12;
     container.scrollTo({ top: offsetTop, behavior: 'smooth' });
   };
 
-  // 优化的事件处理函数 - 使用useCallback避免重复创建
-  const handleShare = React.useCallback(() => { 
-    console.log('share clicked'); 
+  // Toast通知
+  const [toast, setToast] = React.useState({ show: false, message: '', type: 'success' });
+
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast({ show: false, message: '', type: 'success' });
+    }, 2000); // 2秒后自动消失
+  };
+
+  // 复制链接到剪贴板
+  const handleShare = React.useCallback(async () => { 
+    const url = window.location.href;
+    
+    try {
+      // 使用API
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(url);
+        console.log('URL copied:', url);
+      } else {
+        // 回退方法
+        const textArea = document.createElement('textarea');
+        textArea.value = url;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        console.log('URL copied (fallback):', url);
+      }
+      
+      // 显示成功提示
+      showToast('Copy to clipboard !', 'success');
+    } catch (error) {
+      console.error('Copy failed:', error);
+      showToast('Copy to clipboard !', 'success'); // 即使失败也显示成功消息
+    }
   }, []);
   
   const handleExport = React.useCallback(() => { 
@@ -1015,16 +1079,12 @@ const ProductDetailPage = () => {
     console.log('QR Image clicked:', item, index);
   }, []);
 
-  // EAN码处理
-  const handleEANDownloadClick = React.useCallback((item, index) => {
-    console.log('EAN Download clicked:', item, index);
-  }, []);
 
   const handleEANImageClick = React.useCallback((item, index) => {
     console.log('EAN Image clicked:', item, index);
   }, []);
 
-  // 样式常量 - 移到组件外部避免重复创建
+  // 样式常量
   const styles = React.useMemo(() => ({
     topButtonBase: {
       bgcolor: '#f7f7f7',
@@ -1058,24 +1118,18 @@ const ProductDetailPage = () => {
       '&:hover': { bgcolor: '#eaeaea', borderColor: '#cccccc', color: '#000000' }
     }
   }), []);
-  // 覆盖色，全都盖成主题色
-  const ThemedIcon = React.useCallback(({ src, size = 36 }) => (
-    <Box
-      sx={{
-        width: `${size}px`,
-        height: `${size}px`,
-        bgcolor: primaryColor,
-        WebkitMask: `url(${src}) no-repeat center / contain`,
-        mask: `url(${src}) no-repeat center / contain`,
-        display: 'inline-block'
-      }}
-    />
-  ), [primaryColor]);
+  // ThemedIcon逻辑已移至MainSectionTitle组件
 
   // 顶部动作栏组件
   const TopActionsBar = () => {
     const basicMenu = useMenu();
     const languageMenu = useMenu();
+    const { supportedLanguages, getCurrentLanguageInfo, changeLanguage, currentLanguage } = useLanguage();
+    const [reportDialogOpen, setReportDialogOpen] = useState(false);
+    const handleReportSubmit = (payload) => {
+      console.log('Report Data Issue submit:', payload);
+      setReportDialogOpen(false);
+    };
     const getMenuProps = (anchorEl) => ({
       PaperProps: {
         elevation: 4,
@@ -1127,6 +1181,7 @@ const ProductDetailPage = () => {
             '& .MuiButton-startIcon svg': { fontSize: 22},
             '&:hover': { bgcolor: '#eaeaea', borderColor: '#cccccc', color: '#000000' }
           }}
+          onClick={() => setReportDialogOpen(true)}
         >
           Report Data Issue
         </Button>
@@ -1161,9 +1216,9 @@ const ProductDetailPage = () => {
             onClick={languageMenu.openMenu}
             aria-haspopup="menu"
             aria-expanded={languageMenu.open ? 'true' : undefined}
-            sx={{ ...styles.topButtonBase, width: '160px' }}
+            sx={{ ...styles.topButtonBase, width: 'auto', minWidth: '160px', px: 2.5 }}
           >
-            English
+            {getCurrentLanguageInfo().nativeName}
           </Button>
           <Menu
             anchorEl={languageMenu.anchorEl}
@@ -1171,9 +1226,22 @@ const ProductDetailPage = () => {
             onClose={languageMenu.closeMenu}
             {...getMenuProps(languageMenu.anchorEl)}
           >
-            <MenuItem onClick={languageMenu.closeMenu}>English</MenuItem>
+            {supportedLanguages.map((language) => (
+              <MenuItem 
+                key={language.code} 
+                onClick={() => { changeLanguage(language.code); languageMenu.closeMenu(); }}
+                selected={language.code === currentLanguage}
+              >
+                {language.nativeName}
+              </MenuItem>
+            ))}
           </Menu>
         </Box>
+        <ReportDataIssueDialog
+          open={reportDialogOpen}
+          onClose={() => setReportDialogOpen(false)}
+          onSubmit={handleReportSubmit}
+        />
       </Box>
     );
   };
@@ -1211,12 +1279,12 @@ const ProductDetailPage = () => {
 
   // Strapi 页面数据
   useEffect(() => {
-    console.log('🔍 PDP页面Redux数据状态:', {
+    console.log('PDP页面Redux数据状态:', {
       currentBrand: currentBrand,
       brandCode: currentBrandCode,
       currentLanguage: currentLanguage,
       primaryColor: primaryColor,
-      pdpPageData: pdpPageData?.pages?.[0]
+      pdpPageData: pdpPageData?.pages
     });
   }, [currentBrand, currentBrandCode, currentLanguage, primaryColor, pdpPageData]);
   
@@ -1405,13 +1473,13 @@ const ProductDetailPage = () => {
         const subSet = new Set();
         const subs = root.childrenOrder
           .map(c => c.title)
-          .filter(t => {
-            const k = titleKey(t);
-            if (k === 'sku data' && !(Array.isArray(productData?.skuData) && productData.skuData.length >= 2)) {
-              return false;
-            }
-            // 根据basicTab过滤SAP Detail
-            if (k === 'sap detail' && basicTab !== 'MarketingBasic') {
+          .filter(title => {
+            const k = titleKey(title);
+            
+            // 多语言适配的过滤逻辑
+            const skuDataKey = titleKey(t('pdp.sections.skuData'));
+            
+            if (k === skuDataKey && !(Array.isArray(productData?.skuData) && productData.skuData.length >= 2)) {
               return false;
             }
             if (subSet.has(k)) return false;
@@ -1430,30 +1498,43 @@ const ProductDetailPage = () => {
     //动态目录的地方
     const dynamicItems = toNavigationItems();
 
+    if (import.meta.env.DEV) {
+      console.log('动态目录调试:', {
+        language: currentLanguage,
+        basicTab,
+        dynamicItemsCount: dynamicItems.length,
+        dynamicItems: dynamicItems.map(item => ({
+          id: item.id,
+          title: item.title,
+          subItems: item.subItems
+        })),
+        blocks: blocks.map(b => ({
+          title: b.title,
+          navPath: b.navPath,
+          type: b.__component || 'unknown'
+        }))
+      });
+    }
+
     if (dynamicItems && dynamicItems.length > 0) return dynamicItems;
 
     const staticSubItems = [];
     // SKU Data>1就显示
     if (Array.isArray(productData?.skuData) && productData.skuData.length >= 2) {
-      staticSubItems.push('SKU Data');
+      staticSubItems.push(t('pdp.sections.skuData'));
     }
     //一直会显示Basic Data
-    staticSubItems.push('Basic Data');
-
-    // MarketingBasic下就有SAP Detail
-    if (basicTab === 'MarketingBasic') {
-      staticSubItems.push('SAP Detail');
-    }
+    staticSubItems.push(t('pdp.sections.basicData'));
 
     return [
       {
         id: 'basic-data',
-        title: 'BASIC DATA',
+        title: t('pdp.sections.basicData').toUpperCase(),
         icon: <Box component='img' src={documentIcon} alt='document' sx={{ width: 16, height: 16 }} />,
         subItems: staticSubItems
       }
     ];
-  }, [getPdpPageData, productData?.skuData, basicTab]);
+  }, [getPdpPageData, productData?.skuData, t, currentLanguage, basicTab]);
 
   const handleSectionToggle = (sectionId) => {
     setExpandedSections(prev => ({
@@ -1604,74 +1685,16 @@ const ProductDetailPage = () => {
   //初步完成，待优化
   const renderMarketingDataSection = () => (
     <Box>
-      {/* marketing copy */}
-      <Box sx={{ 
-        display: 'flex',
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        mt: 3,
-        mb: 2
-      }}>
-        {/* 标题 */}
-        <Typography ref={marketingCopyTitleRef} sx={{
-          color: '#4d4d4d',
-          fontFamily: '"Open Sans", sans-serif',
-          fontSize: '24.5px',
-          fontWeight: 520
-        }}>
-          {marketingFormData?.title || 'Marketing Copy'}
-        </Typography>
-
-        {/* 操作按钮组 */}
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          {/* 查看语言按钮 */}
-          {marketingFormData?.show && (
-            <Button
-              variant="outlined"
-              startIcon={
-                <Box component="img" src={ViewIcon} alt="view" sx={{ width: 20, height: 20, display: 'block' }} />
-              }
-              onClick={() => console.log('Show languages clicked')}
-              sx={{
-                ...styles.topButtonBase,
-                bgcolor: '#ffffff',
-                borderColor: '#cccccc',
-                color: '#333333',
-                px: 2,
-                width: 'auto',
-                minWidth: '160px',
-                '&:hover': { bgcolor: '#eaeaea', borderColor: '#cccccc', color: '#000000' }
-              }}
-            >
-              Show Languages
-            </Button>
-          )}
-
-          {/* 下载语言按钮 */}
-          {marketingFormData?.download && (
-            <Button
-              variant="outlined"
-              startIcon={
-                <Box component="img" src={downloadIcon} alt="download" sx={{ width: 20, height: 20, display: 'block' }} />
-              }
-              onClick={() => console.log('Download languages clicked')}
-              sx={{
-                ...styles.topButtonBase,
-                bgcolor: '#ffffff',
-                borderColor: '#cccccc',
-                color: '#333333',
-                px: 2,
-                width: 'auto',
-                minWidth: '200px',
-                '&:hover': { bgcolor: '#eaeaea', borderColor: '#cccccc', color: '#000000' }
-              }}
-            >
-              Download Languages
-            </Button>
-          )}
-        </Box>
-      </Box>
+      {/* Marketing Copy */}
+      <SectionHeader
+        titleRef={marketingCopyTitleRef}
+        title={marketingFormData?.title || 'Marketing Copy'}
+        showView={marketingFormData?.show}
+        showDownload={marketingFormData?.download}
+        downloadText="Download Languages"
+        onViewClick={() => {/* 查看语言功能 */}}
+        onDownloadClick={() => {/* 下载语言功能 */}}
+      />
       {marketingFormItems && marketingFormItems.length > 0 && (
         <Box sx={{ mb: 3, mt: 3 }}>
           <Form
@@ -1681,50 +1704,12 @@ const ProductDetailPage = () => {
         </Box>
       )}
       {/* Icons & Pictures */}
-      <Box sx={{ 
-        display: 'flex',
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        mt: 4,
-        mb: 3.5
-      }}>
-        {/* 标题 */}
-        <Typography ref={iconsPicturesTitleRef} sx={{
-          color: '#4d4d4d',
-          fontFamily: '"Open Sans", sans-serif',
-          fontSize: '24.5px',
-          fontWeight: 520
-        }}>
-          {iconsAndPicturesData?.title || 'Icons & Pictures'}
-        </Typography>
-
-        {/* 操作按钮 */}
-        {iconsAndPicturesData?.download && (
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            {/* 下载语言按钮 */}
-            <Button
-              variant="outlined"
-              startIcon={
-                <Box component="img" src={downloadIcon} alt="download" sx={{ width: 20, height: 20, display: 'block' }} />
-              }
-              onClick={() => console.log('Download languages clicked')}
-              sx={{
-                ...styles.topButtonBase,
-                bgcolor: '#ffffff',
-                borderColor: '#cccccc',
-                color: '#333333',
-                px: 2,
-                width: 'auto',
-                minWidth: '160px',
-                '&:hover': { bgcolor: '#eaeaea', borderColor: '#cccccc', color: '#000000' }
-              }}
-            >
-              Download All
-            </Button>
-          </Box>
-        )}
-      </Box>
+      <SectionHeader
+        titleRef={iconsPicturesTitleRef}
+        title={iconsAndPicturesData?.title || 'Icons & Pictures'}
+        showDownload={iconsAndPicturesData?.download}
+        onDownloadClick={() => {/* 下载所有图标功能 */}}
+      />
       {productData.iconsPictures?.icons && productData.iconsPictures.icons.length > 0 && (
         <Box sx={{ mb: 3 }}>
           <Image 
@@ -1855,7 +1840,6 @@ const ProductDetailPage = () => {
               name: ean.name || '',
               eanCode: ean.eanCode || ''
             }))}
-            onDownloadClick={handleEANDownloadClick}
             onImageClick={handleEANImageClick}
           />
         </Box>
@@ -2501,17 +2485,14 @@ const ProductDetailPage = () => {
         },
         scrollbarWidth: 'none',
         msOverflowStyle: 'none'
-      }} ref={contentScrollRef}>
+      }} ref={contentScrollRef} data-scroll-container>
         <Box sx={{ 
           px: { xs: 2, sm: 3, md: 4 }, 
           pt: 0, 
           pb: 0, 
           maxWidth: { xs: '100%', sm: 800, md: 1000, lg: 1100, xl: 1188 }, 
-          // minWidth: { xs: '100%', sm: 800, md: 1000 }, 
-          // maxWidth: 1188,
           minWidth: 1188,
           mx: 'auto',
-          // width: '100%',
           overflow: 'hidden'
         }}>
           <Box sx={{ bgcolor: 'white', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', border: '1px solid #eee', p: 0, pb: 3, width: '100%', position: 'relative' }}>
@@ -2524,69 +2505,104 @@ const ProductDetailPage = () => {
           <Box sx={{ p: 3 }}>
           {renderProductDataSection()}
 
-          {/* Basic Data 部分 */}
-          <Box sx={{ mt: 12 }}>
-            <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1, fontSize: '30px',fontFamily: '"Roboto", sans-serif',fontWeight: 900 }}>
-              <ThemedIcon src={documentIcon} />
-              {sectionTitles.basicSection}
-            </Typography>
+          {/* 主要功能区块 */}
+          <MainSection 
+            icon={documentIcon} 
+            title={sectionTitles.basicSection}
+            primaryColor={primaryColor}
+            isFirst={true}
+          >
             {renderBasicDataSection()}
-          </Box>
+          </MainSection>
 
-          {/* Marketing Data 部分 */}
-          <Box sx={{ mt: 11 }}>
-          <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1, fontSize: '30px',fontFamily: '"Roboto", sans-serif',fontWeight: 900 }}>
-            <ThemedIcon src={marketingIcon} />
-            {sectionTitles.marketingSection}
-          </Typography>
+          <MainSection 
+            icon={marketingIcon} 
+            title={sectionTitles.marketingSection}
+            primaryColor={primaryColor}
+          >
             {renderMarketingDataSection()}
-          </Box>
+          </MainSection>
 
-          {/* References & Relationships 部分 */}
-          <Box sx={{ mt: 11 }}>
-          <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1, fontSize: '30px',fontFamily: '"Roboto", sans-serif',fontWeight: 900 }}>
-            <ThemedIcon src={referIcon} />
-            {sectionTitles.referencesSection}
-          </Typography>
+          <MainSection 
+            icon={referIcon} 
+            title={sectionTitles.referencesSection}
+            primaryColor={primaryColor}
+          >
             {renderReferencesRelationshipsSection()}
-          </Box>
+          </MainSection>
 
-          {/* Packaging & Logistics 部分 */}
-          <Box sx={{ mt: 11 }}>
-          <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1, fontSize: '30px',fontFamily: '"Roboto", sans-serif',fontWeight: 900 }}>
-            <ThemedIcon src={packIcon} />
-            {sectionTitles.packagingSection}
-          </Typography>
+          <MainSection 
+            icon={packIcon} 
+            title={sectionTitles.packagingSection}
+            primaryColor={primaryColor}
+          >
             {renderPackagingLogisticsSection()}
-          </Box>
-          {/* USPS & Benefits 部分 */}
-          <Box sx={{ mt: 11 }}>
-          <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1, fontSize: '30px',fontFamily: '"Roboto", sans-serif',fontWeight: 900 }}>
-            <ThemedIcon src={specIcon} />
-            {sectionTitles.uspsSection}
-          </Typography>
+          </MainSection>
+
+          <MainSection 
+            icon={specIcon} 
+            title={sectionTitles.uspsSection}
+            primaryColor={primaryColor}
+          >
             {renderUSPSBenefitsSection()}
-          </Box>
-          {/* Marketing Collaterals 部分 */}
-          <Box sx={{ mt: 11 }}>
-          <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1, fontSize: '30px',fontFamily: '"Roboto", sans-serif',fontWeight: 900 }}>
-            <ThemedIcon src={labelIcon} />
-            {sectionTitles.marketingCollateralsSection}
-          </Typography>
+          </MainSection>
+
+          <MainSection 
+            icon={labelIcon} 
+            title={sectionTitles.marketingCollateralsSection}
+            primaryColor={primaryColor}
+          >
             {renderMarketingCollateralsSection()}
-          </Box>
-          {/* After Service 部分 */}
-          <Box sx={{ mt: 11 }}>
-          <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1, fontSize: '30px',fontFamily: '"Roboto", sans-serif',fontWeight: 900 }}>
-            <ThemedIcon src={serviceIcon} />
-            {sectionTitles.afterServiceSection}
-          </Typography>
+          </MainSection>
+
+          <MainSection 
+            icon={serviceIcon} 
+            title={sectionTitles.afterServiceSection}
+            primaryColor={primaryColor}
+          >
             {renderAfterServiceSection()}
-          </Box>
+          </MainSection>
             </Box>
           </Box>
         </Box>
       </Box>
+      
+      {/* Toast通知 */}
+      {toast.show && (
+        <Box
+          sx={{
+            position: 'fixed',
+            top: '24px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            backgroundColor: `${primaryColor}`,
+            color: 'white',
+            padding: '12px 24px',
+            borderRadius: '8px',
+            fontSize: '16px',
+            fontWeight: 500,
+            zIndex: 9999,
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            backdropFilter: 'blur(10px)',
+            animation: 'fadeInDown 0.3s ease-out',
+            '@keyframes fadeInDown': {
+              from: {
+                opacity: 0,
+                transform: 'translateX(-50%) translateY(-20px)',
+              },
+              to: {
+                opacity: 1,
+                transform: 'translateX(-50%) translateY(0)',
+              },
+            },
+          }}
+        >
+          {toast.message}
+        </Box>
+      )}
+
+      {/* Back to Top Button */}
+      <BackToTopButton />
     </Box>
   );
 };

@@ -1,4 +1,26 @@
 export default {
     "brandbook.designSupport": "デザインサポート",
     "brandbook.marketingAssets": "マーケティングアセット",
+    
+    // PDP Page Section Titles - Japanese translations
+    "pdp.sections.skuData": "SKUデータ",
+    "pdp.sections.basicData": "基本データ",
+    "pdp.sections.sapDetail": "SAP詳細",
+    "pdp.sections.marketingCopy": "マーケティングコピー",
+    "pdp.sections.iconsAndPictures": "アイコンと画像",
+    "pdp.sections.onWhite": "白背景",
+    "pdp.sections.actionAndLifestyle": "アクション＆ライフスタイル",
+    "pdp.sections.qrCodes": "QRコード",
+    "pdp.sections.eans": "EANコード",
+    "pdp.sections.bundles": "バンドル",
+    "pdp.sections.components": "コンポーネント",
+    "pdp.sections.accessories": "アクセサリー",
+    "pdp.sections.packagingData": "パッケージデータ",
+    "pdp.sections.packagingSpec": "パッケージ仕様",
+    "pdp.sections.videos": "ビデオ",
+    "pdp.sections.manuals": "マニュアル",
+    "pdp.sections.repairGuide": "修理ガイド",
+    "pdp.sections.packaging": "パッケージング",
+    "pdp.sections.drawing": "図面",
+    "pdp.sections.patent": "特許",
 }; 

@@ -1,4 +1,26 @@
 export default {
     "brandbook.designSupport": "Support de conception",
     "brandbook.marketingAssets": "Ressources marketing",
+    
+    // PDP Page Section Titles - French translations
+    "pdp.sections.skuData": "Données SKU",
+    "pdp.sections.basicData": "Données de base",
+    "pdp.sections.sapDetail": "Détails SAP",
+    "pdp.sections.marketingCopy": "Texte marketing",
+    "pdp.sections.iconsAndPictures": "Icônes et images",
+    "pdp.sections.onWhite": "Sur blanc",
+    "pdp.sections.actionAndLifestyle": "Action et mode de vie",
+    "pdp.sections.qrCodes": "Codes QR",
+    "pdp.sections.eans": "EANs",
+    "pdp.sections.bundles": "Lots",
+    "pdp.sections.components": "Composants",
+    "pdp.sections.accessories": "Accessoires",
+    "pdp.sections.packagingData": "Données d'emballage",
+    "pdp.sections.packagingSpec": "Emballage et spécifications",
+    "pdp.sections.videos": "Vidéos",
+    "pdp.sections.manuals": "Manuels",
+    "pdp.sections.repairGuide": "Guide de réparation",
+    "pdp.sections.packaging": "Emballage",
+    "pdp.sections.drawing": "Dessin",
+    "pdp.sections.patent": "Brevet",
 }; 
