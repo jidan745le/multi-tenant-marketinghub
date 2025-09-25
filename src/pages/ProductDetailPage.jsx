@@ -419,6 +419,8 @@ const ProductDetailPage = () => {
     patentData
   } = mappedData;
 
+  console.log('mappedData111', mappedData);
+
 
   // 从路由参数获取产品ID
   const { id: routeProductId } = useParams();
@@ -2149,9 +2151,9 @@ const ProductDetailPage = () => {
               basicInfo: img.basicInfo || {},
               technical: img.technical || {},
               downloadUrl: img.downloadUrl || '',
-              imageUrl: img.imageUrl || ''
+              imageUrl: img.imageUrl || '',
+              keywords: Array.isArray(img.keywords) ? img.keywords : []
             }))}
-            tags={(productData.marketingCollaterals?.onWhite?.[0]?.tags || ['Tool Cabinet...', 'Tool Cabinet...', 'Tool Cabinet...', 'Tool Cabinet...'])}
             // 标签映射
             infoLabels={{
               basic: [

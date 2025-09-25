@@ -48,6 +48,10 @@ const Image = ({
   // gallery: 当前主图
   const hasThumbs = Array.isArray(thumbnailImages) && thumbnailImages.length > 0;
   const displayedMainImage = hasThumbs ? thumbnailImages[selectedImageIndex] : (mainImage || null);
+  // keyWords
+  const displayedTags = Array.isArray(tags) && tags.length > 0
+    ? tags
+    : (Array.isArray(displayedMainImage?.keywords) ? displayedMainImage.keywords : []);
 
   const handleDownload = () => {
     onDownload && onDownload(displayedMainImage || mainImage);
@@ -146,7 +150,7 @@ const Image = ({
         </Typography>
 
         {/* 标签行 */}
-        {Array.isArray(tags) && tags.length > 0 && (
+        {Array.isArray(displayedTags) && displayedTags.length > 0 && (
           <Box sx={{
             display: 'flex',
             flexDirection: 'row',
@@ -157,7 +161,7 @@ const Image = ({
             left: '356px',
             top: '70px',
           }}>
-            {tags.map((label, idx) => (
+            {displayedTags.map((label, idx) => (
               <Box key={idx} sx={{
                 background: '#fff8f6',
                 borderRadius: '1.71px',
@@ -185,7 +189,7 @@ const Image = ({
                     color: primaryColor,
                     textAlign: 'left',
                     fontFamily: '"OpenSans-Regular", sans-serif',
-                    fontSize: '10px',
+                    fontSize: '13px',
                     lineHeight: '10.24px',
                     letterSpacing: '0.17px',
                     fontWeight: 400,
@@ -224,7 +228,7 @@ const Image = ({
           DOWNLOAD
         </Button>
 
-        {/* 边框（包含下边框）*/}
+        {/* 边框*/}
         <Box sx={{
           borderRadius: '3.41px 3.41px 0 0',
           borderStyle: 'solid',
@@ -323,7 +327,7 @@ const Image = ({
             Technical
           </Typography>
 
-          {/* 信息内容（标签列，动态渲染）*/}
+          {/* 信息内容*/}
           <Box sx={{
             position: 'absolute',
             left: '13.53px',
@@ -339,7 +343,7 @@ const Image = ({
             ))}
           </Box>
 
-          {/* 值（与标签列对齐，动态渲染）*/}
+          {/* 值*/}
           <Box sx={{
             position: 'absolute',
             left: '150.53px',
@@ -366,7 +370,7 @@ const Image = ({
             })}
           </Box>
 
-          {/* 技术信息（标签列，动态渲染）*/}
+          {/* 技术信息*/}
           <Box sx={{
             position: 'absolute',
             left: '281.24px',
@@ -382,7 +386,7 @@ const Image = ({
             ))}
           </Box>
 
-          {/* 技术值（与标签列对齐，动态渲染）*/}
+          {/* 技术值*/}
           <Box sx={{
             position: 'absolute',
             left: '390px',
