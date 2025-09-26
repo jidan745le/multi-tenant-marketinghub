@@ -1140,7 +1140,20 @@ const ProductDetailPage = () => {
           mt: 1,
           width: anchorEl ? anchorEl.offsetWidth : undefined,
           bgcolor: 'background.paper',
-          '& .MuiMenuItem-root': { py: 1, fontSize: 14 }
+          '& .MuiMenuItem-root': { 
+            py: 1, 
+            fontSize: 14,
+            '&:hover': {
+              backgroundColor: `${primaryColor}20`, 
+            },
+            '&.Mui-selected': {
+              backgroundColor: `${primaryColor}15`, 
+              color: primaryColor,
+              '&:hover': {
+                backgroundColor: `${primaryColor}25`, 
+              }
+            }
+          }
         }
       },
       MenuListProps: {
@@ -1206,8 +1219,18 @@ const ProductDetailPage = () => {
             onClose={basicMenu.closeMenu}
             {...getMenuProps(basicMenu.anchorEl)}
           >
-          <MenuItem onClick={() => { basicMenu.closeMenu(); updateBasicTabAndUrl('MarketingBasic'); }}>Marketing Basic</MenuItem>
-          <MenuItem onClick={() => { basicMenu.closeMenu(); updateBasicTabAndUrl('Overview'); }}>Overview</MenuItem>
+          <MenuItem 
+            selected={basicTab === 'MarketingBasic'}
+            onClick={() => { basicMenu.closeMenu(); updateBasicTabAndUrl('MarketingBasic'); }}
+          >
+            Marketing Basic
+          </MenuItem>
+          <MenuItem 
+            selected={basicTab === 'Overview'}
+            onClick={() => { basicMenu.closeMenu(); updateBasicTabAndUrl('Overview'); }}
+          >
+            Overview
+          </MenuItem>
           </Menu>
 
           <Button
