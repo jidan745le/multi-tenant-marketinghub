@@ -1052,10 +1052,10 @@ const ProductDetailPage = () => {
       }
       
       // 显示成功提示
-      showToast('Copy to clipboard !', 'success');
+      showToast('Copied to clipboard !', 'success');
     } catch (error) {
       console.error('Copy failed:', error);
-      showToast('Copy to clipboard !', 'success'); // 即使失败也显示成功消息
+      showToast('Copied to clipboard !', 'success'); // 即使失败也显示成功消息
     }
   }, []);
   
