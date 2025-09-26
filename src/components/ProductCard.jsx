@@ -94,6 +94,17 @@ const ProductCard = ({
     }
   };
 
+  // 状态颜色映射
+  const getStatusColor = (statusValue) => {
+    if (statusValue === undefined || statusValue === null) return '#9e9e9e';
+    const normalized = String(statusValue).trim().toLowerCase();
+    const colorMap = {
+      active: '#6eb82a',
+      pending: '#f5b80f'
+    };
+    return colorMap[normalized] || '#9e9e9e';
+  };
+
   // 信息行组件
   const InfoRow = ({ items }) => (
     <Box sx={commonStyles.infoRow}>
@@ -102,7 +113,7 @@ const ProductCard = ({
           {item.withStatus ? (
             <Box sx={{ py: 0.72, px: 0.97, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', alignSelf: 'stretch', flex: 1, position: 'relative' }}>
               <Typography sx={{ ...commonStyles.valueText, display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
-                <Typography component="span" sx={{ color: '#6eb82a', mr: 0.5 }}>●</Typography>
+                <Typography component="span" sx={{ color: getStatusColor(item.value), mr: 0.5 }}>●</Typography>
                 <Typography component="span" sx={{ color: '#4d4d4d', fontSize: 12.5 }}>{item.value}</Typography>
               </Typography>
             </Box>

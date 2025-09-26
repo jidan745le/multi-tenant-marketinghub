@@ -1,4 +1,26 @@
 export default {
     "brandbook.designSupport": "Soporte de diseño",
     "brandbook.marketingAssets": "Recursos de marketing",
+    
+    // PDP Page Section Titles - Spanish translations
+    "pdp.sections.skuData": "Datos SKU",
+    "pdp.sections.basicData": "Datos básicos",
+    "pdp.sections.sapDetail": "Detalles SAP",
+    "pdp.sections.marketingCopy": "Texto de marketing",
+    "pdp.sections.iconsAndPictures": "Iconos e imágenes",
+    "pdp.sections.onWhite": "Sobre blanco",
+    "pdp.sections.actionAndLifestyle": "Acción y estilo de vida",
+    "pdp.sections.qrCodes": "Códigos QR",
+    "pdp.sections.eans": "EANs",
+    "pdp.sections.bundles": "Paquetes",
+    "pdp.sections.components": "Componentes",
+    "pdp.sections.accessories": "Accesorios",
+    "pdp.sections.packagingData": "Datos de embalaje",
+    "pdp.sections.packagingSpec": "Embalaje y especificaciones",
+    "pdp.sections.videos": "Videos",
+    "pdp.sections.manuals": "Manuales",
+    "pdp.sections.repairGuide": "Guía de reparación",
+    "pdp.sections.packaging": "Embalaje",
+    "pdp.sections.drawing": "Dibujo",
+    "pdp.sections.patent": "Patente",
 }; 

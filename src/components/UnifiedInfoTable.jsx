@@ -20,6 +20,16 @@ const UnifiedInfoTable = ({
   const { primaryColor } = useTheme();
   const { t } = useTranslation();
 
+  // 通用下载函数
+  const downloadImage = (dataURL, filename) => {
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = dataURL;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // 与白色混合，得到非透明浅色
   const mixWithWhite = (hexColor, amount = 0.15) => {
     try {
@@ -37,41 +47,32 @@ const UnifiedInfoTable = ({
 
   // 生成条形码图片
   const generateBarcode = (eanCode) => {
+    if (!eanCode) return null;
+    
+    // 根据EAN码长度选择格式
+    let format = 'CODE128';
+    if (eanCode.length === 13) format = 'EAN13';
+    else if (eanCode.length === 8) format = 'EAN8';
+    
     try {
-      console.log('Generating barcode for:', eanCode, 'Length:', eanCode?.length);
-      
       const canvas = document.createElement('canvas');
-      
-      // 根据EAN码长度选择格式
-      let format = 'CODE128'; // 默认格式，支持更多字符
-      if (eanCode && eanCode.length === 13) {
-        format = 'EAN13';
-      } else if (eanCode && eanCode.length === 8) {
-        format = 'EAN8';
-      }
-      
-      console.log('Using format:', format);
-      
       JsBarcode(canvas, eanCode, {
-        format: format,
-        width: 1.5,  // 减小条形码宽度
-        height: 40,  // 减小条形码高度
-        displayValue: true, // 显示数字
-        fontSize: 10, // 减小字体
+        format,
+        width: 1.5,
+        height: 40,
+        displayValue: true,
+        fontSize: 10,
         textMargin: 1,
         background: '#ffffff',
         lineColor: '#000000',
-        margin: 5,   // 减小边距
+        margin: 5,
         marginTop: 2,
-        marginBottom: 2,
-        valid: function(valid) {
-          console.log('Barcode validation:', valid);
-        }
+        marginBottom: 2
       });
       return canvas.toDataURL();
     } catch (error) {
       console.error('Error generating barcode:', error);
-      // 如果生成失败，尝试使用CODE128格式
+      // 回退到CODE128格式
       try {
         const canvas = document.createElement('canvas');
         JsBarcode(canvas, eanCode, {
@@ -89,7 +90,7 @@ const UnifiedInfoTable = ({
         });
         return canvas.toDataURL();
       } catch (fallbackError) {
-        console.error('Fallback barcode generation failed:', fallbackError);
+        console.error('Fallback failed:', fallbackError);
         return null;
       }
     }
@@ -113,6 +114,79 @@ const UnifiedInfoTable = ({
     }
   };
 
+  // 统一样式
+  const styles = React.useMemo(() => ({
+    container: {
+      display: 'flex', flexDirection: 'column', gap: 0, alignItems: 'flex-start', justifyContent: 'flex-start', flexShrink: 0, position: 'relative', width: '100%'
+    },
+    headerRow: {
+      background: mixWithWhite(primaryColor, 0.15),
+      borderStyle: 'solid',
+      borderColor: mixWithWhite(primaryColor, 0.30),
+      borderWidth: '0.97px 0px 0.97px 0px',
+      display: 'flex', flexDirection: 'row', gap: 0,
+      alignItems: 'flex-start', justifyContent: 'flex-start', alignSelf: 'stretch', flexShrink: 0,
+      height: '30.93px', position: 'relative'
+    },
+    headerCell: {
+      padding: '7.73px', display: 'flex', flexDirection: 'row', gap: 0,
+      alignItems: 'center', justifyContent: 'flex-start', flexShrink: 0,
+      width: { xs: '25%', sm: '25%', md: '25%', lg: '25%' },
+      height: '30.93px', position: 'relative'
+    },
+    headerText: {
+      color: primaryColor, textAlign: 'left', fontFamily: '"Open Sans", sans-serif',
+      fontSize: '13px', lineHeight: '15.46px', letterSpacing: '0.48px', fontWeight: 600,
+      position: 'relative', flex: 1, textOverflow: 'ellipsis', overflow: 'hidden'
+    },
+    row: {
+      background: '#ffffff', borderStyle: 'solid', borderColor: '#b3b3b3',
+      borderWidth: '0px 0px 0.48px 0px', display: 'flex', flexDirection: 'row', gap: 0,
+      alignItems: 'center', justifyContent: 'flex-start', alignSelf: 'stretch', flexShrink: 0,
+      position: 'relative', transition: 'background-color 0.2s ease',
+      '&:hover': { backgroundColor: mixWithWhite(primaryColor, 0.03) }
+    },
+    cell: {
+      padding: '7.73px', display: 'flex', flexDirection: 'row', gap: 0,
+      alignItems: 'center', justifyContent: 'flex-start', flexShrink: 0,
+      width: { xs: '25%', sm: '25%', md: '25%', lg: '25%' },
+      position: 'relative'
+    },
+    text: {
+      color: '#4d4d4d', textAlign: 'left', fontFamily: '"Open Sans", sans-serif',
+      fontSize: '12.5px', lineHeight: '15.46px', letterSpacing: '0.39px', fontWeight: 400,
+      position: 'relative', flex: 1, textOverflow: 'ellipsis', overflow: 'hidden'
+    },
+    image: {
+      display: 'block', maxWidth: '130px', maxHeight: '80px', width: 'auto', height: 'auto',
+      position: 'relative', objectFit: 'contain', overflow: 'hidden', borderRadius: '4px'
+    },
+    actionCell: {
+      padding: '7.73px', display: 'flex', flexDirection: 'row', gap: 0,
+      alignItems: 'center', justifyContent: 'flex-start', alignSelf: 'stretch', flex: 1,
+      position: 'relative'
+    },
+    downloadButton: {
+      color: '#4d4d4d', textAlign: 'left', fontFamily: '"Open Sans", sans-serif', fontSize: '12.5px',
+      lineHeight: '15.46px', letterSpacing: '0.39px', fontWeight: 400, position: 'relative',
+      width: '145px', textOverflow: 'ellipsis', overflow: 'hidden', minWidth: 'auto', padding: 0,
+      textTransform: 'none', justifyContent: 'flex-start', display: 'flex', alignItems: 'center', gap: '6px',
+      '&:hover': { color: primaryColor, textDecoration: 'underline' }
+    },
+    downloadIconMask: {
+      width: '16px', height: '16px', backgroundColor: primaryColor,
+      maskImage: `url(${downloadIcon})`, WebkitMaskImage: `url(${downloadIcon})`,
+      maskRepeat: 'no-repeat', WebkitMaskRepeat: 'no-repeat',
+      maskPosition: 'center', WebkitMaskPosition: 'center',
+      maskSize: 'contain', WebkitMaskSize: 'contain', flexShrink: 0
+    },
+    linkButton: {
+      color: '#4d4d4d', textAlign: 'left', fontFamily: '"Open Sans", sans-serif', fontSize: '12.5px',
+      lineHeight: '15.46px', letterSpacing: '0.39px', fontWeight: 400, textDecoration: 'underline',
+      position: 'relative', flex: 1, textOverflow: 'ellipsis', overflow: 'hidden', minWidth: 'auto', padding: 0,
+      textTransform: 'none', justifyContent: 'flex-start', '&:hover': { color: primaryColor, textDecoration: 'underline' }
+    }
+  }), [primaryColor]);
   const handleImageClick = (item, index) => {
     if (onImageClick) onImageClick(item, index);
   };
@@ -125,7 +199,14 @@ const UnifiedInfoTable = ({
   };
 
   const handleDownload = (item, index) => {
-    if (onDownloadClick) onDownloadClick(item, index);
+    if (onDownloadClick) {
+      onDownloadClick(item, index);
+    } else {
+      const barcodeImage = generateBarcode(item.eanCode);
+      if (barcodeImage) {
+        downloadImage(barcodeImage, `EAN_${item.eanCode}.png`);
+      }
+    }
   };
 
   // 动态图片组件
@@ -157,17 +238,9 @@ const UnifiedInfoTable = ({
         alt={item.name || `item-${index + 1}`}
         onClick={() => handleImageClick(item, index)}
         sx={{ 
-          display: 'block', 
-          maxWidth: '130px', // 限制最大宽度
-          maxHeight: '80px',  // 限制最大高度
-          width: 'auto', 
-          height: 'auto', 
-          position: 'relative', 
-          objectFit: 'contain', 
-          overflow: 'hidden', 
-          cursor: onImageClick ? 'pointer' : 'default', 
-          borderRadius: '4px', 
-          '&:hover': onImageClick ? { transform: 'scale(1.02)', transition: 'transform 0.2s ease' } : {} 
+          ...styles.image,
+          cursor: onImageClick ? 'pointer' : 'default',
+          '&:hover': onImageClick ? { transform: 'scale(1.02)', transition: 'transform 0.2s ease' } : {}
         }}
       />
     );
@@ -204,93 +277,64 @@ const UnifiedInfoTable = ({
   const cellMinHeight = '100px';
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0, alignItems: 'flex-start', justifyContent: 'flex-start', flexShrink: 0, position: 'relative', width: '100%' }}>
+    <Box sx={styles.container}>
       {/* Header */}
-      <Box sx={{
-        background: mixWithWhite(primaryColor, 0.15),
-        borderStyle: 'solid',
-        borderColor: mixWithWhite(primaryColor, 0.30),
-        borderWidth: '0.97px 0px 0.97px 0px',
-        display: 'flex',
-        flexDirection: 'row',
-        gap: 0,
-        alignItems: 'flex-start',
-        justifyContent: 'flex-start',
-        alignSelf: 'stretch',
-        flexShrink: 0,
-        height: '30.93px',
-        position: 'relative'
-      }}>
+      <Box sx={styles.headerRow}>
         {/* Col 1 */}
-        <Box sx={{ padding: '7.73px', display: 'flex', flexDirection: 'row', gap: 0, alignItems: 'center', justifyContent: 'flex-start', flexShrink: 0, width: { xs: '25%', sm: '25%', md: '25%', lg: '25%' }, height: '30.93px', position: 'relative' }}>
-          <Typography sx={{ color: primaryColor, textAlign: 'left', fontFamily: '"Open Sans", sans-serif', fontSize: '13px', lineHeight: '15.46px', letterSpacing: '0.48px', fontWeight: 600, position: 'relative', flex: 1, textOverflow: 'ellipsis', overflow: 'hidden' }}>{headerTitles[0]}</Typography>
+        <Box sx={styles.headerCell}>
+          <Typography sx={styles.headerText}>{headerTitles[0]}</Typography>
         </Box>
         {/* Col 2 */}
-        <Box sx={{ padding: '7.73px', display: 'flex', flexDirection: 'row', gap: 0, alignItems: 'center', justifyContent: 'flex-start', flexShrink: 0, width: { xs: '25%', sm: '25%', md: '25%', lg: '25%' }, height: '30.93px', position: 'relative' }}>
-          <Typography sx={{ color: primaryColor, textAlign: 'left', fontFamily: '"Open Sans", sans-serif', fontSize: '13px', lineHeight: '15.46px', letterSpacing: '0.48px', fontWeight: 600, position: 'relative', flex: 1, textOverflow: 'ellipsis', overflow: 'hidden' }}>{headerTitles[1]}</Typography>
+        <Box sx={styles.headerCell}>
+          <Typography sx={styles.headerText}>{headerTitles[1]}</Typography>
         </Box>
         {/* Col 3 */}
-        <Box sx={{ padding: '7.73px', display: 'flex', flexDirection: 'row', gap: 0, alignItems: 'center', justifyContent: 'flex-start', flexShrink: 0, width: { xs: '25%', sm: '25%', md: '25%', lg: '25%' }, height: '30.93px', position: 'relative' }}>
-          <Typography sx={{ color: primaryColor, textAlign: 'left', fontFamily: '"Open Sans", sans-serif', fontSize: '13px', lineHeight: '15.46px', letterSpacing: '0.48px', fontWeight: 600, position: 'relative', flex: 1, textOverflow: 'ellipsis', overflow: 'hidden' }}>{headerTitles[2]}</Typography>
+        <Box sx={styles.headerCell}>
+          <Typography sx={styles.headerText}>{headerTitles[2]}</Typography>
         </Box>
         {/* Col 4 */}
         <Box sx={{ padding: '7.73px', display: 'flex', flexDirection: 'row', gap: 0, alignItems: 'center', justifyContent: 'flex-start', alignSelf: 'stretch', flex: 1, position: 'relative' }}>
-          <Typography sx={{ color: primaryColor, textAlign: 'left', fontFamily: '"Open Sans", sans-serif', fontSize: '13px', lineHeight: '15.46px', letterSpacing: '0.48px', fontWeight: 600, position: 'relative', flex: 1, textOverflow: 'ellipsis', overflow: 'hidden' }}>{headerTitles[3]}</Typography>
+          <Typography sx={styles.headerText}>{headerTitles[3]}</Typography>
         </Box>
       </Box>
 
       {/* Rows */}
       {data.map((item, index) => (
-        <Box key={index} sx={{ background: '#ffffff', borderStyle: 'solid', borderColor: '#b3b3b3', borderWidth: '0px 0px 0.48px 0px', display: 'flex', flexDirection: 'row', gap: 0, alignItems: 'center', justifyContent: 'flex-start', alignSelf: 'stretch', flexShrink: 0, position: 'relative', '&:hover': { backgroundColor: mixWithWhite(primaryColor, 0.10) } }}>
+        <Box key={index} sx={styles.row}>
           {/* col 1 - image */}
-          <Box sx={{ padding: '7.73px', display: 'flex', flexDirection: 'row', gap: 0, alignItems: 'center', justifyContent: 'flex-start', flexShrink: 0, width: { xs: '25%', sm: '25%', md: '25%', lg: '25%' }, position: 'relative', minHeight: cellMinHeight }}>
+          <Box sx={{ ...styles.cell, minHeight: cellMinHeight }}>
             <DynamicImage item={item} index={index} />
           </Box>
 
           {/* col 2 */}
-          <Box sx={{ padding: '7.73px', display: 'flex', flexDirection: 'row', gap: 0, alignItems: 'center', justifyContent: 'flex-start', flexShrink: 0, width: { xs: '25%', sm: '25%', md: '25%', lg: '25%' }, position: 'relative', minHeight: cellMinHeight }}>
-            <Typography sx={{ color: '#4d4d4d', textAlign: 'left', fontFamily: '"Open Sans", sans-serif', fontSize: '12.5px', lineHeight: '15.46px', letterSpacing: '0.39px', fontWeight: 400, position: 'relative', flex: 1, textOverflow: 'ellipsis', overflow: 'hidden' }}>
+          <Box sx={{ ...styles.cell, minHeight: cellMinHeight }}>
+            <Typography sx={styles.text}>
               {type === 'accessory' ? item.model : item.name}
             </Typography>
           </Box>
 
           {/* col 3 */}
-          <Box sx={{ padding: '7.73px', display: 'flex', flexDirection: 'row', gap: 0, alignItems: 'center', justifyContent: 'flex-start', flexShrink: 0, width: { xs: '25%', sm: '25%', md: '25%', lg: '25%' }, position: 'relative', minHeight: cellMinHeight }}>
-            <Typography sx={{ color: '#4d4d4d', textAlign: 'left', fontFamily: '"Open Sans", sans-serif', fontSize: '12.5px', lineHeight: '15.46px', letterSpacing: '0.39px', fontWeight: 400, position: 'relative', flex: 1, textOverflow: 'ellipsis', overflow: 'hidden' }}>
+          <Box sx={{ ...styles.cell, minHeight: cellMinHeight }}>
+            <Typography sx={styles.text}>
               {type === 'accessory' ? item.name : type === 'barcode' ? item.eanCode : item.link}
             </Typography>
           </Box>
 
           {/* col 4 - action */}
-          <Box sx={{ padding: '7.73px', display: 'flex', flexDirection: 'row', gap: 0, alignItems: 'center', justifyContent: 'flex-start', alignSelf: 'stretch', flex: 1, position: 'relative', minHeight: cellMinHeight }}>
+          <Box sx={{ ...styles.actionCell, minHeight: cellMinHeight }}>
             {type === 'accessory' && (
-              <Typography sx={{ color: '#4d4d4d', textAlign: 'left', fontFamily: '"Open Sans", sans-serif', fontSize: '12.5px', lineHeight: '15.46px', letterSpacing: '0.39px', fontWeight: 400, position: 'relative', flex: 1, textOverflow: 'ellipsis', overflow: 'hidden' }}>
+              <Typography sx={styles.text}>
                 {item.quantity}
               </Typography>
             )}
             {type === 'barcode' && (
-              <Button onClick={() => handleDownload(item, index)} sx={{ color: '#4d4d4d', textAlign: 'left', fontFamily: '"Open Sans", sans-serif', fontSize: '12.5px', lineHeight: '15.46px', letterSpacing: '0.39px', fontWeight: 400, position: 'relative', width: '145px', textOverflow: 'ellipsis', overflow: 'hidden', minWidth: 'auto', padding: 0, textTransform: 'none', justifyContent: 'flex-start', display: 'flex', alignItems: 'center', gap: '6px', '&:hover': { color: primaryColor, textDecoration: 'underline' } }}>
-                <Box
-                  sx={{
-                    width: '16px',
-                    height: '16px',
-                    backgroundColor: primaryColor,
-                    maskImage: `url(${downloadIcon})`,
-                    WebkitMaskImage: `url(${downloadIcon})`,
-                    maskRepeat: 'no-repeat',
-                    WebkitMaskRepeat: 'no-repeat',
-                    maskPosition: 'center',
-                    WebkitMaskPosition: 'center',
-                    maskSize: 'contain',
-                    WebkitMaskSize: 'contain',
-                    flexShrink: 0
-                  }}
-                />
+              <Button onClick={() => handleDownload(item, index)} sx={styles.downloadButton}>
+                <Box sx={styles.downloadIconMask} />
                 {t('eanTable.downloadBarcode', 'Download Barcode')}
               </Button>
             )}
             {type === 'qrcode' && (
-              <Button onClick={() => handleLinkClick(item, index)} sx={{ color: '#4d4d4d', textAlign: 'left', fontFamily: '"Open Sans", sans-serif', fontSize: '12.5px', lineHeight: '15.46px', letterSpacing: '0.39px', fontWeight: 400, textDecoration: 'underline', position: 'relative', flex: 1, textOverflow: 'ellipsis', overflow: 'hidden', minWidth: 'auto', padding: 0, textTransform: 'none', justifyContent: 'flex-start', '&:hover': { color: primaryColor, textDecoration: 'underline' } }}>
+              <Button onClick={() => handleLinkClick(item, index)} sx={styles.linkButton}>
                 {t('qrTable.linkAction', 'Link')}
               </Button>
             )}
