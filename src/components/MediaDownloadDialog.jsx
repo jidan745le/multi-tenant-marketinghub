@@ -21,42 +21,44 @@ import {
   useTheme
 } from '@mui/material';
 import IconButton from '@mui/material/IconButton';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useBrand } from '../hooks/useBrand';
+import derivateManagementApi from '../services/derivateManagementApi';
+import downloadApi from '../services/downloadApi';
+import CookieService from '../utils/cookieService';
 import MultiEmailInput from './MultiEmailInput';
 
-// 模拟的derivate数据
-const mockDerivateData = [
+// Initial derivate data structure
+const getInitialDerivateData = (adhocFormats = []) => [
   {
     label: 'Original/Raw',
     children: ['Original File Format']
   },
   {
-    label: 'Standard Formats',
-    children: [
-      'TIFF High Resolution',
-      'PNG RGB High Resolution', 
-      'PNG RGB Web'
-    ]
+    label: 'Adhoc formats',
+    children: adhocFormats
   }
 ];
 
 const MediaDownloadDialog = ({
   open,
   onClose,
-  selectedMedia = null,
-  onDownload = () => {}
+  selectedMedia = [], // Changed to array to support multiple media
 }) => {
   const { t } = useTranslation();
   const theme = useTheme();
+  const { currentBrandCode } = useBrand();
   
   // Dialog states
   const [currentStep, setCurrentStep] = useState('derivates'); // 'derivates' | 'options'
   const [selectedDerivates, setSelectedDerivates] = useState([]);
   const [isCustomConfiguration, setIsCustomConfiguration] = useState('no');
-  const [downloadOption, setDownloadOption] = useState('email');
+  const [downloadOption, setDownloadOption] = useState('wait'); // Default to wait instead of email
   const [emails, setEmails] = useState([]);
   const [focused, setFocused] = useState(false);
+  const [derivateData, setDerivateData] = useState(getInitialDerivateData());
+  const [loading, setLoading] = useState(false);
   
   // Custom configuration states
   const [width, setWidth] = useState('');
@@ -66,6 +68,34 @@ const MediaDownloadDialog = ({
   const [format, setFormat] = useState('');
   const [dpi, setDpi] = useState('');
   const [compression, setCompression] = useState('');
+
+  // Fetch derivate data when dialog opens
+  useEffect(() => {
+    if (open) {
+      fetchDerivateData();
+    }
+  }, [open, currentBrandCode]);
+
+  const fetchDerivateData = async () => {
+    try {
+      setLoading(true);
+      
+      // Get tenant info from CookieService
+      const userInfo = CookieService.getUserInfo();
+      const tenantId = userInfo?.tenant?.name || userInfo?.tenantName || 'Kendo';
+      const theme = currentBrandCode || 'kendo';
+      
+      const response = await derivateManagementApi.getDerivates(0, 100, '', tenantId, theme);
+      const adhocFormats = response.derivates?.map(derivate => derivate.label) || [];
+      setDerivateData(getInitialDerivateData(adhocFormats));
+    } catch (error) {
+      console.error('Error fetching derivate data:', error);
+      // Use default data if API fails
+      setDerivateData(getInitialDerivateData());
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleClose = () => {
     // Reset states
@@ -90,27 +120,58 @@ const MediaDownloadDialog = ({
     }
   };
 
-  const handleFinalDownload = () => {
-    const downloadData = {
-      selectedMedia,
-      selectedDerivates,
-      isCustomConfiguration,
-      customConfig: isCustomConfiguration === 'yes' ? {
+  const handleFinalDownload = async () => {
+    try {
+      setLoading(true);
+      
+      // Prepare media IDs
+      const mediaIds = Array.isArray(selectedMedia) 
+        ? selectedMedia.map(media => media.id || media.mediaId || 0)
+        : [selectedMedia?.id || selectedMedia?.mediaId || 0];
+
+      // Prepare derivates string
+      const derivatesString = selectedDerivates.join(',');
+
+      // Prepare custom configuration if needed
+      const customConfig = isCustomConfiguration === 'yes' ? {
+        prefix: '',
+        postfix: '',
         width,
         height,
-        ratio,
-        colorSpace,
-        format,
         dpi,
+        crop: ratio === 'Crop' ? 'true' : '',
+        background: '',
+        preserveAlpha: 'true',
+        format,
+        colorSpace: colorSpace === 'cmyk' ? 'CMYK' : 'RGB',
+        gravity: 'Center',
+        ratio,
         compression
-      } : null,
-      downloadOption,
-      emails: downloadOption === 'other' ? emails : []
-    };
-    
-    console.log('Download requested:', downloadData);
-    onDownload(downloadData);
-    handleClose();
+      } : null;
+
+      // Call download API
+      const { blob, filename } = await downloadApi.massDownload(mediaIds, derivatesString, customConfig);
+      
+      // Trigger download based on selected option
+      if (downloadOption === 'wait') {
+        downloadApi.triggerDownload(blob, filename);
+      } else if (downloadOption === 'email') {
+        // TODO: Implement email functionality when available
+        console.log('Email download not yet implemented');
+        downloadApi.triggerDownload(blob, filename); // Fallback to direct download
+      } else if (downloadOption === 'other') {
+        // TODO: Implement send to others functionality when available
+        console.log('Send to others not yet implemented');
+        downloadApi.triggerDownload(blob, filename); // Fallback to direct download
+      }
+
+      handleClose();
+    } catch (error) {
+      console.error('Download failed:', error);
+      // You might want to show an error message to the user here
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Validation
@@ -126,7 +187,7 @@ const MediaDownloadDialog = ({
     <>
       <DialogTitle>
         <Typography variant="h4" sx={{ mt: 2, mb: 2 }}>
-          {t('Download')}
+          {t('Download')} {Array.isArray(selectedMedia) ? `(${selectedMedia.length} items)` : '(1 item)'}
         </Typography>
         <IconButton
           aria-label="close"
@@ -148,7 +209,7 @@ const MediaDownloadDialog = ({
         </Typography>
         
         <List component="div" sx={{ display: 'flex', flexDirection: 'column', padding: 0 }}>
-          {mockDerivateData.map((item, index) => (
+          {derivateData.map((item, index) => (
             <Box key={`${item.label}-${index}`} sx={{ display: 'flex', flexDirection: 'column' }}>
               <Typography
                 sx={{
@@ -326,14 +387,14 @@ const MediaDownloadDialog = ({
         <Button
           onClick={handleDerivateConfirm}
           variant="contained"
-          disabled={!canProceedFromDerivates || !isCustomConfigValid}
+          disabled={!canProceedFromDerivates || !isCustomConfigValid || loading}
           sx={{
             color: '#fff',
-            backgroundColor: canProceedFromDerivates && isCustomConfigValid ? '' : 'gray',
-            cursor: canProceedFromDerivates && isCustomConfigValid ? 'pointer' : 'not-allowed'
+            backgroundColor: canProceedFromDerivates && isCustomConfigValid && !loading ? '' : 'gray',
+            cursor: canProceedFromDerivates && isCustomConfigValid && !loading ? 'pointer' : 'not-allowed'
           }}
         >
-          Download
+          {loading ? 'Loading...' : 'Download'}
         </Button>
       </DialogActions>
     </>
@@ -428,10 +489,10 @@ const MediaDownloadDialog = ({
         <Button
           onClick={handleFinalDownload}
           variant="contained"
-          disabled={!canFinalDownload}
+          disabled={!canFinalDownload || loading}
           sx={{ color: '#fff' }}
         >
-          FINISH
+          {loading ? 'Downloading...' : 'FINISH'}
         </Button>
       </DialogActions>
     </>
