@@ -18,13 +18,11 @@ const MediaCatalogue = () => {
   
   // 下载弹窗状态
   const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
-  const [selectedMediaForDownload, setSelectedMediaForDownload] = useState(null);
+  const [selectedMediaForDownload, setSelectedMediaForDownload] = useState([]);
 
   // 根据当前品牌动态创建配置
   const config = useMemo(() => {
-    console.log(`🏭 Creating media catalogue config for brand: ${currentBrandCode}`);
     const newConfig = createMediaCatalogueConfig(currentBrandCode);
-    console.log(`🔧 Media config created with brand:`, currentBrandCode);
     return newConfig;
   }, [currentBrandCode]);
 
@@ -37,22 +35,23 @@ const MediaCatalogue = () => {
   // 处理媒体下载 (基于reference代码逻辑)
   const handleMediaDownload = useCallback((media) => {
     console.log('Media download clicked:', media);
-    setSelectedMediaForDownload(media);
+    // Support both single media and array of media
+    const mediaArray = Array.isArray(media) ? media : [media];
+    setSelectedMediaForDownload(mediaArray);
     setDownloadDialogOpen(true);
   }, []);
 
   // 处理下载弹窗关闭
   const handleDownloadDialogClose = useCallback(() => {
     setDownloadDialogOpen(false);
-    setSelectedMediaForDownload(null);
+    setSelectedMediaForDownload([]);
   }, []);
 
-  // 处理实际下载执行
-  const handleDownloadExecute = useCallback((downloadData) => {
-    console.log('Download executed with data:', downloadData);
-    // 这里不调用实际API，只是展示交互
-    alert(`Download simulated for media: ${downloadData.selectedMedia?.filename || 'Unknown'}\nDerivates: ${downloadData.selectedDerivates.join(', ')}\nOption: ${downloadData.downloadOption}`);
-  }, []);
+  // Remove the onDownload handler since download is now handled internally
+  // const handleDownloadExecute = useCallback((downloadData) => {
+  //   console.log('Download executed with data:', downloadData);
+  //   // Download is now handled internally in MediaDownloadDialog
+  // }, []);
 
   // 处理批量搜索 (基于reference代码逻辑)
   const handleMassSearch = useCallback((item, childItem, filterValues) => {
@@ -83,7 +82,6 @@ const MediaCatalogue = () => {
         open={downloadDialogOpen}
         onClose={handleDownloadDialogClose}
         selectedMedia={selectedMediaForDownload}
-        onDownload={handleDownloadExecute}
       />
     </>
   );

@@ -29,16 +29,18 @@ class DerivateManagementApiService {
             const currentPath = window.location.pathname;
             const pathSegments = currentPath.split('/').filter(Boolean);
 
-            let tenantName = 'Kendo';
+            // Get tenant info from user data before clearing
+            const userInfo = CookieService.getUserInfo();
+            const tenantName = userInfo?.tenant?.name || userInfo?.tenantName || 'Kendo';
+
             let theme = 'kendo';
             let locale = 'en';
 
-            // Try to extract tenant/theme info from current path
+            // Try to extract theme/locale info from current path
             if (pathSegments.length >= 2) {
                 // Format: /:lang/:brand/:page
                 locale = pathSegments[0] || 'en';
                 theme = pathSegments[1] || 'kendo';
-                tenantName = pathSegments[1]?.charAt(0).toUpperCase() + pathSegments[1]?.slice(1) || 'Kendo';
             } else if (pathSegments.length === 1) {
                 // Format: /:tenant or /:lang
                 const segment = pathSegments[0];
@@ -46,8 +48,7 @@ class DerivateManagementApiService {
                     // Likely a language code
                     locale = segment;
                 } else {
-                    // Likely a tenant name
-                    tenantName = segment.charAt(0).toUpperCase() + segment.slice(1);
+                    // Likely a theme
                     theme = segment.toLowerCase();
                 }
             }
