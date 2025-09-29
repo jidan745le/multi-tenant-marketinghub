@@ -2,6 +2,7 @@ import CookieService from '../utils/cookieService';
 
 // Use the new derivate API proxy path
 const API_BASE_URL = '/api/derivate-api/derivatelist';
+const API_DERIVATE_BY_MODEL_URL = '/api/derivate-api/derivatelist/derivate-by-model-number';
 
 class DerivateManagementApiService {
     constructor() {
@@ -91,15 +92,15 @@ class DerivateManagementApiService {
      */
     // eslint-disable-next-line no-unused-vars
     async getDerivates(page = 0, limit = 10, search = '', tenantId = 'default', theme = '') {
-        // Note: The OpenAPI spec doesn't support pagination, so page and limit are not used
+        // Note: The API doesn't support pagination, so page and limit are not used
         try {
-            // According to OpenAPI spec, tenant-id and theme are required parameters
+            // According to API spec, tenant and theme are required parameters
             const params = new URLSearchParams({
-                'tenant-id': tenantId,
+                'tenant': tenantId,
                 'theme': theme || 'default'
             });
 
-            // Add search functionality if needed (not in OpenAPI spec but might be supported)
+            // Add search functionality if needed (not in API spec but might be supported)
             if (search) {
                 params.append('q', search);
             }
@@ -112,19 +113,65 @@ class DerivateManagementApiService {
 
             const data = await this.handleResponse(response);
 
+            // Transform API response to match component expectations
+            const derivatesWithMappedFields = Array.isArray(data) ? data.map((item) => this.mapApiResponseToComponent(item)) : [];
+
             // Return data in expected format
             return {
-                derivates: Array.isArray(data) ? data : (data?.data || []),
+                derivates: derivatesWithMappedFields,
                 pagination: {
-                    total: Array.isArray(data) ? data.length : (data?.total || 0),
-                    pages: 1, // API doesn't seem to support pagination
+                    total: derivatesWithMappedFields.length,
+                    pages: 1, // API doesn't support pagination
                     currentPage: 0,
-                    limit: Array.isArray(data) ? data.length : (data?.data?.length || 0)
+                    limit: derivatesWithMappedFields.length
                 }
             };
         } catch (error) {
             console.error('Error fetching derivates:', error);
             throw new Error(error.message || 'Failed to fetch derivates');
+        }
+    }
+
+    /**
+     * Get derivates by model number - specifically for getting Adhoc derivates
+     * @param {string} tenantId - Tenant ID
+     * @param {string} theme - Theme
+     * @param {string|Array} modelNumbers - Model number/ID or array of model numbers
+     * @returns {Promise} API response with derivates
+     */
+    async getDerivatesByModelNumber(tenantId, theme, modelNumbers) {
+        try {
+            // Support both single model number and array of model numbers
+            const idsString = Array.isArray(modelNumbers)
+                ? modelNumbers.join(',')
+                : String(modelNumbers);
+
+            const params = new URLSearchParams({
+                'tenant': tenantId,
+                'theme': theme,
+                'ids': idsString
+            });
+
+            const url = `${API_DERIVATE_BY_MODEL_URL}?${params.toString()}`;
+
+            console.log('Calling derivate-by-model-number API with IDs:', idsString);
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: this.getHeaders(),
+            });
+
+            const data = await this.handleResponse(response);
+
+            // Transform API response to match component expectations
+            const derivatesWithMappedFields = Array.isArray(data) ? data.map((item) => this.mapApiResponseToComponent(item)) : [];
+
+            return derivatesWithMappedFields;
+        } catch (error) {
+            console.error('Error fetching derivates by model number:', error);
+            // For 500 errors or other server issues, we should let the calling code handle fallback
+            // Don't change the error message, let the caller decide what to do
+            throw error;
         }
     }
 
@@ -266,8 +313,45 @@ class DerivateManagementApiService {
     }
 
     /**
+     * Map API response fields to component-expected fields
+     * @param {Object} apiData - API response data
+     * @returns {Object} Component-formatted data
+     */
+    mapApiResponseToComponent(apiData) {
+        return {
+            id: apiData.identifier, // Map identifier to id
+            identifier: apiData.identifier,
+            tenant: apiData.tenant,
+            theme: apiData.theme,
+            themeId: apiData.theme, // Map theme to themeId for compatibility
+            label: apiData.label,
+            derivateGroup: apiData.derivateGroup,
+            prefix: apiData.prefix,
+            postfix: apiData.postfix,
+            width: apiData.width,
+            height: apiData.height,
+            dpi: apiData.dpi,
+            derivateType: apiData.derivateType,
+            crop: apiData.crop,
+            fill: apiData.fill,
+            ratio: apiData.ratio,
+            compression: apiData.compression,
+            publicLink: apiData.publicLink === 'true' || apiData.publicLink === true,
+            allowedFileType: apiData.allowedFileType,
+            preserveAlpha: apiData.preserveAlpha === 'true' || apiData.preserveAlpha === true,
+            targetFormat: apiData.targetFormat,
+            targetColorSpace: apiData.targetColorSpace,
+            gravity: apiData.gravity,
+            mediaType: apiData.mediaType,
+            // Additional fields from API that might be needed
+            derivateSourceId: apiData.derivateSourceId,
+            source: apiData.source || 'PIM' // Default to PIM if not provided
+        };
+    }
+
+    /**
      * Transform internal data format to API format
-     * According to OpenAPI spec, all fields are strings
+     * According to API spec, all fields are strings
      * @param {Object} derivateData - Internal derivate data
      * @returns {Object} API-formatted data
      */
@@ -275,10 +359,9 @@ class DerivateManagementApiService {
         const userInfo = CookieService.getUserInfo();
         const tenantName = userInfo?.tenant?.name || 'default';
         return {
-            derivateSourceId: String(derivateData.derivateSourceId || ''),
-            source: String(derivateData.source || ''),
-            customerId: String(tenantName || ''),
-            themeId: String(derivateData.themeId || ''),
+            // Use the exact field names from the API response
+            tenant: String(tenantName || ''),
+            theme: String(derivateData.themeId || derivateData.theme || ''),
             label: String(derivateData.label || ''),
             derivateGroup: String(derivateData.derivateGroup || ''),
             prefix: String(derivateData.prefix || ''),
@@ -286,12 +369,12 @@ class DerivateManagementApiService {
             width: String(derivateData.width || ''),
             height: String(derivateData.height || ''),
             dpi: String(derivateData.dpi || ''),
-            derivateType: String(derivateData.derivateType || ''),
-            crop: String(derivateData.crop || ''),
-            fill: String(derivateData.fill || ''),
-            ratio: String(derivateData.ratio || ''),
-            compression: String(derivateData.compression || ''),
-            publicLink: String(derivateData.publicLink ? 'true' : 'false'),
+            derivateType: derivateData.derivateType || null,
+            crop: derivateData.crop || null,
+            fill: derivateData.fill || null,
+            ratio: derivateData.ratio || null,
+            compression: derivateData.compression || null,
+            publicLink: derivateData.publicLink || null,
             allowedFileType: Array.isArray(derivateData.allowedFileType)
                 ? derivateData.allowedFileType.join(',')
                 : String(derivateData.allowedFileType || ''),
@@ -324,7 +407,10 @@ class DerivateManagementApiService {
             'mediaType'
         ];
 
-        const missingFields = requiredFields.filter(field => !derivateData[field]);
+        const missingFields = requiredFields.filter(field => {
+            const value = derivateData[field];
+            return !value || (typeof value === 'string' && value.trim() === '');
+        });
 
         if (missingFields.length > 0) {
             throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
@@ -336,13 +422,15 @@ class DerivateManagementApiService {
         }
 
         // Width and height should be positive numbers
-        if (parseInt(derivateData.width) <= 0 || parseInt(derivateData.height) <= 0) {
+        const width = parseInt(derivateData.width);
+        const height = parseInt(derivateData.height);
+        if (isNaN(width) || width <= 0 || isNaN(height) || height <= 0) {
             throw new Error('Width and height must be positive numbers');
         }
 
         // DPI should be valid
         const validDpis = ['72', '150', '300'];
-        if (!validDpis.includes(derivateData.dpi)) {
+        if (!validDpis.includes(String(derivateData.dpi))) {
             throw new Error('DPI must be one of: 72, 150, 300');
         }
     }
@@ -352,23 +440,29 @@ class DerivateManagementApiService {
      * @returns {Object} Default derivate data
      */
     getDefaultDerivateData() {
+        const userInfo = CookieService.getUserInfo();
+        const tenantName = userInfo?.tenant?.name || 'default';
+
         return {
-            derivateSourceId: '',
-            source: 'PIM',
-            themeId: '',
+            tenant: tenantName,
+            theme: '',
+            themeId: '', // Keep for compatibility
             label: '',
-            derivateGroup: 'Standard',
+            derivateGroup: 'Adhoc',
             prefix: '',
             postfix: '',
-            width: '',
-            height: '',
+            width: '1800',
+            height: '1800',
             dpi: '72',
+            derivateType: null,
+            crop: null,
+            fill: null,
             ratio: null,
             compression: null,
-            publicLink: false,
-            allowedFileType: ['eps', 'psd', 'jpg', 'png', 'tiff'],
-            mediaType: ['Main'],
-            preserveAlpha: true,
+            publicLink: null,
+            allowedFileType: 'jpg,psd,eps,tiff,png',
+            mediaType: 'Main,On White',
+            preserveAlpha: 'true',
             targetFormat: 'png',
             targetColorSpace: 'RGB',
             gravity: 'Center',

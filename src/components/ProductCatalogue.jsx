@@ -24,6 +24,7 @@ const ProductCatalogue = ({
   config,
   onProductClick,
   onProductDownload,
+  onDownloadSelection,
   onMassSearch,
   ...props 
 }) => {
@@ -132,6 +133,7 @@ const ProductCatalogue = ({
                 searchParams={searchParams}
                 onProductClick={onProductClick}
                 onProductDownload={onProductDownload}
+                onDownloadSelection={onDownloadSelection}
                 onPageChange={handlePageChange}
               />
             </Box>

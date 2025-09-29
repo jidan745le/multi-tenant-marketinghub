@@ -1,6 +1,8 @@
 import { Box, CircularProgress, Grid, Pagination, Typography } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useSelectedAssets } from '../context/SelectedAssetsContext';
+import AssetViewActionBar from './AssetViewActionBar';
 import DigitalAssetCard from './DigitalAssetCard';
 
 // 外层容器，不处理滚动
@@ -60,10 +62,14 @@ const ConfigurableProductGrid = ({
   onProductClick,
   onProductDownload,
   onPageChange,
+  onDownloadSelection, // Add new prop for batch download
 }) => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [totalPages, setTotalPages] = useState(0);
+  
+  // Get selected assets count to conditionally show ActionBar
+  const { selectedCount } = useSelectedAssets();
 
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [cardActionsConfig, setCardActionsConfig] = useState({
@@ -191,6 +197,11 @@ const ConfigurableProductGrid = ({
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      {/* Asset Action Bar - 只在有选中assets时显示 */}
+      {selectedCount > 0 && (
+        <AssetViewActionBar onDownloadSelection={onDownloadSelection} />
+      )}
+      
       {/* 产品网格 - 使用自定义滚动条 */}
       <ProductGridOuterContainer>
         <ProductGridContainer>

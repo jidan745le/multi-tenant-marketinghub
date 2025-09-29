@@ -3,6 +3,7 @@ import {
   Box,
   Button,
   Checkbox,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -85,13 +86,59 @@ const MediaDownloadDialog = ({
       const tenantId = userInfo?.tenant?.name || userInfo?.tenantName || 'Kendo';
       const theme = currentBrandCode || 'kendo';
       
-      const response = await derivateManagementApi.getDerivates(0, 100, '', tenantId, theme);
-      const adhocFormats = response.derivates?.map(derivate => derivate.label) || [];
+      // Use the first selected media's model number to get adhoc derivates
+      let adhocFormats = [];
+      let shouldSkipDerivateSelection = false;
+      
+      // Use selected media's model numbers to get adhoc derivates
+      if (selectedMedia && selectedMedia.length > 0) {
+        const mediaArray = Array.isArray(selectedMedia) ? selectedMedia : [selectedMedia];
+        
+        // Collect all model numbers from selected media
+        const modelNumbers = mediaArray
+          .map(media => media.id || media.mediaId || media.modelNumber)
+          .filter(Boolean); // Remove empty values
+        
+        if (modelNumbers.length > 0) {
+          try {
+            console.log('Fetching derivates by model numbers:', modelNumbers);
+            const derivates = await derivateManagementApi.getDerivatesByModelNumber(tenantId, theme, modelNumbers);
+            
+            // Filter for Adhoc derivates only and remove duplicates
+            adhocFormats = [...new Set(derivates
+              .filter(derivate => derivate.derivateGroup === 'Adhoc')
+              .map(derivate => derivate.label))];
+            
+            console.log('Successfully fetched derivates:', adhocFormats);
+            
+            // If derivate-by-model-number returns empty array, skip derivate selection
+            if (adhocFormats.length === 0) {
+              console.log('No Adhoc derivates found, skipping to options dialog');
+              shouldSkipDerivateSelection = true;
+              // Set original file format as default selection
+              setSelectedDerivates(['Original File Format']);
+            }
+          } catch (error) {
+            console.warn('Failed to fetch derivates by model numbers:', error);
+            // When API fails, skip derivate selection and use original format
+            shouldSkipDerivateSelection = true;
+            setSelectedDerivates(['Original File Format']);
+          }
+        }
+      }
+      
       setDerivateData(getInitialDerivateData(adhocFormats));
+      
+      // If should skip derivate selection, automatically go to options step
+      if (shouldSkipDerivateSelection) {
+        setCurrentStep('options');
+      }
     } catch (error) {
       console.error('Error fetching derivate data:', error);
-      // Use default data if API fails
+      // Use default data and skip to options if API fails
       setDerivateData(getInitialDerivateData());
+      setSelectedDerivates(['Original File Format']);
+      setCurrentStep('options');
     } finally {
       setLoading(false);
     }
@@ -102,7 +149,7 @@ const MediaDownloadDialog = ({
     setCurrentStep('derivates');
     setSelectedDerivates([]);
     setIsCustomConfiguration('no');
-    setDownloadOption('email');
+    setDownloadOption('wait');
     setEmails([]);
     setWidth('');
     setHeight('');
@@ -129,46 +176,67 @@ const MediaDownloadDialog = ({
         ? selectedMedia.map(media => media.id || media.mediaId || 0)
         : [selectedMedia?.id || selectedMedia?.mediaId || 0];
 
-      // Prepare derivates string
-      const derivatesString = selectedDerivates.join(',');
+      // Prepare derivates string - map display names to API values
+      const derivatesString = selectedDerivates
+        .map(derivate => derivate === 'Original File Format' ? 'originalimage' : derivate)
+        .join(',');
 
       // Prepare custom configuration if needed
       const customConfig = isCustomConfiguration === 'yes' ? {
-        prefix: '',
-        postfix: '',
         width,
         height,
         dpi,
-        crop: ratio === 'Crop' ? 'true' : '',
-        background: '',
-        preserveAlpha: 'true',
         format,
         colorSpace: colorSpace === 'cmyk' ? 'CMYK' : 'RGB',
-        gravity: 'Center',
         ratio,
         compression
       } : null;
 
-      // Call download API
-      const { blob, filename } = await downloadApi.massDownload(mediaIds, derivatesString, customConfig);
+      // Determine if this should be async (email) or direct download
+      const isAsync = downloadOption === 'email' || downloadOption === 'other';
       
-      // Trigger download based on selected option
-      if (downloadOption === 'wait') {
-        downloadApi.triggerDownload(blob, filename);
-      } else if (downloadOption === 'email') {
-        // TODO: Implement email functionality when available
-        console.log('Email download not yet implemented');
-        downloadApi.triggerDownload(blob, filename); // Fallback to direct download
+      // Get user email for async downloads
+      const userInfo = CookieService.getUserInfo();
+      const userEmail = userInfo?.email || '';
+      
+      // Prepare email parameters
+      let toEmail = '';
+      let ccEmail = '';
+      
+      if (downloadOption === 'email') {
+        toEmail = userEmail;
       } else if (downloadOption === 'other') {
-        // TODO: Implement send to others functionality when available
-        console.log('Send to others not yet implemented');
-        downloadApi.triggerDownload(blob, filename); // Fallback to direct download
+        toEmail = emails.join(',');
+        ccEmail = userEmail; // CC the current user
+      }
+
+      // Call download API with new parameters
+      const result = await downloadApi.massDownload(
+        mediaIds, 
+        derivatesString, 
+        customConfig, 
+        isAsync, 
+        toEmail, 
+        ccEmail
+      );
+      
+      // Handle the response based on download type
+      if (isAsync) {
+        // For async downloads, show success message
+        console.log('Async download initiated:', result.message);
+        // You might want to show a success message to the user here
+      } else {
+        // For direct downloads, trigger the download
+        if (result.blob && result.filename) {
+          downloadApi.triggerDownload(result.blob, result.filename);
+        }
       }
 
       handleClose();
     } catch (error) {
       console.error('Download failed:', error);
-      // You might want to show an error message to the user here
+      // Show error message to user
+      alert(`Download failed: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -187,7 +255,7 @@ const MediaDownloadDialog = ({
     <>
       <DialogTitle>
         <Typography variant="h4" sx={{ mt: 2, mb: 2 }}>
-          {t('Download')} {Array.isArray(selectedMedia) ? `(${selectedMedia.length} items)` : '(1 item)'}
+          {t('Download')}
         </Typography>
         <IconButton
           aria-label="close"
@@ -204,9 +272,27 @@ const MediaDownloadDialog = ({
       </DialogTitle>
       
       <DialogContent style={{ padding: '24px' }}>
-        <Typography variant="h5" sx={{ mt: 2, mb: 2 }}>
-          Select File Format
-        </Typography>
+        {loading ? (
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minHeight: '200px',
+              gap: 2
+            }}
+          >
+            <CircularProgress />
+            <Typography variant="body1" color="text.secondary">
+              Loading derivate formats...
+            </Typography>
+          </Box>
+        ) : (
+          <>
+            <Typography variant="h5" sx={{ mt: 2, mb: 2 }}>
+              Select File Format
+            </Typography>
         
         <List component="div" sx={{ display: 'flex', flexDirection: 'column', padding: 0 }}>
           {derivateData.map((item, index) => (
@@ -265,17 +351,8 @@ const MediaDownloadDialog = ({
 
         {isCustomConfiguration === 'yes' && (
           <Box sx={{ mt: 2 }}>
-            <Typography sx={{ mb: 2 }}>
-              Please adjust the main parameters to download a personalized derivate
-            </Typography>
-            <Box sx={{ 
-              padding: '12px 20px', 
-              background: '#FAFAFA', 
-              borderRadius: '4px',
-              mb: 2
-            }}>
-              Please adjust the main parameters to download a personalized derivate
-            </Box>
+       
+       
             
             <Box sx={{
               display: 'flex',
@@ -367,12 +444,14 @@ const MediaDownloadDialog = ({
               </FormControl>
             </Box>
 
-            {isCMYKPNGCombination && (
-              <Typography sx={{ color: 'error.main', mt: 1 }}>
-                CMYK PNG is not supported
-              </Typography>
-            )}
-          </Box>
+             {isCMYKPNGCombination && (
+               <Typography sx={{ color: 'error.main', mt: 1 }}>
+                 CMYK PNG is not supported
+               </Typography>
+             )}
+           </Box>
+         )}
+          </>
         )}
       </DialogContent>
 
@@ -381,17 +460,18 @@ const MediaDownloadDialog = ({
           variant="outlined"
           onClick={handleClose}
           sx={{ color: '#333', border: 'solid 1px #E5E5E5' }}
+          disabled={loading}
         >
           Cancel
         </Button>
         <Button
           onClick={handleDerivateConfirm}
           variant="contained"
-          disabled={!canProceedFromDerivates || !isCustomConfigValid || loading}
+          disabled={loading || !canProceedFromDerivates || !isCustomConfigValid}
           sx={{
             color: '#fff',
-            backgroundColor: canProceedFromDerivates && isCustomConfigValid && !loading ? '' : 'gray',
-            cursor: canProceedFromDerivates && isCustomConfigValid && !loading ? 'pointer' : 'not-allowed'
+            backgroundColor: !loading && canProceedFromDerivates && isCustomConfigValid ? '' : 'gray',
+            cursor: !loading && canProceedFromDerivates && isCustomConfigValid ? 'pointer' : 'not-allowed'
           }}
         >
           {loading ? 'Loading...' : 'Download'}
@@ -481,10 +561,10 @@ const MediaDownloadDialog = ({
 
       <DialogActions sx={{ padding: '0 24px 24px', display: 'flex', gap: '8px' }}>
         <Button
-          onClick={() => setCurrentStep('derivates')}
+          onClick={handleClose}
           sx={{ color: '#333', border: 'solid 1px #E5E5E5' }}
         >
-          Back
+          Cancel
         </Button>
         <Button
           onClick={handleFinalDownload}

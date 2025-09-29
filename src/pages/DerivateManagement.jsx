@@ -198,16 +198,23 @@ function DerivateManagement() {
 
   const handleSave = async () => {
     try {
+      // Ensure themeId is set for validation (could be from theme or themeId field)
+      const dataToValidate = {
+        ...editingRow,
+        themeId: editingRow.themeId || editingRow.theme || currentBrandCode
+      };
+      
       // Use API service validation
-      DerivateManagementApiService.validateDerivateData(editingRow);
+      DerivateManagementApiService.validateDerivateData(dataToValidate);
 
       if (editingRow.id && !editingRow.id.startsWith('NEW_')) {
-        // Update existing derivate
-        await DerivateManagementApiService.updateDerivate(editingRow.id, editingRow);
+        // Update existing derivate - use identifier for API calls
+        const updateId = editingRow.identifier || editingRow.id;
+        await DerivateManagementApiService.updateDerivate(updateId, dataToValidate);
         showSnackbar('Derivate updated successfully');
       } else {
         // Create new derivate
-        await DerivateManagementApiService.createDerivate(editingRow);
+        await DerivateManagementApiService.createDerivate(dataToValidate);
         showSnackbar('Derivate created successfully');
       }
       
@@ -226,7 +233,8 @@ function DerivateManagement() {
 
   const handleCopy = async (derivate) => {
     try {
-      await DerivateManagementApiService.copyDerivate(derivate.id);
+      const copyId = derivate.identifier || derivate.id;
+      await DerivateManagementApiService.copyDerivate(copyId);
       showSnackbar('Derivate copied successfully');
       loadDerivates(); // Reload data
     } catch (err) {
@@ -236,7 +244,8 @@ function DerivateManagement() {
 
   const handleDelete = async (derivate) => {
     try {
-      await DerivateManagementApiService.deleteDerivate(derivate.id);
+      const deleteId = derivate.identifier || derivate.id;
+      await DerivateManagementApiService.deleteDerivate(deleteId);
       showSnackbar('Derivate deleted successfully');
       loadDerivates(); // Reload data
     } catch (err) {
@@ -247,7 +256,9 @@ function DerivateManagement() {
   const handleAddNew = () => {
     const newDerivate = {
       id: `NEW_${Date.now()}`,
-      ...DerivateManagementApiService.getDefaultDerivateData()
+      ...DerivateManagementApiService.getDefaultDerivateData(),
+      themeId: currentBrandCode, // Set current theme
+      theme: currentBrandCode // Also set theme field for consistency
     };
     setDerivates([...derivates, newDerivate]);
     setEditingId(newDerivate.id);
@@ -257,7 +268,8 @@ function DerivateManagement() {
   // Filter derivates based on search
   const filteredDerivates = derivates.filter(derivate =>
     derivate.label?.toLowerCase().includes(searchText.toLowerCase()) ||
-    derivate.themeId?.toLowerCase().includes(searchText.toLowerCase())
+    derivate.themeId?.toLowerCase().includes(searchText.toLowerCase()) ||
+    derivate.theme?.toLowerCase().includes(searchText.toLowerCase())
   );
 
   // Render cell content

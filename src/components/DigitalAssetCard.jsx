@@ -10,6 +10,7 @@ import {
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import React, { useState } from 'react';
+import { useSelectedAssets } from '../context/SelectedAssetsContext';
 import useTheme from '../hooks/useTheme';
 
 const DigitalAssetCard = styled(Box)(() => ({
@@ -253,6 +254,8 @@ const ProductCard = ({
     }
 }) => {
     const { fallbackImage } = useTheme();
+    const { toggleAsset, isAssetSelected } = useSelectedAssets();
+    
     const [imageError, setImageError] = useState(false);
     const [aspectRatio, setAspectRatio] = useState(1); // 默认为1（正方形）
     
@@ -300,7 +303,17 @@ const ProductCard = ({
     };
     
     const handleCheckboxChange = (event) => {
-        onSelect(product, event.target.checked);
+        const checked = event.target.checked;
+        
+        // Use global selection context if available, otherwise use local onSelect
+        if (isAssetType) {
+            toggleAsset(product, checked);
+        }
+        
+        // Also call the original onSelect if provided (for backward compatibility)
+        if (onSelect) {
+            onSelect(product, checked);
+        }
     };
 
     const handleProductClick = (isAssetType) => {
@@ -355,7 +368,7 @@ const ProductCard = ({
                     <StateLayer>
                         <IconContainer>
                             <Checkbox
-                                checked={isSelected}
+                                checked={isAssetType ? isAssetSelected(product.id) : isSelected}
                                 onChange={handleCheckboxChange}
                                 icon={<CheckBoxOutlineBlank />}
                                 checkedIcon={<CheckBox />}
@@ -424,9 +437,9 @@ const ProductCard = ({
             <ContentSection>
                 {cardActionsConfig.show_eyebrow && (
                     <Eyebrow>
-                        {/* 如果是资产页面，只显示Media Type；如果是产品页面，显示model number和type */}
-                        {product.mediaType ? 
-                            product.mediaType : 
+                        {/* 如果是资产页面，显示Media Category (如Main, On White等)；如果是产品页面，显示model number和type */}
+                        {isAssetType ? 
+                            (product.mediaCategory || product.mediaType || 'Unknown').replace(',', ' ') : 
                             `${product.modelNumber} · ${product.productType || product.category}`
                         }
                     </Eyebrow>

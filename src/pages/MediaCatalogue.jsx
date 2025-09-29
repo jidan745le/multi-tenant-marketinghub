@@ -7,9 +7,16 @@ import { createMediaCatalogueConfig } from '../config/kendoMediaConfig';
 import MediaDownloadDialog from '../components/MediaDownloadDialog';
 import ProductCatalogue from '../components/ProductCatalogue';
 
+// 导入Context
+import { SelectedAssetsProvider } from '../context/SelectedAssetsContext';
+
 // 导入钩子 (基于reference代码)
 import { useBrand } from '../hooks/useBrand';
 import { useLanguage } from '../hooks/useLanguage';
+
+// 导入工具和服务
+import downloadApi from '../services/downloadApi';
+import { canDownloadDirectly } from '../utils/downloadFormatClassifier';
 
 const MediaCatalogue = () => {
   // 使用品牌和语言钩子 (基于reference代码)
@@ -33,18 +40,79 @@ const MediaCatalogue = () => {
   }, []);
 
   // 处理媒体下载 (基于reference代码逻辑)
-  const handleMediaDownload = useCallback((media) => {
-    console.log('Media download clicked:', media);
-    // Support both single media and array of media
-    const mediaArray = Array.isArray(media) ? media : [media];
-    setSelectedMediaForDownload(mediaArray);
-    setDownloadDialogOpen(true);
+  const handleMediaDownload = useCallback(async (media) => {
+    try {
+      // Support both single media and array of media
+      const mediaArray = Array.isArray(media) ? media : [media];
+      
+      // Only direct download for single files with non-restricted formats
+      if (mediaArray.length === 1 && canDownloadDirectly(mediaArray)) {
+        // Use mass-download API with async=false for direct download
+        const mediaIds = mediaArray.map(item => item.id || item.mediaId || 0);
+        const result = await downloadApi.massDownload(
+          mediaIds,
+          'originalimage', // Download original format - use API parameter name
+          null, // No custom config
+          false, // async=false for direct download
+          '', // No email
+          '' // No CC
+        );
+        
+        // Trigger download if blob is returned
+        if (result.blob && result.filename) {
+          downloadApi.triggerDownload(result.blob, result.filename);
+        }
+      } else {
+        // Show derivate selection dialog for:
+        // 1. Multiple files
+        // 2. Single files with restricted formats
+        setSelectedMediaForDownload(mediaArray);
+        setDownloadDialogOpen(true);
+      }
+    } catch (error) {
+      console.error('Download failed:', error);
+      // Show error message to user (you can implement a toast notification here)
+      alert(`Download failed: ${error.message}`);
+    }
   }, []);
 
   // 处理下载弹窗关闭
   const handleDownloadDialogClose = useCallback(() => {
     setDownloadDialogOpen(false);
     setSelectedMediaForDownload([]);
+  }, []);
+
+  // 处理批量下载选择 (来自ActionBar)
+  const handleDownloadSelection = useCallback(async (selectedAssets) => {
+    try {
+      console.log('Batch download from ActionBar:', selectedAssets);
+      
+      // 检查是否可以直接下载 (单个文件且非受限格式)
+      if (selectedAssets.length === 1 && canDownloadDirectly(selectedAssets)) {
+        // 直接下载
+        const mediaIds = selectedAssets.map(item => item.id || item.mediaId || 0);
+        const result = await downloadApi.massDownload(
+          mediaIds,
+          'originalimage', // Download original format
+          null, // No custom config
+          false, // async=false for direct download
+          '', // No email
+          '' // No CC
+        );
+        
+        // Trigger download if blob is returned
+        if (result.blob && result.filename) {
+          downloadApi.triggerDownload(result.blob, result.filename);
+        }
+      } else {
+        // 显示derivate选择对话框 (多个文件或受限格式)
+        setSelectedMediaForDownload(selectedAssets);
+        setDownloadDialogOpen(true);
+      }
+    } catch (error) {
+      console.error('Batch download failed:', error);
+      alert(`Download failed: ${error.message}`);
+    }
   }, []);
 
   // Remove the onDownload handler since download is now handled internally
@@ -68,12 +136,13 @@ const MediaCatalogue = () => {
   }, [currentBrand, currentLanguage]);
 
   return (
-    <>
+    <SelectedAssetsProvider>
       <ProductCatalogue
         key={currentBrandCode} // 确保品牌切换时组件重新渲染
         config={config}
         onProductClick={handleMediaClick}
         onProductDownload={handleMediaDownload}
+        onDownloadSelection={handleDownloadSelection}
         onMassSearch={handleMassSearch}
       />
       
@@ -83,7 +152,7 @@ const MediaCatalogue = () => {
         onClose={handleDownloadDialogClose}
         selectedMedia={selectedMediaForDownload}
       />
-    </>
+    </SelectedAssetsProvider>
   );
 };
 

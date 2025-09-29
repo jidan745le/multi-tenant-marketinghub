@@ -82,36 +82,47 @@ class DownloadApiService {
     }
 
     /**
-     * Download media files with derivates
+     * Download media files with derivates using new API structure
      * @param {Array} mediaIds - Array of media IDs
      * @param {string} derivates - Comma-separated derivate names
      * @param {Object} customConfig - Optional custom configuration
-     * @returns {Promise<Blob>} File blob for download
+     * @param {boolean} isAsync - Whether to send via email (true) or download directly (false)
+     * @param {string} toEmail - Email address for async downloads
+     * @param {string} ccEmail - CC email address
+     * @returns {Promise<Blob>} File blob for download (if not async)
      */
-    async massDownload(mediaIds, derivates, customConfig = null) {
+    async massDownload(mediaIds, derivates, customConfig = null, isAsync = false, toEmail = '', ccEmail = '') {
         try {
-            // Build the download request payload
-            const downloadRequests = mediaIds.map(mediaId => ({
-                mediaId: mediaId,
-                prefix: customConfig?.prefix || "",
-                postfix: customConfig?.postfix || "",
-                width: customConfig?.width || "",
-                height: customConfig?.height || "",
-                density: customConfig?.dpi || "",
-                crop: customConfig?.crop || "",
-                background: customConfig?.background || "",
-                alpha: customConfig?.preserveAlpha || "",
-                format: customConfig?.format || "",
-                colorSpace: customConfig?.colorSpace || "",
-                gravity: customConfig?.gravity || "",
-                ratio: customConfig?.ratio || "",
-                compression: customConfig?.compression || ""
-            }));
+            // Get user info for tenant and theme
+            const userInfo = CookieService.getUserInfo();
+            const tenant = userInfo?.tenant?.name || 'Kendo';
 
-            // For mass download, we'll use the first media ID and include derivates
+            // Get theme from current path or default
+            const currentPath = window.location.pathname;
+            const pathSegments = currentPath.split('/').filter(Boolean);
+            let theme = 'kendo';
+            if (pathSegments.length >= 2) {
+                theme = pathSegments[1] || 'kendo';
+            }
+
+            // Build the new request payload structure
             const requestPayload = {
-                ...downloadRequests[0], // Use first media config as base
-                derivates: derivates
+                tenant: tenant,
+                theme: theme,
+                mediaids: Array.isArray(mediaIds) ? mediaIds.join(',') : String(mediaIds),
+                derivates: derivates,
+                async: String(isAsync), // Convert boolean to string
+                tomail: toEmail,
+                ccemail: ccEmail,
+                customConfiguration: customConfig ? 'true' : 'false',
+                // Custom configuration parameters
+                height: customConfig?.height || '',
+                width: customConfig?.width || '',
+                ratio: customConfig?.ratio || '',
+                colorSpace: customConfig?.colorSpace || '',
+                format: customConfig?.format || '',
+                dpi: customConfig?.dpi || '',
+                compression: customConfig?.compression || ''
             };
 
             const response = await fetch(`${this.baseURL}/mass-download`, {
@@ -125,10 +136,25 @@ class DownloadApiService {
                 if (this.handleUnauthorizedError(response.status)) {
                     throw new Error('Unauthorized - redirecting to login');
                 }
-                throw new Error(`HTTP error! status: ${response.status}`);
+
+                // Try to get error details from response
+                try {
+                    const errorData = await response.json();
+                    const errorMessage = errorData.msg || errorData.message || `HTTP error! status: ${response.status}`;
+                    throw new Error(errorMessage);
+                } catch {
+                    // If can't parse JSON, throw generic HTTP error
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
             }
 
-            // Return the blob for download
+            // For async downloads, return success message instead of blob
+            if (isAsync) {
+                const result = await response.json().catch(() => ({}));
+                return { success: true, message: 'Email will be sent with download link', result };
+            }
+
+            // For direct downloads, return the blob
             const blob = await response.blob();
 
             // Extract filename from content-disposition header if available
@@ -147,6 +173,7 @@ class DownloadApiService {
             throw new Error(error.message || 'Failed to download media');
         }
     }
+
 
     /**
      * Trigger browser download for a blob

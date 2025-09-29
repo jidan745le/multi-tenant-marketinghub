@@ -103,16 +103,33 @@ const extractMediaCategory = (fullpath) => {
 };
 
 /**
+ * 从metadata中提取指定字段的值
+ * @param {Array} metadata - metadata数组
+ * @param {string} fieldName - 字段名称
+ * @returns {string} 字段值
+ */
+const extractMetadataValue = (metadata, fieldName) => {
+    if (!metadata || !Array.isArray(metadata)) return '';
+    const item = metadata.find(m => m.name === fieldName);
+    return item?.data || '';
+};
+
+/**
  * 将单个GraphQL资产节点转换为应用内部格式
  * @param {Object} assetNode - GraphQL资产节点
  * @returns {Object} 转换后的资产对象
  */
 export const adaptGraphQLAssetNode = (assetNode) => {
-    // 获取资产类型、媒体类别和产品ID
+    // 获取资产类型和产品ID
     const assetType = getAssetType(assetNode.mimetype);
-    const mediaCategory = extractMediaCategory(assetNode.fullpath); // 媒体类别（Main, On White等）
-    const mediaType = assetType; // 媒体类型（Images, Videos, Documents）
     const modelNumber = extractProductIdFromPath(assetNode.fullpath);
+
+    // 从metadata中提取Media Category (Media Type字段)
+    const mediaCategoryFromMetadata = extractMetadataValue(assetNode.metadata, 'Media Type');
+    // 如果metadata中没有Media Category，则从路径中提取
+    const mediaCategory = mediaCategoryFromMetadata || extractMediaCategory(assetNode.fullpath);
+
+    const mediaType = assetType; // 媒体类型（Images, Videos, Documents）
 
     // 获取最佳图像URL
     // 如果assetThumb是默认的不支持文件类型图标，则使用原始文件路径
