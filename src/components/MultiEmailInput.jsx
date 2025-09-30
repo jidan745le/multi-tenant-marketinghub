@@ -60,19 +60,16 @@ const MultiEmailInput = ({
   return (
     <Box
       sx={{
-        border: `1px solid ${focused ? '#1976d2' : '#E5E5E5'}`,
+        // Note: border is controlled by parent component via style prop
         borderRadius: '4px',
         padding: '8px',
-        minHeight: '40px',
+        minHeight: '50px',
         display: 'flex',
         flexWrap: 'wrap',
         alignItems: 'center',
         gap: '4px',
         cursor: 'text',
         transition: 'border-color 0.2s ease',
-        '&:hover': {
-          borderColor: focused ? '#1976d2' : '#999',
-        },
         ...style
       }}
       onClick={() => {
@@ -90,12 +87,12 @@ const MultiEmailInput = ({
           size="small"
           onDelete={() => removeEmail(email)}
           sx={{
-            backgroundColor: '#e3f2fd',
-            color: '#1976d2',
+            backgroundColor: '#fff3e0',
+            color: '#f16508',
             '& .MuiChip-deleteIcon': {
-              color: '#1976d2',
+              color: '#f16508',
               '&:hover': {
-                color: '#1565c0',
+                color: '#d5570a',
               },
             },
           }}

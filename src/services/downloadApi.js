@@ -122,7 +122,7 @@ class DownloadApiService {
                 colorSpace: customConfig?.colorSpace || '',
                 format: customConfig?.format || '',
                 dpi: customConfig?.dpi || '',
-                compression: customConfig?.compression || ''
+                compression: customConfig?.compression === 'none' ? '' : (customConfig?.compression || '')
             };
 
             const response = await fetch(`${this.baseURL}/mass-download`, {

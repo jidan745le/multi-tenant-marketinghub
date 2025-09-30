@@ -60,6 +60,7 @@ const MediaDownloadDialog = ({
   const [focused, setFocused] = useState(false);
   const [derivateData, setDerivateData] = useState(getInitialDerivateData());
   const [loading, setLoading] = useState(false);
+  const [cameFromDerivateSelection, setCameFromDerivateSelection] = useState(false); // Track dialog source
   
   // Custom configuration states
   const [width, setWidth] = useState('');
@@ -68,7 +69,7 @@ const MediaDownloadDialog = ({
   const [colorSpace, setColorSpace] = useState('');
   const [format, setFormat] = useState('');
   const [dpi, setDpi] = useState('');
-  const [compression, setCompression] = useState('');
+  const [compression, setCompression] = useState('none');
 
   // Fetch derivate data when dialog opens
   useEffect(() => {
@@ -132,6 +133,9 @@ const MediaDownloadDialog = ({
       // If should skip derivate selection, automatically go to options step
       if (shouldSkipDerivateSelection) {
         setCurrentStep('options');
+        setCameFromDerivateSelection(false); // Direct to options, didn't come from derivate selection
+      } else {
+        setCameFromDerivateSelection(false); // Starting from derivate selection
       }
     } catch (error) {
       console.error('Error fetching derivate data:', error);
@@ -157,13 +161,26 @@ const MediaDownloadDialog = ({
     setColorSpace('');
     setFormat('');
     setDpi('');
-    setCompression('');
+    setCompression('none');
+    setCameFromDerivateSelection(false);
     onClose();
   };
 
   const handleDerivateConfirm = () => {
     if (selectedDerivates.length > 0 || isCustomConfiguration === 'yes') {
       setCurrentStep('options');
+      setCameFromDerivateSelection(true); // Mark that we came from derivate selection
+    }
+  };
+
+  const handleOptionsCancel = () => {
+    if (cameFromDerivateSelection) {
+      // Go back to derivate selection step
+      setCurrentStep('derivates');
+      setCameFromDerivateSelection(false);
+    } else {
+      // Close the entire dialog
+      handleClose();
     }
   };
 
@@ -254,7 +271,7 @@ const MediaDownloadDialog = ({
   const derivatesContent = () => (
     <>
       <DialogTitle>
-        <Typography variant="h4" sx={{ mt: 2, mb: 2 }}>
+        <Typography sx={{ fontSize: '24px', fontWeight: 'bold', mt: 2, mb: 2 }}>
           {t('Download')}
         </Typography>
         <IconButton
@@ -271,7 +288,7 @@ const MediaDownloadDialog = ({
         </IconButton>
       </DialogTitle>
       
-      <DialogContent style={{ padding: '24px' }}>
+      <DialogContent style={{ padding: '0px 24px 24px 24px' }}>
         {loading ? (
           <Box
             sx={{
@@ -290,7 +307,7 @@ const MediaDownloadDialog = ({
           </Box>
         ) : (
           <>
-            <Typography variant="h5" sx={{ mt: 2, mb: 2 }}>
+            <Typography style={{fontWeight: '700',color: '#333',fontFamily: "OpenSans-SemiBold"}} sx={{fontSize: '16px', mb: 2 }}>
               Select File Format
             </Typography>
         
@@ -300,9 +317,13 @@ const MediaDownloadDialog = ({
               <Typography
                 sx={{
                   height: '20px',
-                  borderLeft: `2px solid ${theme.palette.primary.main}`,
-                  paddingLeft: '12px',
-                  margin: '10px 0',
+                  // borderLeft: `2px solid ${theme.palette.primary.main}`,
+                  // paddingLeft: '12px',
+                  fontSize: '14px !important',
+                  fontFamily: "OpenSans-SemiBold",
+                  color: '#4d4d4d',                 
+                  fontWeight: 600,
+                  margin: '10px 0',              
                 }}
               >
                 {item.label}
@@ -324,6 +345,13 @@ const MediaDownloadDialog = ({
                     />
                   }
                   label={derivate}
+                  sx={{
+                    color:'#4f4f4f',
+                    fontFamily: "OpenSans-SemiBold",
+                    '.MuiTypography-root': {
+                      fontSize: '14px !important',
+                    }
+                  }}
                 />
               ))}
             </Box>
@@ -333,9 +361,13 @@ const MediaDownloadDialog = ({
         <Typography
           sx={{
             height: '20px',
-            borderLeft: `2px solid ${theme.palette.primary.main}`,
-            paddingLeft: '12px',
+            fontSize: '14px !important',
+            fontFamily: "OpenSans-SemiBold",
+            fontWeight: 600,
+            // borderLeft: `2px solid ${theme.palette.primary.main}`,
+            // paddingLeft: '12px',
             margin: '10px 0',
+            color:'#4f4f4f',
           }}
         >
           Custom Configuration
@@ -345,8 +377,30 @@ const MediaDownloadDialog = ({
           value={isCustomConfiguration} 
           onChange={e => setIsCustomConfiguration(e.target.value)}
         >
-          <FormControlLabel value="yes" control={<Radio />} label="Yes" />
-          <FormControlLabel value="no" control={<Radio />} label="No" />
+          <FormControlLabel 
+            value="yes" 
+            control={<Radio />} 
+            label="Yes" 
+            sx={{
+              color:'#4f4f4f',
+              fontFamily: "OpenSans-SemiBold",
+              '.MuiTypography-root': {
+                fontSize: '14px !important',
+              }
+            }}
+          />
+          <FormControlLabel 
+            value="no" 
+            control={<Radio />} 
+            label="No" 
+            sx={{
+              color:'#4f4f4f',
+              fontFamily: "OpenSans-SemiBold",
+              '.MuiTypography-root': {
+                fontSize: '14px !important',
+              }
+            }}
+          />
         </RadioGroup>
 
         {isCustomConfiguration === 'yes' && (
@@ -438,7 +492,7 @@ const MediaDownloadDialog = ({
                   onChange={(e) => setCompression(e.target.value)}
                   sx={{ height: '32px' }}
                 >
-                  <MenuItem value="">No Compression</MenuItem>
+                  <MenuItem value="none">No Compression</MenuItem>
                   <MenuItem value="lzw">LZW Compression</MenuItem>
                 </Select>
               </FormControl>
@@ -481,101 +535,360 @@ const MediaDownloadDialog = ({
   );
 
   const optionsContent = () => (
-    <>
-      <DialogTitle>
-        The file you're trying to download is large, and it will take a while. You have three choices.
+    <Box className="download-options-dialog" sx={{ 
+      backgroundColor: '#ffffff',
+      borderRadius: '2px',
+      padding: '24px',
+      height: 'auto',
+      minHeight: downloadOption === 'other' ? '500px' : '377px', // Increase height when email input is shown
+      position: 'relative',
+      width: '100%',
+      boxSizing: 'border-box'
+    }}>
+      {/* Dialog Header */}
+      <Box className="dialog-header" sx={{ 
+        display: 'flex',
+        flexDirection: 'row',
+        gap: '5px',
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+        width: '100%',
+        position: 'absolute',
+        left: '18px',
+        top: '22px'
+      }}>
+        {/* <Box className="download-icon" sx={{ 
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0px',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '33px',
+          height: '33px'
+        }}>
+          <Typography sx={{ 
+            color: '#000000',
+            textAlign: 'center',
+            fontFamily: 'MaterialSymbolsRoundedLight-Regular, sans-serif',
+            fontSize: '32px',
+            fontWeight: 400
+          }}>
+            download
+          </Typography>
+        </Box> */}
+        <Box sx={{ width: '100%', height: '29px' }}>
+          <Typography className="dialog-title" sx={{
+            color: '#000000',
+            textAlign: 'left',
+            fontFamily: 'OpenSans-SemiBold, sans-serif',
+            fontSize: '21px',
+            lineHeight: '140%',
+            fontWeight: 600,
+            position: 'absolute',
+
+            width: '159.92px',
+            height: '29px'
+          }}>
+            Download
+          </Typography>
+        </Box>
+      </Box>
+
+      {/* Dialog Message */}
+      <Typography className="download-message" sx={{
+        color: '#333333',
+        textAlign: 'left',
+        fontFamily: 'OpenSans-Regular, sans-serif',
+        fontSize: '16px',
+        lineHeight: '140%',
+        fontWeight: 400,
+        position: 'absolute',
+        left: '35px',
+        top: '76px',
+        width: 'calc(100% - 70px)'
+      }}>
+        The file you're trying to download is large, and it will take a while.
+        You have three choices.
         <br />
         Please select your preference:
-      </DialogTitle>
-      
-      <DialogContent>
+      </Typography>
+
+      {/* Download Options */}
+      <Box className="download-options-container" sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '16px',
+        alignItems: 'flex-start',
+        justifyContent: 'flex-start',
+        width: 'calc(100% - 70px)',
+        position: 'absolute',
+        left: '35px',
+        top: '159px'
+      }}>
         <RadioGroup
           value={downloadOption}
           onChange={(e) => setDownloadOption(e.target.value)}
+          sx={{ width: '100%' }}
         >
-          <FormControlLabel
-            value="wait"
-            control={<Radio />}
-            label={
-              <Box>
-                <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                  Wait for Download
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  Begin the download immediately.
-                </Typography>
-              </Box>
-            }
-          />
-          <FormControlLabel
-            value="email"
-            control={<Radio />}
-            label={
-              <Box>
-                <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                  Send to Email
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  We'll email you a download link for later access.
-                </Typography>
-              </Box>
-            }
-          />
-          <FormControlLabel
-            value="other"
-            control={<Radio />}
-            label={
-              <Box>
-                <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                  Send to Others
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  Send download link to other users and CC you Email to
-                </Typography>
-              </Box>
-            }
-          />
+          {/* Wait for Download Option */}
+          <Box className="download-option-item" sx={{
+            display: 'flex',
+            flexDirection: 'row',
+            gap: '7px',
+            alignItems: 'center',
+            justifyContent: 'flex-start',
+            width: '100%',
+            mb: 2
+          }}>
+            <Radio 
+              value="wait"
+              sx={{
+                color: '#cccccc',
+                width: '25px',
+                height: '24px',
+                '&.Mui-checked': {
+                  color: '#f16508'
+                }
+              }}
+            />
+            <Box className="option-content" sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0px',
+              alignItems: 'flex-start',
+              justifyContent: 'flex-start',
+              width: '242px'
+            }}>
+              <Typography className="option-title" sx={{
+                color: '#212121',
+                textAlign: 'left',
+                fontFamily: 'OpenSans-SemiBold, sans-serif',
+                fontSize: '14px',
+                lineHeight: '140%',
+                fontWeight: 600,
+                width: '100%'
+              }}>
+                Wait for Download
+              </Typography>
+              <Typography className="option-description" sx={{
+                color: '#4f4f4f',
+                textAlign: 'left',
+                fontFamily: 'OpenSans-Regular, sans-serif',
+                fontSize: '12px',
+                lineHeight: '140%',
+                fontWeight: 400,
+                width: '242px'
+              }}>
+                Begin the download immediately.
+              </Typography>
+            </Box>
+          </Box>
+
+          {/* Send to Email Option */}
+          <Box className="download-option-item" sx={{
+            display: 'flex',
+            flexDirection: 'row',
+            gap: '7px',
+            alignItems: 'center',
+            justifyContent: 'flex-start',
+            width: '100%',
+            mb: 2
+          }}>
+            <Radio 
+              value="email"
+              sx={{
+                color: '#cccccc',
+                width: '25px',
+                height: '24px',
+                '&.Mui-checked': {
+                  color: '#f16508'
+                }
+              }}
+            />
+            <Box className="option-content" sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0px',
+              alignItems: 'flex-start',
+              justifyContent: 'flex-start',
+              width: '281px'
+            }}>
+              <Typography className="option-title" sx={{
+                color: '#212121',
+                textAlign: 'left',
+                fontFamily: 'OpenSans-SemiBold, sans-serif',
+                fontSize: '14px',
+                lineHeight: '140%',
+                fontWeight: 600,
+                width: '100%'
+              }}>
+                Send to Email
+              </Typography>
+              <Typography className="option-description" sx={{
+                color: '#4f4f4f',
+                textAlign: 'left',
+                fontFamily: 'OpenSans-Regular, sans-serif',
+                fontSize: '12px',
+                lineHeight: '140%',
+                fontWeight: 400,
+                width: '100%'
+              }}>
+                We'll email you a download link for later access.
+              </Typography>
+            </Box>
+          </Box>
+
+          {/* Send to Others Option */}
+          <Box className="download-option-item" sx={{
+            display: 'flex',
+            flexDirection: 'row',
+            gap: '7px',
+            alignItems: 'center',
+            justifyContent: 'flex-start',
+            width: '100%',
+            mb: 2
+          }}>
+            <Radio 
+              value="other"
+              sx={{
+                color: '#cccccc',
+                width: '25px',
+                height: '24px',
+                '&.Mui-checked': {
+                  color: '#f16508'
+                }
+              }}
+            />
+            <Box className="option-content" sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0px',
+              alignItems: 'flex-start',
+              justifyContent: 'flex-start',
+              width: '336px'
+            }}>
+              <Typography className="option-title" sx={{
+                color: '#212121',
+                textAlign: 'left',
+                fontFamily: 'OpenSans-SemiBold, sans-serif',
+                fontSize: '14px',
+                lineHeight: '140%',
+                fontWeight: 600,
+                width: '100%'
+              }}>
+                Send to Others
+              </Typography>
+              <Typography className="option-description" sx={{
+                color: '#4f4f4f',
+                textAlign: 'left',
+                fontFamily: 'OpenSans-Regular, sans-serif',
+                fontSize: '12px',
+                lineHeight: '140%',
+                fontWeight: 400,
+                width: '100%'
+              }}>
+                Send download link to other users and CC you Email to
+              </Typography>
+            </Box>
+          </Box>
         </RadioGroup>
 
+        {/* Email Input for Send to Others */}
         {downloadOption === 'other' && (
-          <Box sx={{ mt: 2, pl: 4 }}>
-            <Typography sx={{ mb: 1 }}>
+          <Box className="email-input-section" sx={{ 
+            mt: 2, 
+            pl: 4, 
+            width: '100%',
+            mb: 12, // Increase bottom margin to prevent overlap with buttons
+            position: 'relative',
+            zIndex: 1
+          }}>
+            <Typography sx={{ 
+              mb: 1,
+              color: '#4f4f4f',
+              fontFamily: 'OpenSans-Regular, sans-serif',
+              fontSize: '14px'
+            }}>
               Send to:
             </Typography>
             <MultiEmailInput
               emails={emails}
               onChange={setEmails}
-              placeholder="Enter email addresses..."
+              placeholder="Enter email addresses and press Enter..."
               onFocus={() => setFocused(true)}
               onBlur={() => setFocused(false)}
               style={{
-                border: `1px solid ${focused ? theme.palette.primary.main : '#E5E5E5'}`,
+                border: `1px solid ${focused ? '#f16508' : '#E5E5E5'}`,
                 borderRadius: '4px',
-                padding: '8px',
-                transition: 'border-color 0.2s ease'
+                padding: '12px', // Increase padding for better height
+                transition: 'border-color 0.2s ease',
+                width: '100%',
+                minHeight: '60px' // Increase minimum height
               }}
             />
           </Box>
         )}
-      </DialogContent>
+      </Box>
 
-      <DialogActions sx={{ padding: '0 24px 24px', display: 'flex', gap: '8px' }}>
+      {/* Dialog Actions */}
+      <Box className="dialog-actions" sx={{
+        display: 'flex',
+        flexDirection: 'row',
+        gap: '16px',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+        position: 'absolute',
+        right: '19px',
+        bottom: downloadOption === 'other' ? '20px' : '16px' // Provide more space when email input is shown
+      }}>
         <Button
-          onClick={handleClose}
-          sx={{ color: '#333', border: 'solid 1px #E5E5E5' }}
+          className="cancel-button"
+          onClick={handleOptionsCancel}
+          sx={{
+            borderRadius: '4px',
+            border: '1px solid #e6e6e6',
+            padding: '8px 16px',
+            boxShadow: '0px 1px 1px 0px rgba(0, 0, 0, 0.05)',
+            color: '#4d4d4d',
+            fontFamily: 'OpenSans-Regular, sans-serif',
+            fontSize: '14px',
+            lineHeight: '16px',
+            fontWeight: 400,
+            textTransform: 'uppercase'
+          }}
         >
-          Cancel
+          {cameFromDerivateSelection ? 'BACK' : 'CANCEL'}
         </Button>
         <Button
+          className="finish-button"
           onClick={handleFinalDownload}
           variant="contained"
           disabled={!canFinalDownload || loading}
-          sx={{ color: '#fff' }}
+          sx={{
+            backgroundColor: '#f16508',
+            borderRadius: '4px',
+            padding: '6px 16px',
+            height: '32px',
+            color: '#ffffff',
+            fontFamily: 'OpenSans-Regular, sans-serif',
+            fontSize: '14px',
+            lineHeight: '24px',
+            letterSpacing: '0.4px',
+            fontWeight: 400,
+            textTransform: 'uppercase',
+            '&:hover': {
+              backgroundColor: '#d5570a'
+            },
+            '&:disabled': {
+              backgroundColor: '#cccccc',
+              color: '#ffffff'
+            }
+          }}
         >
           {loading ? 'Downloading...' : 'FINISH'}
         </Button>
-      </DialogActions>
-    </>
+      </Box>
+    </Box>
   );
 
   return (
@@ -587,9 +900,9 @@ const MediaDownloadDialog = ({
       }}
       sx={{
         '& .MuiDialog-paper': {
-          width: '480px',
-          minHeight: '400px',
-          overflow: 'auto'
+          width: '520px',
+          minHeight: currentStep === 'options' && downloadOption === 'other' ? '530px' : '400px',
+          overflow: 'hidden'
         }
       }}
     >
