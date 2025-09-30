@@ -223,8 +223,8 @@ const MediaDownloadDialog = ({
       if (downloadOption === 'email') {
         toEmail = userEmail;
       } else if (downloadOption === 'other') {
-        toEmail = emails.join(',');
-        ccEmail = userEmail; // CC the current user
+        ccEmail = emails.join(',');
+        toEmail = userEmail; // CC the current user
       }
 
       // Call download API with new parameters
