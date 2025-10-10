@@ -421,6 +421,22 @@ const ProductDetailPage = () => {
 
   console.log('mappedData111', mappedData);
 
+  // 动态列头
+  const skuColumnLabels = React.useMemo(() => {
+    const fields = tableData?.fields || [];
+    const findLabel = (name, fallback) => {
+      const hit = fields.find(f => (f?.fieldName || '').toString() === name);
+      return hit?.label || hit?.title || fallback;
+    };
+    return {
+      productNumber: findLabel('productNumber'),
+      size: findLabel('size'),
+      material: findLabel('mainMaterial'),
+      finish: findLabel('surfaceFinish'),
+      standard: findLabel('applicableStandard')
+    };
+  }, [tableData]);
+
 
   // 从路由参数获取产品ID
   const { id: routeProductId } = useParams();
@@ -1589,6 +1605,7 @@ const ProductDetailPage = () => {
           strapiData={productCardData}
           infoPairs={generateProductCardInfoPairs()}
           productImage={productData.image}
+          skuColumnLabels={skuColumnLabels}
           skuData={productData.skuData?.map((sku, index) => ({
             productNumber: sku.productNumber || '',
             size: sku.size || '',
@@ -1669,6 +1686,7 @@ const ProductDetailPage = () => {
                 data={productData.skus} 
                 variant="detail" 
                 showStandard={true} 
+                columnLabels={skuColumnLabels}
               />
             </Box>
           )}

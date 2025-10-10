@@ -24,6 +24,7 @@ const ProductCard = ({
     { size: '180mm/6"', material: '90258', finish: 'Nickel Iron Plated', imageUrl: '' },
     { size: '200mm/6"', material: '90259', finish: 'Nickel Iron Plated', imageUrl: '' }
   ],
+  skuColumnLabels,
   onDownloadClick,
   onSkuNavigate,
   productImage,
@@ -516,6 +517,7 @@ const ProductCard = ({
                       onSkuSelect={handleSkuSelect}
                       variant="dropdown"
                       showStandard={false}
+                      columnLabels={skuColumnLabels}
                     />
                   </Box>
                 )}
