@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import ProductCatalogue from '../components/ProductCatalogue';
 import { createProductCatalogueConfig } from '../config/kendoProductConfig';
 import { useBrand } from '../hooks/useBrand';
@@ -8,7 +8,7 @@ import { fetchSKUProducts } from '../services/skuProductsApi';
 function ProductCataloguePage() {
   // 获取当前品牌和路由参数
   const { currentBrandCode } = useBrand();
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const { lang, brand } = useParams();
   
   // 产品详情状态
@@ -69,7 +69,7 @@ function ProductCataloguePage() {
       console.log(`🎯 Selecting first SKU with ID: ${firstSkuId}`, firstSku);
       
       // 构建产品详情页面URL: /en_GB/kendo/product-detail/${id}
-      const detailUrl = `/${lang || 'en_GB'}/${brand || currentBrandCode}/product-detail/${firstSkuId}?layout=MarketingBasic`;
+      const detailUrl = `/${lang || 'en_GB'}/${brand || currentBrandCode}/product-detail/${firstSkuId}?layout=internalPDPBasic`;
       
       console.log(`🚀 Navigating to product detail page: ${detailUrl}`);
       window.open(detailUrl, '_blank');
