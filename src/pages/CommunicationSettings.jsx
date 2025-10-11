@@ -18,6 +18,7 @@ import { styled } from '@mui/material/styles';
 import React, { useEffect, useState } from 'react';
 import { SectionCard, SubTitle } from '../components/SettingsComponents';
 import { useBrand } from '../hooks/useBrand';
+import { useLanguage } from '../hooks/useLanguage';
 import emailApi from '../services/emailApi';
 import CookieService from '../utils/cookieService';
 
@@ -33,6 +34,7 @@ const SaveButton = styled(Button)(({ theme }) => ({
 
 function CommunicationSettings() {
   const { currentBrandCode } = useBrand();
+  const { currentLanguage } = useLanguage();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setSaving] = useState(false);
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
@@ -129,7 +131,7 @@ function CommunicationSettings() {
     loadEmailTemplate();
     loadEmailTemplates();
     initializeTemplateData();
-  }, [currentBrandCode]);
+  }, [currentBrandCode, currentLanguage]);
 
   // 初始化模板数据
   const initializeTemplateData = () => {
@@ -163,8 +165,12 @@ function CommunicationSettings() {
     try {
       const userInfo = CookieService.getUserInfo();
       const tenant = userInfo?.tenant?.name || userInfo?.tenantName || currentBrandCode;
+      const theme = currentBrandCode;
+      const lang = currentLanguage || 'en_GB';
       
-      const response = await emailApi.getEmailTemplatesByTenant(tenant);
+      console.log('🔄 加载邮件模板列表，参数:', { tenant, theme, lang });
+      
+      const response = await emailApi.getEmailTemplatesByTenant(tenant, theme, lang);
       
       if (response.success && response.data) {
         // 保存API返回的模板数据
