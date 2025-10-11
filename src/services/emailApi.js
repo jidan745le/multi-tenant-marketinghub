@@ -397,11 +397,19 @@ class EmailApiService {
     /**
      * Get email templates by tenant
      * @param {string} tenant - Tenant name
+     * @param {string} theme - Theme name
+     * @param {string} lang - Language code
      * @returns {Promise} API response
      */
-    async getEmailTemplatesByTenant(tenant) {
+    async getEmailTemplatesByTenant(tenant, theme, lang) {
         try {
-            const response = await fetch(`${EMAIL_TEMPLATE_API_URL}/tenant-detail/${tenant}`, {
+            // Build query parameters
+            const params = new URLSearchParams();
+            params.append('tenant', tenant);
+            params.append('theme', theme);
+            params.append('lang', lang);
+
+            const response = await fetch(`${EMAIL_TEMPLATE_API_URL}/tenant-detail?${params.toString()}`, {
                 method: 'GET',
                 headers: this.getHeaders(),
             });
