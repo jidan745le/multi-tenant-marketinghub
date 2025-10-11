@@ -34,6 +34,7 @@ const ThankYouPage = Loader(lazy(() => import('../pages/ThankYouPage')));
 const UserManagement = Loader(lazy(() => import('../pages/UserManagement')));
 const DerivateManagement = Loader(lazy(() => import('../pages/DerivateManagement')));
 const ProductDetailPage = Loader(lazy(() => import('../pages/ProductDetailPage')));
+const ComparePage = Loader(lazy(() => import('../pages/ComparePage')));
 
 const router = [
   // Login page route with tenant validation
@@ -106,6 +107,10 @@ const router = [
   {
     path: '/:lang/:brand/product-detail/:id',
     element: <ProtectedRoute><ProductDetailPage /></ProtectedRoute>
+  },
+  {
+    path: '/:lang/:brand/compare',
+    element: <ProtectedRoute><ComparePage /></ProtectedRoute>
   },
   {
     path: '/:lang/:brand/brand-book',

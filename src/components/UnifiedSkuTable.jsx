@@ -10,7 +10,7 @@ const UnifiedSkuTable = ({
   variant = 'dropdown', // 'dropdown' | 'detail'
   showStandard = false,
   columnLabels = {
-    productNumber: 'Sku Id',
+    productNumber: 'SKU ID',
     size: 'Size/ MainParameter',
     material: 'Main Material',
     finish: 'Surface Finish',

@@ -295,6 +295,7 @@ function RouterContent() {
   const isEmailVerificationPage = window.location.pathname.endsWith('/VerifyEmail');
   const isThankYouPage = window.location.pathname.endsWith('/ThankYou');
   const isProductDetailPage = window.location.pathname.includes('/product-detail');
+  const isComparePage = window.location.pathname.endsWith('/compare');
   return (
     <ThemeProviderWrapper>
       <CssBaseline />
@@ -309,8 +310,8 @@ function RouterContent() {
       >
         {/* 顶部导航栏 - 登录页面不显示 */}
 
-        {/* 顶部导航栏 - 登录页面和PDP页面不显示 */}
-        {!isLoginPage && !isSignUpPage && !isVerificationSentPage && !isEmailVerificationPage && !isProductDetailPage &&!isThankYouPage && <TopBar />}
+        {/* 顶部导航栏 - 登录页面、PDP页面和对比页面不显示 */}
+        {!isLoginPage && !isSignUpPage && !isVerificationSentPage && !isEmailVerificationPage && !isProductDetailPage && !isComparePage && !isThankYouPage && <TopBar />}
         
         {/* 主要内容区域 */}
         <Box 
