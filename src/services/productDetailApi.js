@@ -628,7 +628,7 @@ class ProductDetailApiService {
     return successor.map(successor => ({
       productNumber: successor.CustomerFacingProductCode || successor.VirtualProductID || successor.id || '',
       productName: successor.ProductName || '',
-      imageUrl: successor.Main?.fullpath || ''
+      imageUrl: successor.Main?.assetThumb2 || ''
     }));
 
   }
@@ -643,7 +643,7 @@ class ProductDetailApiService {
       enrichmentStatus: product.EnrichmentStatus || '',
       regionalLaunchDate: this.formatDate(product.OnlineDate),
       finalReleaseDate: this.formatDate(product.FirstShipmentDate),
-      imageUrl: product.Main?.fullpath || '',
+      imageUrl: product.Main?.assetThumb2 || '',
       thumbnailUrl: product.Main?.assetThumb2 || ''
     };
   }
@@ -1001,7 +1001,7 @@ class ProductDetailApiService {
     return bundles.map(bundle => ({
       productNumber: bundle.CustomerFacingProductCode || bundle.VirtualProductID || bundle.id || '',
       productName: bundle.ProductName || '',
-      imageUrl: bundle.Main?.fullpath || ''
+      imageUrl: bundle.Main?.assetThumb2
     }));
   }
 
@@ -1011,7 +1011,7 @@ class ProductDetailApiService {
     return components.map(comp => ({
       productNumber: comp.element?.CustomerFacingProductCode || comp.element?.VirtualProductID || comp.element?.id || '',
       productName: comp.element?.ProductName || '',
-      imageUrl: comp.element?.Main?.fullpath || ''
+      imageUrl: comp.element?.Main?.assetThumb2 || ''
     }));
   }
 
@@ -1019,7 +1019,7 @@ class ProductDetailApiService {
     if (!accessories || !Array.isArray(accessories)) return [];
 
     return accessories.map(acc => ({
-      imageUrl: acc.element?.Main?.fullpath || '',
+      imageUrl: acc.element?.Main?.assetThumb2 || '',
       model: acc.element?.CustomerFacingProductCode || acc.element?.VirtualProductID || acc.element?.id || '',
       name: acc.element?.ProductName || '',
       quantity: parseInt(acc.element?.Quantity) || 0
