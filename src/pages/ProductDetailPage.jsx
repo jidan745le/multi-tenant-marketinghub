@@ -332,7 +332,9 @@ const ProductDetailPage = () => {
       packagingWidgets: [],
       specificationWidgets: [],
       mediaWidgets: [],
-      documentWidgets: []
+      documentWidgets: [],
+      // 原始顺序的组件列表
+      orderedComponents: []
     };
 
     // 遍历 contentArea 并应用映射器
@@ -342,6 +344,9 @@ const ProductDetailPage = () => {
       
       if (mapper) {
         const mappedData = mapper(block);
+        
+        // 保持Strapi的原始顺序
+        result.orderedComponents.push(mappedData);
         
         // 根据组件类型分配到对应容器
         switch (componentType) {
@@ -403,6 +408,7 @@ const ProductDetailPage = () => {
     iconsAndPicturesData,
     onWhiteData,
     actionAndLifestyleData,
+    galleryData,
     qrCodesData,
     eansData,
     bundlesData,
@@ -727,14 +733,14 @@ const ProductDetailPage = () => {
       
       uspsSection: extractTitleFromNavPath(specificationData?.[0]?.navPath, 'USPS & Benefits'),
       
-      marketingCollateralsSection: extractTitleFromNavPath(onWhiteData?.navPath || actionAndLifestyleData?.navPath || mediaData?.[0]?.navPath, 'Marketing Collaterals'),
+      marketingCollateralsSection: extractTitleFromNavPath(onWhiteData?.navPath || actionAndLifestyleData?.navPath || mediaData?.[0]?.navPath || galleryData?.navPath, 'Marketing Collaterals'),
       
       afterServiceSection: extractTitleFromNavPath(manualsData?.navPath || repairGuidesData?.navPath || packagingsData?.navPath || drawingsData?.navPath || patentData?.navPath, 'After Service'),
     };
   }, [
     extractTitleFromNavPath, basicFormData, marketingFormData,
     bundlesData, componentsData, accessoriesData,
-    packagingData, specificationData, onWhiteData, actionAndLifestyleData, mediaData,
+    packagingData, specificationData, onWhiteData, actionAndLifestyleData, mediaData, galleryData,
     manualsData, repairGuidesData, packagingsData, drawingsData, patentData
   ]);
 
@@ -955,6 +961,7 @@ const ProductDetailPage = () => {
   const onWhiteTitleRef = useRef(null);
   const actionLifestyleTitleRef = useRef(null);
   const videosTitleRef = useRef(null);
+  const galleryTitleRef = useRef(null);
   // After Service anchors
   const manualsTitleRef = useRef(null);
   const repairGuideTitleRef = useRef(null);
@@ -988,6 +995,7 @@ const ProductDetailPage = () => {
     { sectionId: 'marketing-collaterals', i18nKey: 'pdp.sections.onWhite', ref: onWhiteTitleRef },
     { sectionId: 'marketing-collaterals', i18nKey: 'pdp.sections.actionAndLifestyle', ref: actionLifestyleTitleRef },
     { sectionId: 'marketing-collaterals', i18nKey: 'pdp.sections.videos', ref: videosTitleRef },
+    { sectionId: 'marketing-collaterals', i18nKey: 'pdp.sections.gallery', ref: galleryTitleRef },
     // After Service
     { sectionId: 'after-service', i18nKey: 'pdp.sections.manuals', ref: manualsTitleRef },
     { sectionId: 'after-service', i18nKey: 'pdp.sections.repairGuide', ref: repairGuideTitleRef },
@@ -1496,16 +1504,8 @@ const ProductDetailPage = () => {
     const rootsMap = Object.create(null);
     const rootsOrder = [];
 
-    const blocks = [];
-    if (getPdpPageData?.table) blocks.push(getPdpPageData.table);
-    (getPdpPageData?.forms || []).forEach(b => blocks.push(b));
-    (getPdpPageData?.images || []).forEach(b => blocks.push(b));
-    (getPdpPageData?.codes || []).forEach(b => blocks.push(b));
-    (getPdpPageData?.referenceLists || []).forEach(b => blocks.push(b));
-    (getPdpPageData?.packagingWidgets || []).forEach(b => blocks.push(b));
-    (getPdpPageData?.specificationWidgets || []).forEach(b => blocks.push(b));
-    (getPdpPageData?.mediaWidgets || []).forEach(b => blocks.push(b));
-    (getPdpPageData?.documentWidgets || []).forEach(b => blocks.push(b));
+    // 使用按Strapi原始顺序排列的组件
+    const blocks = getPdpPageData?.orderedComponents || [];
 
     blocks.forEach(b => insertPath(rootsMap, rootsOrder, b?.navPath));
 
@@ -2365,6 +2365,95 @@ const ProductDetailPage = () => {
           }}
         />
       </Box>
+
+      {/* Gallery */}
+      <Box sx={{ 
+        display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        mt: 3.5,
+        mb: 3.5
+      }}>
+        {/* 标题 */}
+        <Typography ref={galleryTitleRef} sx={{
+          color: '#4d4d4d',
+          fontFamily: '"Open Sans", sans-serif',
+          fontSize: '24.5px',
+          fontWeight: 520
+        }}>
+          {galleryData?.title || 'Gallery'}
+        </Typography>
+
+        {/* 操作按钮 */}
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          {/* 下载按钮 */}
+          <Button
+            variant="outlined"
+            startIcon={
+              <Box component="img" src={downloadIcon} alt="download" sx={{ width: 20, height: 20, display: 'block' }} />
+            }
+            onClick={() => console.log('Download Gallery clicked')}
+            sx={{
+              ...styles.topButtonBase,
+              bgcolor: '#ffffff',
+              borderColor: '#cccccc',
+              color: '#333333',
+              px: 2,
+              width: 'auto',
+              minWidth: '160px',
+              '&:hover': { bgcolor: '#eaeaea', borderColor: '#cccccc', color: '#000000' }
+            }}
+          >
+            Download All
+          </Button>
+        </Box>
+      </Box>
+
+      {/* Gallery Images */}
+      {productData.marketingCollaterals?.onWhite && productData.marketingCollaterals.onWhite.length > 0 && (
+        <Box sx={{ mb: 3 }}>
+          <Image 
+            type={galleryData?.type || "gallery"}
+            mainImage={{
+              src: `https://pim-test.kendo.com${productData.marketingCollaterals.onWhite[0].thumbnailUrl}`,
+              alt: productData.marketingCollaterals.onWhite[0].altText || '',
+              fileName: productData.marketingCollaterals.onWhite[0].fileName || ''
+            }}
+            thumbnailImages={productData.marketingCollaterals.onWhite.map((img) => ({
+              src: `https://pim-test.kendo.com${img.thumbnailUrl}`,
+              alt: img.altText || '',
+              fileName: img.fileName || '',
+              basicInfo: img.basicInfo || {},
+              technical: img.technical || {},
+              downloadUrl: img.downloadUrl || '',
+              imageUrl: img.imageUrl || '',
+              keywords: Array.isArray(img.keywords) ? img.keywords : []
+            }))}
+            // 标签映射
+            infoLabels={{
+              basic: [
+                { key: 'modelNumber', label: 'Model Number' },
+                { key: 'imageType', label: 'Image Type' },
+                { key: 'lockDate', label: 'Lock Date' },
+                { key: 'countryRestrictions', label: 'Country Restrictions' },
+                { key: 'usageRights', label: 'Usage Rights' },
+                { key: 'approvalStatus', label: 'Approval Status' }
+              ],
+              technical: [
+                { key: 'colorSpace', label: 'Color Space' },
+                { key: 'colorProfile', label: 'Color Profile' },
+                { key: 'resolution', label: 'Resolution' },
+                { key: 'dimensions', label: 'Dimensions' },
+                { key: 'size', label: 'Size' },
+                { key: 'createdOn', label: 'Created On' },
+                { key: 'changeDate', label: 'Change Date' }
+              ]
+            }}
+            onImageSelect={(image, index) => console.log('Gallery selected:', index, image)}
+          />
+        </Box>
+      )}
     </Box>
     
   );

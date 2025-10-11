@@ -18,6 +18,7 @@ export default {
     "pdp.sections.packagingData": "Datos de embalaje",
     "pdp.sections.packagingSpec": "Embalaje y especificaciones",
     "pdp.sections.videos": "Videos",
+    "pdp.sections.gallery": "Galería",
     "pdp.sections.manuals": "Manuales",
     "pdp.sections.repairGuide": "Guía de reparación",
     "pdp.sections.packaging": "Embalaje",

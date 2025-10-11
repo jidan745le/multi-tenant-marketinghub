@@ -20,6 +20,7 @@ export default {
     "pdp.sections.packagingData": "Packaging Data",
     "pdp.sections.packagingSpec": "Packaging & Spec",
     "pdp.sections.videos": "Videos",
+    "pdp.sections.gallery": "Gallery",
     "pdp.sections.manuals": "Manuals",
     "pdp.sections.repairGuide": "Repair Guide",
     "pdp.sections.packaging": "Packaging",
