@@ -61,10 +61,12 @@ function CommunicationSettings() {
   const [selectedTemplate, setSelectedTemplate] = useState('Welcome email');
   const [templateData, setTemplateData] = useState({
     tenant: '',
+    theme: '',
     templateName: '',
     templateBody: '',
     keyword: '',
-    subject: ''
+    subject: '',
+    language: ''
   });
   const [currentTemplateId, setCurrentTemplateId] = useState(null);
 
@@ -137,10 +139,14 @@ function CommunicationSettings() {
   const initializeTemplateData = () => {
     const userInfo = CookieService.getUserInfo();
     const tenant = userInfo?.tenant?.name || userInfo?.tenantName || currentBrandCode;
+    const theme = currentBrandCode;
+    const language = currentLanguage || 'en_GB';
     
     setTemplateData(prev => ({
       ...prev,
       tenant: tenant,
+      theme: theme,
+      language: language,
       templateName: selectedTemplate
     }));
   };
@@ -220,10 +226,12 @@ function CommunicationSettings() {
       // 找到已存在的模板，回显所有数据
       setTemplateData({
         tenant: template.tenant || '',
+        theme: template.theme || currentBrandCode,
         templateName: template.templateName || '',
         templateBody: template.templateBody || '',
         keyword: template.keyword || '',
-        subject: template.subject || ''
+        subject: template.subject || '',
+        language: template.language || currentLanguage || 'en_GB'
       });
       setCurrentTemplateId(template.id);
       console.log('📝 回显现有模板数据:', template);
@@ -231,13 +239,17 @@ function CommunicationSettings() {
       // 如果没有找到，说明是新模板，重置为空的默认值
       const userInfo = CookieService.getUserInfo();
       const tenant = userInfo?.tenant?.name || userInfo?.tenantName || currentBrandCode;
+      const theme = currentBrandCode;
+      const language = currentLanguage || 'en_GB';
       
       setTemplateData({
         tenant: tenant,
+        theme: theme,
         templateName: templateName,
         templateBody: '',
         keyword: '',
-        subject: ''
+        subject: '',
+        language: language
       });
       setCurrentTemplateId(null);
       console.log('✨ 创建新模板:', templateName);
@@ -419,21 +431,30 @@ function CommunicationSettings() {
     try {
       setSaving(true);
       
+      // 确保所有必需字段都有值
+      const dataToSave = {
+        ...templateData,
+        tenant: templateData.tenant || CookieService.getUserInfo()?.tenant?.name || currentBrandCode,
+        theme: templateData.theme || currentBrandCode,
+        language: templateData.language || currentLanguage || 'en_GB'
+      };
+      
       console.log('🔄 开始保存邮件模板...', {
-        templateName: templateData.templateName,
+        templateName: dataToSave.templateName,
         currentTemplateId: currentTemplateId,
-        action: currentTemplateId ? 'UPDATE' : 'CREATE'
+        action: currentTemplateId ? 'UPDATE' : 'CREATE',
+        data: dataToSave
       });
 
       let response;
       if (currentTemplateId) {
         // Update existing template
-        response = await emailApi.updateEmailTemplateById(currentTemplateId, templateData);
+        response = await emailApi.updateEmailTemplateById(currentTemplateId, dataToSave);
         console.log('📝 更新现有邮件模板，ID:', currentTemplateId);
       } else {
         // Create new template
-        response = await emailApi.createEmailTemplateV2(templateData);
-        console.log('✨ 创建新邮件模板:', templateData.templateName);
+        response = await emailApi.createEmailTemplateV2(dataToSave);
+        console.log('✨ 创建新邮件模板:', dataToSave.templateName);
       }
 
       if (response.success) {
