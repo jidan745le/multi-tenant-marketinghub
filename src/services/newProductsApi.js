@@ -75,6 +75,26 @@ const buildNewProductsQuery = (filters = {}, first = 100, after = 0, brand = 'ke
     filterConditions.push({ "$or": typeConditions });
   }
 
+  // Application筛选 (By Trade)
+  if (filters['application'] && filters['application'].length > 0) {
+    console.log('🔧 Application filter applied:', filters['application']);
+    const applicationConditions = filters['application'].map(app => ({
+      "Application": { "$like": `%${app}%` }
+    }));
+    filterConditions.push({ "$or": applicationConditions });
+  }
+
+  // Product category filtering (tree structure support)
+  // 使用CategoryID进行筛选
+  if (filters['product-category'] && filters['product-category'].length > 0) {
+    console.log('🏷️ Product category filter applied:', filters['product-category']);
+    const categoryConditions = filters['product-category'].map(category => ({
+      "CategoryID": { "$like": `%${category}%` }
+    }));
+    filterConditions.push({ "$or": categoryConditions });
+    console.log('🔍 Category filter conditions (CategoryID):', categoryConditions);
+  }
+
   // Created 时间筛选（New Products专用）
   if (filters['created'] && filters['created'].length > 0) {
     const createdConditions = filters['created'].map(period => {
@@ -124,6 +144,9 @@ const buildNewProductsQuery = (filters = {}, first = 100, after = 0, brand = 'ke
           LongDescription_en: LongDescription(language: "en")
           LongDescription_de: LongDescription(language: "de")
           ProductType
+          CategoryName
+          CategoryID
+          Application
           objectType
           OnlineDate
           children {

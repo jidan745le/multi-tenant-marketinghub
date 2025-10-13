@@ -1,53 +1,79 @@
+import { fetchCategoryTree } from '../services/graphqlApi';
 import { fetchNewProducts } from '../services/newProductsApi';
 
-// 产品类型选项 - 与现有配置保持一致
+// 产品类型选项 - 与 Product Catalogue 保持一致
 export const newProductTypeOptions = [
     { value: 'Individual Product', label: 'Individual Product' },
-    { value: 'Product Set', label: 'Product Set' },
-    { value: 'Bundle', label: 'Bundle' },
-    { value: 'Variant', label: 'Variant' }
+    { value: 'Sellable Component', label: 'Sellable Component' },
+    { value: 'Non Sellable Component', label: 'Non Sellable Component' },
+    { value: 'Baretool', label: 'Baretool' },
+    { value: 'Accessory', label: 'Accessory' },
+    { value: 'Set', label: 'Set' },
+    { value: 'Kit', label: 'Kit' },
+    { value: 'Combo Kit', label: 'Combo Kit' },
+    { value: 'Sales Kit (Nylon Pack)', label: 'Sales Kit (Nylon Pack)' },
+    { value: 'Merchandizing', label: 'Merchandizing' },
+    { value: 'InStore material', label: 'InStore material' },
+    { value: 'SpareSparts', label: 'SpareSparts' },
 ];
 
-// 产品分类选项 - 与现有配置保持一致
-export const newProductCategoryOptions = [
-    { value: 'Hand Tools', label: 'Hand Tools' },
+// By Trade (Application字段) 选项 - 与 Product Catalogue 保持一致
+export const newProductApplicationOptions = [
+    { value: 'Electrician', label: 'Electrician' },
+    { value: 'Construction & Decoration', label: 'Construction & Decoration' },
+    { value: 'Plumber', label: 'Plumber' },
+    { value: 'Carpenter', label: 'Carpenter' },
+    { value: 'PPE', label: 'PPE' },
+    { value: 'Garden', label: 'Garden' },
     { value: 'Power Tools', label: 'Power Tools' },
-    { value: 'Measuring Tools', label: 'Measuring Tools' },
-    { value: 'Cutting Tools', label: 'Cutting Tools' },
-    { value: 'Safety Equipment', label: 'Safety Equipment' },
-    { value: 'Accessories', label: 'Accessories' }
+    { value: 'Empty', label: 'Empty' },
+    { value: 'General Tools', label: 'General Tools' },
+    { value: 'HoReCa', label: 'HoReCa' },
 ];
 
-// Created 时间范围选项 for New Products
+// Created 时间范围选项 for New Products（保留特有的选项）
 export const newProductCreatedOptions = [
     { value: 'last-12-months', label: 'Last 12 months' },
     { value: 'last-6-months', label: 'Last 6 months' },
     { value: 'coming-soon', label: 'Coming Soon' },
 ];
 
-// New Products筛选器配置
+// Category Tree API包装函数
+export const fetchCategoryTreeAPI = async () => {
+    try {
+        console.log(`🌳 Category Tree API called for New Products at:`, new Date().toISOString());
+        const result = await fetchCategoryTree();
+        console.log(`📊 Category tree loaded for New Products:`, result);
+        return result;
+    } catch (error) {
+        console.error('❌ Error in fetchCategoryTreeAPI:', error);
+        return [];
+    }
+};
+
+// New Products筛选器配置 - 参考 Product Catalogue
 export const newProductListConfigs = [
     {
-        order: 11,
+        order: 1,
         label: 'Model Name',
         component: 'input',
         key: 'product-name',
         type: 'string',
         defaultValue: '',
-        placeholder: 'Search new product name'
+        placeholder: 'Search product name'
     },
     {
-        order: 21,
+        order: 11,
         label: 'Model Number',
-        component: 'input',
+        component: 'textarea',
         key: 'model-number',
         type: 'string',
         defaultValue: '',
-        placeholder: 'Search Model Number',
+        placeholder: 'Search Virtual Product ID',
         children: [
             {
                 label: 'Mass Search',
-                desc: 'Enter multiple Model Numbers separated by semicolons',
+                desc: 'Enter multiple Virtual Product IDs separated by semicolons',
                 clickMethod: 'onMassSearch',
                 component: 'input',
                 key: 'mass_download',
@@ -55,25 +81,16 @@ export const newProductListConfigs = [
             }
         ]
     },
-    // {
-    //     order: 22,
-    //     label: 'ERP Material Code',
-    //     component: 'input',
-    //     key: 'ean',
-    //     type: 'string',
-    //     defaultValue: '',
-    //     placeholder: 'Search ERP Material Code',
-    //     children: [
-    //         {
-    //             label: 'Mass Search',
-    //             desc: 'Enter multiple ERP Material Codes separated by semicolons',
-    //             clickMethod: 'onMassSearch',
-    //             component: 'input',
-    //             key: 'mass_download',
-    //             type: 'button',
-    //         }
-    //     ]
-    // },
+    {
+        order: 21,
+        label: 'By Trade',
+        component: 'checkbox',
+        key: 'application',
+        type: 'array',
+        defaultValue: [],
+        enum: newProductApplicationOptions,
+        defaultCollapseCount: 5
+    },
     {
         order: 31,
         label: 'Product Type',
@@ -82,16 +99,16 @@ export const newProductListConfigs = [
         type: 'array',
         defaultValue: [],
         enum: newProductTypeOptions,
-        defaultCollapseCount: 5
+        defaultCollapseCount: 6
     },
     {
         order: 41,
         label: 'Product Category',
-        component: 'checkbox',
+        component: 'tree',
         key: 'product-category',
         type: 'array',
         defaultValue: [],
-        enum: newProductCategoryOptions,
+        fetchTreeData: fetchCategoryTreeAPI,
         defaultCollapseCount: 6
     },
     {
