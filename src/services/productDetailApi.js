@@ -102,6 +102,7 @@ class ProductDetailApiService {
                 cropWidth
               }
               image {
+                id
                 filename
                 fullpath
                 filesize
@@ -374,6 +375,22 @@ class ProductDetailApiService {
           }
         }
         
+        ImageGallery {
+          image {
+            filename
+            fullpath
+            id
+            filesize
+            assetThumb2: fullpath(thumbnail: "content", format: "webp")
+            metadata {
+              data
+              name
+              type
+              language
+            }
+          }
+        }
+        
         ProductVideos {
           ... on asset {
             filename
@@ -628,7 +645,8 @@ class ProductDetailApiService {
     return successor.map(successor => ({
       productNumber: successor.CustomerFacingProductCode || successor.VirtualProductID || successor.id || '',
       productName: successor.ProductName || '',
-      imageUrl: successor.Main?.assetThumb2 || ''
+      imageUrl: successor.Main?.assetThumb2 || '',
+      assetId: successor.Main?.id || ''
     }));
 
   }
@@ -644,7 +662,8 @@ class ProductDetailApiService {
       regionalLaunchDate: this.formatDate(product.OnlineDate),
       finalReleaseDate: this.formatDate(product.FirstShipmentDate),
       imageUrl: product.Main?.assetThumb2 || '',
-      thumbnailUrl: product.Main?.assetThumb2 || ''
+      thumbnailUrl: product.Main?.assetThumb2 || '',
+      assetId: product.Main?.id || ''
     };
   }
 
@@ -720,7 +739,8 @@ class ProductDetailApiService {
           icons.push({
             imageUrl: icon.image.fullpath || '',
             type: this.extractIconType(icon.image.metadata),
-            thumbnailUrl: icon.image.assetThumb2 || ''
+            thumbnailUrl: icon.image.assetThumb2 || '',
+            assetId: icon.image.id || ''
           });
         }
       });
@@ -868,6 +888,7 @@ class ProductDetailApiService {
     return {
       onWhite: this.transformImageCollection(product.OnWhite),
       actionLifestyle: this.transformImageCollection(product.Lifestyles),
+      imageGallery: this.transformImageCollection(product.ImageGallery),
       videos: this.transformVideoCollection([
         ...(product.ProductVideos || []),
         ...(product.CategoryVideos || [])
@@ -1001,7 +1022,8 @@ class ProductDetailApiService {
     return bundles.map(bundle => ({
       productNumber: bundle.CustomerFacingProductCode || bundle.VirtualProductID || bundle.id || '',
       productName: bundle.ProductName || '',
-      imageUrl: bundle.Main?.assetThumb2
+      imageUrl: bundle.Main?.assetThumb2,
+      assetId: bundle.Main?.id || ''
     }));
   }
 
@@ -1011,7 +1033,8 @@ class ProductDetailApiService {
     return components.map(comp => ({
       productNumber: comp.element?.CustomerFacingProductCode || comp.element?.VirtualProductID || comp.element?.id || '',
       productName: comp.element?.ProductName || '',
-      imageUrl: comp.element?.Main?.assetThumb2 || ''
+      imageUrl: comp.element?.Main?.assetThumb2 || '',
+      assetId: comp.element?.Main?.id || ''
     }));
   }
 
@@ -1022,7 +1045,8 @@ class ProductDetailApiService {
       imageUrl: acc.element?.Main?.assetThumb2 || '',
       model: acc.element?.CustomerFacingProductCode || acc.element?.VirtualProductID || acc.element?.id || '',
       name: acc.element?.ProductName || '',
-      quantity: parseInt(acc.element?.Quantity) || 0
+      quantity: parseInt(acc.element?.Quantity) || 0,
+      assetId: acc.element?.Main?.id || ''
     }));
   }
 
@@ -1041,6 +1065,7 @@ class ProductDetailApiService {
       return {
         imageUrl: image.fullpath || '',
         thumbnailUrl: image.assetThumb2 || '',
+        assetId: image.id || '',
         downloadUrl: image.fullpath || '',
         fileName: image.filename || '',
         keywords: this.extractKeywords(image.metadata), // 新增keywords字段
@@ -1070,6 +1095,7 @@ class ProductDetailApiService {
 
     return videos.map(video => ({
       thumbnailUrl: video.assetThumb2 || '',
+      assetId: video.id || '',
       downloadUrl: video.fullpath || '',
       videoTitle: this.extractMetadataValue(video.metadata, 'title') || video.filename || '',
       language: this.extractMetadataValue(video.metadata, 'language') || '',
@@ -1085,6 +1111,7 @@ class ProductDetailApiService {
 
     return collection.map(item => ({
       thumbnailUrl: item.assetThumb2 || '',
+      assetId: item.id || '',
       downloadUrl: item.fullpath || '',
       fileName: item.filename || '',
       title: this.extractMetadataValue(item.metadata, 'title') || item.filename || ''
