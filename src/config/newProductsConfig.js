@@ -18,6 +18,13 @@ export const newProductCategoryOptions = [
     { value: 'Accessories', label: 'Accessories' }
 ];
 
+// Created 时间范围选项 for New Products
+export const newProductCreatedOptions = [
+    { value: 'last-12-months', label: 'Last 12 months' },
+    { value: 'last-6-months', label: 'Last 6 months' },
+    { value: 'coming-soon', label: 'Coming Soon' },
+];
+
 // New Products筛选器配置
 export const newProductListConfigs = [
     {
@@ -86,6 +93,16 @@ export const newProductListConfigs = [
         defaultValue: [],
         enum: newProductCategoryOptions,
         defaultCollapseCount: 6
+    },
+    {
+        order: 51,
+        label: 'Created',
+        component: 'checkbox',
+        key: 'created',
+        type: 'array',
+        defaultValue: [],
+        enum: newProductCreatedOptions,
+        defaultCollapseCount: 3
     }
 ];
 

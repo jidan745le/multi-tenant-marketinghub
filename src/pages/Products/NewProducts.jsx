@@ -1,6 +1,6 @@
 import React from 'react';
-import ProductCatalogue from '../components/ProductCatalogue';
-import { newProductCatalogueConfig } from '../config/newProductsConfig';
+import ProductCatalogue from '../../components/ProductCatalogue';
+import { newProductCatalogueConfig } from '../../config/newProductsConfig';
 
 function NewProductsPage() {
   // 处理产品点击

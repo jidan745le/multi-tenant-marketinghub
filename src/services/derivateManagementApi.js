@@ -344,7 +344,7 @@ class DerivateManagementApiService {
             gravity: apiData.gravity,
             mediaType: apiData.mediaType,
             // Additional fields from API that might be needed
-            derivateSourceId: apiData.derivateSourceId,
+            // derivateSourceId: apiData.derivateSourceId,
             source: apiData.source || 'PIM' // Default to PIM if not provided
         };
     }

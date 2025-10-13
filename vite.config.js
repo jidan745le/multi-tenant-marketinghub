@@ -21,11 +21,50 @@ export default defineConfig(({ mode }) => {
       host: env.VITE_DEV_SERVER_HOST || '127.0.0.1',
       port: parseInt(env.VITE_DEV_SERVER_PORT) || 3001,
       proxy: {
+        // Derivate API proxy - maps /api/derivate to the derivate service
+        '/api/derivate-api': {
+          target: 'https://marketinghub-test.rg-experience.com',
+          changeOrigin: true,
+          secure: false,
+          // rewrite: (path) => path.replace(/^\/api\/derivate/, '/derivate-api'),
+          configure: (proxy) => {
+            proxy.on('error', (err) => {
+              console.log('derivate proxy error', err);
+            });
+            proxy.on('proxyReq', (proxyReq, req) => {
+              console.log('Sending Derivate Request:', req.method, req.url);
+            });
+            proxy.on('proxyRes', (proxyRes, req) => {
+              console.log('Received Derivate Response:', proxyRes.statusCode, req.url);
+            });
+          },
+        },
+        // Email API proxy - maps /api/email-api to the email service
+        '/api/email-api': {
+          target: 'https://marketinghub-test.rg-experience.com',
+          changeOrigin: true,
+          secure: false,
+          // rewrite: (path) => path.replace(/^\/api\/email/, '/email-api'),
+          configure: (proxy) => {
+            proxy.on('error', (err) => {
+              console.log('email proxy error', err);
+            });
+            proxy.on('proxyReq', (proxyReq, req) => {
+              console.log('Sending Email Request:', req.method, req.url);
+            });
+            proxy.on('proxyRes', (proxyRes, req) => {
+              console.log('Received Email Response:', proxyRes.statusCode, req.url);
+            });
+          },
+        },
+        // General APIs proxy
         '/apis': {
           target: 'https://marketinghub-test.rg-experience.com',
+          // target: 'http://localhost:3000',
           changeOrigin: true,
           secure: true,
           rewrite: (path) => path.replace(/^\/apis/, 'apis'),
+          // rewrite: (path) => path.replace(/^\/apis/, ''),
           configure: (proxy) => {
             proxy.on('error', (err) => {
               console.log('proxy error', err);

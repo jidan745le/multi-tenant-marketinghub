@@ -143,6 +143,30 @@ const getProductCategory = (graphqlNode) => {
 };
 
 /**
+ * 获取SKU信息
+ * @param {Object} graphqlNode - GraphQL节点数据
+ * @returns {Object} SKU信息 {count, skus, showBadge}
+ */
+const getSkuInfo = (graphqlNode) => {
+    const children = graphqlNode.children || [];
+    const skuCount = children.length;
+
+    return {
+        count: skuCount,
+        skus: children.map(child => ({
+            id: child.id,
+            productNumber: child.CustomerFacingProductCode || '',
+            size: child.Size || '',
+            mainMaterial: child.MainMaterial || '',
+            surfaceFinish: child.SurfaceFinish || '',
+            applicableStandard: child.ApplicableStandard || ''
+        })),
+        // 只有当SKU数量大于1时才显示徽章
+        showBadge: skuCount > 1
+    };
+};
+
+/**
  * 将单个GraphQL产品节点转换为应用内部格式
  * @param {Object} graphqlNode - GraphQL产品节点
  * @returns {Object} 转换后的产品对象
@@ -151,6 +175,7 @@ export const adaptGraphQLProductNode = (graphqlNode) => {
     const mainImageUrl = getMainImageUrl(graphqlNode);
     const allImages = getAllImages(graphqlNode);
     const category = getProductCategory(graphqlNode);
+    const skuInfo = getSkuInfo(graphqlNode);
 
     // 获取产品名称（优先英文，其次德文）
     const productName = graphqlNode.ProductName_en || 'Unnamed Product';
@@ -174,6 +199,11 @@ export const adaptGraphQLProductNode = (graphqlNode) => {
         objectType: graphqlNode.objectType || 'unknown',
         category: category,
 
+        // SKU 信息
+        skuCount: skuInfo.count,
+        skus: skuInfo.skus,
+        showSkuBadge: skuInfo.showBadge,
+
         // 图像相关字段
         image: mainImageUrl,
         thumbnail: mainImageUrl,
@@ -188,12 +218,7 @@ export const adaptGraphQLProductNode = (graphqlNode) => {
         region: "Global",
         creationDate: "",
         onlineDate: graphqlNode.OnlineDate || '',
-        enrichmentStatus: {
-            id: "active",
-            label: "Active",
-            entityId: parseInt(graphqlNode.id)
-        },
-
+        enrichmentStatus: graphqlNode.EnrichmentStatus || '',
         // 保留原始GraphQL数据用于调试和扩展
         _graphqlData: graphqlNode,
         _dataSource: 'graphql'

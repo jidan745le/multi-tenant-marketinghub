@@ -182,6 +182,8 @@ const ConfigurableFilterSidebar = ({
   const theme = useTheme();
   const [internalValues, setInternalValues] = useState({});
   const [collapseState, setCollapseState] = useState({});
+  const [treeData, setTreeData] = useState({});
+  const [treeExpandState, setTreeExpandState] = useState({});
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogContent, setDialogContent] = useState('');
   const [currentItem, setCurrentItem] = useState(null);
@@ -199,6 +201,26 @@ const ConfigurableFilterSidebar = ({
       
       if ((item.component === 'checkbox' || item.component === 'clickable-list') && item.enum) {
         initialCollapseState[item.key] = item.enum.length > (item.defaultCollapseCount || 7);
+      }
+      
+      // Load tree data if component is tree
+      if (item.component === 'tree' && item.fetchTreeData) {
+        console.log(`🌳 ConfigurableFilterSidebar: Loading tree data for ${item.key}`);
+        item.fetchTreeData().then(data => {
+          console.log(`✅ ConfigurableFilterSidebar: Tree data loaded for ${item.key}:`, data);
+          setTreeData(prev => ({
+            ...prev,
+            [item.key]: data
+          }));
+          
+          // 默认收起所有节点（不设置展开状态）
+          // 用户需要手动点击箭头展开节点
+          console.log(`📁 Tree nodes collapsed by default`);
+        }).catch(error => {
+          console.error(`❌ ConfigurableFilterSidebar: Failed to load tree data for ${item.key}:`, error);
+        });
+      } else if (item.component === 'tree' && !item.fetchTreeData) {
+        console.warn(`⚠️ ConfigurableFilterSidebar: Tree component ${item.key} has no fetchTreeData function`);
       }
     });
     
@@ -424,7 +446,172 @@ const ConfigurableFilterSidebar = ({
     );
   };
 
+  const toggleTreeNode = (itemKey, nodeId) => {
+    setTreeExpandState(prev => {
+      const itemState = prev[itemKey] || {};
+      return {
+        ...prev,
+        [itemKey]: {
+          ...itemState,
+          [nodeId]: !itemState[nodeId]
+        }
+      };
+    });
+  };
+
+  // 收集节点下所有叶子节点的值
+  const collectLeafValues = (node) => {
+    const leafValues = [];
+    const traverse = (n) => {
+      if (!n.children || n.children.length === 0) {
+        // 叶子节点
+        leafValues.push(n.value);
+      } else {
+        // 非叶子节点，继续遍历子节点
+        n.children.forEach(traverse);
+      }
+    };
+    traverse(node);
+    return leafValues;
+  };
+
+  // 检查节点是否应该被选中（子节点全部选中则父节点也选中）
+  const isNodeChecked = (node, currentValues) => {
+    const hasChildren = node.children && node.children.length > 0;
+    if (!hasChildren) {
+      // 叶子节点：直接检查是否在选中列表中
+      return currentValues.includes(node.value);
+    } else {
+      // 父节点：检查所有叶子节点是否都被选中
+      const leafValues = collectLeafValues(node);
+      return leafValues.length > 0 && leafValues.every(v => currentValues.includes(v));
+    }
+  };
+
+  // 检查节点是否处于半选中状态（部分子节点被选中）
+  const isNodeIndeterminate = (node, currentValues) => {
+    const hasChildren = node.children && node.children.length > 0;
+    if (!hasChildren) {
+      return false;
+    }
+    const leafValues = collectLeafValues(node);
+    const selectedCount = leafValues.filter(v => currentValues.includes(v)).length;
+    return selectedCount > 0 && selectedCount < leafValues.length;
+  };
+
+  const renderTreeNode = (node, itemKey, currentValues, level = 0) => {
+    const hasChildren = node.children && node.children.length > 0;
+    const isExpanded = treeExpandState[itemKey]?.[node.id];
+    const indentSize = level * 16;
+    
+    const isChecked = isNodeChecked(node, currentValues);
+    const isIndeterminate = isNodeIndeterminate(node, currentValues);
+
+    const handleCheckboxChange = (event) => {
+      const checked = event.target.checked;
+      
+      if (hasChildren) {
+        // 父节点：切换所有叶子节点的选中状态
+        const leafValues = collectLeafValues(node);
+        console.log(`🌲 Parent node "${node.label}" ${checked ? 'checked' : 'unchecked'}, affecting ${leafValues.length} leaf nodes:`, leafValues);
+        
+        let newValues;
+        
+        if (checked) {
+          // 选中：添加所有叶子节点
+          newValues = [...new Set([...currentValues, ...leafValues])];
+        } else {
+          // 取消选中：移除所有叶子节点
+          newValues = currentValues.filter(v => !leafValues.includes(v));
+        }
+        
+        console.log(`✅ Updated values (only leaf CategoryIDs):`, newValues);
+        handleValueChange(itemKey, newValues);
+      } else {
+        // 叶子节点：只切换自己
+        const newValues = checked
+          ? [...currentValues, node.value]
+          : currentValues.filter(v => v !== node.value);
+        console.log(`🍃 Leaf node "${node.label}" (${node.value}) ${checked ? 'checked' : 'unchecked'}`);
+        handleValueChange(itemKey, newValues);
+      }
+    };
+
+    return (
+      <Box key={node.id}>
+        <Box sx={{ display: 'flex', alignItems: 'center', paddingLeft: `${indentSize}px` }}>
+          {hasChildren && (
+            <Box
+              onClick={() => toggleTreeNode(itemKey, node.id)}
+              sx={{
+                cursor: 'pointer',
+                padding: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '24px',
+                height: '24px',
+              }}
+            >
+              <span 
+                className="material-symbols-outlined" 
+                style={{ 
+                  fontSize: '18px',
+                  transition: 'transform 0.2s',
+                  transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)'
+                }}
+              >
+                chevron_right
+              </span>
+            </Box>
+          )}
+          {!hasChildren && <Box sx={{ width: '24px' }} />}
+          
+          {/* 所有节点都显示复选框，支持级联选择 */}
+          <StyledFormControlLabel
+            sx={{ flex: 1, marginLeft: 0 }}
+            control={
+              <Checkbox
+                size="small"
+                checked={isChecked}
+                indeterminate={isIndeterminate}
+                onChange={handleCheckboxChange}
+              />
+            }
+            label={node.label}
+          />
+        </Box>
+        {hasChildren && isExpanded && (
+          <Box>
+            {node.children.map(child => renderTreeNode(child, itemKey, currentValues, level + 1))}
+          </Box>
+        )}
+      </Box>
+    );
+  };
+
+  const renderTreeField = (item) => {
+    const currentValues = internalValues[item.key] || [];
+    const data = treeData[item.key] || [];
+
+    if (data.length === 0) {
+      return (
+        <Typography sx={{ fontSize: '14px', color: '#999', fontStyle: 'italic' }}>
+          Loading categories...
+        </Typography>
+      );
+    }
+
+    return (
+      <Box sx={{ maxHeight: '400px', overflow: 'auto' }}>
+        {data.map(node => renderTreeNode(node, item.key, currentValues, 0))}
+      </Box>
+    );
+  };
+
   const renderField = (item) => {
+    console.log(`🎨 Rendering field: ${item.key}, component: ${item.component}, hasFetchTreeData: ${!!item.fetchTreeData}`);
+    
     switch (item.component) {
       case 'input':
         return renderInputField(item);
@@ -436,6 +623,8 @@ const ConfigurableFilterSidebar = ({
         return renderRadioField(item);
       case 'clickable-list':
         return renderClickableListField(item);
+      case 'tree':
+        return renderTreeField(item);
       default:
         return <div>Unsupported component type: {item.component}</div>;
     }

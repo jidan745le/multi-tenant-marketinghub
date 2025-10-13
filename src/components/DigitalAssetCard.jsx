@@ -444,7 +444,10 @@ const ProductCard = ({
                         {/* 如果是资产页面，显示Media Category (如Main, On White等)；如果是产品页面，显示model number和type */}
                         {isAssetType ? 
                             (product.mediaCategory || product.mediaType || 'Unknown').replace(',', ' ') : 
-                            `${product.modelNumber} · ${product.productType || product.category}`
+                            // 如果有多个子SKU，显示 "ModelNumber - (X SKUs)"，否则显示原有格式
+                            product.showSkuBadge && product.skuCount > 1 ?
+                                `${product.modelNumber} - (${product.skuCount} SKUs)` :
+                                `${product.modelNumber} · ${product.productType || product.category}`
                         }
                     </Eyebrow>
                 )}

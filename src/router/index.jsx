@@ -9,8 +9,8 @@ import ProtectedRoute from '../components/ProtectedRoute';
 import Loader from '../utils/Loader';
 
 // 延迟加载页面组件
-const ProductCatalogue = Loader(lazy(() => import('../pages/ProductCatalogue')));
-const NewProducts = Loader(lazy(() => import('../pages/NewProducts')));
+const ProductCatalogue = Loader(lazy(() => import('../pages/Products/ProductCatalogue')));
+const NewProducts = Loader(lazy(() => import('../pages/Products/NewProducts')));
 const MediaCatalogue = Loader(lazy(() => import('../pages/MediaCatalogue')));
 const Videos = Loader(lazy(() => import('../pages/Videos')));
 const HomePage = Loader(lazy(() => import('../pages/HomePage')));

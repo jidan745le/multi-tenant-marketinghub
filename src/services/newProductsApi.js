@@ -26,10 +26,17 @@ const buildNewProductsQuery = (filters = {}, first = 100, after = 0, brand = 'ke
     "objectType": { "$like": "virtual-product" }
   });
 
-  // 新产品条件：OnlineDate > 2025-01-01
-  filterConditions.push({
-    "OnlineDate": { "$gt": "2025-01-01" }
-  });
+  // 新产品基础筛选：Online date was in the last 12 months（默认条件）
+  const now = new Date();
+  const twelveMonthsAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+  const twelveMonthsAgoStr = twelveMonthsAgo.toISOString().split('T')[0];
+
+  // 如果没有Created筛选，应用默认的12个月筛选
+  if (!filters['created'] || filters['created'].length === 0) {
+    filterConditions.push({
+      "OnlineDate": { "$gte": twelveMonthsAgoStr }
+    });
+  }
 
   // 产品名称筛选
   if (filters['product-name']) {
@@ -68,6 +75,36 @@ const buildNewProductsQuery = (filters = {}, first = 100, after = 0, brand = 'ke
     filterConditions.push({ "$or": typeConditions });
   }
 
+  // Created 时间筛选（New Products专用）
+  if (filters['created'] && filters['created'].length > 0) {
+    const createdConditions = filters['created'].map(period => {
+      const now = new Date();
+
+      switch (period) {
+        case 'last-12-months': {
+          const twelveMonthsAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+          return { "OnlineDate": { "$gte": twelveMonthsAgo.toISOString().split('T')[0] } };
+        }
+
+        case 'last-6-months': {
+          const sixMonthsAgo = new Date(now.setMonth(now.getMonth() - 6));
+          return { "OnlineDate": { "$gte": sixMonthsAgo.toISOString().split('T')[0] } };
+        }
+
+        case 'coming-soon':
+          // Coming Soon: Online Date为空
+          return { "OnlineDate": { "$like": "" } };
+
+        default:
+          return null;
+      }
+    }).filter(Boolean);
+
+    if (createdConditions.length > 0) {
+      filterConditions.push({ "$or": createdConditions });
+    }
+  }
+
   const filterString = JSON.stringify({ "$and": filterConditions });
 
   return `{
@@ -89,6 +126,17 @@ const buildNewProductsQuery = (filters = {}, first = 100, after = 0, brand = 'ke
           ProductType
           objectType
           OnlineDate
+          children {
+            __typename
+            ...on object_Product {
+              id
+              CustomerFacingProductCode
+              Size
+              MainMaterial
+              SurfaceFinish
+              ApplicableStandard              
+            }
+          }
           Icons {
             image {
               filename

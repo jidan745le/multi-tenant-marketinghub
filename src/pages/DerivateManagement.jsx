@@ -276,19 +276,6 @@ function DerivateManagement() {
   const renderCell = (derivate, field, content) => {
     if (editingId === derivate.id) {
       switch (field) {
-        case 'source':
-          return (
-            <Select
-              value={editingRow.source || ''}
-              onChange={(e) => setEditingRow({ ...editingRow, source: e.target.value })}
-              size="small"
-              fullWidth
-            >
-              {DerivateManagementApiService.getSourceOptions().map(option => (
-                <MenuItem key={option} value={option}>{option}</MenuItem>
-              ))}
-            </Select>
-          );
         case 'themeId':
           return (
             <Select
@@ -562,12 +549,10 @@ function DerivateManagement() {
 
       {/* Derivates Table */}
       <TableContainer component={Paper} sx={{ boxShadow: 1, overflowX: 'auto', maxWidth: '100%' }}>
-        <Table sx={{ tableLayout: 'fixed', minWidth: 2340 }}>
+        <Table sx={{ tableLayout: 'fixed', minWidth: 2120 }}>
           <TableHead>
             <TableRow>
               <TableHeader sx={{ width: 120 }}>Derivate ID</TableHeader>
-              <TableHeader sx={{ width: 120 }}>Source ID</TableHeader>
-              <TableHeader sx={{ width: 100 }}>Source</TableHeader>
               <TableHeader sx={{ width: 120 }}>Theme</TableHeader>
               <TableHeader sx={{ width: 200 }}>Label</TableHeader>
               <TableHeader sx={{ width: 100 }}>Group</TableHeader>
@@ -592,8 +577,6 @@ function DerivateManagement() {
             {filteredDerivates.map((derivate) => (
               <CustomTableRow key={derivate.id}>
                 <TableCell sx={{ width: 120, padding: '12px 8px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{derivate.id}</TableCell>
-                <TableCell sx={{ width: 120, padding: '12px 8px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{renderCell(derivate, 'derivateSourceId', derivate.derivateSourceId)}</TableCell>
-                <TableCell sx={{ width: 100, padding: '12px 8px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{renderCell(derivate, 'source', derivate.source)}</TableCell>
                 <TableCell sx={{ width: 120, padding: '12px 8px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{renderCell(derivate, 'themeId', derivate.themeId)}</TableCell>
                 <TableCell sx={{ width: 200, padding: '12px 8px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{renderCell(derivate, 'label', derivate.label)}</TableCell>
                 <TableCell sx={{ width: 100, padding: '12px 8px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{renderCell(derivate, 'derivateGroup', derivate.derivateGroup)}</TableCell>
