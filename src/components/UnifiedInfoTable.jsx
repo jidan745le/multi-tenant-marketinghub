@@ -48,11 +48,8 @@ const UnifiedInfoTable = ({
   // 生成条形码图片
   const generateBarcode = (eanCode) => {
     if (!eanCode) return null;
-    
-    // 根据EAN码长度选择格式
+
     let format = 'CODE128';
-    if (eanCode.length === 13) format = 'EAN13';
-    else if (eanCode.length === 8) format = 'EAN8';
     
     try {
       const canvas = document.createElement('canvas');
@@ -61,18 +58,20 @@ const UnifiedInfoTable = ({
         width: 1.5,
         height: 40,
         displayValue: true,
-        fontSize: 10,
-        textMargin: 1,
+        fontSize: 12,
+        textMargin: 0,
         background: '#ffffff',
         lineColor: '#000000',
         margin: 5,
         marginTop: 2,
-        marginBottom: 2
+        marginBottom: 2,
+        textAlign: 'center',
+        textPosition: 'bottom'
       });
       return canvas.toDataURL();
     } catch (error) {
       console.error('Error generating barcode:', error);
-      // 回退到CODE128格式
+      // 使用CODE128格式
       try {
         const canvas = document.createElement('canvas');
         JsBarcode(canvas, eanCode, {
@@ -80,13 +79,15 @@ const UnifiedInfoTable = ({
           width: 1.5,
           height: 40,
           displayValue: true,
-          fontSize: 10,
-          textMargin: 1,
+          fontSize: 12,
+          textMargin: 0,
           background: '#ffffff',
           lineColor: '#000000',
           margin: 5,
           marginTop: 2,
-          marginBottom: 2
+          marginBottom: 2,
+          textAlign: 'center',
+          textPosition: 'bottom'
         });
         return canvas.toDataURL();
       } catch (fallbackError) {

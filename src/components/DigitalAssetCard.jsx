@@ -123,6 +123,8 @@ const PreviewContainer = styled(Box)(({ isAssetType }) => ({
     width: '100%',
     height: '100%',
     position: 'relative',
+    minHeight: '120px',
+    padding: '8px',
 }));
 
 // 创建一个自适应的图片容器
@@ -141,6 +143,8 @@ const MediaPreview = styled('img')(({ aspectRatio }) => {
         position: 'relative',
         margin: 'auto',
         display: 'block', // 使margin: auto生效
+        // 条形码的优化
+        objectPosition: 'center center',
     };
 });
 

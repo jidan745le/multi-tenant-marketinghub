@@ -107,35 +107,39 @@ const ProductDetailPage = () => {
     });
   }
 
-  // 兼容 Marketing+Basic 与 MarketingBasic；写入统一为 MarketingBasic
+  // 写入统一为 internalPDPBasic
   const parseLayoutFromUrl = React.useCallback((rawLayout) => {
     const v = (rawLayout || '').toString();
     const normalized = v.replace(/\+/g, ''); // 去掉加号
     const lower = normalized.toLowerCase();
-    if (lower.includes('overview')) return 'Overview';
-    if (lower.includes('marketing') && lower.includes('basic')) return 'MarketingBasic';
-    return 'MarketingBasic';
+    if (lower.includes('externalpdpbasic')) return 'externalPDPBasic';
+    if (lower.includes('overview')) return 'externalPDPBasic';
+    if (lower.includes('marketing') && lower.includes('basic')) return 'internalPDPBasic';
+    if (lower.includes('internalpdpbasic')) return 'internalPDPBasic';
+    return 'internalPDPBasic';
   }, []);
 
   const encodeLayoutForUrl = React.useCallback((tab) => {
     const t = (tab || '').toString().toLowerCase();
-    if (t.includes('overview')) return 'Overview';
-    if (t.includes('marketing') && t.includes('basic')) return 'MarketingBasic';
-    return 'MarketingBasic';
+    if (t.includes('externalpdpbasic')) return 'externalPDPBasic';
+    if (t.includes('overview')) return 'externalPDPBasic';
+    if (t.includes('internalpdpbasic')) return 'internalPDPBasic';
+    return 'internalPDPBasic';
   }, []);
 
-  // 从URL获取layout参数，默认为'MarketingBasic'
-  const layoutFromUrl = searchParams.get('layout') || 'MarketingBasic';
+  // 从URL获取layout参数，默认为'internalPDPBasic'
+  const layoutFromUrl = searchParams.get('layout') || 'internalPDPBasic';
   const normalizedLayoutFromUrl = parseLayoutFromUrl(layoutFromUrl);
+  console.log('normalizedLayoutFromUrl111', normalizedLayoutFromUrl);
   
-  // 下拉选择：Overview / Marketing Basic
+  // 下拉选择：Marketing (Partner) /normalizedLayoutFromUrl111 Marketing
   const [basicTab, setBasicTab] = useState(normalizedLayoutFromUrl);
   // 防抖处理
   const [, startTransition] = React.useTransition();
   const updateTabTimerRef = React.useRef(null);
 
   useEffect(() => {
-    const newLayoutFromUrl = searchParams.get('layout') || 'MarketingBasic';
+    const newLayoutFromUrl = searchParams.get('layout') || 'internalPDPBasic';
     const normalizedLayout = parseLayoutFromUrl(newLayoutFromUrl);
     if (normalizedLayout !== basicTab) {
       // 这里也在防抖，双重防抖
@@ -162,12 +166,7 @@ const ProductDetailPage = () => {
   // 简化的数据提取函数
     const getPdpPageData = React.useMemo(() => {
     const pages = Array.isArray(pdpPageData?.pages) ? pdpPageData.pages : [];
-    // 先按当前语言过滤页面；若该语言没有数据，再回退到全部
-    // const pages = (() => {
-    //   const lang = (currentLanguage || '').toLowerCase();
-    //   const localized = allPages.filter(p => (p?.locale || '').toLowerCase() === lang);
-    //   return localized.length > 0 ? localized : allPages;
-    // })();
+    
 
     let page = null;
     if (pages.length >= 1) {
@@ -178,17 +177,17 @@ const ProductDetailPage = () => {
       
       
       let matched = null;
-      if (desired.includes('overview')) {
+      if (desired.includes('externalpdpbasic')) {
         matched = pages.find(tpl => {
           const normalized = normalizeName(tpl);
-          const matches = normalized === 'overview';
+          const matches = normalized === 'marketing (partner)';
           return matches;
         }) || null;
 
-      } else if (desired.includes('marketing') && desired.includes('basic')) {
+      } else if (desired.includes('internalpdpbasic')) {
         matched = pages.find(tpl => {
           const n = normalizeName(tpl);
-          return n === 'marketing basic';
+          return n === 'marketing';
         }) || null;
 
       }
@@ -1235,7 +1234,7 @@ const ProductDetailPage = () => {
             aria-expanded={basicMenu.open ? 'true' : undefined}
           sx={{ ...styles.topButtonBase, width: 'auto', minWidth: '160px', px: 2.5 }}
           >
-          {basicTab === 'MarketingBasic' ? 'Marketing Basic' : basicTab}
+          {basicTab === 'internalPDPBasic' ? 'Marketing' : basicTab === 'externalPDPBasic' ? 'Marketing (Partner)' : basicTab}
           </Button>
           <Menu
             anchorEl={basicMenu.anchorEl}
@@ -1244,16 +1243,16 @@ const ProductDetailPage = () => {
             {...getMenuProps(basicMenu.anchorEl)}
           >
           <MenuItem 
-            selected={basicTab === 'MarketingBasic'}
-            onClick={() => { basicMenu.closeMenu(); updateBasicTabAndUrl('MarketingBasic'); }}
+            selected={basicTab === 'internalPDPBasic'}
+            onClick={() => { basicMenu.closeMenu(); updateBasicTabAndUrl('internalPDPBasic'); }}
           >
-            Marketing Basic
+            Marketing
           </MenuItem>
           <MenuItem 
-            selected={basicTab === 'Overview'}
-            onClick={() => { basicMenu.closeMenu(); updateBasicTabAndUrl('Overview'); }}
+            selected={basicTab === 'externalPDPBasic'}
+            onClick={() => { basicMenu.closeMenu(); updateBasicTabAndUrl('externalPDPBasic'); }}
           >
-            Overview
+            Marketing (Partner)
           </MenuItem>
           </Menu>
 
@@ -1620,7 +1619,7 @@ const ProductDetailPage = () => {
           onSkuNavigate={(pn) => {
             if (pn) {
               // 保持当前的layout参数
-              const currentLayout = searchParams.get('layout') || 'MarketingBasic';
+                const currentLayout = searchParams.get('layout') || 'internalPDPBasic';
               // 解析现有layout并按规范重新编码
               const normalized = parseLayoutFromUrl(currentLayout);
               const encoded = encodeLayoutForUrl(normalized);
@@ -1707,7 +1706,7 @@ const ProductDetailPage = () => {
       )}
 
       {/* SAP Detail */}
-      {basicTab === 'MarketingBasic' && (
+      {basicTab === 'internalPDPBasic' && (
         <>
           <Typography ref={sapDetailTitleRef} variant="h6" sx={{ mb: 2, fontSize: '24.5px', fontFamily: '"Open Sans", sans-serif', fontWeight: 520, color:'#4d4d4d' }}>
             {sapFormData?.title || 'SAP Detail'}
@@ -2112,7 +2111,7 @@ const ProductDetailPage = () => {
                 showQuestion: true
               })) || []
             },
-            ...(basicTab === 'MarketingBasic' ? [{
+            ...(basicTab === 'internalPDPBasic' ? [{
               title: 'LOGO MARKING',
               icon: 'category',
               items: productData.packagingSpec?.logoMarking?.map(logo => ({
@@ -2508,7 +2507,7 @@ const ProductDetailPage = () => {
       )}
 
       {/* Packaging */}
-      {basicTab === 'MarketingBasic' && (
+      {basicTab === 'internalPDPBasic' && (
         <>
           <Typography ref={packagingTitleRef} variant="h6" sx={{ mb: 3.5, fontSize: '24.5px', fontFamily: '"Open Sans", sans-serif', fontWeight: 520, color:'#4d4d4d' }}>
             {packagingsData?.title || 'Packaging'}
