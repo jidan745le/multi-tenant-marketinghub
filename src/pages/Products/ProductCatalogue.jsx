@@ -69,7 +69,7 @@ function ProductCataloguePage() {
       console.log(`🎯 Selecting first SKU with ID: ${firstSkuId}`, firstSku);
       
       // 构建产品详情页面URL: /en_GB/kendo/product-detail/${id}
-      const detailUrl = `/${lang || 'en_GB'}/${brand || currentBrandCode}/product-detail/${firstSkuId}?layout=MarketingBasic`;
+      const detailUrl = `/${lang || 'en_GB'}/${brand || currentBrandCode}/product-detail/${firstSkuId}?layout=internalPDPBasic`;
       
       console.log(`🚀 Navigating to product detail page: ${detailUrl}`);
       window.open(detailUrl, '_blank');
