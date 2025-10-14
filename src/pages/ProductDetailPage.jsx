@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useLanguage } from '../hooks/useLanguage';
 import { useTranslation } from 'react-i18next';
+import { useTranslationLoader } from '../hooks/useTranslationLoader';
 import { usePdpDataMapping } from '../utils/pdpDataMapper.js';
 import ReportDataIssueDialog from '../components/ReportDataIssueDialog.jsx';
 import BackToTopButton from '../components/BackToTopButton.jsx';
@@ -77,6 +78,7 @@ const ProductDetailPage = () => {
   const currentLanguageInfo = getCurrentLanguageInfo();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  useTranslationLoader();
   
   // URL查询参数处理
   const [searchParams, setSearchParams] = useSearchParams();
@@ -1214,14 +1216,16 @@ const ProductDetailPage = () => {
             fontFamily: '"Roboto-Medium", sans-serif',
             fontWeight:700,
             height: '40px',
-            width: '200px',
+            minWidth: 'auto',
+            paddingLeft: '16px',
+            paddingRight: '16px',
             borderRadius: '3.87px',
             '& .MuiButton-startIcon svg': { fontSize: 22},
             '&:hover': { bgcolor: '#eaeaea', borderColor: '#cccccc', color: '#000000' }
           }}
           onClick={() => setReportDialogOpen(true)}
         >
-          Report Data Issue
+          {t('pdp.reportDataIssue')}
         </Button>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
           <Button
@@ -1234,7 +1238,7 @@ const ProductDetailPage = () => {
             aria-expanded={basicMenu.open ? 'true' : undefined}
           sx={{ ...styles.topButtonBase, width: 'auto', minWidth: '160px', px: 2.5 }}
           >
-          {basicTab === 'internalPDPBasic' ? 'Marketing' : basicTab === 'externalPDPBasic' ? 'Marketing (Partner)' : basicTab}
+          {basicTab === 'internalPDPBasic' ? t('pdp.marketing') : basicTab === 'externalPDPBasic' ? t('pdp.marketingPartner') : basicTab}
           </Button>
           <Menu
             anchorEl={basicMenu.anchorEl}
@@ -1246,13 +1250,13 @@ const ProductDetailPage = () => {
             selected={basicTab === 'internalPDPBasic'}
             onClick={() => { basicMenu.closeMenu(); updateBasicTabAndUrl('internalPDPBasic'); }}
           >
-            Marketing
+            {t('pdp.marketing')}
           </MenuItem>
           <MenuItem 
             selected={basicTab === 'externalPDPBasic'}
             onClick={() => { basicMenu.closeMenu(); updateBasicTabAndUrl('externalPDPBasic'); }}
           >
-            Marketing (Partner)
+            {t('pdp.marketingPartner')}
           </MenuItem>
           </Menu>
 
@@ -1804,7 +1808,7 @@ const ProductDetailPage = () => {
                 '&:hover': { bgcolor: '#eaeaea', borderColor: '#cccccc', color: '#000000' }
               }}
             >
-              Download All
+              {t('common.downloadAll')}
             </Button>
           </Box>
         )}
@@ -1866,7 +1870,7 @@ const ProductDetailPage = () => {
                 '&:hover': { bgcolor: '#eaeaea', borderColor: '#cccccc', color: '#000000' }
               }}
             >
-              Download All
+              {t('common.downloadAll')}
             </Button>
           </Box>
         )}
@@ -2169,7 +2173,7 @@ const ProductDetailPage = () => {
                 '&:hover': { bgcolor: '#eaeaea', borderColor: '#cccccc', color: '#000000' }
               }}
             >
-              Download All
+              {t('common.downloadAll')}
             </Button>
           </Box>
         )}
@@ -2257,7 +2261,7 @@ const ProductDetailPage = () => {
                 '&:hover': { bgcolor: '#eaeaea', borderColor: '#cccccc', color: '#000000' }
               }}
             >
-              Download All
+              {t('common.downloadAll')}
             </Button>
           </Box>
         )}
@@ -2324,7 +2328,7 @@ const ProductDetailPage = () => {
                 '&:hover': { bgcolor: '#eaeaea', borderColor: '#cccccc', color: '#000000' }
               }}
             >
-              Download All
+              {t('common.downloadAll')}
             </Button>
           </Box>
         )}
@@ -2343,13 +2347,6 @@ const ProductDetailPage = () => {
             downloadUrl: video.downloadUrl || '',
             videoUrl: video.downloadUrl ? `https://pim-test.kendo.com${video.downloadUrl}` : ''
           })) || []}
-          onViewClick={(item) => {
-            if (item.videoUrl) {
-              window.open(item.videoUrl, '_blank');
-            } else {
-              console.log('No video URL available for:', item);
-            }
-          }}
           onDownloadClick={(item) => {
             if (item.videoUrl) {
               const link = document.createElement('a');
@@ -2404,22 +2401,22 @@ const ProductDetailPage = () => {
               '&:hover': { bgcolor: '#eaeaea', borderColor: '#cccccc', color: '#000000' }
             }}
           >
-            Download All
+            {t('common.downloadAll')}
           </Button>
         </Box>
       </Box>
 
       {/* Gallery Images */}
-      {productData.marketingCollaterals?.onWhite && productData.marketingCollaterals.onWhite.length > 0 && (
+      {productData.marketingCollaterals?.imageGallery && productData.marketingCollaterals.imageGallery.length > 0 && (
         <Box sx={{ mb: 3 }}>
           <Image 
             type={galleryData?.type || "gallery"}
             mainImage={{
-              src: `https://pim-test.kendo.com${productData.marketingCollaterals.onWhite[0].thumbnailUrl}`,
-              alt: productData.marketingCollaterals.onWhite[0].altText || '',
-              fileName: productData.marketingCollaterals.onWhite[0].fileName || ''
+              src: `https://pim-test.kendo.com${productData.marketingCollaterals.imageGallery[0].thumbnailUrl}`,
+              alt: productData.marketingCollaterals.imageGallery[0].altText || '',
+              fileName: productData.marketingCollaterals.imageGallery[0].fileName || ''
             }}
-            thumbnailImages={productData.marketingCollaterals.onWhite.map((img) => ({
+            thumbnailImages={productData.marketingCollaterals.imageGallery.map((img) => ({
               src: `https://pim-test.kendo.com${img.thumbnailUrl}`,
               alt: img.altText || '',
               fileName: img.fileName || '',

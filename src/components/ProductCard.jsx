@@ -1,8 +1,10 @@
 import React, { memo, useState, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { Box, Typography, Button } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import UnifiedSkuTable from './UnifiedSkuTable';
 import { useTheme } from '../hooks/useTheme';
+import { useTranslationLoader } from '../hooks/useTranslationLoader';
 import downloadIcon from '../assets/icon/download.png';
 
 
@@ -31,6 +33,9 @@ const ProductCard = ({
 }) => {
   const { primaryColor } = useTheme();
   const [skuAnchorEl, setSkuAnchorEl] = useState(null);
+  const { t } = useTranslation();
+  useTranslationLoader();
+  
   
   // 提取样式常量 - 使用useMemo缓存
   const styles = React.useMemo(() => ({
@@ -463,7 +468,7 @@ const ProductCard = ({
                   variant="contained"
                   onClick={handleOpenSkuMenu}
                   endIcon={<SmallTriangleIcon expanded={isSkuDropdownOpen} />}
-                  aria-label="Select SKU"
+                  aria-label={t('pdp.selectSku')}
                   sx={{
                     background: primaryColor,
                     borderRadius: 1,
@@ -496,7 +501,7 @@ const ProductCard = ({
                     ml: -0.5,
                     mt: 0.3
                   }}>
-                    Select SKU
+                    {t('pdp.selectSku')}
                   </Typography>
                 </Button>
                 {isSkuDropdownOpen && (

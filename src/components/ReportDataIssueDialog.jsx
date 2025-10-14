@@ -1,10 +1,14 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Box, Typography } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../hooks/useTheme';
+import { useTranslationLoader } from '../hooks/useTranslationLoader';
 
 const ReportDataIssueDialog = ({ open, onClose, onSubmit, initialComment = '', initialUser = '' }) => {
+  const { t } = useTranslation();
   const { primaryColor } = useTheme();
+  useTranslationLoader();
   const [comment, setComment] = React.useState(initialComment);
   const [reportedUser, setReportedUser] = React.useState(initialUser);
 
@@ -36,12 +40,12 @@ const ReportDataIssueDialog = ({ open, onClose, onSubmit, initialComment = '', i
       }}
     >
       <DialogTitle>
-        <Typography sx={{ fontSize: '20px', fontWeight: 600, color: '#333333', fontFamily: '"Open Sans", sans-serif' }}>Report data issue</Typography>
+        <Typography sx={{ fontSize: '20px', fontWeight: 600, color: '#333333', fontFamily: '"Open Sans", sans-serif' }}>{t('pdp.reportDataIssue')}</Typography>
       </DialogTitle>
       <DialogContent sx={{ pt: 1 }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <Box>
-            <Typography sx={{ mt: 1.5, mb: 2, color: '#4d4d4d', fontSize: '16px', fontWeight: 500, fontFamily: '"Open Sans", sans-serif' }}>Comment</Typography>
+            <Typography sx={{ mt: 1.5, mb: 2, color: '#4d4d4d', fontSize: '16px', fontWeight: 500, fontFamily: '"Open Sans", sans-serif' }}>{t('common.comment')}</Typography>
             <TextField
               value={comment}
               onChange={(e) => setComment(e.target.value)}
@@ -68,7 +72,7 @@ const ReportDataIssueDialog = ({ open, onClose, onSubmit, initialComment = '', i
               value={reportedUser}
               onChange={(e) => setReportedUser(e.target.value)}
               fullWidth
-              placeholder="Reported User"
+              placeholder={t('pdp.reportedUser')}
               InputProps={{ 
                 sx: { 
                   backgroundColor: '#fff', 
@@ -104,7 +108,7 @@ const ReportDataIssueDialog = ({ open, onClose, onSubmit, initialComment = '', i
             '&:hover': { bgcolor: '#fafafa', borderColor: primaryColor, color: '#4d4d4d' }
           }}
         >
-          Cancel
+          {t('common.cancel')}
         </Button>
         <Button
           variant="contained"
@@ -123,7 +127,7 @@ const ReportDataIssueDialog = ({ open, onClose, onSubmit, initialComment = '', i
             px: 2.5
           }}
         >
-          Submit
+          {t('common.submit')}
         </Button>
       </DialogActions>
     </Dialog>

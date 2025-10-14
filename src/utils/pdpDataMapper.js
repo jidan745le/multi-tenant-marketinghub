@@ -33,7 +33,8 @@ const DATA_MAPPING_CONFIG = {
   images: {
     iconsAndPicturesData: 'pdp.sections.iconsAndPictures',
     onWhiteData: 'pdp.sections.onWhite',
-    actionAndLifestyleData: 'pdp.sections.actionAndLifestyle'
+    actionAndLifestyleData: 'pdp.sections.actionAndLifestyle',
+    galleryData: 'pdp.sections.gallery'
   },
   
   codes: {
@@ -118,6 +119,7 @@ const createEmptyMappedData = () => ({
   iconsAndPicturesData: null,
   onWhiteData: null,
   actionAndLifestyleData: null,
+  galleryData: null,
   
   qrCodesData: null,
   eansData: null,

@@ -1,17 +1,19 @@
-import React, { memo } from 'react';
+import React, { memo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Box, Typography } from '@mui/material';
 import ViewIcon from '../assets/icon/pdp_view.png';
 import downloadIcon from '../assets/icon/download.png';
 import { useTheme } from '../hooks/useTheme';
+import VideoDetailModal from './VideoDetailModal';
 
 const MediaListTable = ({ 
   data = [],
   columns = ['Video Photo', 'Name', 'Language', 'Type', 'Format', 'Duration', 'Operation'],
-  onViewClick,
   onDownloadClick
 }) => {
   const { primaryColor } = useTheme();
+  const [videoModalOpen, setVideoModalOpen] = useState(false);
+  const [selectedVideoData, setSelectedVideoData] = useState(null);
   const mixWithWhite = (hexColor, amount = 0.15) => {
     try {
       const hex = hexColor.replace('#', '');
@@ -229,6 +231,53 @@ const MediaListTable = ({
 
   const columnWidths = getColumnWidths();
 
+  // 视频查看的地方
+  const handleVideoViewClick = (item, rowIndex, event) => {
+    // 优先显示弹框
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    
+    // 将表格数据转换为 VideoDetailModal 所需的数据格式
+    const videoData = {
+      identifier: item.name || `video-${rowIndex}`, // 使用名称作为标识符
+      filename: item.name,
+      name: item.name,
+      customerImageType: item.type || 'Video',
+      language: item.language,
+      // 添加其他可能需要的字段
+      customerKeywords: '',
+      customerChannel: [],
+      customerApprovalStatus: '',
+      customerUsageRights: '',
+      customerRestricted: [],
+      lockDate: '',
+      colorSpace: '',
+      colorProfile: '',
+      resolution: '',
+      dimensions: '',
+      size: '',
+      creationDate: '',
+      lastModified: ''
+    };
+    
+    setSelectedVideoData(videoData);
+    setVideoModalOpen(true);
+    
+  };
+
+  const handleVideoModalClose = () => {
+    setVideoModalOpen(false);
+    setSelectedVideoData(null);
+  };
+
+  // 视频下载
+  const handleVideoDownload = (identifier) => {
+    console.log('Download video:', identifier);
+    // 这里可以添加实际的下载逻辑
+  };
+
   // 渲染操作图标
   const OperationIcon = ({ src, onClick }) => (
     <Box sx={commonStyles.operationIcon} onClick={onClick}>
@@ -328,7 +377,7 @@ const MediaListTable = ({
           <Box sx={{ ...commonStyles.operationCell, width: columnWidths[6] }}>
             <OperationIcon 
               src={ViewIcon}
-              onClick={() => onViewClick && onViewClick(item, rowIndex)} 
+              onClick={(event) => handleVideoViewClick(item, rowIndex, event)} 
             />
             <OperationIcon 
               src={downloadIcon}
@@ -337,6 +386,15 @@ const MediaListTable = ({
           </Box>
         </Box>
       ))}
+
+      {/* 视频详情弹框 */}
+      <VideoDetailModal
+        open={videoModalOpen}
+        onClose={handleVideoModalClose}
+        videoData={selectedVideoData}
+        onDownload={handleVideoDownload}
+        showRawContentButton={false}
+      />
     </Box>
   );
 };
@@ -355,7 +413,6 @@ MediaListTable.propTypes = {
     })
   ),
   columns: PropTypes.arrayOf(PropTypes.string),
-  onViewClick: PropTypes.func,
   onDownloadClick: PropTypes.func
 };
 

@@ -1,7 +1,9 @@
 import React, { memo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Box, Typography, Button } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../hooks/useTheme';
+import { useTranslationLoader } from '../hooks/useTranslationLoader';
 
 const Image = ({ 
   type = 'simple', // 'simple' | 'gallery'
@@ -37,7 +39,9 @@ const Image = ({
     ]
   }
 }) => {
+  const { t } = useTranslation();
   const { primaryColor } = useTheme();
+  useTranslationLoader();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   const handleImageSelect = (image, index) => {
@@ -214,18 +218,20 @@ const Image = ({
             borderWidth: '0.85px',
             padding: '4px 30px',
             position: 'absolute',
-            left: '890px',
+            right: '40px',
             top: '365px',
             textTransform: 'uppercase',
             color: primaryColor,
             fontSize: '16px',
             fontWeight: 400,
+            minWidth: 'auto',
+            width: 'auto',
             '&:hover': {
               background: `${primaryColor}10`
             }
           }}
         >
-          DOWNLOAD
+          {t('common.download')}
         </Button>
 
         {/* 边框*/}

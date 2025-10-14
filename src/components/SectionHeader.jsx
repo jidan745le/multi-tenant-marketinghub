@@ -1,5 +1,7 @@
 import React from 'react';
 import { Box } from '@mui/material';
+import { useTranslation } from 'react-i18next';
+import { useTranslationLoader } from '../hooks/useTranslationLoader';
 import SectionTitle from './SectionTitle';
 import ActionButtons from './ActionButtons';
 
@@ -22,10 +24,12 @@ const SectionHeader = ({
   titleSx = {},
   showView = false,
   showDownload = false,
-  downloadText = "Download All",
+  // downloadText = "Download All",
   onViewClick,
   onDownloadClick
 }) => {
+  const { t } = useTranslation();
+  useTranslationLoader();
   const hasActions = showView || showDownload;
 
   return (
@@ -44,7 +48,7 @@ const SectionHeader = ({
       <ActionButtons
         showView={showView}
         showDownload={showDownload}
-        downloadText={downloadText}
+        downloadText={t('common.downloadAll')}
         onViewClick={onViewClick}
         onDownloadClick={onDownloadClick}
       />

@@ -1,5 +1,7 @@
 import React from 'react';
 import { Box, Button } from '@mui/material';
+import { useTranslation } from 'react-i18next';
+import { useTranslationLoader } from '../hooks/useTranslationLoader';
 import ViewIcon from '../assets/icon/pdp_view.png';
 import downloadIcon from '../assets/icon/download.png';
 
@@ -20,9 +22,11 @@ const ActionButtons = ({
   onViewClick,
   onDownloadClick
 }) => {
+  const { t } = useTranslation();
+  useTranslationLoader();
   // 统一的按钮样式
   const buttonStyles = {
-    bgcolor: '#f7f7f7',
+    bgcolor: '#ffffff',
     borderColor: '#cccccc',
     color: '#333333',
     textTransform: 'uppercase',
@@ -56,7 +60,7 @@ const ActionButtons = ({
           onClick={onViewClick}
           sx={buttonStyles}
         >
-          Show Languages
+          {t('common.showLanguages')}
         </Button>
       )}
 
@@ -72,7 +76,7 @@ const ActionButtons = ({
             minWidth: downloadText.length > 12 ? '200px' : '160px'
           }}
         >
-          {downloadText}
+          {t('common.downloadAll')}
         </Button>
       )}
     </Box>
