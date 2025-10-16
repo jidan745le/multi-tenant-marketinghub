@@ -5,6 +5,23 @@ const GRAPHQL_API_URL = 'https://pim-test.kendo.com/pimcore-graphql-webservices/
 const API_KEY = '4fe5b9cb2dc6015250c46f9332c195ae';
 
 /**
+ * Get user permissions from localStorage
+ * @returns {Array} User permissions array
+ */
+const getUserPermissions = () => {
+  try {
+    const userInfo = localStorage.getItem('user_info');
+    if (userInfo) {
+      const userData = JSON.parse(userInfo);
+      return userData.permissions || [];
+    }
+  } catch (error) {
+    console.warn('Failed to get user permissions from localStorage:', error);
+  }
+  return [];
+};
+
+/**
  * Build GraphQL query
  * @param {Object} filters - Filter conditions
  * @param {number} first - Number of items to fetch
@@ -35,7 +52,38 @@ const buildGraphQLQuery = (filters = {}, first = 100, after = 0, brand = 'kendo'
     "LifecycleStatus": { "$like": "Active" }
   });
 
-  // Product name filtering
+  // Permission-based filtering
+  const userPermissions = getUserPermissions();
+  const hasInternalDataAccess = userPermissions.includes('marketinghub:domain:InternalData:access');
+  const hasExternalDataAccess = userPermissions.includes('marketinghub:domain:ExternalData:access');
+
+  console.log('🔐 User permissions check:', {
+    permissions: userPermissions,
+    hasInternalDataAccess,
+    hasExternalDataAccess
+  });
+
+  // If user only has ExternalData access (not InternalData), apply additional filters
+  if (hasExternalDataAccess && !hasInternalDataAccess) {
+    console.log('🔒 Applying ExternalData filters: OnlineDate NOT EMPTY, FirstShipmentDate NOT EMPTY, CustomerSpecificFlag="No"');
+
+    // OnlineDate is NOT EMPTY
+    filterConditions.push({
+      "OnlineDate": { "$not": "" }
+    });
+
+    // FirstShipmentDate is NOT EMPTY
+    filterConditions.push({
+      "FirstShipmentDate": { "$not": "" }
+    });
+
+    // CustomerSpecificFlag = "No"
+    filterConditions.push({
+      "CustomerSpecificFlag": { "$not": true }
+    });
+  }
+
+  // Product name filtering 
   if (filters['product-name']) {
     filterConditions.push({
       "ProductName": { "$like": `%${filters['product-name']}%` }
@@ -168,6 +216,7 @@ const buildGraphQLQuery = (filters = {}, first = 100, after = 0, brand = 'kendo'
           objectType
           EnrichmentStatus
           LifecycleStatus
+          CustomerSpecificFlag
           children {
               __typename
               ...on object_Product {
