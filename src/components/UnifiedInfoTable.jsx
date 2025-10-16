@@ -170,7 +170,7 @@ const UnifiedInfoTable = ({
     downloadButton: {
       color: '#4d4d4d', textAlign: 'left', fontFamily: '"Open Sans", sans-serif', fontSize: '12.5px',
       lineHeight: '15.46px', letterSpacing: '0.39px', fontWeight: 400, position: 'relative',
-      width: '145px', textOverflow: 'ellipsis', overflow: 'hidden', minWidth: 'auto', padding: 0,
+      width: 'auto', textOverflow: 'ellipsis', overflow: 'hidden', minWidth: 'auto', padding: 0,
       textTransform: 'none', justifyContent: 'flex-start', display: 'flex', alignItems: 'center', gap: '6px',
       '&:hover': { color: primaryColor, textDecoration: 'underline' }
     },

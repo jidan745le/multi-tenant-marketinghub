@@ -37,4 +37,22 @@ export default {
     "pdp.sections.packaging": "Verpackung",
     "pdp.sections.drawing": "Zeichnung",
     "pdp.sections.patent": "Patent",
+    
+    // Table headers - German translations
+    "eanTable.image": "Bild",
+    "eanTable.name": "Name",
+    "eanTable.eans": "EANs",
+    "eanTable.action": "Aktion",
+    "eanTable.downloadBarcode": "Barcode herunterladen",
+    
+    "accessoriesTable.image": "Bild",
+    "accessoriesTable.model": "Modell",
+    "accessoriesTable.name": "Name",
+    "accessoriesTable.quantity": "Menge",
+    
+    "qrTable.image": "Bild",
+    "qrTable.name": "Name",
+    "qrTable.link": "Link",
+    "qrTable.action": "Aktion",
+    "qrTable.linkAction": "Link",
 }; 

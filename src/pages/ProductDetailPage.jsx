@@ -39,6 +39,7 @@ import PackagingTable from '../components/PackagingTable';
 import SpecificationTable from '../components/SpecificationTable';
 import MediaListTable from '../components/MediaListTable';
 import DigitalAssetCard from '../components/DigitalAssetCard';
+import MediaDownloadDialog from '../components/MediaDownloadDialog';
 import manualsImage from '../assets/image/MR.png';
 import repairGuideImage from '../assets/image/MR.png';
 import packagingImage from '../assets/image/D.png';
@@ -452,6 +453,106 @@ const ProductDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const isFirstLoadRef = React.useRef(true);
   const [error, setError] = useState(null);
+  
+  const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
+  const [selectedMediaForDownload, setSelectedMediaForDownload] = useState([]);
+  
+  // 通用下载
+  const handleDownload = (assetIds) => {
+    if (!assetIds) {
+      console.warn('No asset IDs provided for download');
+      return;
+    }
+    const idsArray = Array.isArray(assetIds) ? assetIds : [assetIds];
+    if (idsArray.length === 0) {
+      console.warn('No asset IDs provided for download');
+      return;
+    }
+    
+    const mediaDataArray = idsArray.map(assetId => ({
+      id: assetId,
+      mediaId: assetId,
+      modelNumber: routeProductId,
+      // name: `Asset ${assetId}`,        
+      // filename: `asset-${assetId}`     
+    }));
+    
+    console.log('Download - assetIds:', assetIds);
+    console.log('Download - mediaDataArray:', mediaDataArray);
+    
+    setSelectedMediaForDownload(mediaDataArray);
+    setDownloadDialogOpen(true);
+  };
+
+  // 通用批量下载
+  const createBatchDownloadHandler = (dataPath, sectionName) => {
+    return () => {
+      const data = dataPath.split('.').reduce((obj, key) => obj?.[key], productData);
+      
+      if (!data || !Array.isArray(data) || data.length === 0) {
+        console.warn(`${sectionName} data not found or empty`);
+        return;
+      }
+      
+      const assetIds = data
+        .map(item => item.assetId || item.id)
+        .filter(Boolean);
+      
+      if (assetIds.length === 0) {
+        console.warn(`${sectionName} - no valid assetIds found`);
+        return;
+      }
+      
+      console.log(`${sectionName} - assetIds:`, assetIds);
+      handleDownload(assetIds);
+    };
+  };
+
+  // 通用单个下载
+  const createSingleDownloadHandler = (sectionName) => {
+    return (itemData) => {
+      const assetId = itemData?.assetId || itemData?.id;
+      
+      if (!assetId) {
+        console.warn(`${sectionName} assetId not found:`, itemData);
+        return;
+      }
+      
+      console.log(`${sectionName} Download - assetId:`, assetId, 'data:', itemData);
+      handleDownload(assetId);
+    };
+  };
+  
+  // ProductCard下载
+  const handleDownloadClick = () => {
+    const productCardData = productData.productCardInfo;
+    if (productCardData?.assetId) {
+      handleDownload(productCardData.assetId);
+    } else {
+      console.warn('ProductCard assetId not found');
+    }
+  };
+  
+  // 下载对话框关闭
+  const handleDownloadDialogClose = () => {
+    setDownloadDialogOpen(false);
+    setSelectedMediaForDownload([]);
+  };
+  
+  const handleIconsPicturesDownload = createBatchDownloadHandler('iconsPictures.icons', 'Icons & Pictures');
+  const handleOnWhiteDownload = createBatchDownloadHandler('marketingCollaterals.onWhite', 'On White');
+  const handleActionLifestyleDownload = createBatchDownloadHandler('marketingCollaterals.actionAndLifestyle', 'Action & Lifestyle');
+  const handleVideosDownload = createBatchDownloadHandler('marketingCollaterals.videos', 'Videos');
+  const handleGalleryDownload = createBatchDownloadHandler('marketingCollaterals.imageGallery', 'Gallery');
+  
+  const handleSingleVideoDownload = createSingleDownloadHandler('Single Video');
+  const handleAfterServiceDownload = createSingleDownloadHandler('After Service');
+  
+  // 单个图片下载 - 复用通用单个下载处理器
+  const handleSingleImageDownload = (imageData, imageType) => {
+    const handler = createSingleDownloadHandler(`Single ${imageType}`);
+    handler(imageData);
+  };
   
   const [productData, setProductData] = useState({
     id: '90330',
@@ -884,34 +985,44 @@ const ProductDetailPage = () => {
         productType: productData.basicData?.productNumber || '',
         name: manual.title || '',
         show: manual.show || false,
-        download: manual.download || false
+        download: manual.download || false,
+        assetId: manual.assetId || manual.id,
+        id: manual.assetId || manual.id
       })) || [],
       repairGuides: pimAfterService?.repairGuide?.map(guide => ({
         image: guide.thumbnailUrl ? `https://pim-test.kendo.com${guide.thumbnailUrl}` : repairGuideImage,
         modelNumber: productData.basicData?.modelNumber || '',
         productType: guide.title ? `${productData.basicData?.productNumber || ''} - ${guide.title}` : '',
-        name: guide.title || ''
+        name: guide.title || '',
+        assetId: guide.assetId || guide.id,
+        id: guide.assetId || guide.id
       })) || [],
       // Packaging 列表
       packagings: pimAfterService?.packaging?.map(pack => ({
         image: pack.thumbnailUrl ? `https://pim-test.kendo.com${pack.thumbnailUrl}` : packagingImage,
         modelNumber: productData.basicData?.modelNumber || '',
         productType: productData.basicData?.productNumber || '',
-        name: pack.title || ''
+        name: pack.title || '',
+        assetId: pack.assetId || pack.id,
+        id: pack.assetId || pack.id
       })) || [],
       // Drawing 列表
       drawings: pimAfterService?.drawing?.map(drawing => ({
         image: drawing.thumbnailUrl ? `https://pim-test.kendo.com${drawing.thumbnailUrl}` : drawingImage,
         modelNumber: productData.basicData?.modelNumber || '',
         productType: productData.basicData?.productNumber || '',
-        name: drawing.title || ''
+        name: drawing.title || '',
+        assetId: drawing.assetId || drawing.id,
+        id: drawing.assetId || drawing.id
       })) || [],
       // Patent 列表
       patents: pimAfterService?.patent?.map(patent => ({
         image: patent.thumbnailUrl ? `https://pim-test.kendo.com${patent.thumbnailUrl}` : patentImage,
         modelNumber: productData.basicData?.modelNumber || '',
         productType: productData.basicData?.productNumber || '',
-        name: patent.title || ''
+        name: patent.title || '',
+        assetId: patent.assetId || patent.id,
+        id: patent.assetId || patent.id
       })) || []
     };
   }, [productData.afterService, productData.basicData]);
@@ -1088,9 +1199,6 @@ const ProductDetailPage = () => {
     console.log('export clicked'); 
   }, []);
   
-  const handleDownload = React.useCallback(() => { 
-    console.log('download clicked'); 
-  }, []);
 
   // 图片点击处理
   const handleImageClick = React.useCallback((image, index) => {
@@ -1619,7 +1727,7 @@ const ProductDetailPage = () => {
           })) || []}
           infoLabelMinWidth="155px"
           infoValueMinWidth="150px"
-          onDownloadClick={() => console.log('download clicked')} 
+          onDownloadClick={handleDownloadClick} 
           onSkuNavigate={(pn) => {
             if (pn) {
               // 保持当前的layout参数
@@ -1754,7 +1862,7 @@ const ProductDetailPage = () => {
         titleRef={iconsPicturesTitleRef}
         title={iconsAndPicturesData?.title || 'Icons & Pictures'}
         showDownload={iconsAndPicturesData?.download}
-        onDownloadClick={() => {/* 下载所有图标功能 */}}
+        onDownloadClick={handleIconsPicturesDownload}
       />
       {productData.iconsPictures?.icons && productData.iconsPictures.icons.length > 0 && (
         <Box sx={{ mb: 3 }}>
@@ -1762,57 +1870,21 @@ const ProductDetailPage = () => {
             type={ iconsAndPicturesData?.type || "simple"}
             images={productData.iconsPictures.icons.map(icon => ({
               src: icon.thumbnailUrl? `https://pim-test.kendo.com${icon.thumbnailUrl}` : image1,
-              alt: icon.type || ''
+              alt: icon.type || '',
+              assetId: icon.assetId || icon.id
             }))}
             onImageClick={handleImageClick}
+            onDownload={(imageData) => handleSingleImageDownload(imageData, 'Icons & Pictures')}
           />
         </Box>
       )}     
       {/* QR Codes */}
-      <Box sx={{ 
-        display: 'flex',
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        mt: 4,
-        mb: 3.5
-      }}>
-        {/* 标题 */}
-        <Typography ref={qrCodesTitleRef} sx={{
-          color: '#4d4d4d',
-          fontFamily: '"Open Sans", sans-serif',
-          fontSize: '24.5px',
-          fontWeight: 520
-        }}>
-          {qrCodesData?.title || 'QR Codes'}
-        </Typography>
-
-        {/* 操作按钮 */}
-        {qrCodesData?.download && (
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            {/* 下载语言按钮 */}
-            <Button
-              variant="outlined"
-              startIcon={
-                <Box component="img" src={downloadIcon} alt="download" sx={{ width: 20, height: 20, display: 'block' }} />
-              }
-              onClick={() => console.log('Download languages clicked')}
-              sx={{
-                ...styles.topButtonBase,
-                bgcolor: '#ffffff',
-                borderColor: '#cccccc',
-                color: '#333333',
-                px: 2,
-                width: 'auto',
-                minWidth: '160px',
-                '&:hover': { bgcolor: '#eaeaea', borderColor: '#cccccc', color: '#000000' }
-              }}
-            >
-              {t('common.downloadAll')}
-            </Button>
-          </Box>
-        )}
-      </Box>
+      <SectionHeader
+        titleRef={qrCodesTitleRef}
+        title={qrCodesData?.title || 'QR Codes'}
+        showDownload={qrCodesData?.download}
+        onDownloadClick={() => console.log('Download languages clicked')}
+      />
       
       {/* QR Code Table */}
       {productData.qrCodes?.qrCodes && productData.qrCodes.qrCodes.length > 0 && (
@@ -2106,7 +2178,7 @@ const ProductDetailPage = () => {
         <SpecificationTable 
           data={[
             {
-              title: 'TECHNICAL SPECS',
+              title: t('pdp.technicalSpecs'),
               icon: 'straighten',
               items: productData.packagingSpec?.technicalSpecs?.map(spec => ({
                 feature: spec.featureName || '',
@@ -2116,7 +2188,7 @@ const ProductDetailPage = () => {
               })) || []
             },
             ...(basicTab === 'internalPDPBasic' ? [{
-              title: 'LOGO MARKING',
+              title: t('pdp.logoMarking'),
               icon: 'category',
               items: productData.packagingSpec?.logoMarking?.map(logo => ({
                 feature: logo.featureName || '',
@@ -2126,7 +2198,17 @@ const ProductDetailPage = () => {
               })) || []
             }] : [])
           ]}
-          columns={['Feature Name', 'Value', 'Unit']}
+          columns={(() => {
+            const firstSpec = productData.packagingSpec?.technicalSpecs?.[0];
+            if (!firstSpec) return [t('Feature Name'), t('Value'), t('Unit')];
+            const keys = Object.keys(firstSpec);
+            const columnMap = {
+              featureName: 'Feature Name',
+              value: 'Value',
+              unit: 'Unit'
+            };
+            return keys.map(key => t(columnMap[key] || key));
+          })()}
         />
       </Box>
     </Box>
@@ -2134,50 +2216,12 @@ const ProductDetailPage = () => {
 
   const renderMarketingCollateralsSection = () => (
     <Box>
-      <Box sx={{ 
-        display: 'flex',
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        mt: 3.5,
-        mb: 3.5
-      }}>
-        {/* 标题 */}
-        <Typography ref={onWhiteTitleRef} sx={{
-          color: '#4d4d4d',
-          fontFamily: '"Open Sans", sans-serif',
-          fontSize: '24.5px',
-          fontWeight: 520
-        }}>
-          {onWhiteData?.title || 'On White'}
-        </Typography>
-
-        {/* 操作按钮 */}
-        {onWhiteData?.download && (
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            {/* 下载语言按钮 */}
-            <Button
-              variant="outlined"
-              startIcon={
-                <Box component="img" src={downloadIcon} alt="download" sx={{ width: 20, height: 20, display: 'block' }} />
-              }
-              onClick={() => console.log('Download languages clicked')}
-              sx={{
-                ...styles.topButtonBase,
-                bgcolor: '#ffffff',
-                borderColor: '#cccccc',
-                color: '#333333',
-                px: 2,
-                width: 'auto',
-                minWidth: '160px',
-                '&:hover': { bgcolor: '#eaeaea', borderColor: '#cccccc', color: '#000000' }
-              }}
-            >
-              {t('common.downloadAll')}
-            </Button>
-          </Box>
-        )}
-      </Box>
+      <SectionHeader
+        titleRef={onWhiteTitleRef}
+        title={onWhiteData?.title || 'On White'}
+        showDownload={onWhiteData?.download}
+        onDownloadClick={handleOnWhiteDownload}
+      />
       {/* On White Images */}
       {productData.marketingCollaterals?.onWhite && productData.marketingCollaterals.onWhite.length > 0 && (
         <Box sx={{ mb: 3 }}>
@@ -2186,12 +2230,14 @@ const ProductDetailPage = () => {
             mainImage={{
               src: `https://pim-test.kendo.com${productData.marketingCollaterals.onWhite[0].thumbnailUrl}`,
               alt: productData.marketingCollaterals.onWhite[0].altText || '',
-              fileName: productData.marketingCollaterals.onWhite[0].fileName || ''
+              fileName: productData.marketingCollaterals.onWhite[0].fileName || '',
+              assetId: productData.marketingCollaterals.onWhite[0].assetId || productData.marketingCollaterals.onWhite[0].id
             }}
             thumbnailImages={productData.marketingCollaterals.onWhite.map((img) => ({
               src: `https://pim-test.kendo.com${img.thumbnailUrl}`,
               alt: img.altText || '',
               fileName: img.fileName || '',
+              assetId: img.assetId || img.id,
               basicInfo: img.basicInfo || {},
               technical: img.technical || {},
               downloadUrl: img.downloadUrl || '',
@@ -2219,53 +2265,16 @@ const ProductDetailPage = () => {
               ]
             }}
             onImageSelect={(image, index) => console.log('On White selected:', index, image)}
+            onDownload={(imageData) => handleSingleImageDownload(imageData, 'On White')}
           />
         </Box>
       )}
-      <Box sx={{ 
-        display: 'flex',
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        mt: 3.5,
-        mb: 3.5
-      }}>
-        {/* 标题 */}
-        <Typography ref={actionLifestyleTitleRef} sx={{
-          color: '#4d4d4d',
-          fontFamily: '"Open Sans", sans-serif',
-          fontSize: '24.5px',
-          fontWeight: 520
-        }}>
-          {actionAndLifestyleData?.title || 'Action & Lifestyle'}
-        </Typography>
-
-        {/* 操作按钮 */}
-        {actionAndLifestyleData?.download && (
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            {/* 下载语言按钮 */}
-            <Button
-              variant="outlined"
-              startIcon={
-                <Box component="img" src={downloadIcon} alt="download" sx={{ width: 20, height: 20, display: 'block' }} />
-              }
-              onClick={() => console.log('Download languages clicked')}
-              sx={{
-                ...styles.topButtonBase,
-                bgcolor: '#ffffff',
-                borderColor: '#cccccc',
-                color: '#333333',
-                px: 2,
-                width: 'auto',
-                minWidth: '160px',
-                '&:hover': { bgcolor: '#eaeaea', borderColor: '#cccccc', color: '#000000' }
-              }}
-            >
-              {t('common.downloadAll')}
-            </Button>
-          </Box>
-        )}
-      </Box>
+      <SectionHeader
+        titleRef={actionLifestyleTitleRef}
+        title={actionAndLifestyleData?.title || 'Action & Lifestyle'}
+        showDownload={actionAndLifestyleData?.download}
+        onDownloadClick={handleActionLifestyleDownload}
+      />
       {/* Action & Lifestyle Images */}
       {productData.marketingCollaterals?.actionLifestyle && productData.marketingCollaterals.actionLifestyle.length > 0 && (
         <Box sx={{ mb: 3 }}>
@@ -2274,65 +2283,30 @@ const ProductDetailPage = () => {
             mainImage={{
               src: `https://pim-test.kendo.com${productData.marketingCollaterals.actionLifestyle[0].thumbnailUrl}`,
               alt: productData.marketingCollaterals.actionLifestyle[0].altText || '',
-              fileName: productData.marketingCollaterals.actionLifestyle[0].fileName || ''
+              fileName: productData.marketingCollaterals.actionLifestyle[0].fileName || '',
+              assetId: productData.marketingCollaterals.actionLifestyle[0].assetId || productData.marketingCollaterals.actionLifestyle[0].id
             }}
             thumbnailImages={productData.marketingCollaterals.actionLifestyle.map((img) => ({
               src: `https://pim-test.kendo.com${img.thumbnailUrl}`,
               alt: img.altText || '',
               fileName: img.fileName || '',
+              assetId: img.assetId || img.id,
               basicInfo: img.basicInfo || {},
               technical: img.technical || {},
               downloadUrl: img.downloadUrl || '',
               imageUrl: img.imageUrl || ''
             }))}
             onImageSelect={(image, index) => console.log('Action & Lifestyle selected:', index, image)}
+            onDownload={(imageData) => handleSingleImageDownload(imageData, 'Action & Lifestyle')}
           />
         </Box>
       )}
-      <Box sx={{ 
-        display: 'flex',
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        mt: 3.5,
-        mb: 3.5
-      }}>
-        {/* 标题 */}
-        <Typography ref={videosTitleRef} sx={{
-          color: '#4d4d4d',
-          fontFamily: '"Open Sans", sans-serif',
-          fontSize: '24.5px',
-          fontWeight: 520
-        }}>
-          {mediaData?.[0]?.title || 'Videos'}
-        </Typography>
-
-        {/* 操作按钮 */}
-        {mediaData?.[0]?.download && (
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            {/* 下载语言按钮 */}
-            <Button
-              variant="outlined"
-              startIcon={
-                <Box component="img" src={downloadIcon} alt="download" sx={{ width: 20, height: 20, display: 'block' }} />
-              }
-              onClick={() => console.log('Download languages clicked')}
-              sx={{
-                ...styles.topButtonBase,
-                bgcolor: '#ffffff',
-                borderColor: '#cccccc',
-                color: '#333333',
-                px: 2,
-                width: 'auto',
-                minWidth: '160px',
-                '&:hover': { bgcolor: '#eaeaea', borderColor: '#cccccc', color: '#000000' }
-              }}
-            >
-              {t('common.downloadAll')}
-            </Button>
-          </Box>
-        )}
-      </Box>
+      <SectionHeader
+        titleRef={videosTitleRef}
+        title={mediaData?.[0]?.title || 'Videos'}
+        showDownload={mediaData?.[0]?.download}
+        onDownloadClick={handleVideosDownload}
+      />
 
       {/* Videos Media List */}
       <Box sx={{ mb: 3 }}>
@@ -2345,66 +2319,20 @@ const ProductDetailPage = () => {
             format: video.format || '',
             duration: video.duration || '',
             downloadUrl: video.downloadUrl || '',
-            videoUrl: video.downloadUrl ? `https://pim-test.kendo.com${video.downloadUrl}` : ''
+            videoUrl: video.downloadUrl ? `https://pim-test.kendo.com${video.downloadUrl}` : '',
+            assetId: video.assetId || video.id
           })) || []}
-          onDownloadClick={(item) => {
-            if (item.videoUrl) {
-              const link = document.createElement('a');
-              link.href = item.videoUrl;
-              link.download = item.name || 'video';
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
-            } else {
-              console.log('No download URL available for:', item);
-            }
-          }}
+          onDownloadClick={handleSingleVideoDownload}
         />
       </Box>
 
       {/* Gallery */}
-      <Box sx={{ 
-        display: 'flex',
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        mt: 3.5,
-        mb: 3.5
-      }}>
-        {/* 标题 */}
-        <Typography ref={galleryTitleRef} sx={{
-          color: '#4d4d4d',
-          fontFamily: '"Open Sans", sans-serif',
-          fontSize: '24.5px',
-          fontWeight: 520
-        }}>
-          {galleryData?.title || 'Gallery'}
-        </Typography>
-
-        {/* 操作按钮 */}
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          {/* 下载按钮 */}
-          <Button
-            variant="outlined"
-            startIcon={
-              <Box component="img" src={downloadIcon} alt="download" sx={{ width: 20, height: 20, display: 'block' }} />
-            }
-            onClick={() => console.log('Download Gallery clicked')}
-            sx={{
-              ...styles.topButtonBase,
-              bgcolor: '#ffffff',
-              borderColor: '#cccccc',
-              color: '#333333',
-              px: 2,
-              width: 'auto',
-              minWidth: '160px',
-              '&:hover': { bgcolor: '#eaeaea', borderColor: '#cccccc', color: '#000000' }
-            }}
-          >
-            {t('common.downloadAll')}
-          </Button>
-        </Box>
-      </Box>
+      <SectionHeader
+        titleRef={galleryTitleRef}
+        title={galleryData?.title || 'Gallery'}
+        showDownload={galleryData?.download}
+        onDownloadClick={handleGalleryDownload}
+      />
 
       {/* Gallery Images */}
       {productData.marketingCollaterals?.imageGallery && productData.marketingCollaterals.imageGallery.length > 0 && (
@@ -2414,12 +2342,14 @@ const ProductDetailPage = () => {
             mainImage={{
               src: `https://pim-test.kendo.com${productData.marketingCollaterals.imageGallery[0].thumbnailUrl}`,
               alt: productData.marketingCollaterals.imageGallery[0].altText || '',
-              fileName: productData.marketingCollaterals.imageGallery[0].fileName || ''
+              fileName: productData.marketingCollaterals.imageGallery[0].fileName || '',
+              assetId: productData.marketingCollaterals.imageGallery[0].assetId || productData.marketingCollaterals.imageGallery[0].id
             }}
             thumbnailImages={productData.marketingCollaterals.imageGallery.map((img) => ({
               src: `https://pim-test.kendo.com${img.thumbnailUrl}`,
               alt: img.altText || '',
               fileName: img.fileName || '',
+              assetId: img.assetId || img.id,
               basicInfo: img.basicInfo || {},
               technical: img.technical || {},
               downloadUrl: img.downloadUrl || '',
@@ -2447,6 +2377,7 @@ const ProductDetailPage = () => {
               ]
             }}
             onImageSelect={(image, index) => console.log('Gallery selected:', index, image)}
+            onDownload={(imageData) => handleSingleImageDownload(imageData, 'Gallery')}
           />
         </Box>
       )}
@@ -2467,6 +2398,7 @@ const ProductDetailPage = () => {
             <DigitalAssetCard 
               key={`manuals-${idx}`}
               product={asset}
+              onDownload={handleAfterServiceDownload}
               cardActionsConfig={{
                 show_file_type: false,
                 show_eyebrow: true,
@@ -2474,7 +2406,6 @@ const ProductDetailPage = () => {
                 show_open_product_page: false,
                 show_preview_media: asset.show || true
               }}
-              onDownload={() => console.log('download manuals', idx)}
             />
           ))}
         </Box>
@@ -2490,6 +2421,7 @@ const ProductDetailPage = () => {
             <DigitalAssetCard 
               key={`repair-guide-${idx}`}
               product={asset}
+              onDownload={handleAfterServiceDownload}
               cardActionsConfig={{
                 show_file_type: false,
                 show_eyebrow: true,
@@ -2497,7 +2429,6 @@ const ProductDetailPage = () => {
                 show_open_product_page: false,
                 show_preview_media: asset.show || true
               }}
-              onDownload={() => console.log('download repair guide', idx)}
             />
           ))}
         </Box>
@@ -2515,6 +2446,7 @@ const ProductDetailPage = () => {
                 <DigitalAssetCard 
                   key={`packaging-${idx}`}
                   product={asset}
+                  onDownload={handleAfterServiceDownload}
                   cardActionsConfig={{
                     show_file_type: false,
                     show_eyebrow: true,
@@ -2522,7 +2454,6 @@ const ProductDetailPage = () => {
                     show_open_product_page: false,
                     show_preview_media: asset.show || true
                   }}
-                  onDownload={() => console.log('download packaging', idx)}
                 />
               ))}
             </Box>
@@ -2540,6 +2471,7 @@ const ProductDetailPage = () => {
             <DigitalAssetCard 
               key={`drawing-${idx}`}
               product={asset}
+              onDownload={handleAfterServiceDownload}
               cardActionsConfig={{
                 show_file_type: false,
                 show_eyebrow: true,
@@ -2547,7 +2479,6 @@ const ProductDetailPage = () => {
                 show_open_product_page: false,
                 show_preview_media: asset.show || true
               }}
-              onDownload={() => console.log('download drawing', idx)}
             />
           ))}
         </Box>
@@ -2563,6 +2494,7 @@ const ProductDetailPage = () => {
             <DigitalAssetCard 
               key={`patent-${idx}`}
               product={asset}
+              onDownload={handleAfterServiceDownload}
               cardActionsConfig={{
                 show_file_type: false,
                 show_eyebrow: true,
@@ -2570,7 +2502,6 @@ const ProductDetailPage = () => {
                 show_open_product_page: false,
                 show_preview_media: asset.show || true
               }}
-              onDownload={() => console.log('download patent', idx)}
             />
           ))}
         </Box>
@@ -2731,6 +2662,13 @@ const ProductDetailPage = () => {
 
       {/* Back to Top Button */}
       <BackToTopButton />
+      
+      {/* Media Download Dialog */}
+      <MediaDownloadDialog
+        open={downloadDialogOpen}
+        onClose={handleDownloadDialogClose}
+        selectedMedia={selectedMediaForDownload}
+      />
     </Box>
   );
 };

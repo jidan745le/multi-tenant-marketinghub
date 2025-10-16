@@ -182,20 +182,12 @@ const ProductCard = ({
 
   const showSkuSelect = Array.isArray(skuData) && skuData.length >= 2;
 
-  // 优化事件处理函数 - 使用useCallback
+  // 事件处理函数
   const handleDownloadImage = React.useCallback(() => {
-    const url = activeSku && activeSku.imageUrl ? activeSku.imageUrl : '';
-    if (!url) return;
-    const fileName = url.split('/').pop() || 'image';
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = fileName;
-    link.target = '_blank';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    if (onDownloadClick) onDownloadClick();
-  }, [activeSku, onDownloadClick]);
+    if (onDownloadClick) {
+      onDownloadClick();
+    }
+  }, [onDownloadClick]);
 
   const handleOpenSkuMenu = React.useCallback((event) => {
     if (isSkuDropdownOpen) {

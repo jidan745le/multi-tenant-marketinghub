@@ -240,31 +240,42 @@ const MediaListTable = ({
     }
     
     // 将表格数据转换为 VideoDetailModal 所需的数据格式
-    const videoData = {
-      identifier: item.name || `video-${rowIndex}`, // 使用名称作为标识符
-      filename: item.name,
-      name: item.name,
-      customerImageType: item.type || 'Video',
-      language: item.language,
-      // 添加其他可能需要的字段
-      customerKeywords: '',
-      customerChannel: [],
-      customerApprovalStatus: '',
-      customerUsageRights: '',
-      customerRestricted: [],
+    const mediaData = {
+      // 基础标识信息
+      identifier: item.name || `video-${rowIndex}`, 
+      filename: item.name, 
+      name: item.name, 
+      format: item.format || 'Video', 
+      type: item.type || 'Video',
+      
+      // Basic Info
+      customerModelNumber: '',
+      customerImageType: item.type || 'Video', 
       lockDate: '',
-      colorSpace: '',
-      colorProfile: '',
-      resolution: '',
-      dimensions: '',
-      size: '',
-      creationDate: '',
-      lastModified: ''
+      customerRestricted: [], 
+      customerUsageRights: 'External Image', 
+      customerApprovalStatus: '• Published', 
+      
+      // Technical
+      colorSpace: 'RGB', 
+      colorProfile: 'SRGB',
+      resolution: '300 Dpi', 
+      dimensions: '17.14 X 13.65', 
+      size: '150 Kb', 
+      creationDate: '2025-01-01', 
+      lastModified: '2025-01-01', 
+      
+      // 标签
+      customerKeywords: '', 
+      
+      // 其他
+      language: item.language || '',
+      duration: item.duration || '',
+      customerChannel: []
     };
     
-    setSelectedVideoData(videoData);
+    setSelectedVideoData(mediaData);
     setVideoModalOpen(true);
-    
   };
 
   const handleVideoModalClose = () => {
@@ -275,10 +286,10 @@ const MediaListTable = ({
   // 视频下载
   const handleVideoDownload = (identifier) => {
     console.log('Download video:', identifier);
-    // 这里可以添加实际的下载逻辑
+    // 这里可以添加下载逻辑
   };
 
-  // 渲染操作图标
+  // 操作图标
   const OperationIcon = ({ src, onClick }) => (
     <Box sx={commonStyles.operationIcon} onClick={onClick}>
       <Box
@@ -391,9 +402,8 @@ const MediaListTable = ({
       <VideoDetailModal
         open={videoModalOpen}
         onClose={handleVideoModalClose}
-        videoData={selectedVideoData}
+        mediaData={selectedVideoData}
         onDownload={handleVideoDownload}
-        showRawContentButton={false}
       />
     </Box>
   );
