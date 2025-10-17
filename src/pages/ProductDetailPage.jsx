@@ -1407,7 +1407,8 @@ const ProductDetailPage = () => {
   };
 
   // 右上角图标按钮栏
-  const ToolIconsBar = ({ onShare, onExport, onDownload }) => (
+  // const ToolIconsBar = ({ onShare, onExport, onDownload }) => (
+  const ToolIconsBar = ({ onShare, onExport}) => (
     <Box sx={{ px: 3, pt: 1, pb: 0 }}>
       <Box
         sx={{
@@ -1429,7 +1430,7 @@ const ProductDetailPage = () => {
           </IconButton>
         )}
         {productCardData?.show && (
-          <IconButton size="small" aria-label="download" onClick={onDownload} sx={{ color: '#333333',fontSize: '20px' }}>
+          <IconButton size="small" aria-label="download" /* onClick={onDownload} */ sx={{ color: '#333333',fontSize: '20px' }}>
             <Box component="img" src={downloadIcon} alt="download" sx={{ display: 'block' }} />
           </IconButton>
         )}
@@ -1471,7 +1472,7 @@ const ProductDetailPage = () => {
           length: routeProductId?.length
         });
         
-        const detail = await ProductDetailApiService.getProductDetail(routeProductId);
+        const detail = await ProductDetailApiService.getProductDetail(routeProductId, currentLanguage);
 
         console.log('API响应结果:', {
           detail,
@@ -1584,7 +1585,7 @@ const ProductDetailPage = () => {
     load();
     isFirstLoadRef.current = false;
     return () => { mounted = false; };
-  }, [routeProductId]);
+  }, [routeProductId, currentLanguage]);
 
   
 
