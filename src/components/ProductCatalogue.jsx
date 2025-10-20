@@ -127,7 +127,7 @@ const ProductCatalogue = ({
           >
             {/* 产品网格 - 可滚动区域 */}
             <Box sx={{ flex: 1, overflow: 'auto', padding: "24px" }}>
-              <ConfigurableProductGrid 
+              <ConfigurableProductGrid
                 key={`${config?.productConfig?.title}-${config?.productConfig?.fetchProducts?.brand}`} // 确保配置变化时重新渲染
                 config={config.productConfig}
                 searchParams={searchParams}

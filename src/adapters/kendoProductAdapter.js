@@ -50,99 +50,6 @@ const getMainImageUrl = (graphqlNode) => {
 };
 
 /**
- * 获取产品所有图像数据
- * @param {Object} graphqlNode - GraphQL节点数据
- * @returns {Array} 图像数组
- */
-const getAllImages = (graphqlNode) => {
-    const images = [];
-
-    // 添加主图像
-    if (graphqlNode.Main?.fullpath) {
-        images.push({
-            type: 'main',
-            url: buildImageUrl(graphqlNode.Main.fullpath),
-            assetThumb: buildImageUrl(graphqlNode.Main.assetThumb),
-            assetThumb2: buildImageUrl(graphqlNode.Main.assetThumb2),
-            filename: graphqlNode.Main.filename,
-            id: graphqlNode.Main.id,
-            resolutions: graphqlNode.Main.resolutions
-        });
-    }
-
-    // 添加OnWhite图像
-    if (graphqlNode.OnWhite && Array.isArray(graphqlNode.OnWhite)) {
-        graphqlNode.OnWhite.forEach(item => {
-            if (item.image?.fullpath) {
-                images.push({
-                    type: 'onwhite',
-                    url: buildImageUrl(item.image.fullpath),
-                    filename: item.image.filename,
-                    id: item.image.id,
-                    filesize: item.image.filesize
-                });
-            }
-        });
-    }
-
-    // 添加Lifestyles图像
-    if (graphqlNode.Lifestyles && Array.isArray(graphqlNode.Lifestyles)) {
-        graphqlNode.Lifestyles.forEach(item => {
-            if (item.image?.fullpath) {
-                images.push({
-                    type: 'lifestyle',
-                    url: buildImageUrl(item.image.fullpath),
-                    filename: item.image.filename
-                });
-            }
-        });
-    }
-
-    // 添加Icons图像
-    if (graphqlNode.Icons && Array.isArray(graphqlNode.Icons)) {
-        graphqlNode.Icons.forEach(item => {
-            if (item.image?.fullpath) {
-                images.push({
-                    type: 'icon',
-                    url: buildImageUrl(item.image.fullpath),
-                    filename: item.image.filename,
-                    filesize: item.image.filesize,
-                    duration: item.image.duration
-                });
-            }
-        });
-    }
-
-    return images;
-};
-
-/**
- * 获取产品分类（基于产品类型和路径推断）
- * @param {Object} graphqlNode - GraphQL节点数据
- * @returns {string} 产品分类
- */
-const getProductCategory = (graphqlNode) => {
-    const productType = graphqlNode.ProductType || '';
-    const mainImagePath = graphqlNode.Main?.fullpath || '';
-
-    // 基于图像路径推断分类
-    if (mainImagePath.includes('Clamping Tools') || mainImagePath.includes('Piler')) {
-        return 'Clamping Tools';
-    }
-
-    if (mainImagePath.includes('Hand Tools')) {
-        return 'Hand Tools';
-    }
-
-    // 基于产品类型推断
-    if (productType.includes('Individual')) {
-        return 'Hand Tools';
-    }
-
-    return 'Tools'; // 默认分类
-};
-
-/**
  * 获取SKU信息
  * @param {Object} graphqlNode - GraphQL节点数据
  * @returns {Object} SKU信息 {count, skus, showBadge}
@@ -173,55 +80,63 @@ const getSkuInfo = (graphqlNode) => {
  */
 export const adaptGraphQLProductNode = (graphqlNode) => {
     const mainImageUrl = getMainImageUrl(graphqlNode);
-    const allImages = getAllImages(graphqlNode);
-    const category = getProductCategory(graphqlNode);
     const skuInfo = getSkuInfo(graphqlNode);
 
-    // 获取产品名称（优先英文，其次德文）
-    const productName = graphqlNode.ProductName_en || 'Unnamed Product';
+    // 获取产品名称
+    const productName = graphqlNode.ProductName || 'Unnamed Product';
 
     // 获取产品描述
-    const shortDescription = graphqlNode.ShortDescription_en || graphqlNode.ShortDescription_de || '';
-    const longDescription = graphqlNode.LongDescription_en || graphqlNode.LongDescription_de || '';
+    const shortDescription = graphqlNode.ShortDescription || '';
+    const longDescription = graphqlNode.LongDescription || '';
 
     return {
-        // 基础标识字段
+        // 基础标识
         id: graphqlNode.id,
 
-        // 产品基本信息 - 兼容现有组件字段
-        name: productName,
-        modelName: productName,
-        modelNumber: graphqlNode.VirtualProductID || 'N/A',
-        customerFasicModelNumber: graphqlNode.VirtualProductID || 'N/A',
-        ean: graphqlNode.ERPMaterialCode || 'N/A',
+        // 品牌和编码（驼峰命名）
         brand: graphqlNode.Brand || 'KENDO',
-        productType: graphqlNode.ProductType || 'Unknown',
-        objectType: graphqlNode.objectType || 'unknown',
-        category: category,
+        erpMaterialCode: graphqlNode.ERPMaterialCode || '',
+        customerFacingProductCode: graphqlNode.CustomerFacingProductCode || '',
 
-        // SKU 信息
-        skuCount: skuInfo.count,
-        skus: skuInfo.skus,
-        showSkuBadge: skuInfo.showBadge,
-
-        // 图像相关字段
-        image: mainImageUrl,
-        thumbnail: mainImageUrl,
-        images: allImages,
-
-        // 描述信息
+        // 产品信息（驼峰命名）
+        modelNumber: graphqlNode.VirtualProductID || '',
+        modelName: productName,
         shortDescription: shortDescription,
         longDescription: longDescription,
 
-        // 状态和兼容性字段
-        sellable: "true",
-        region: "Global",
-        creationDate: "",
+        // 分类信息（驼峰命名）
+        productType: graphqlNode.ProductType || '',
+        categoryName: graphqlNode.CategoryName || '',
+        categoryID: graphqlNode.CategoryID || '',
+        application: graphqlNode.Application || '',
+
+        // 状态信息（驼峰命名）
         onlineDate: graphqlNode.OnlineDate || '',
         enrichmentStatus: graphqlNode.EnrichmentStatus || '',
-        // 保留原始GraphQL数据用于调试和扩展
-        _graphqlData: graphqlNode,
-        _dataSource: 'graphql'
+        lifecycleStatus: graphqlNode.LifecycleStatus || '',
+        customerSpecificFlag: graphqlNode.CustomerSpecificFlag || false,
+
+        // 对象类型（驼峰命名）
+        objectType: graphqlNode.objectType || 'virtual-product',
+
+        // 缩略图（驼峰命名）
+        thumbnail: mainImageUrl || '',
+
+        // SKU信息（驼峰命名数组）
+        skus: skuInfo.skus.map(sku => ({
+            id: sku.id,
+            customerFacingProductCode: sku.productNumber,
+            size: sku.size,
+            mainMaterial: sku.mainMaterial,
+            surfaceFinish: sku.surfaceFinish,
+            applicableStandard: sku.applicableStandard
+        })),
+
+        // 兼容现有组件的字段
+        name: productName,
+        image: mainImageUrl,
+        skuCount: skuInfo.count,
+        showSkuBadge: skuInfo.showBadge
     };
 };
 
@@ -236,7 +151,7 @@ export const adaptGraphQLProductResponse = (graphqlResponse) => {
         return {
             list: [],
             totalSize: 0,
-            startIndex: 0,
+            pageIndex: 0,
             pageSize: 0,
             error: 'Invalid GraphQL response structure'
         };
@@ -249,16 +164,10 @@ export const adaptGraphQLProductResponse = (graphqlResponse) => {
     const products = edges.map(edge => adaptGraphQLProductNode(edge.node));
 
     return {
-        list: products,
-        totalSize: totalCount, // 使用GraphQL返回的准确总数
-        startIndex: 0,
-        pageSize: products.length,
-        _metadata: {
-            source: 'graphql',
-            originalEdgeCount: edges.length,
-            totalCount: totalCount,
-            transformedAt: new Date().toISOString()
-        }
+        pageIndex: 0,           // 页码索引（从0开始）
+        totalSize: totalCount,  // 总记录数
+        pageSize: products.length, // 当前页大小
+        list: products          // 产品列表
     };
 };
 

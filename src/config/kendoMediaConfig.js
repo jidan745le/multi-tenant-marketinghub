@@ -177,7 +177,7 @@ export const createMediaCatalogueConfig = (brand = 'kendo') => {
                 { brand: brand } // 添加品牌标识，确保函数被识别为不同
             ),
             // 页面大小
-            pageSize: 12,
+            pageSize: 20,
             // 卡片工具功能配置
             cardActions: {
                 show_file_type: true,

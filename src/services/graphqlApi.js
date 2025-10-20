@@ -15,8 +15,8 @@ const getUserPermissions = () => {
       const userData = JSON.parse(userInfo);
       return userData.permissions || [];
     }
-  } catch (error) {
-    console.warn('Failed to get user permissions from localStorage:', error);
+  } catch {
+    // Silent fail
   }
   return [];
 };
@@ -29,7 +29,7 @@ const getUserPermissions = () => {
  * @param {string} brand - Brand code
  * @returns {string} GraphQL query string
  */
-const buildGraphQLQuery = (filters = {}, first = 100, after = 0, brand = 'kendo') => {
+const buildGraphQLQuery = (filters = {}, first = 100, after = 0, brand = 'kendo', language = "en") => {
   // Build filter conditions
   const filterConditions = [];
 
@@ -57,15 +57,8 @@ const buildGraphQLQuery = (filters = {}, first = 100, after = 0, brand = 'kendo'
   const hasInternalDataAccess = userPermissions.includes('marketinghub:domain:InternalData:access');
   const hasExternalDataAccess = userPermissions.includes('marketinghub:domain:ExternalData:access');
 
-  console.log('🔐 User permissions check:', {
-    permissions: userPermissions,
-    hasInternalDataAccess,
-    hasExternalDataAccess
-  });
-
   // If user only has ExternalData access (not InternalData), apply additional filters
   if (hasExternalDataAccess && !hasInternalDataAccess) {
-    console.log('🔒 Applying ExternalData filters: OnlineDate NOT EMPTY, FirstShipmentDate NOT EMPTY, CustomerSpecificFlag="No"');
 
     // OnlineDate is NOT EMPTY
     filterConditions.push({
@@ -123,56 +116,25 @@ const buildGraphQLQuery = (filters = {}, first = 100, after = 0, brand = 'kendo'
   // Product category filtering (tree structure support)
   // 使用CategoryID进行筛选
   if (filters['product-category'] && filters['product-category'].length > 0) {
-    console.log('🏷️ Product category filter applied:', filters['product-category']);
     const categoryConditions = filters['product-category'].map(category => ({
       "CategoryID": { "$like": `%${category}%` }
     }));
     filterConditions.push({ "$or": categoryConditions });
-    console.log('🔍 Category filter conditions (CategoryID):', categoryConditions);
   }
 
   // Application filtering (by Trade)
   if (filters['application'] && filters['application'].length > 0) {
-    console.log('🔧 Application filter applied:', filters['application']);
     const applicationConditions = filters['application'].map(app => ({
       "Application": { "$like": `%${app}%` }
     }));
     filterConditions.push({ "$or": applicationConditions });
   }
 
-  // Created date filtering
-  if (filters['created'] && filters['created'].length > 0) {
-    const now = new Date();
-    const dateConditions = filters['created'].map(period => {
-      let startDate;
-      switch (period) {
-        case 'last-week':
-          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          break;
-        case 'last-month':
-          startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-          break;
-        case 'last-3-months':
-          startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-          break;
-        case 'last-6-months':
-          startDate = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
-          break;
-        case 'this-year':
-          startDate = new Date(now.getFullYear(), 0, 1);
-          break;
-        default:
-          return null;
-      }
-      if (startDate) {
-        return { "OnlineDate": { "$gte": startDate.toISOString().split('T')[0] } };
-      }
-      return null;
-    }).filter(Boolean);
-
-    if (dateConditions.length > 0) {
-      filterConditions.push({ "$or": dateConditions });
-    }
+  // Created date filtering (FilterSidebar已经转换为YYYY-MM-DD格式)
+  if (filters['created-on'] && typeof filters['created-on'] === 'string') {
+    filterConditions.push({
+      "OnlineDate": { "$gte": filters['created-on'] }
+    });
   }
 
   // Online date filtering for new products (OnlineDate > 2025-01-01)
@@ -184,15 +146,8 @@ const buildGraphQLQuery = (filters = {}, first = 100, after = 0, brand = 'kendo'
 
   const filterString = JSON.stringify({ "$and": filterConditions });
 
-  // Debug log for all filters
-  console.log('🔍 GraphQL buildProductQuery filters:', {
-    rawFilters: filters,
-    filterConditions: filterConditions,
-    finalFilterString: filterString
-  });
-
   return `{
-    getProductListing(first: ${first}, after: ${after}, filter: "${filterString.replace(/"/g, '\\"')}") {
+    getProductListing(first: ${first}, after: ${after}, filter: "${filterString.replace(/"/g, '\\"')}", defaultLanguage: "${language}") {
       totalCount
       edges {
         cursor
@@ -202,12 +157,9 @@ const buildGraphQLQuery = (filters = {}, first = 100, after = 0, brand = 'kendo'
           ERPMaterialCode
           VirtualProductID
           CustomerFacingProductCode
-          ProductName_en: ProductName(language: "en")
-          ProductName_de: ProductName(language: "de")
-          ShortDescription_en: ShortDescription(language: "en")
-          ShortDescription_de: ShortDescription(language: "de")
-          LongDescription_en: LongDescription(language: "en")
-          LongDescription_de: LongDescription(language: "de")
+          ProductName
+          ShortDescription
+          LongDescription
           ProductType
           CategoryName
           CategoryID
@@ -272,12 +224,11 @@ const buildGraphQLQuery = (filters = {}, first = 100, after = 0, brand = 'kendo'
  * @param {string} brand - Brand code
  * @returns {Promise<Object>} Product data
  */
-export const fetchKendoProducts = async (params = {}, brand = 'kendo') => {
+export const fetchKendoProducts = async (params = {}, brand = 'kendo', language = "en") => {
   try {
     const { limit = 1, offset = 0 } = params;
-    const brandName = brand.toUpperCase();
-    console.log(`🔍 Building GraphQL query for ${brandName} products`);
-    const query = buildGraphQLQuery(params, limit, offset, brand);
+    console.log('fetchKendoProducts', params, brand);
+    const query = buildGraphQLQuery(params, limit, offset, brand, language);
 
     const response = await fetch(GRAPHQL_API_URL, {
       method: 'POST',
@@ -306,13 +257,11 @@ export const fetchKendoProducts = async (params = {}, brand = 'kendo') => {
 
     return adaptGraphQLProductResponse(data);
   } catch (error) {
-    console.error('Error fetching KENDO products:', error);
-
     // Return empty result instead of throwing error to keep UI stable
     return {
       list: [],
       totalSize: 0,
-      startIndex: 0,
+      pageIndex: 0,
       pageSize: 0,
       error: error.message
     };
@@ -429,8 +378,6 @@ const transformCategoryToTree = (edges) => {
     }
   });
 
-  console.log(`🌲 Category tree: Removed ${rootNodes.length} root nodes, returning ${allSubCategories.length} subcategories`);
-
   return allSubCategories;
 };
 
@@ -440,8 +387,6 @@ const transformCategoryToTree = (edges) => {
  */
 export const fetchCategoryTree = async () => {
   try {
-    console.log(`🌳 Fetching category tree for ALL brands`);
-
     // Step 1: 先获取第一批数据和totalCount
     const batchSize = 100; // 每批加载100条
     const firstQuery = buildCategoryTaxonomyQuery(batchSize, 0);
@@ -470,17 +415,12 @@ export const fetchCategoryTree = async () => {
       throw new Error(`GraphQL error: ${firstData.errors.map(e => e.message).join(', ')}`);
     }
 
-    console.log('firstData', firstData);
-
     const totalCount = firstData.data?.getProductListing?.totalCount || 0;
     let allEdges = firstData.data?.getProductListing?.edges || [];
-
-    console.log(`📊 Total category count: ${totalCount}, first batch: ${allEdges.length}`);
 
     // Step 2: 如果还有更多数据，分批加载
     if (totalCount > batchSize) {
       const batches = Math.ceil(totalCount / batchSize);
-      console.log(`📦 Loading ${batches} batches...`);
 
       // 创建所有批次的请求
       const batchPromises = [];
@@ -504,13 +444,11 @@ export const fetchCategoryTree = async () => {
           .then(res => res.json())
           .then(data => {
             if (data.errors) {
-              console.error(`GraphQL error in batch ${i}:`, data.errors);
               return [];
             }
             return data.data?.getProductListing?.edges || [];
           })
-          .catch(error => {
-            console.error(`Error loading batch ${i}:`, error);
+          .catch(() => {
             return [];
           });
 
@@ -521,21 +459,16 @@ export const fetchCategoryTree = async () => {
       const batchResults = await Promise.all(batchPromises);
 
       // 合并所有edges
-      batchResults.forEach((edges, index) => {
-        console.log(`📦 Batch ${index + 2} loaded: ${edges.length} items`);
+      batchResults.forEach((edges) => {
         allEdges = allEdges.concat(edges);
       });
     }
 
-    console.log(`✅ Total edges loaded: ${allEdges.length}`);
-
     // Step 3: 转换为树形结构
     const tree = transformCategoryToTree(allEdges);
-    console.log(`🌲 Built category tree with ${tree.length} subcategories`);
 
     return tree;
-  } catch (error) {
-    console.error('❌ Error fetching category tree:', error);
+  } catch {
     return [];
   }
 };

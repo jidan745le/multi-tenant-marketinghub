@@ -207,7 +207,7 @@ function DerivateManagement() {
       // Use API service validation
       DerivateManagementApiService.validateDerivateData(dataToValidate);
 
-      if (editingRow.id && !editingRow.id.startsWith('NEW_')) {
+      if (editingRow.id && !String(editingRow.id).startsWith('NEW_')) {
         // Update existing derivate - use identifier for API calls
         const updateId = editingRow.identifier || editingRow.id;
         await DerivateManagementApiService.updateDerivate(updateId, dataToValidate);

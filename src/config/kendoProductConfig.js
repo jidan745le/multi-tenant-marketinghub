@@ -30,13 +30,13 @@ export const kendoApplicationOptions = [
     { value: 'HoReCa', label: 'HoReCa' },
 ];
 
-// Created 时间范围选项
+// Created 时间范围选项 (days: 往前推的天数, 'year-start': 今年开始)
 export const kendoCreatedOptions = [
-    { value: 'last-week', label: 'Last Week' },
-    { value: 'last-month', label: 'Last Month' },
-    { value: 'last-3-months', label: 'Last 3 months' },
-    { value: 'last-6-months', label: 'Last 6 months' },
-    { value: 'this-year', label: 'This year' },
+    { value: 'last-week', label: 'Last Week', days: 7 },
+    { value: 'last-month', label: 'Last Month', days: 30 },
+    { value: 'last-3-months', label: 'Last 3 months', days: 90 },
+    { value: 'last-6-months', label: 'Last 6 months', days: 180 },
+    { value: 'this-year', label: 'This year', days: 'year-start' },
 ];
 
 // KENDO FilterSidebar 配置
@@ -102,10 +102,10 @@ export const kendoProductListConfigs = [
     {
         order: 51,
         label: 'Created',
-        component: 'checkbox',
-        key: 'created',
-        type: 'array',
-        defaultValue: [],
+        component: 'date',
+        key: 'created-on',
+        type: 'string',
+        defaultValue: '',
         enum: kendoCreatedOptions,
         defaultCollapseCount: 5
     }
@@ -114,26 +114,24 @@ export const kendoProductListConfigs = [
 // 动态GraphQL API包装函数，支持多品牌
 export const fetchKendoProductsAPI = async (params, brand = 'kendo') => {
     try {
-        const brandName = brand.toUpperCase();
-        console.log(`🔍 ${brandName} API called at:`, new Date().toISOString());
-        console.log(`📋 Fetching ${brandName} products with params Product types found:`, params);
-
         // 调用GraphQL API并传递品牌参数
         const result = await fetchKendoProducts(params, brand);
 
-        console.log(`📊 ${brandName} Product types found:`, result);
-
         // 确保返回格式完全兼容ConfigurableProductGrid组件
+        // adapter返回的是pageIndex，这里计算startIndex用于兼容
+        const startIndex = (result.pageIndex || 0) * (result.pageSize || 0);
+
         return {
-            startIndex: result.startIndex || 0,
+            startIndex: startIndex,
+            pageIndex: result.pageIndex || 0,
             totalSize: result.totalSize || 0,
             pageSize: result.pageSize || params.limit || 20,
             list: result.list || []
         };
     } catch (error) {
-        console.error('❌ Error in fetchKendoProductsAPI:', error);
         return {
             startIndex: 0,
+            pageIndex: 0,
             totalSize: 0,
             pageSize: 0,
             list: [],
@@ -145,16 +143,11 @@ export const fetchKendoProductsAPI = async (params, brand = 'kendo') => {
 // 动态Category Tree API包装函数（固定使用ALL品牌）
 export const fetchCategoryTreeAPI = async () => {
     try {
-        console.log(`🌳 Category Tree API called at:`, new Date().toISOString());
-
         // 调用GraphQL API（固定使用ALL品牌获取所有分类）
         const result = await fetchCategoryTree();
 
-        console.log(`📊 Category tree loaded (ALL brands):`, result);
-
         return result;
-    } catch (error) {
-        console.error('❌ Error in fetchCategoryTreeAPI:', error);
+    } catch {
         return [];
     }
 };
@@ -167,7 +160,6 @@ export const createProductCatalogueConfig = (brand = 'kendo') => {
     const filtersWithBrand = kendoProductListConfigs.map(filter => {
         // 如果是tree组件，绑定fetchTreeData（使用ALL品牌）
         if (filter.component === 'tree' && filter.fetchTreeData) {
-            console.log(`🔧 Binding fetchTreeData for tree component: ${filter.key} (using ALL brands)`);
             return {
                 ...filter,
                 fetchTreeData: () => fetchCategoryTreeAPI()
@@ -175,8 +167,6 @@ export const createProductCatalogueConfig = (brand = 'kendo') => {
         }
         return filter;
     });
-
-    console.log(`🔍 createProductCatalogueConfig - Filters created for ${brandName}:`, filtersWithBrand.map(f => ({ key: f.key, component: f.component, hasFetchTreeData: !!f.fetchTreeData })));
 
     return {
         // 筛选器配置
@@ -191,7 +181,7 @@ export const createProductCatalogueConfig = (brand = 'kendo') => {
                 { brand: brand } // 添加品牌标识，确保函数被识别为不同
             ),
             // 页面大小
-            pageSize: 10,
+            pageSize: 20,
             // 卡片工具功能配置
             cardActions: {
                 show_file_type: true,

@@ -270,7 +270,7 @@ export const mediaCatalogueConfig = {
         // 获取媒体数据的Promise函数
         fetchProducts: fetchMediasAPI, // 保持与现有组件兼容的名称
         // 页面大小
-        pageSize: 12,
+        pageSize: 20,
         // 卡片工具功能配置（适配媒体文件）
         cardActions: {
             show_file_type: true,

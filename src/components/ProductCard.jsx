@@ -1,11 +1,11 @@
-import React, { memo, useState, useRef } from 'react';
+import { Box, Button, Typography } from '@mui/material';
 import PropTypes from 'prop-types';
-import { Box, Typography, Button } from '@mui/material';
+import React, { memo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import UnifiedSkuTable from './UnifiedSkuTable';
+import downloadIcon from '../assets/icon/download.png';
 import { useTheme } from '../hooks/useTheme';
 import { useTranslationLoader } from '../hooks/useTranslationLoader';
-import downloadIcon from '../assets/icon/download.png';
+import UnifiedSkuTable from './UnifiedSkuTable';
 
 
 // 移除重复的SmallTriangleIcon定义，从共享组件导入

@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useSelectedAssets } from '../context/SelectedAssetsContext';
 import AssetViewActionBar from './AssetViewActionBar';
 import DigitalAssetCard from './DigitalAssetCard';
+import ProductGridCard from './ProductGridCard';
 
 // 外层容器，不处理滚动
 const ProductGridOuterContainer = styled(Box)(() => ({
@@ -98,11 +99,7 @@ const ConfigurableProductGrid = ({
 
   // 监听配置变化
   useEffect(() => {
-    console.log('🔧 ConfigurableProductGrid: Config changed', {
-      fetchProductsBrand: fetchProducts?.brand,
-      pageSize: pageSize,
-      configTitle: config?.productConfig?.title
-    });
+    // Config changed
   }, [config, fetchProducts, pageSize]);
 
   // 防抖的数据获取函数
@@ -120,11 +117,8 @@ const ConfigurableProductGrid = ({
     const combinedKey = paramsString + fetchProductsKey;
     
     if (lastSearchParamsRef.current === combinedKey) {
-      console.log('🔄 ConfigurableProductGrid: Skipping duplicate API call (same params and fetchProducts)');
       return; // 参数和函数都没有变化，不重复调用
     }
-    
-    console.log('🔄 ConfigurableProductGrid: Parameters or fetchProducts changed, scheduling API call');
 
     // 设置新的定时器
     debounceTimerRef.current = setTimeout(async () => {
@@ -133,8 +127,6 @@ const ConfigurableProductGrid = ({
       const loadProducts = async () => {
         setLoading(true);
         try {
-          console.log('🔄 ConfigurableProductGrid: Starting API call');
-          console.log('📋 ConfigurableProductGrid: Params:', params);
           const result = await fetchProducts(params);
           
           // 如果组件已卸载，不更新状态
@@ -149,13 +141,11 @@ const ConfigurableProductGrid = ({
           }
         } catch (error) {
           if (!isCancelled) {
-            console.error('❌ ConfigurableProductGrid: Failed to fetch products:', error);
             setProducts([]);
             setTotalPages(0);
           }
         } finally {
           if (!isCancelled) {
-            console.log('✅ ConfigurableProductGrid: API call completed');
             setLoading(false);
           }
         }
@@ -219,18 +209,24 @@ const ConfigurableProductGrid = ({
           ) : (
             <>
               <Grid container spacing={3}>
-                {products.map((product) => (
-                  <Grid item xs={12} sm={6} md={4} lg={3} key={product.id}>
-                    <DigitalAssetCard
-                      product={product}
-                      isSelected={selectedProducts.some(p => p.id === product.id)}
-                      onSelect={handleProductSelect}
-                      onProductClick={onProductClick}
-                      onDownload={onProductDownload}
-                      cardActionsConfig={cardActionsConfig}
-                    />
-                  </Grid>
-                ))}
+                {products.map((product) => {
+                  // 判断是资产还是产品：资产有 mediaType 属性
+                  const isAsset = Boolean(product.mediaType);
+                  const CardComponent = isAsset ? DigitalAssetCard : ProductGridCard;
+                  
+                  return (
+                    <Grid item xs={12} sm={6} md={4} lg={3} key={product.id}>
+                      <CardComponent
+                        product={product}
+                        isSelected={selectedProducts.some(p => p.id === product.id)}
+                        onSelect={handleProductSelect}
+                        onProductClick={onProductClick}
+                        onDownload={onProductDownload}
+                        cardActionsConfig={cardActionsConfig}
+                      />
+                    </Grid>
+                  );
+                })}
               </Grid>
 
               {products.length === 0 && !loading && (

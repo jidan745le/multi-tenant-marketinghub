@@ -189,6 +189,26 @@ const ConfigurableFilterSidebar = ({
   const [currentItem, setCurrentItem] = useState(null);
   const [currentChildItem, setCurrentChildItem] = useState(null);
 
+  // 通用日期计算函数：根据 days 配置计算日期
+  const calculateDateFromDays = (days) => {
+    if (!days) return null;
+    
+    const now = new Date();
+    let targetDate;
+    
+    if (days === 'year-start') {
+      // 今年1月1日
+      targetDate = new Date(now.getFullYear(), 0, 1);
+    } else if (typeof days === 'number') {
+      // 往前推 N 天
+      targetDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+    } else {
+      return null;
+    }
+    
+    return targetDate.toISOString().split('T')[0];
+  };
+
   // 只在组件挂载时初始化一次
   useEffect(() => {
     if (!config?.filters) return;
@@ -394,6 +414,54 @@ const ConfigurableFilterSidebar = ({
           </RadioGroup>
         </FormControl>
         {item.enum && item.enum.length > 7 && (
+          <ShowMoreButton onClick={() => toggleCollapse(item.key)}>
+            {isCollapsed ? 'Show More' : 'Show Less'}
+          </ShowMoreButton>
+        )}
+      </div>
+    );
+  };
+
+  const renderDateField = (item) => {
+    const currentValue = internalValues[item.key] || '';
+    const isCollapsed = collapseState[item.key];
+    const displayEnum = isCollapsed && item.enum 
+      ? item.enum.slice(0, item.defaultCollapseCount || 7)
+      : item.enum || [];
+
+    return (
+      <div>
+        <FormControl>
+          <RadioGroup
+            value={currentValue}
+            onChange={(event) => {
+              const selectedOption = item.enum?.find(opt => opt.value === event.target.value);
+              if (selectedOption?.days) {
+                // 根据 days 配置自动计算日期
+                const calculatedDate = calculateDateFromDays(selectedOption.days);
+                handleValueChange(item.key, calculatedDate || event.target.value);
+              } else {
+                handleValueChange(item.key, event.target.value);
+              }
+            }}
+          >
+            {displayEnum.map((option) => {
+              // 计算并显示实际日期
+              const calculatedDate = option.days ? calculateDateFromDays(option.days) : null;
+              const displayLabel = option.label;
+              
+              return (
+                <StyledFormControlLabel
+                  key={option.value}
+                  value={calculatedDate || option.value}
+                  control={<Radio size="small" />}
+                  label={displayLabel}
+                />
+              );
+            })}
+          </RadioGroup>
+        </FormControl>
+        {item.enum && item.enum.length > (item.defaultCollapseCount || 7) && (
           <ShowMoreButton onClick={() => toggleCollapse(item.key)}>
             {isCollapsed ? 'Show More' : 'Show Less'}
           </ShowMoreButton>
@@ -621,6 +689,8 @@ const ConfigurableFilterSidebar = ({
         return renderCheckboxField(item);
       case 'radio':
         return renderRadioField(item);
+      case 'date':
+        return renderDateField(item);
       case 'clickable-list':
         return renderClickableListField(item);
       case 'tree':
