@@ -84,20 +84,22 @@ const BackToTopButton = () => {
           transition: 'background 0.2s ease',
         }}
       />
+      {/* 图标*/}
       <Box
+        component="img"
+        src="/assets/vertical_Align_Top.png"
+        alt="Back to top"
         sx={{
           position: 'absolute',
           left: '10px',
           top: '16px',
           width: '30px',
           height: '30px',
-          bgcolor: primaryColor,
-          WebkitMask: `url(/assets/vertical_Align_Top.png) no-repeat center / contain`,
-          mask: `url(/assets/vertical_Align_Top.png) no-repeat center / contain`,
           display: 'inline-block',
+          zIndex: 1001,
         }}
       />
-    </Box>
+  </Box>
   );
 };
 

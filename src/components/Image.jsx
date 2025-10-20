@@ -226,8 +226,11 @@ const Image = ({
             fontWeight: 400,
             minWidth: 'auto',
             width: 'auto',
+            zIndex: 10,
+            cursor: 'pointer',
             '&:hover': {
-              background: `${primaryColor}10`
+              background: `${primaryColor}10`,
+              borderColor: primaryColor
             }
           }}
         >
