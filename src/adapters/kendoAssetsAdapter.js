@@ -82,25 +82,6 @@ const extractProductIdFromPath = (fullpath) => {
     return null;
 };
 
-/**
- * 从路径中提取文件夹结构，获取媒体类别
- * @param {string} fullpath - 资产路径
- * @returns {string} 媒体类别
- */
-const extractMediaCategory = (fullpath) => {
-    if (!fullpath) return 'Unknown';
-
-    // 检查常见类别关键词
-    const path = fullpath.toLowerCase();
-
-    if (path.includes('main')) return 'Main';
-    if (path.includes('on white') || path.includes('onwhite')) return 'On White';
-    if (path.includes('lifestyle')) return 'Lifestyle';
-    if (path.includes('action')) return 'Action';
-    if (path.includes('in scene') || path.includes('inscene')) return 'In Scene';
-
-    return 'Other';
-};
 
 /**
  * 从metadata中提取指定字段的值
@@ -127,9 +108,13 @@ export const adaptGraphQLAssetNode = (assetNode) => {
     // 从metadata中提取Media Category (Media Type字段)
     const mediaCategoryFromMetadata = extractMetadataValue(assetNode.metadata, 'Media Type');
     // 如果metadata中没有Media Category，则从路径中提取
-    const mediaCategory = mediaCategoryFromMetadata || extractMediaCategory(assetNode.fullpath);
+    const mediaCategory = mediaCategoryFromMetadata;
 
     const mediaType = assetType; // 媒体类型（Images, Videos, Documents）
+
+    // 从metadata中提取Tags (Media Key Words字段)
+    const tagsFromMetadata = extractMetadataValue(assetNode.metadata, 'Key Words');
+    const tags = tagsFromMetadata || '';
 
     // 获取最佳图像URL
     // 如果assetThumb是默认的不支持文件类型图标，则使用原始文件路径
@@ -140,10 +125,6 @@ export const adaptGraphQLAssetNode = (assetNode) => {
         imageUrl = buildAssetUrl(assetNode.fullpath);
     }
     const downloadUrl = buildAssetUrl(assetNode.fullpath);
-
-    // 从资产路径中提取标签
-    const pathSegments = assetNode.fullpath.split('/').filter(Boolean);
-    const tags = pathSegments.slice(Math.max(0, pathSegments.length - 4)).join(', ');
 
     // 调试信息（仅对视频类型显示）
     if (assetNode.mimetype && assetNode.mimetype.startsWith('video/')) {

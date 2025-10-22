@@ -9,6 +9,7 @@ const API_KEY = '7ce45a85b23aa742131a94d4431e22fe';
  * @param {string} filters.filename - Filter by filename (partial match)
  * @param {string} filters['folder-path'] - Filter by folder path
  * @param {string} filters['model-number'] - Filter by product model number
+ * @param {string} filters.tags - Filter by tags/keywords (Media Key Words metadata)
  * @param {Array<string>} filters['media-type'] - Filter by media types
  * @param {Array<string>} filters['media-category'] - Filter by Media Category metadata (支持多选)
  * @param {Array<string>} filters['document-type'] - Filter by Document Type metadata (支持多选)
@@ -61,6 +62,23 @@ const buildAssetsQuery = (filters = {}, first = 20, offset = 0) => {
         });
     }
 
+    // Tags/Keywords metadata filter (支持模糊搜索)
+    if (filters.tags && typeof filters.tags === 'string' && filters.tags.trim()) {
+        // 将逗号或分号分隔的标签字符串拆分为数组
+        const tagValues = filters.tags
+            .split(/[,;]/)
+            .map(tag => tag.trim())
+            .filter(Boolean);
+
+        if (tagValues.length > 0) {
+            metadataFilters.push({
+                name: "Media Key Words",
+                values: tagValues,
+                operator: "LIKE" // 使用 LIKE 支持部分匹配
+            });
+        }
+    }
+
     // Add metadata filters to query if any exist
     if (metadataFilters.length > 0) {
         // 构建正确的 GraphQL 语法，而不是转义的 JSON 字符串
@@ -72,7 +90,10 @@ const buildAssetsQuery = (filters = {}, first = 20, offset = 0) => {
         queryParams.push(`metadataFilters: [${metadataFiltersGraphQL}]`);
 
         // Support both AND and OR logic for metadata filters
-        const metadataLogic = filters['metadata-logic'] && filters['metadata-logic'].toUpperCase() === 'OR' ? 'OR' : 'AND';
+        // 当有 tags 筛选时，默认使用 OR 逻辑，以便标签之间是或的关系
+        const hasTagsFilter = filters.tags && typeof filters.tags === 'string' && filters.tags.trim();
+        const defaultLogic = hasTagsFilter ? 'OR' : 'AND';
+        const metadataLogic = filters['metadata-logic'] ? filters['metadata-logic'].toUpperCase() : defaultLogic;
         queryParams.push(`metadataLogic: "${metadataLogic}"`);
     }
 
@@ -83,9 +104,6 @@ const buildAssetsQuery = (filters = {}, first = 20, offset = 0) => {
     if (filters.ids && Array.isArray(filters.ids) && filters.ids.length > 0) {
         const idConditions = filters.ids.map(id => String(id));
         mongoFilters.push({ id: { "$in": idConditions } });
-    } else {
-        // Basic filtering - ensure assets have a mimetype (only when not filtering by IDs)
-        mongoFilters.push({ mimetype: { "$not": "" } });
     }
 
     // Filter by filename
@@ -103,29 +121,7 @@ const buildAssetsQuery = (filters = {}, first = 20, offset = 0) => {
         mongoFilters.push({ fullpath: { "$like": `%${filters['model-number']}%` } });
     }
 
-    // Filter by MIME type (example: 'Images', 'Videos', 'Documents')
-    if (filters['media-type'] && filters['media-type'].length > 0) {
-        const mimeTypeConditions = filters['media-type'].map(type => {
-            if (type === 'Images') return "image/%";
-            if (type === 'Videos') return "video/%";
-            if (type === 'Documents') return "application/%";
-            if (type === 'Audio') return "audio/%";
-            // Compatibility with old format
-            if (type === 'image') return "image/%";
-            if (type === 'video') return "video/%";
-            if (type === 'document') return "application/%";
-            return null;
-        }).filter(pattern => pattern !== null);
-
-        if (mimeTypeConditions.length > 0) {
-            if (mimeTypeConditions.length === 1) {
-                mongoFilters.push({ mimetype: { "$like": mimeTypeConditions[0] } });
-            } else {
-                const typeConditions = mimeTypeConditions.map(pattern => ({ mimetype: { "$like": pattern } }));
-                mongoFilters.push({ "$or": typeConditions });
-            }
-        }
-    }
+    // Note: 不再使用 mimetype 筛选，完全依赖 metadata 筛选
 
     // Filter by creation date range (convert date strings to Unix timestamps)
     if (filters['creation-date-from'] || filters['creation-date-to']) {
@@ -223,13 +219,16 @@ const buildAssetsQuery = (filters = {}, first = 20, offset = 0) => {
   }`;
 
     // Log filter conditions (for debugging)
+    const hasTagsFilter = filters.tags && typeof filters.tags === 'string' && filters.tags.trim();
+    const defaultLogic = hasTagsFilter ? 'OR' : 'AND';
     console.log('🔍 Assets getAssetsByMetadata Query Parameters:', {
         rawFilters: filters,
         pathStartsWith: pathStartsWith,
         metadataFilters: metadataFilters,
-        metadataLogic: filters['metadata-logic'] ? filters['metadata-logic'].toUpperCase() : 'AND',
+        metadataLogic: filters['metadata-logic'] ? filters['metadata-logic'].toUpperCase() : defaultLogic,
         mongoFilter: mongoFilter,
         queryParams: queryParams,
+        tagsFilter: filters.tags || null,
         dateFilters: {
             hasDateRange: !!(filters['creation-date-from'] || filters['creation-date-to']),
             fromDate: filters['creation-date-from'],
@@ -258,10 +257,11 @@ const buildAssetsQuery = (filters = {}, first = 20, offset = 0) => {
  * @param {string} params.filename - Filter by filename (partial match)
  * @param {string} params['folder-path'] - Filter by folder path
  * @param {string} params['model-number'] - Filter by product model number
+ * @param {string} params.tags - Filter by tags/keywords (Media Key Words metadata)
  * @param {Array<string>} params['media-type'] - Filter by media types (Images, Videos, Documents, Audio)
  * @param {Array<string>} params['media-category'] - Filter by Media Category metadata (支持多选：Icons, Logos, Main等)
  * @param {Array<string>} params['document-type'] - Filter by Document Type metadata (支持多选：Catalog, Brochure, Manual等)
- * @param {string} params['metadata-logic'] - Metadata filter logic: 'AND' or 'OR' (default: 'AND')
+ * @param {string} params['metadata-logic'] - Metadata filter logic: 'AND' or 'OR' (default: 'AND', auto 'OR' for tags)
  * @param {string} params.brand - Brand for path filtering (子品牌主题切换，默认为KENDO)
  * @param {string} params['creation-date-from'] - Filter by creation date from (YYYY-MM-DD)
  * @param {string} params['creation-date-to'] - Filter by creation date to (YYYY-MM-DD)

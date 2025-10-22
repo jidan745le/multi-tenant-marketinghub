@@ -13,6 +13,9 @@ const ProductCatalogue = Loader(lazy(() => import('../pages/Products/ProductCata
 const NewProducts = Loader(lazy(() => import('../pages/Products/NewProducts')));
 const MediaCatalogue = Loader(lazy(() => import('../pages/MediaCatalogue')));
 const Videos = Loader(lazy(() => import('../pages/Videos')));
+const AfterSalesService = Loader(lazy(() => import('../pages/AfterSalesService')));
+const InternalDocuments = Loader(lazy(() => import('../pages/InternalDocuments')));
+const CertificationsCompliance = Loader(lazy(() => import('../pages/CertificationsCompliance')));
 const HomePage = Loader(lazy(() => import('../pages/HomePage')));
 const UnderConstruction = Loader(lazy(() => import('../pages/UnderConstruction')));
 const AdminLayout = Loader(lazy(() => import('../layouts/AdminLayout')));
@@ -134,7 +137,27 @@ const router = [
   },
   {
     path: '/:lang/:brand/after-sales-service',
-    element: <ProtectedRoute><UnderConstruction /></ProtectedRoute>
+    element: <ProtectedRoute><AfterSalesService /></ProtectedRoute>
+  },
+  {
+    path: '/:lang/:brand/aftersales',
+    element: <ProtectedRoute><AfterSalesService /></ProtectedRoute>
+  },
+  {
+    path: '/:lang/:brand/internal-documents',
+    element: <ProtectedRoute><InternalDocuments /></ProtectedRoute>
+  },
+  {
+    path: '/:lang/:brand/internaldocuments',
+    element: <ProtectedRoute><InternalDocuments /></ProtectedRoute>
+  },
+  {
+    path: '/:lang/:brand/certifications-compliance',
+    element: <ProtectedRoute><CertificationsCompliance /></ProtectedRoute>
+  },
+  {
+    path: '/:lang/:brand/certifications',
+    element: <ProtectedRoute><CertificationsCompliance /></ProtectedRoute>
   },
   {
     path: '/:lang/:brand/training',

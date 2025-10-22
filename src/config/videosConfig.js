@@ -1,14 +1,10 @@
 import { adaptGraphQLAssetsResponse } from '../adapters/kendoAssetsAdapter';
 import fetchKendoAssets from '../services/kendoAssetsMetaDataApi';
 
-// 媒体分类选项 - 应用于视频资产
+// 视频类型选项
 export const videoCategoryOptions = [
-    { value: 'Main', label: 'Main' },
-    { value: 'On White', label: 'On White' },
-    { value: 'Lifestyle', label: 'Lifestyle' },
-    { value: 'Action', label: 'Action' },
-    { value: 'In Scene', label: 'In Scene' },
-    { value: 'Other', label: 'Other' }
+    { value: 'Marketing Videos', label: 'Marketing Videos' },
+    { value: 'Category Videos', label: 'Category Videos' }
 ];
 
 // 创建日期选项
@@ -40,25 +36,25 @@ export const videoListConfigs = [
         defaultValue: '',
         placeholder: 'Search for model number'
     },
-    // {
-    //     order: 21,
-    //     label: 'Folder Path',
-    //     component: 'textarea',
-    //     key: 'folder-path',
-    //     type: 'string',
-    //     defaultValue: '',
-    //     placeholder: 'Search in folder path'
-    // },
-    // {
-    //     order: 41,
-    //     label: 'Video Category',
-    //     component: 'checkbox',
-    //     key: 'media-category',
-    //     type: 'array',
-    //     defaultValue: [],
-    //     enum: videoCategoryOptions,
-    //     defaultCollapseCount: 6
-    // },
+    {
+        order: 21,
+        label: 'Tags',
+        component: 'input',
+        key: 'tags',
+        type: 'string',
+        defaultValue: '',
+        placeholder: 'Search by tags'
+    },
+    {
+        order: 31,
+        label: 'Video Type',
+        component: 'checkbox',
+        key: 'media-category',
+        type: 'array',
+        defaultValue: [], // UI默认不勾选
+        enum: videoCategoryOptions,
+        defaultCollapseCount: 6
+    },
     {
         order: 52,
         label: 'Creation Date',
@@ -153,6 +149,8 @@ export const fetchVideosAPI = async (params, brand = 'kendo') => {
 // 动态Videos Catalogue配置函数，支持多品牌
 export const createVideoCatalogueConfig = (brand = 'kendo') => {
     const brandName = brand.toUpperCase();
+    // 默认全选所有视频类型
+    const defaultVideoCategories = videoCategoryOptions.map(opt => opt.value);
 
     return {
         // 筛选器配置
@@ -163,7 +161,17 @@ export const createVideoCatalogueConfig = (brand = 'kendo') => {
         productConfig: {
             // 获取视频数据的Promise函数（绑定品牌参数）
             fetchProducts: Object.assign(
-                (params) => fetchVideosAPI(params, brand),
+                (params) => {
+                    // 如果用户没有指定 media-category，使用默认值（全选所有视频类型）
+                    const mediaCategory = params['media-category'] && params['media-category'].length > 0
+                        ? params['media-category']
+                        : defaultVideoCategories;
+
+                    return fetchVideosAPI({
+                        ...params,
+                        'media-category': mediaCategory
+                    }, brand);
+                },
                 { brand: brand } // 添加品牌标识，确保函数被识别为不同
             ),
             // 页面大小

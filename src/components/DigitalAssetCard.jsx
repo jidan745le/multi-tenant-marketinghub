@@ -426,7 +426,7 @@ const DigitalAssetCard = ({
             <ContentSection>
                 {cardActionsConfig.show_eyebrow && (
                     <Eyebrow>
-                        {(product.mediaCategory || product.mediaType || 'Unknown').replace(',', ' ')}
+                        {(product.mediaCategory  || '-').replace(',', ' ')}
                     </Eyebrow>
                 )}
                 <TitleContainer>
