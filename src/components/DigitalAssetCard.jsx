@@ -262,7 +262,10 @@ const DigitalAssetCard = ({
     
     const [imageError, setImageError] = useState(false);
     const [aspectRatio, setAspectRatio] = useState(1);
+    // const { data: assetInfo } = useAssetInfo(product.id);
     
+    // console.log("assetInfo", assetInfo);
+
     // 获取文件类型
     const getFileType = () => {
         // 优先从原始文件名中提取扩展名
