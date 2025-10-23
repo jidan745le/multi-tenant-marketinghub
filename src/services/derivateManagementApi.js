@@ -1,12 +1,13 @@
 import CookieService from '../utils/cookieService';
 
 // Use the new derivate API proxy path
-const API_BASE_URL = '/api/derivate-api/derivatelist';
-const API_DERIVATE_BY_MODEL_URL = '/api/derivate-api/derivatelist/derivate-by-model-number';
+const API_BASE_URL = '/srv/v1/derivate/derivatelist';
+const API_DERIVATE_BY_MODEL_URL = '/srv/v1/derivate/derivatelist/derivate-by-model-number';
 
 class DerivateManagementApiService {
     constructor() {
         this.baseURL = API_BASE_URL;
+        this.derivateByModelNumberURL = API_DERIVATE_BY_MODEL_URL;
     }
 
     // 获取请求头
@@ -152,7 +153,7 @@ class DerivateManagementApiService {
                 'ids': idsString
             });
 
-            const url = `${API_DERIVATE_BY_MODEL_URL}?${params.toString()}`;
+            const url = `${this.derivateByModelNumberURL}?${params.toString()}`;
 
             console.log('Calling derivate-by-model-number API with IDs:', idsString);
 
