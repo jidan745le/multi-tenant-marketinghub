@@ -14,6 +14,7 @@ import {
 import { Download, Visibility, Search } from '@mui/icons-material';
 import { ScrollBarWrapperBox } from './ScrollBarThemeWrapper';
 import ProductCard from './DigitalAssetCard';
+import AssetPagination from './AssetPagination';
 import {
   TextField,
   Select,
@@ -46,13 +47,13 @@ const MediaCard = styled(Card)(({ theme }) => ({
 
 const BrandbookContent = ({ data, onSectionInView }) => {
   const [activeSection, setActiveSection] = useState('');
-  const [selectedItems, setSelectedItems] = useState(new Set());
-  const [searchTerms, setSearchTerms] = useState({});
-  const [selectedDates, setSelectedDates] = useState({});
+  // const [selectedItems, setSelectedItems] = useState(new Set());
+  // const [searchTerms, setSearchTerms] = useState({});
+  // const [selectedDates, setSelectedDates] = useState({});
   const sectionRefs = useRef({});
   const scrollContainerRef = useRef(null);
 
-  const [selectedLanguages, setSelectedLanguages] = useState({});
+  // const [selectedLanguages, setSelectedLanguages] = useState({});
 
 
 
@@ -480,60 +481,26 @@ const BrandbookContent = ({ data, onSectionInView }) => {
     });
     if (!items || items.length === 0) return null;
 
-    const languageLabelMap = {
-      en_GB: 'English',
-      de_DE: 'German',
-      fr_FR: 'French',
-      es_ES: 'Spanish',
-      ja_JP: 'Japanese',
-      zh_CN: 'Chinese'
-    };
-    const languageOptions = Array.from(
-      new Set((items || []).map(i => i.language).filter(Boolean))
-    );
-
-    const currentSearchTerm = searchTerms[sectionId] || '';
-    const currentSelectedDate = selectedDates[sectionId] || '';
-
-    const handleSearchChange = (e) => {
-      setSearchTerms(prev => ({
-        ...prev,
-        [sectionId]: e.target.value
-      }));
-    };
-
-    const handleDateChange = (e) => {
-      setSelectedDates(prev => ({
-        ...prev,
-        [sectionId]: e.target.value
-      }));
-    };
-
-    const handleSelect = (item, isSelected) => {
-      const newSelected = new Set(selectedItems);
-      if (isSelected) {
-        newSelected.add(item.id || item.identifier);
-      } else {
-        newSelected.delete(item.id || item.identifier);
-      }
-      setSelectedItems(newSelected);
-    };
-
-    const handleProductClick = (item) => {
-      const imageUrl = item.img || item.image;
+    // 处理单个项目点击
+    const handleItemClick = (item) => {
+      const imageUrl = item.image || item.img;
       if (imageUrl) {
         window.open(imageUrl, '_blank');
       }
     };
 
-    const handleDownload = (item) => {
-      const downloadUrl = item.downloadUrl || item.img || item.image;
-      if (downloadUrl) {
-        const link = document.createElement('a');
-        link.href = downloadUrl;
-        link.download = item.filename || 'asset';
-        link.click();
-      }
+    // 单个下载
+    const handleItemDownload = (item) => {
+      console.log('Item download requested:', item);
+    };
+
+    // 批量下载
+    const handleDownloadAll = (allItems) => {
+      console.log('Download all items:', allItems);
+
+      allItems.forEach(item => {
+        handleItemDownload(item);
+      });
     };
 
     return (
@@ -541,206 +508,16 @@ const BrandbookContent = ({ data, onSectionInView }) => {
         id={sectionId} 
         ref={(el) => registerSectionRef(sectionId, el)}
       >
-        <Box sx={{ 
-          backgroundColor: 'rgba(255, 255, 255, 0.5)', 
-          margin: '-24px -24px 24px -24px',
-          padding: '12px 24px',
-          position: 'relative',
-          display: 'flex',
-          justifyContent: 'flex-start',
-          alignItems: 'center',
-          gap: 4
-        }}>
-          <Typography variant="h4" component="h2" fontWeight="bold" fontSize="1.6rem" sx={{ mb: 0 }}>
-            {title}
-          </Typography>
-          
-          {/* 右侧搜索和筛选控件 */}
-          <Box sx={{ 
-            display: 'flex', 
-            gap: 2, 
-            alignItems: 'center',
-            marginLeft: 'auto',
-            marginRight: 'min(55px, 3vw)',
-            flexWrap: 'wrap'
-          }}>
-            {/* 搜索框 */}
-            <TextField
-              size="small"
-              placeholder="Search file name"
-              value={currentSearchTerm}
-              onChange={handleSearchChange}
-              InputProps={{
-                startAdornment: <Search sx={{ color: 'text.secondary', mr: 1 }} />,
-              }}
-              sx={{ 
-                minWidth: 200,
-                '& .MuiOutlinedInput-root': {
-                  backgroundColor: 'white',
-                  borderRadius: 1
-                }
-              }}
-            />
-            
-            {/* Download All 下拉框 */}
-            <FormControl size="small" sx={{ minWidth: 180 }}>
-              <InputLabel>DOWNLOAD ALL</InputLabel>
-              <Select
-                value=""
-                label="DOWNLOAD ALL"
-                sx={{ 
-                  backgroundColor: 'white',
-                  borderRadius: 1
-                }}
-              >
-                <MenuItem value="">All</MenuItem>
-                <MenuItem value="selected">Selected</MenuItem>
-              </Select>
-            </FormControl>
-            
-            {/* Language 下拉框 */}
-            {list?.language !== false && (
-              <FormControl size="small" sx={{ minWidth: 130 }}>
-                <InputLabel>LANGUAGE</InputLabel>
-                <Select
-                  value={selectedLanguages[sectionId] || ''}
-                  onChange={(e) => setSelectedLanguages(prev => ({ ...prev, [sectionId]: e.target.value }))}
-                  label="LANGUAGE"
-                  sx={{ 
-                    backgroundColor: 'white',
-                    borderRadius: 1
-                  }}
-                >
-                  <MenuItem value="">All</MenuItem>
-                  <MenuItem value="en_GB">English</MenuItem>
-                  <MenuItem value="de_DE">German</MenuItem>
-                  <MenuItem value="fr_FR">French</MenuItem>
-                  <MenuItem value="es_ES">Spanish</MenuItem>
-                  <MenuItem value="ja_JP">Japanese</MenuItem>
-                  <MenuItem value="zh_CN">Chinese</MenuItem>
-                  {languageOptions.map(code => (
-                    <MenuItem key={code} value={code}>{languageLabelMap[code] || code}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            )}
-            
-            {/* Date Created 下拉框 */}
-            <FormControl size="small" sx={{ minWidth: 160 }}>
-              <InputLabel>DATE CREATED</InputLabel>
-              <Select
-                value={currentSelectedDate}
-                onChange={handleDateChange}
-                label="DATE CREATED"
-                sx={{ 
-                  backgroundColor: 'white',
-                  borderRadius: 1
-                }}
-              >
-                <MenuItem value="">All</MenuItem>
-                <MenuItem value="last_1_week">Last 1 week</MenuItem>
-                <MenuItem value="last_1_month">Last 1 month</MenuItem>
-                <MenuItem value="last_3_months">Last 3 months</MenuItem>
-                <MenuItem value="last_6_months">Last 6 months</MenuItem>
-                <MenuItem value="this_year">This year</MenuItem>
-              </Select>
-            </FormControl>
-          </Box>
-        </Box>
-        <Box sx={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, 270px)',
-          columnGap: 3,
-          rowGap: 3,
-          justifyContent: 'start',
-          // padding: '12px'
-        }}>
-          {items
-            .filter(item => {
-              if (currentSearchTerm) {
-                const filename = item.filename || item.name || '';
-                if (!filename.toLowerCase().includes(currentSearchTerm.toLowerCase())) {
-                  return false;
-                }
-              }
-
-              const localLang = selectedLanguages[sectionId];
-              if (localLang) {
-                const itemLanguage = item.language;
-                if (!itemLanguage || itemLanguage !== localLang) {
-                  return false;
-                }
-              }
-
-              // 日期
-              if (currentSelectedDate) {
-                const itemDate = new Date(item.createOn || item.createdDate);
-                if (!isNaN(itemDate.getTime())) {
-                  const now = new Date();
-                  let cutoffDate;
-
-                  switch (currentSelectedDate) {
-                    case 'last_1_week':
-                      cutoffDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-                      break;
-                    case 'last_1_month':
-                      cutoffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-                      break;
-                    case 'last_3_months':
-                      cutoffDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-                      break;
-                    case 'last_6_months':
-                      cutoffDate = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
-                      break;
-                    case 'this_year':
-                      cutoffDate = new Date(now.getFullYear(), 0, 1);
-                      break;
-                    default:
-                      cutoffDate = new Date(0);
-                  }
-
-                  if (itemDate < cutoffDate) {
-                    return false;
-                  }
-                }
-              }
-
-              return true;
-            })
-            .map((item, index) => {
-            // 适配 ProductCard
-            const cardData = {
-              id: item.id || item.identifier || index,
-              name: item.filename || item.name || `${title} ${index + 1}`,
-              image: item.img || item.image,
-              mediaType: item.mediaType,
-              filename: item.filename,
-              fileSize: item.fileSize,
-              language: item.language,
-              createOn: item.createOn || item.createdDate,
-              alt: item.alt,
-              downloadUrl: item.downloadUrl
-            };
-
-            return (
-              <ProductCard
-                key={cardData.id}
-                product={cardData}
-                isSelected={selectedItems.has(cardData.id)}
-                onSelect={handleSelect}
-                onProductClick={handleProductClick}
-                onDownload={handleDownload}
-                cardActionsConfig={{
-                  show_file_type: true,
-                  show_eyebrow: true,
-                  show_open_pdf: false,
-                  show_open_product_page: false,
-                  show_preview_media: true,
-                }}
-              />
-            );
-          })}
-        </Box>
+        <AssetPagination
+          title={title}
+          items={items}
+          loading={false}
+          pageSize={24}
+          onItemClick={handleItemClick}
+          onItemDownload={handleItemDownload}
+          onDownloadAll={handleDownloadAll}
+          searchPlaceholder="Search file name"
+        />
       </ContentSection>
     );
   };
