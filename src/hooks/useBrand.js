@@ -70,15 +70,54 @@ export function useBrand() {
             const currentPath = window.location.pathname;
             const pathSegments = currentPath.split('/');
 
-            // 替换品牌部分 - pathSegments[2] 是品牌位置
-            if (pathSegments[2]) {
-                pathSegments[2] = brandCode;
-            } else {
-                pathSegments[2] = brandCode;
+            // 获取当前语言和页面
+            const currentLanguage = pathSegments[1] || 'en_GB';
+            const currentPage = pathSegments[3]; // 当前页面部分
+
+            // 检查目标品牌是否有该页面的菜单
+            let shouldRedirectToHome = false;
+
+            if (currentPage && targetBrand.menus && targetBrand.menus.length > 0) {
+                // 检查当前页面是否在目标品牌的菜单中
+                const hasPageInMenu = targetBrand.menus.some(menu => {
+                    // 检查一级菜单
+                    if (menu.path && menu.path.includes(currentPage)) {
+                        return true;
+                    }
+                    // 检查二级菜单
+                    if (menu.menu_l2 && Array.isArray(menu.menu_l2)) {
+                        return menu.menu_l2.some(subMenu =>
+                            subMenu.path && subMenu.path.includes(currentPage)
+                        );
+                    }
+                    return false;
+                });
+
+                if (!hasPageInMenu) {
+                    console.log(`⚠️ 目标品牌 ${brandCode} 没有页面 ${currentPage}，将跳转到首页`);
+                    shouldRedirectToHome = true;
+                }
+            } else if (currentPage) {
+                // 如果目标品牌没有菜单配置，也跳转到首页
+                console.log(`⚠️ 目标品牌 ${brandCode} 没有菜单配置，将跳转到首页`);
+                shouldRedirectToHome = true;
             }
 
-            const newPath = pathSegments.join('/');
+            let newPath;
+            if (shouldRedirectToHome) {
+                // 跳转到首页：使用第一个菜单项或默认 'home'
+                const firstMenu = targetBrand.menus?.[0];
+                const homePage = firstMenu?.path || '/home';
+                // 移除可能的前导斜杠，因为我们会重新构建完整路径
+                const cleanHomePage = homePage.startsWith('/') ? homePage.substring(1) : homePage;
+                newPath = `/${currentLanguage}/${brandCode}/${cleanHomePage}`;
+            } else {
+                // 保持当前页面，只替换品牌部分
+                pathSegments[2] = brandCode;
+                newPath = pathSegments.join('/');
+            }
 
+            console.log(`🔄 导航到: ${newPath}`);
             // 导航到新路径 (翻译加载将由useLanguage hook处理)
             navigate(newPath);
         } else {
