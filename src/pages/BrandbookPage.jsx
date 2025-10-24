@@ -14,6 +14,7 @@ import { selectBrandBookPagesByBrand } from '../store/slices/themesSlice';
 import Toc from '../components/Toc';
 import BrandbookContent from '../components/BrandbookContent';
 import { fetchAllBrandbookAssets } from '../services/brandbookAssetsApi';
+import { SelectedAssetsProvider } from '../context/SelectedAssetsContext';
 
 
 const MainContainer = styled(Box)(({ theme }) => ({
@@ -234,57 +235,59 @@ const BrandbookPage = () => {
   }
 
   return (
-    <Box 
-      sx={{ 
-        height: '100vh',
-        display: 'flex',
-        margin: 0,
-        padding: 0,
-        overflow: 'hidden',
-      }}
-    >
-      {/* 左侧目录导航 */}
-      <Box sx={{ 
-         width: '280px', 
-         minWidth: '280px',
-         maxWidth: '280px',
-        height: '100%',
-        flexShrink: 0
-      }}>
-        <Paper
-          elevation={1}
-          sx={{
-            height: '100%',
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column'
-          }}
-        >
-          <Toc 
-            data={brandbookData}
-            activeSection={activeSection}
-            onSectionClick={handleTocClick}
-          />
-        </Paper>
-      </Box>
+    <SelectedAssetsProvider>
+      <Box 
+        sx={{ 
+          height: '100vh',
+          display: 'flex',
+          margin: 0,
+          padding: 0,
+          overflow: 'hidden',
+        }}
+      >
+        {/* 左侧目录导航 */}
+        <Box sx={{ 
+           width: '280px', 
+           minWidth: '280px',
+           maxWidth: '280px',
+          height: '100%',
+          flexShrink: 0
+        }}>
+          <Paper
+            elevation={1}
+            sx={{
+              height: '100%',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          >
+            <Toc 
+              data={brandbookData}
+              activeSection={activeSection}
+              onSectionClick={handleTocClick}
+            />
+          </Paper>
+        </Box>
 
-      {/* 右侧主内容区域 */}
-      <Box sx={{ flex: 1, height: '100%' }}>
-        <Box 
-          sx={{ 
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden'
-          }}
-        >
-          <BrandbookContent 
-            data={brandbookData}
-            onSectionInView={handleSectionInView}
-          />
+        {/* 右侧主内容区域 */}
+        <Box sx={{ flex: 1, height: '100%' }}>
+          <Box 
+            sx={{ 
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden'
+            }}
+          >
+            <BrandbookContent 
+              data={brandbookData}
+              onSectionInView={handleSectionInView}
+            />
+          </Box>
         </Box>
       </Box>
-    </Box>
+    </SelectedAssetsProvider>
   );
 };
 

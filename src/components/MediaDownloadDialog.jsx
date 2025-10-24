@@ -19,7 +19,7 @@ import {
   RadioGroup,
   Select,
   Typography,
-  useTheme
+  // useTheme
 } from '@mui/material';
 import IconButton from '@mui/material/IconButton';
 import { useEffect, useState } from 'react';
@@ -48,7 +48,7 @@ const MediaDownloadDialog = ({
   selectedMedia = [], // Changed to array to support multiple media
 }) => {
   const { t } = useTranslation();
-  const theme = useTheme();
+  // const theme = useTheme();
   const { currentBrandCode } = useBrand();
   
   // Dialog states

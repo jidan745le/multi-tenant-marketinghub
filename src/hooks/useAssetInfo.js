@@ -172,7 +172,10 @@ const useAssetInfo = (assetId) => {
     const [error, setError] = useState(null);
 
     const fetchAsset = async (id) => {
+        console.log('useAssetInfo - Starting to fetch asset with ID:', id);
+        
         if (!id) {
+            console.warn('useAssetInfo - Asset ID is required');
             setError('Asset ID is required');
             return;
         }
@@ -217,8 +220,13 @@ const useAssetInfo = (assetId) => {
             }
 
             const transformedData = transformAssetData(assetData);
+            console.log('useAssetInfo - Asset data fetched successfully:', {
+                rawData: assetData,
+                transformedData: transformedData
+            });
             setData(transformedData);
         } catch (err) {
+            console.error('useAssetInfo - Error fetching asset:', err.message);
             setError(err.message);
             setData(null);
         } finally {

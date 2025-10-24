@@ -736,6 +736,7 @@ const ComparePage = () => {
                   startIcon={<AddIcon />}
                   onClick={() => setSearchModalOpen(true)}
                   sx={{
+                    color: 'white',
                     backgroundColor: primaryColor,
                     '&:hover': { backgroundColor: primaryColor, opacity: 0.92 },
                     px: 2.5
