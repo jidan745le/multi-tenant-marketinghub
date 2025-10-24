@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
+import CookieService from '../utils/cookieService';
 
-const GRAPHQL_ASSETS_URL = 'https://pim-test.kendo.com/pimcore-graphql-webservices/assets';
+const GRAPHQL_ASSETS_URL = '/apis/kendo/assets';
 const API_KEY = '7ce45a85b23aa742131a94d4431e22fe';
 
 /**
@@ -181,13 +182,15 @@ const useAssetInfo = (assetId) => {
 
         try {
             const query = buildAssetQuery(id);
+            const token = CookieService.getToken();
 
             const response = await fetch(GRAPHQL_ASSETS_URL, {
                 method: 'POST',
                 headers: {
+                    'Pragma': 'no-cache',
                     'X-API-Key': API_KEY,
                     'Content-Type': 'application/json',
-                    'Accept': '*/*',
+                    'Authorization': `Bearer ${token}`,
                 },
                 body: JSON.stringify({
                     operationName: null,

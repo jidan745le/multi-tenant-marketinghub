@@ -1,7 +1,8 @@
 // SKU Products GraphQL API service
+import CookieService from '../utils/cookieService';
 
-const GRAPHQL_API_URL = 'https://pim-test.kendo.com/pimcore-graphql-webservices/ProductList';
-const API_KEY = '2e853497a0d1269aa7bb493d241c91a2';
+const GRAPHQL_API_URL = '/apis/kendo/products';
+const API_KEY = '4fe5b9cb2dc6015250c46f9332c195ae';
 
 /**
  * Build GraphQL query to fetch SKU products by VirtualProductID
@@ -53,24 +54,15 @@ export const fetchSKUProducts = async (virtualProductId) => {
         console.log(`🔍 Fetching SKU products for VirtualProductID: ${virtualProductId}`);
 
         const query = buildSKUQuery(virtualProductId);
+        const token = CookieService.getToken();
 
         const response = await fetch(GRAPHQL_API_URL, {
             method: 'POST',
             headers: {
-                'Accept-Language': 'en,zh;q=0.9,zh-CN;q=0.8',
-                'Connection': 'keep-alive',
-                'Origin': 'https://pim-test.kendo.com',
-                'Referer': 'https://pim-test.kendo.com/pimcore-datahub-webservices/explorer/ProductList?apikey=2e853497a0d1269aa7bb493d241c91a2',
-                'Sec-Fetch-Dest': 'empty',
-                'Sec-Fetch-Mode': 'cors',
-                'Sec-Fetch-Site': 'same-origin',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36',
+                'Pragma': 'no-cache',
                 'X-API-Key': API_KEY,
-                'accept': '*/*',
-                'content-type': 'application/json',
-                'sec-ch-ua': '"Not;A=Brand";v="99", "Google Chrome";v="139", "Chromium";v="139"',
-                'sec-ch-ua-mobile': '?0',
-                'sec-ch-ua-platform': '"Windows"'
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
             },
             body: JSON.stringify({
                 operationName: null,

@@ -1,6 +1,7 @@
 import { adaptGraphQLProductResponse } from '../adapters/kendoProductAdapter';
+import CookieService from '../utils/cookieService';
 
-const GRAPHQL_API_URL = 'https://pim-test.kendo.com/pimcore-graphql-webservices/products';
+const GRAPHQL_API_URL = '/apis/kendo/products';
 const API_KEY = '4fe5b9cb2dc6015250c46f9332c195ae';
 
 /**
@@ -212,15 +213,17 @@ export const fetchNewProducts = async (params = {}, brand = 'kendo') => {
   try {
     const { limit = 100, offset = 0 } = params;
     const query = buildNewProductsQuery(params, limit, offset, brand);
+    const token = CookieService.getToken();
 
     console.log('🆕 Fetching new products with query:', query);
 
     const response = await fetch(GRAPHQL_API_URL, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Pragma': 'no-cache',
         'X-API-Key': API_KEY,
-        'Pragma': 'no-cache'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({
         operationName: null,

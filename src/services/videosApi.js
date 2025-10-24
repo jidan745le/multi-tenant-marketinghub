@@ -1,6 +1,7 @@
 import { adaptGraphQLAssetsResponse } from '../adapters/kendoAssetsAdapter';
+import CookieService from '../utils/cookieService';
 
-const ASSETS_API_URL = 'https://pim-test.kendo.com/pimcore-graphql-webservices/assets';
+const ASSETS_API_URL = '/apis/kendo/assets';
 const API_KEY = '7ce45a85b23aa742131a94d4431e22fe';
 
 /**
@@ -149,14 +150,17 @@ export const fetchVideos = async (params = {}) => {
     try {
         const { limit = 20, offset = 0 } = params;
         const query = buildVideosQuery(params, limit, offset);
+        const token = CookieService.getToken();
 
         console.log('🎥 Fetching videos with query:', query);
 
         const response = await fetch(ASSETS_API_URL, {
             method: 'POST',
             headers: {
+                'Pragma': 'no-cache',
+                'X-API-Key': API_KEY,
                 'Content-Type': 'application/json',
-                'X-API-Key': API_KEY
+                'Authorization': `Bearer ${token}`,
             },
             body: JSON.stringify({
                 operationName: null,

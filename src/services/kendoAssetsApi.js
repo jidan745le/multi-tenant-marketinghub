@@ -1,5 +1,7 @@
 // KENDO Assets GraphQL API Service
-const ASSETS_API_URL = 'https://pim-test.kendo.com/pimcore-graphql-webservices/assets';
+import CookieService from '../utils/cookieService';
+
+const ASSETS_API_URL = '/apis/kendo/assets';
 const API_KEY = '7ce45a85b23aa742131a94d4431e22fe';
 
 /**
@@ -184,14 +186,17 @@ export const fetchKendoAssets = async (params = {}) => {
         }
 
         const query = buildAssetsQuery(params, limit, offset);
+        const token = CookieService.getToken();
 
         console.log('🔍 Fetching KENDO assets with query:', query);
 
         const response = await fetch(ASSETS_API_URL, {
             method: 'POST',
             headers: {
+                'Pragma': 'no-cache',
                 'X-API-Key': API_KEY,
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
             },
             body: JSON.stringify({
                 operationName: null,

@@ -1,7 +1,8 @@
 // GraphQL API service for KENDO PIM
 import { adaptGraphQLProductResponse } from '../adapters/kendoProductAdapter';
+import CookieService from '../utils/cookieService';
 
-const GRAPHQL_API_URL = 'https://pim-test.kendo.com/pimcore-graphql-webservices/products';
+const GRAPHQL_API_URL = '/apis/kendo/products';
 const API_KEY = '4fe5b9cb2dc6015250c46f9332c195ae';
 
 /**
@@ -230,12 +231,16 @@ export const fetchKendoProducts = async (params = {}, brand = 'kendo', language 
     console.log('fetchKendoProducts', params, brand);
     const query = buildGraphQLQuery(params, limit, offset, brand, language);
 
+    const token = CookieService.getToken();
+
+
     const response = await fetch(GRAPHQL_API_URL, {
       method: 'POST',
       headers: {
         'Pragma': 'no-cache',
         'X-API-Key': API_KEY,
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({
         operationName: null,
@@ -390,6 +395,7 @@ export const fetchCategoryTree = async () => {
     // Step 1: 先获取第一批数据和totalCount
     const batchSize = 100; // 每批加载100条
     const firstQuery = buildCategoryTaxonomyQuery(batchSize, 0);
+    const token = CookieService.getToken();
 
     const firstResponse = await fetch(GRAPHQL_API_URL, {
       method: 'POST',
@@ -397,6 +403,7 @@ export const fetchCategoryTree = async () => {
         'Pragma': 'no-cache',
         'X-API-Key': API_KEY,
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({
         operationName: null,
@@ -434,6 +441,7 @@ export const fetchCategoryTree = async () => {
             'Pragma': 'no-cache',
             'X-API-Key': API_KEY,
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
           },
           body: JSON.stringify({
             operationName: null,

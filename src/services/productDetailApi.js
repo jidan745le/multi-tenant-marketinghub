@@ -1,5 +1,6 @@
+import CookieService from '../utils/cookieService';
 
-const PIM_GRAPHQL_URL = 'https://pim-test.kendo.com/pimcore-graphql-webservices/products';
+const PIM_GRAPHQL_URL = '/apis/kendo/products';
 const API_KEY = '4fe5b9cb2dc6015250c46f9332c195ae';
 class ProductDetailApiService {
   constructor() {
@@ -8,9 +9,12 @@ class ProductDetailApiService {
 
   // 获取请求头
   getHeaders() {
+    const token = CookieService.getToken();
     return {
-      'Content-Type': 'application/json',
+      'Pragma': 'no-cache',
       'X-API-Key': API_KEY,
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
     };
   }
 
