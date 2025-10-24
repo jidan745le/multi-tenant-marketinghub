@@ -48,6 +48,25 @@ export default defineConfig(({ mode }) => {
           configure(proxy) {
             proxy.on('proxyReq', (proxyReq, req) => {
               console.log('→ Proxy sending', req.url, 'to', proxyReq.protocol + '//' + proxyReq.host + proxyReq.path);
+
+              // 设置正确的 Origin 头来避免 CORS 错误
+              proxyReq.setHeader('Origin', 'https://marketinghub-test.rg-experience.com');
+
+              // 移除可能导致问题的 Referer 头
+              if (proxyReq.getHeader('referer')) {
+                const referer = proxyReq.getHeader('referer').toString();
+                if (referer.includes('localhost')) {
+                  proxyReq.setHeader('Referer', 'https://marketinghub-test.rg-experience.com/');
+                }
+              }
+            });
+
+            proxy.on('proxyRes', (proxyRes) => {
+              // 确保响应头允许 CORS
+              proxyRes.headers['access-control-allow-origin'] = '*';
+              proxyRes.headers['access-control-allow-credentials'] = 'true';
+              proxyRes.headers['access-control-allow-methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
+              proxyRes.headers['access-control-allow-headers'] = 'Origin, X-Requested-With, Content-Type, Accept, Authorization';
             });
           },
         },

@@ -19,7 +19,6 @@ import {
   RadioGroup,
   Select,
   Typography,
-  // useTheme
 } from '@mui/material';
 import IconButton from '@mui/material/IconButton';
 import { useEffect, useState } from 'react';
@@ -271,9 +270,14 @@ const MediaDownloadDialog = ({
   const derivatesContent = () => (
     <>
       <DialogTitle>
-        <Typography sx={{ fontSize: '24px', fontWeight: 'bold', mt: 2, mb: 2 }}>
-          {t('Download')}
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2, mb: 2 }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#333' }}>
+            download
+          </span>
+          <Typography sx={{ fontSize: '24px', fontWeight: 'bold' }}>
+            {t('Download')}
+          </Typography>
+        </Box>
         <IconButton
           aria-label="close"
           onClick={handleClose}
@@ -549,7 +553,7 @@ const MediaDownloadDialog = ({
       <Box className="dialog-header" sx={{ 
         display: 'flex',
         flexDirection: 'row',
-        gap: '5px',
+        gap: '8px',
         alignItems: 'center',
         justifyContent: 'flex-start',
         width: '100%',
@@ -557,41 +561,19 @@ const MediaDownloadDialog = ({
         left: '18px',
         top: '22px'
       }}>
-        {/* <Box className="download-icon" sx={{ 
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0px',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: '33px',
-          height: '33px'
+        <span className="material-symbols-outlined" style={{ fontSize: '24px', color: '#333' }}>
+          download
+        </span>
+        <Typography className="dialog-title" sx={{
+          color: '#000000',
+          textAlign: 'left',
+          fontFamily: 'OpenSans-SemiBold, sans-serif',
+          fontSize: '21px',
+          lineHeight: '140%',
+          fontWeight: 600
         }}>
-          <Typography sx={{ 
-            color: '#000000',
-            textAlign: 'center',
-            fontFamily: 'MaterialSymbolsRoundedLight-Regular, sans-serif',
-            fontSize: '32px',
-            fontWeight: 400
-          }}>
-            download
-          </Typography>
-        </Box> */}
-        <Box sx={{ width: '100%', height: '29px' }}>
-          <Typography className="dialog-title" sx={{
-            color: '#000000',
-            textAlign: 'left',
-            fontFamily: 'OpenSans-SemiBold, sans-serif',
-            fontSize: '21px',
-            lineHeight: '140%',
-            fontWeight: 600,
-            position: 'absolute',
-
-            width: '159.92px',
-            height: '29px'
-          }}>
-            Download
-          </Typography>
-        </Box>
+          Download
+        </Typography>
       </Box>
 
       {/* Dialog Message */}
