@@ -1,7 +1,7 @@
 import CookieService from '../utils/cookieService';
 
-const API_BASE_URL = '/api/email-api/base-email';
-const EMAIL_TEMPLATE_API_URL = '/api/email-api/email-template';
+const API_BASE_URL = '/srv/v1/email/base/email';
+const EMAIL_TEMPLATE_API_URL = '/srv/v1/email/email/template';
 
 class EmailApiService {
     constructor() {
@@ -409,7 +409,7 @@ class EmailApiService {
             params.append('theme', theme);
             params.append('lang', lang);
 
-            const response = await fetch(`${EMAIL_TEMPLATE_API_URL}/tenant-detail?${params.toString()}`, {
+            const response = await fetch(`${EMAIL_TEMPLATE_API_URL}/tenant/detail?${params.toString()}`, {
                 method: 'GET',
                 headers: this.getHeaders(),
             });

@@ -1,6 +1,6 @@
 import CookieService from '../utils/cookieService';
 
-const API_BASE_URL = '/api/derivate-api/download';
+const API_BASE_URL = '/srv/v1/derivate/download';
 
 class DownloadApiService {
     constructor() {
@@ -111,10 +111,10 @@ class DownloadApiService {
                 theme: theme,
                 mediaids: Array.isArray(mediaIds) ? mediaIds.join(',') : String(mediaIds),
                 derivates: derivates,
-                async: String(isAsync), // Convert boolean to string
+                async: isAsync, // Convert boolean to string
                 tomail: toEmail,
                 ccemail: ccEmail,
-                customConfiguration: customConfig ? 'true' : 'false',
+                customConfiguration: customConfig ? true : false,
                 // Custom configuration parameters
                 height: customConfig?.height || '',
                 width: customConfig?.width || '',
