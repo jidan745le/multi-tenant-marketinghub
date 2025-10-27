@@ -255,7 +255,7 @@ const AssetDetailDialog = ({
     {
       title: 'Technical',
       fields: [
-        { key: 'name', label: 'Name', fallback: '--' },
+        // { key: 'name', label: 'Name', fallback: '--' },
         { key: 'dimensions', label: 'Dimensions', fallback: '--' },
         { key: 'size', label: 'Size', fallback: '--' },
         { key: 'creationDate', label: 'Created On', fallback: '--' },
@@ -269,7 +269,7 @@ const AssetDetailDialog = ({
     tagsField: 'tags', 
     separator: /[,;\s]+/,
     maxCount: 4,
-    fallbackTags: ['--', '--', '--', '--']
+    fallbackTags: ['','','','','','']
   },
   // 媒体类型配置
   mediaTypeConfig = {
@@ -354,7 +354,7 @@ const AssetDetailDialog = ({
         customerApprovalStatus: '--',
         
         // Technical
-        name: '--',
+        // name: '--',
         dimensions: '--',
         size: '--',
         creationDate: '--',
@@ -392,7 +392,7 @@ const AssetDetailDialog = ({
       customerApprovalStatus: '• Published', // 默认值
       
       // Technical
-      name: assetInfo.name || '--',
+      // name: assetInfo.name || '--',
       dimensions: assetInfo.width && assetInfo.height ? `${assetInfo.width} X ${assetInfo.height}` : '--',
       size: assetInfo.fileSize || '--',
       creationDate: assetInfo.creationDate || '--',
@@ -729,7 +729,7 @@ const AssetDetailDialog = ({
             alignItems: 'stretch', 
             flex: 1,
             marginTop: '20px',
-            minHeight: '300px' 
+            minHeight: '200px' 
           }}
         >
           {/* 左侧区域 */}

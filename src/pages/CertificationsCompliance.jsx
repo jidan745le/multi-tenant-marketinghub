@@ -6,6 +6,7 @@ import { createCertificationsConfig } from '../config/kendoMediaConfig';
 // 导入组件
 import MediaDownloadDialog from '../components/MediaDownloadDialog';
 import ProductCatalogue from '../components/ProductCatalogue';
+import AssetDetailDialog from '../components/AssetDetailDialog';
 
 // 导入Context
 import { SelectedAssetsProvider } from '../context/SelectedAssetsContext';
@@ -24,6 +25,11 @@ const CertificationsCompliance = () => {
   
   const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
   const [selectedMediaForDownload, setSelectedMediaForDownload] = useState([]);
+  
+  // AssetDetailDialog 状态管理
+  const [assetDetailOpen, setAssetDetailOpen] = useState(false);
+  const [selectedAssetId, setSelectedAssetId] = useState(null);
+  const [selectedAssetData, setSelectedAssetData] = useState(null);
 
   const config = useMemo(() => {
     console.log(`🏆 Creating Certifications & Compliance config for brand: ${currentBrandCode}`);
@@ -32,6 +38,21 @@ const CertificationsCompliance = () => {
 
   const handleDocumentClick = useCallback((document) => {
     console.log('🏆 Document clicked:', document);
+    console.log('Document details:', {
+      id: document.id,
+      filename: document.filename,
+      mediaType: document.mediaType,
+      fileSize: document.fileSize,
+      mimetype: document.mimetype,
+      createdDate: document.createdDate
+    });
+    
+    // 打开 AssetDetailDialog 进行预览
+    if (document.id) {
+      setSelectedAssetId(document.id);
+      setSelectedAssetData(document);
+      setAssetDetailOpen(true);
+    }
   }, []);
 
   const handleDocumentDownload = useCallback(async (document) => {
@@ -85,6 +106,21 @@ const CertificationsCompliance = () => {
     console.log('🏆 Mass search triggered:', { item, childItem, filterValues });
   }, []);
 
+  // 处理 AssetDetailDialog 关闭
+  const handleAssetDetailClose = useCallback(() => {
+    setAssetDetailOpen(false);
+    setSelectedAssetId(null);
+    setSelectedAssetData(null);
+  }, []);
+
+  // 处理 AssetDetailDialog 中的下载
+  const handleAssetDetailDownload = useCallback((assetId) => {
+    console.log('Download from AssetDetailDialog:', assetId);
+    if (selectedAssetData) {
+      handleDocumentDownload(selectedAssetData);
+    }
+  }, [selectedAssetData, handleDocumentDownload]);
+
   useEffect(() => {
     console.log('🏆 Certifications & Compliance page - Brand/Language changed:', {
       brand: currentBrand?.code,
@@ -107,6 +143,14 @@ const CertificationsCompliance = () => {
         open={downloadDialogOpen}
         onClose={handleDownloadDialogClose}
         selectedMedia={selectedMediaForDownload}
+      />
+      
+      {/* Asset Detail Dialog */}
+      <AssetDetailDialog
+        open={assetDetailOpen}
+        onClose={handleAssetDetailClose}
+        assetId={selectedAssetId}
+        onDownload={handleAssetDetailDownload}
       />
     </SelectedAssetsProvider>
   );

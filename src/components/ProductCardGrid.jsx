@@ -83,7 +83,7 @@ const ProductCardGrid = ({
               position: 'absolute',
               left: { xs: '15px', sm: '18.36px', md: '20px', lg: '22px' },
               top: { xs: '15px', sm: '17.4px', md: '20px', lg: '22px' },
-              objectFit: 'cover',
+              objectFit: 'contain',
               aspectRatio: '107.97/88.93',
               cursor: onImageClick ? 'pointer' : 'default',
               borderRadius: '4px',

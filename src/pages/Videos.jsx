@@ -1,10 +1,11 @@
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 // 导入配置
 import { createVideoCatalogueConfig } from '../config/videosConfig';
 
 // 导入组件
 import ProductCatalogue from '../components/ProductCatalogue';
+import AssetDetailDialog from '../components/AssetDetailDialog';
 
 // 导入钩子 (基于reference代码)
 import { useBrand } from '../hooks/useBrand';
@@ -14,6 +15,11 @@ const Videos = () => {
   // 使用品牌和语言钩子 (基于reference代码)
   const { currentBrand, currentBrandCode } = useBrand();
   const { currentLanguage } = useLanguage();
+
+  // AssetDetailDialog 状态管理
+  const [assetDetailOpen, setAssetDetailOpen] = useState(false);
+  const [selectedAssetId, setSelectedAssetId] = useState(null);
+  const [selectedAssetData, setSelectedAssetData] = useState(null);
 
   // 根据当前品牌动态创建配置
   const config = useMemo(() => {
@@ -33,7 +39,13 @@ const Videos = () => {
       mimetype: video.mimetype,
       createdDate: video.createdDate
     });
-    // 可以在这里添加视频预览逻辑
+    
+    // 打开 AssetDetailDialog 进行预览
+    if (video.id) {
+      setSelectedAssetId(video.id);
+      setSelectedAssetData(video);
+      setAssetDetailOpen(true);
+    }
   }, []);
 
   // 处理视频下载 (基于reference代码逻辑)
@@ -63,6 +75,21 @@ const Videos = () => {
     // 可以在这里添加批量搜索逻辑
   }, []);
 
+  // 处理 AssetDetailDialog 关闭
+  const handleAssetDetailClose = useCallback(() => {
+    setAssetDetailOpen(false);
+    setSelectedAssetId(null);
+    setSelectedAssetData(null);
+  }, []);
+
+  // 处理 AssetDetailDialog 中的下载
+  const handleAssetDetailDownload = useCallback((assetId) => {
+    console.log('🎥 Download from AssetDetailDialog:', assetId);
+    if (selectedAssetData) {
+      handleVideoDownload(selectedAssetData);
+    }
+  }, [selectedAssetData, handleVideoDownload]);
+
   // 监听品牌和语言变化 (基于reference代码)
   useEffect(() => {
     console.log('🎥 Videos page - Brand/Language changed:', {
@@ -72,13 +99,23 @@ const Videos = () => {
   }, [currentBrand, currentLanguage]);
 
   return (
-    <ProductCatalogue
-      key={currentBrandCode} // 确保品牌切换时组件重新渲染
-      config={config}
-      onProductClick={handleVideoClick}
-      onProductDownload={handleVideoDownload}
-      onMassSearch={handleMassSearch}
-    />
+    <>
+      <ProductCatalogue
+        key={currentBrandCode} // 确保品牌切换时组件重新渲染
+        config={config}
+        onProductClick={handleVideoClick}
+        onProductDownload={handleVideoDownload}
+        onMassSearch={handleMassSearch}
+      />
+      
+      {/* Asset Detail Dialog */}
+      <AssetDetailDialog
+        open={assetDetailOpen}
+        onClose={handleAssetDetailClose}
+        assetId={selectedAssetId}
+        onDownload={handleAssetDetailDownload}
+      />
+    </>
   );
 };
 
