@@ -24,4 +24,7 @@ export default {
     "pdp.sections.packaging": "Emballage",
     "pdp.sections.drawing": "Dessin",
     "pdp.sections.patent": "Brevet",
+    
+    // Media related translations
+    "media.loading": "Chargement...",
 }; 

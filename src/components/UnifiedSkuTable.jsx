@@ -203,7 +203,7 @@ const UnifiedSkuTable = ({
 
       {/* Rows */}
       {data.map((sku, index) => {
-        const isSelected = selectedSku && selectedSku.material === sku.material && selectedSku.size === sku.size;
+        const isSelected = selectedSku && selectedSku.productNumber === sku.productNumber;
         
         const rowStyles = isDropdown ? {
           background: isSelected ? mixWithWhite(primaryColor, 0.20) : '#ffffff',

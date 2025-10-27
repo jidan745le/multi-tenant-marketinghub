@@ -24,4 +24,7 @@ export default {
     "pdp.sections.packaging": "パッケージング",
     "pdp.sections.drawing": "図面",
     "pdp.sections.patent": "特許",
+    
+    // Media related translations
+    "media.loading": "読み込み中...",
 }; 

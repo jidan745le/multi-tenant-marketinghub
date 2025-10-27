@@ -26,4 +26,7 @@ export default {
     "pdp.sections.packaging": "包装",
     "pdp.sections.drawing": "技术图纸",
     "pdp.sections.patent": "专利",
+    
+    // Media related translations
+    "media.loading": "加载中...",
 }; 

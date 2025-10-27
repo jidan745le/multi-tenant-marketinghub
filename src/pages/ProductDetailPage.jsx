@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useLanguage } from '../hooks/useLanguage';
 import { useTranslation } from 'react-i18next';
 import { useTranslationLoader } from '../hooks/useTranslationLoader';
@@ -40,6 +40,7 @@ import SpecificationTable from '../components/SpecificationTable';
 import MediaListTable from '../components/MediaListTable';
 import DigitalAssetCard from '../components/DigitalAssetCard';
 import MediaDownloadDialog from '../components/MediaDownloadDialog';
+import AssetDetailDialog from '../components/AssetDetailDialog';
 import manualsImage from '../assets/image/MR.png';
 import repairGuideImage from '../assets/image/MR.png';
 import packagingImage from '../assets/image/D.png';
@@ -457,6 +458,11 @@ const ProductDetailPage = () => {
   const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
   const [selectedMediaForDownload, setSelectedMediaForDownload] = useState([]);
   
+  // AssetDetailDialog 状态
+  const [assetDetailOpen, setAssetDetailOpen] = useState(false);
+  const [selectedAssetId, setSelectedAssetId] = useState(null);
+  const [selectedAssetData, setSelectedAssetData] = useState(null);
+  
   // 通用下载
   const handleDownload = (assetIds) => {
     if (!assetIds) {
@@ -547,6 +553,34 @@ const ProductDetailPage = () => {
   
   const handleSingleVideoDownload = createSingleDownloadHandler('Single Video');
   const handleAfterServiceDownload = createSingleDownloadHandler('After Service');
+  
+  // 处理 AssetDetailDialog 关闭
+  const handleAssetDetailClose = useCallback(() => {
+    setAssetDetailOpen(false);
+    setSelectedAssetId(null);
+    setSelectedAssetData(null);
+  }, []);
+
+  // 处理 AssetDetailDialog 中的下载
+  const handleAssetDetailDownload = useCallback((assetId) => {
+    console.log('Download from AssetDetailDialog in ProductDetailPage:', assetId);
+    // 这里可以调用下载逻辑
+    if (selectedAssetData) {
+      handleAfterServiceDownload(selectedAssetData);
+    }
+  }, [selectedAssetData, handleAfterServiceDownload]);
+
+  // 处理售后服务资产点击
+  const handleAfterServiceAssetClick = useCallback((asset) => {
+    console.log('After service asset clicked:', asset);
+    
+    // 如果有资产ID，打开 AssetDetailDialog
+    if (asset.id) {
+      setSelectedAssetId(asset.id);
+      setSelectedAssetData(asset);
+      setAssetDetailOpen(true);
+    }
+  }, []);
   
   // 单个图片下载 - 复用通用单个下载处理器
   const handleSingleImageDownload = (imageData, imageType) => {
@@ -1208,6 +1242,9 @@ const ProductDetailPage = () => {
   // QR码相关点击处理
   const handleQRLinkClick = React.useCallback((item, index) => {
     console.log('QR Link clicked:', item, index);
+    if (item.link) {
+      window.open(item.link, '_blank', 'noopener,noreferrer');
+    }
   }, []);
 
   const handleQRImageClick = React.useCallback((item, index) => {
@@ -1731,9 +1768,7 @@ const ProductDetailPage = () => {
           onDownloadClick={handleDownloadClick} 
           onSkuNavigate={(pn) => {
             if (pn) {
-              // 保持当前的layout参数
-                const currentLayout = searchParams.get('layout') || 'internalPDPBasic';
-              // 解析现有layout并按规范重新编码
+              const currentLayout = searchParams.get('layout') || 'internalPDPBasic';
               const normalized = parseLayoutFromUrl(currentLayout);
               const encoded = encodeLayoutForUrl(normalized);
               navigate(`/${currentLanguage}/${currentBrandCode}/product-detail/${pn}?layout=${encoded}`);
@@ -1982,7 +2017,15 @@ const ProductDetailPage = () => {
               name: bundle.productName || '',
               code: bundle.productNumber || ''
             }))}
-            onProductClick={(product, index) => console.log('Bundle Product clicked:', product, index)}
+            onProductClick={(product, index) => {
+              console.log('Bundle Product clicked:', product, index);
+              if (product.code) {
+                const currentLayout = searchParams.get('layout') || 'internalPDPBasic';
+                const encoded = parseLayoutFromUrl(currentLayout);
+                const newUrl = `/${currentLanguage}/${currentBrandCode}/product-detail/${product.code}?layout=${encoded}`;
+                window.open(newUrl, '_blank', 'noopener,noreferrer');
+              }
+            }}
             onImageClick={(product, index) => console.log('Bundle Image clicked:', product, index)}
           />
         </Box>
@@ -1990,7 +2033,15 @@ const ProductDetailPage = () => {
         <Box sx={{ mb: 3 }}>
           <ProductCardGrid 
             products={[]}
-            onProductClick={(product, index) => console.log('Bundle Product clicked:', product, index)}
+            onProductClick={(product, index) => {
+              console.log('Bundle Product clicked:', product, index);
+              if (product.code) {
+                const currentLayout = searchParams.get('layout') || 'internalPDPBasic';
+                const encoded = parseLayoutFromUrl(currentLayout);
+                const newUrl = `/${currentLanguage}/${currentBrandCode}/product-detail/${product.code}?layout=${encoded}`;
+                window.open(newUrl, '_blank', 'noopener,noreferrer');
+              }
+            }}
             onImageClick={(product, index) => console.log('Bundle Image clicked:', product, index)}
           />
         </Box>
@@ -2399,6 +2450,7 @@ const ProductDetailPage = () => {
             <DigitalAssetCard 
               key={`manuals-${idx}`}
               product={asset}
+              onProductClick={handleAfterServiceAssetClick}
               onDownload={handleAfterServiceDownload}
               cardActionsConfig={{
                 show_file_type: false,
@@ -2422,6 +2474,7 @@ const ProductDetailPage = () => {
             <DigitalAssetCard 
               key={`repair-guide-${idx}`}
               product={asset}
+              onProductClick={handleAfterServiceAssetClick}
               onDownload={handleAfterServiceDownload}
               cardActionsConfig={{
                 show_file_type: false,
@@ -2447,6 +2500,7 @@ const ProductDetailPage = () => {
                 <DigitalAssetCard 
                   key={`packaging-${idx}`}
                   product={asset}
+                  onProductClick={handleAfterServiceAssetClick}
                   onDownload={handleAfterServiceDownload}
                   cardActionsConfig={{
                     show_file_type: false,
@@ -2472,6 +2526,7 @@ const ProductDetailPage = () => {
             <DigitalAssetCard 
               key={`drawing-${idx}`}
               product={asset}
+              onProductClick={handleAfterServiceAssetClick}
               onDownload={handleAfterServiceDownload}
               cardActionsConfig={{
                 show_file_type: false,
@@ -2495,6 +2550,7 @@ const ProductDetailPage = () => {
             <DigitalAssetCard 
               key={`patent-${idx}`}
               product={asset}
+              onProductClick={handleAfterServiceAssetClick}
               onDownload={handleAfterServiceDownload}
               cardActionsConfig={{
                 show_file_type: false,
@@ -2669,6 +2725,15 @@ const ProductDetailPage = () => {
         open={downloadDialogOpen}
         onClose={handleDownloadDialogClose}
         selectedMedia={selectedMediaForDownload}
+      />
+      
+      {/* Asset Detail Dialog */}
+      <AssetDetailDialog
+        open={assetDetailOpen}
+        onClose={handleAssetDetailClose}
+        assetId={selectedAssetId}
+        mediaData={selectedAssetData}
+        onDownload={handleAssetDetailDownload}
       />
     </Box>
   );

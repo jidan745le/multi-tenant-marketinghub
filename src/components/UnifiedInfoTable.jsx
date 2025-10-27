@@ -49,51 +49,48 @@ const UnifiedInfoTable = ({
   const generateBarcode = (eanCode) => {
     if (!eanCode) return null;
 
-    let format = 'CODE128';
-    
-    try {
+    // canvas和设置分辨率的通用函数
+    const createCanvas = () => {
       const canvas = document.createElement('canvas');
-      JsBarcode(canvas, eanCode, {
-        format,
-        width: 1.5,
-        height: 40,
-        displayValue: true,
-        fontSize: 12,
-        textMargin: 0,
-        background: '#ffffff',
-        lineColor: '#000000',
-        margin: 5,
-        marginTop: 2,
-        marginBottom: 2,
-        textAlign: 'center',
-        textPosition: 'bottom'
-      });
-      return canvas.toDataURL();
+      const scale = 2;
+      const baseWidth = 300;
+      const baseHeight = 120;
+      
+      canvas.width = baseWidth * scale;
+      canvas.height = baseHeight * scale;
+      canvas.style.width = baseWidth + 'px';
+      canvas.style.height = baseHeight + 'px';
+      
+      const ctx = canvas.getContext('2d');
+      ctx.scale(scale, scale);
+      
+      return { canvas, ctx };
+    };
+
+    // 条形码配置
+    const barcodeConfig = {
+      format: 'CODE128',
+      width: 3,
+      height: 80,
+      displayValue: true,
+      fontSize: 16,
+      textMargin: 5,
+      background: '#ffffff',
+      lineColor: '#000000',
+      margin: 10,
+      marginTop: 5,
+      marginBottom: 5,
+      textAlign: 'center',
+      textPosition: 'bottom'
+    };
+
+    try {
+      const { canvas } = createCanvas();
+      JsBarcode(canvas, eanCode, barcodeConfig);
+      return canvas.toDataURL('image/png', 1.0);
     } catch (error) {
       console.error('Error generating barcode:', error);
-      // 使用CODE128格式
-      try {
-        const canvas = document.createElement('canvas');
-        JsBarcode(canvas, eanCode, {
-          format: 'CODE128',
-          width: 1.5,
-          height: 40,
-          displayValue: true,
-          fontSize: 12,
-          textMargin: 0,
-          background: '#ffffff',
-          lineColor: '#000000',
-          margin: 5,
-          marginTop: 2,
-          marginBottom: 2,
-          textAlign: 'center',
-          textPosition: 'bottom'
-        });
-        return canvas.toDataURL();
-      } catch (fallbackError) {
-        console.error('Fallback failed:', fallbackError);
-        return null;
-      }
+      return null;
     }
   };
 
@@ -144,8 +141,9 @@ const UnifiedInfoTable = ({
       background: '#ffffff', borderStyle: 'solid', borderColor: '#b3b3b3',
       borderWidth: '0px 0px 0.48px 0px', display: 'flex', flexDirection: 'row', gap: 0,
       alignItems: 'center', justifyContent: 'flex-start', alignSelf: 'stretch', flexShrink: 0,
-      position: 'relative', transition: 'background-color 0.2s ease',
-      '&:hover': { backgroundColor: mixWithWhite(primaryColor, 0.03) }
+      position: 'relative',
+      // transition: 'background-color 0.2s ease',
+      // '&:hover': { backgroundColor: mixWithWhite(primaryColor, 0.03) }
     },
     cell: {
       padding: '7.73px', display: 'flex', flexDirection: 'row', gap: 0,
@@ -159,7 +157,7 @@ const UnifiedInfoTable = ({
       position: 'relative', flex: 1, textOverflow: 'ellipsis', overflow: 'hidden'
     },
     image: {
-      display: 'block', maxWidth: '130px', maxHeight: '80px', width: 'auto', height: 'auto',
+      display: 'block', maxWidth: '150px', maxHeight: '90px', width: 'auto', height: 'auto',
       position: 'relative', objectFit: 'contain', overflow: 'hidden', borderRadius: '4px'
     },
     actionCell: {
@@ -185,7 +183,19 @@ const UnifiedInfoTable = ({
       color: '#4d4d4d', textAlign: 'left', fontFamily: '"Open Sans", sans-serif', fontSize: '12.5px',
       lineHeight: '15.46px', letterSpacing: '0.39px', fontWeight: 400, textDecoration: 'underline',
       position: 'relative', flex: 1, textOverflow: 'ellipsis', overflow: 'hidden', minWidth: 'auto', padding: 0,
-      textTransform: 'none', justifyContent: 'flex-start', '&:hover': { color: primaryColor, textDecoration: 'underline' }
+      textTransform: 'none', justifyContent: 'flex-start',
+      backgroundColor: 'transparent !important',
+      '&:hover': { 
+        color: primaryColor, 
+        textDecoration: 'underline',
+        backgroundColor: 'transparent !important'
+      },
+      '&:focus': {
+        backgroundColor: 'transparent !important'
+      },
+      '&:active': {
+        backgroundColor: 'transparent !important'
+      }
     }
   }), [primaryColor]);
   const handleImageClick = (item, index) => {

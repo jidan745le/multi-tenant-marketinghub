@@ -620,6 +620,8 @@ class ProductDetailApiService {
   // 主要数据转换函数
   transformProductData(rawData) {
     const product = rawData.data?.getProductListing?.edges?.[0]?.node;
+
+    console.log('product111', product);
     if (!product) {
       throw new Error('Product not found');
     }

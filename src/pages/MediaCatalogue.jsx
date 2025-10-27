@@ -6,6 +6,7 @@ import { createMediaCatalogueConfig } from '../config/kendoMediaConfig';
 // 导入组件
 import MediaDownloadDialog from '../components/MediaDownloadDialog';
 import ProductCatalogue from '../components/ProductCatalogue';
+import AssetDetailDialog from '../components/AssetDetailDialog';
 
 // 导入Context
 import { SelectedAssetsProvider } from '../context/SelectedAssetsContext';
@@ -26,6 +27,11 @@ const MediaCatalogue = () => {
   // 下载弹窗状态
   const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
   const [selectedMediaForDownload, setSelectedMediaForDownload] = useState([]);
+  
+  // AssetDetailDialog 状态
+  const [assetDetailOpen, setAssetDetailOpen] = useState(false);
+  const [selectedAssetId, setSelectedAssetId] = useState(null);
+  const [selectedAssetData, setSelectedAssetData] = useState(null);
 
   // 根据当前品牌动态创建配置
   const config = useMemo(() => {
@@ -35,8 +41,17 @@ const MediaCatalogue = () => {
 
   // 处理媒体点击 (基于reference代码逻辑)
   const handleMediaClick = useCallback((media, isAssetType) => {
-    console.log('Media clicked:', media);
-    // 可以在这里添加媒体预览逻辑
+    console.log('Media clicked:', media, 'isAssetType:', isAssetType);
+    
+    // 如果是资产类型，打开 AssetDetailDialog
+    if (isAssetType && media.id) {
+      setSelectedAssetId(media.id);
+      setSelectedAssetData(media);
+      setAssetDetailOpen(true);
+    } else {
+      // 对于非资产类型，可以添加其他处理逻辑
+      console.log('Non-asset media clicked:', media);
+    }
   }, []);
 
   // 处理媒体下载 (基于reference代码逻辑)
@@ -81,6 +96,22 @@ const MediaCatalogue = () => {
     setDownloadDialogOpen(false);
     setSelectedMediaForDownload([]);
   }, []);
+
+  // 处理 AssetDetailDialog 关闭
+  const handleAssetDetailClose = useCallback(() => {
+    setAssetDetailOpen(false);
+    setSelectedAssetId(null);
+    setSelectedAssetData(null);
+  }, []);
+
+  // 处理 AssetDetailDialog 中的下载
+  const handleAssetDetailDownload = useCallback((assetId) => {
+    console.log('Download from AssetDetailDialog:', assetId);
+    // 这里可以调用下载逻辑
+    if (selectedAssetData) {
+      handleMediaDownload(selectedAssetData);
+    }
+  }, [selectedAssetData, handleMediaDownload]);
 
   // 处理批量下载选择 (来自ActionBar)
   const handleDownloadSelection = useCallback(async (selectedAssets) => {
@@ -151,6 +182,15 @@ const MediaCatalogue = () => {
         open={downloadDialogOpen}
         onClose={handleDownloadDialogClose}
         selectedMedia={selectedMediaForDownload}
+      />
+      
+      {/* 资产详情弹窗 */}
+      <AssetDetailDialog
+        open={assetDetailOpen}
+        onClose={handleAssetDetailClose}
+        assetId={selectedAssetId}
+        mediaData={selectedAssetData}
+        onDownload={handleAssetDetailDownload}
       />
     </SelectedAssetsProvider>
   );

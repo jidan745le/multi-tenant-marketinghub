@@ -6,6 +6,7 @@ import { createAfterSalesConfig } from '../config/kendoMediaConfig';
 // 导入组件
 import MediaDownloadDialog from '../components/MediaDownloadDialog';
 import ProductCatalogue from '../components/ProductCatalogue';
+import AssetDetailDialog from '../components/AssetDetailDialog';
 
 // 导入Context
 import { SelectedAssetsProvider } from '../context/SelectedAssetsContext';
@@ -24,14 +25,29 @@ const AfterSalesService = () => {
   
   const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
   const [selectedMediaForDownload, setSelectedMediaForDownload] = useState([]);
+  
+  // AssetDetailDialog 状态
+  const [assetDetailOpen, setAssetDetailOpen] = useState(false);
+  const [selectedAssetId, setSelectedAssetId] = useState(null);
+  const [selectedAssetData, setSelectedAssetData] = useState(null);
 
   const config = useMemo(() => {
-    console.log(`📄 Creating After Sales Service config for brand: ${currentBrandCode}`);
+    console.log(`Creating After Sales Service config for brand: ${currentBrandCode}`);
     return createAfterSalesConfig(currentBrandCode);
   }, [currentBrandCode]);
 
-  const handleDocumentClick = useCallback((document) => {
-    console.log('📄 Document clicked:', document);
+  const handleDocumentClick = useCallback((document, isAssetType) => {
+    console.log('Document clicked:', document, 'isAssetType:', isAssetType);
+    
+    // 如果是资产类型，打开 AssetDetailDialog
+    if (isAssetType && document.id) {
+      setSelectedAssetId(document.id);
+      setSelectedAssetData(document);
+      setAssetDetailOpen(true);
+    } else {
+      // 对于非资产类型，可以添加其他处理逻辑
+      console.log('Non-asset document clicked:', document);
+    }
   }, []);
 
   const handleDocumentDownload = useCallback(async (document) => {
@@ -59,6 +75,22 @@ const AfterSalesService = () => {
     setDownloadDialogOpen(false);
     setSelectedMediaForDownload([]);
   }, []);
+
+  // 处理 AssetDetailDialog 关闭
+  const handleAssetDetailClose = useCallback(() => {
+    setAssetDetailOpen(false);
+    setSelectedAssetId(null);
+    setSelectedAssetData(null);
+  }, []);
+
+  // 处理 AssetDetailDialog 中的下载
+  const handleAssetDetailDownload = useCallback((assetId) => {
+    console.log('Download from AssetDetailDialog in AfterSalesService:', assetId);
+    // 这里可以调用下载逻辑
+    if (selectedAssetData) {
+      handleDocumentDownload(selectedAssetData);
+    }
+  }, [selectedAssetData, handleDocumentDownload]);
 
   const handleDownloadSelection = useCallback(async (selectedAssets) => {
     try {
@@ -107,6 +139,15 @@ const AfterSalesService = () => {
         open={downloadDialogOpen}
         onClose={handleDownloadDialogClose}
         selectedMedia={selectedMediaForDownload}
+      />
+      
+      {/* 资产详情弹窗 */}
+      <AssetDetailDialog
+        open={assetDetailOpen}
+        onClose={handleAssetDetailClose}
+        assetId={selectedAssetId}
+        mediaData={selectedAssetData}
+        onDownload={handleAssetDetailDownload}
       />
     </SelectedAssetsProvider>
   );

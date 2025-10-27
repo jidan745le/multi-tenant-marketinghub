@@ -55,4 +55,7 @@ export default {
     "qrTable.link": "Link",
     "qrTable.action": "Aktion",
     "qrTable.linkAction": "Link",
+    
+    // Media related translations
+    "media.loading": "Laden...",
 }; 

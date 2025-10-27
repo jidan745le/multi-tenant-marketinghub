@@ -105,7 +105,19 @@ const ProductCardGrid = ({
             fontWeight: 400,
             position: 'absolute',
             left: { xs: '10px', sm: '12.56px', md: '15px', lg: '18px' },
-            top: { xs: '100px', sm: '136.27px', md: '150px', lg: '160px' }
+            top: { xs: '100px', sm: '136.27px', md: '150px', lg: '160px' },
+            cursor: onProductClick ? 'pointer' : 'default',
+            transition: 'all 0.2s ease',
+            '&:hover': onProductClick ? {
+              color: primaryColor,
+              transform: 'scale(1.05)',
+              // fontWeight: 500
+            } : {},
+            '&:active': onProductClick ? {
+              transform: 'scale(0.95)',
+              color: primaryColor,
+              opacity: 0.8
+            } : {}
           }}>
             {product.code}
           </Typography>

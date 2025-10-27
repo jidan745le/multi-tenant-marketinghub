@@ -6,6 +6,7 @@ import { createInternalDocumentsConfig } from '../config/kendoMediaConfig';
 // 导入组件
 import MediaDownloadDialog from '../components/MediaDownloadDialog';
 import ProductCatalogue from '../components/ProductCatalogue';
+import AssetDetailDialog from '../components/AssetDetailDialog';
 
 // 导入Context
 import { SelectedAssetsProvider } from '../context/SelectedAssetsContext';
@@ -24,14 +25,24 @@ const InternalDocuments = () => {
   
   const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
   const [selectedMediaForDownload, setSelectedMediaForDownload] = useState([]);
+  
+  // AssetDetailDialog 状态管理
+  const [assetDetailDialogOpen, setAssetDetailDialogOpen] = useState(false);
+  const [selectedAssetForPreview, setSelectedAssetForPreview] = useState(null);
 
   const config = useMemo(() => {
-    console.log(`📂 Creating Internal Documents config for brand: ${currentBrandCode}`);
+    console.log(`Creating Internal Documents config for brand: ${currentBrandCode}`);
     return createInternalDocumentsConfig(currentBrandCode);
   }, [currentBrandCode]);
 
-  const handleDocumentClick = useCallback((document) => {
-    console.log('📂 Document clicked:', document);
+  const handleDocumentClick = useCallback((document, isAsset = false) => {
+    console.log('Document clicked:', document, 'isAsset:', isAsset);
+    
+    // 如果是资产类型（来自DigitalAssetCard的预览按钮），打开AssetDetailDialog
+    if (isAsset && document) {
+      setSelectedAssetForPreview(document);
+      setAssetDetailDialogOpen(true);
+    }
   }, []);
 
   const handleDocumentDownload = useCallback(async (document) => {
@@ -58,6 +69,12 @@ const InternalDocuments = () => {
   const handleDownloadDialogClose = useCallback(() => {
     setDownloadDialogOpen(false);
     setSelectedMediaForDownload([]);
+  }, []);
+
+  // AssetDetailDialog 关闭处理
+  const handleAssetDetailDialogClose = useCallback(() => {
+    setAssetDetailDialogOpen(false);
+    setSelectedAssetForPreview(null);
   }, []);
 
   const handleDownloadSelection = useCallback(async (selectedAssets) => {
@@ -107,6 +124,15 @@ const InternalDocuments = () => {
         open={downloadDialogOpen}
         onClose={handleDownloadDialogClose}
         selectedMedia={selectedMediaForDownload}
+      />
+      
+      {/* AssetDetailDialog for preview functionality */}
+      <AssetDetailDialog
+        open={assetDetailDialogOpen}
+        onClose={handleAssetDetailDialogClose}
+        assetId={selectedAssetForPreview?.id || selectedAssetForPreview?.identifier}
+        onDownload={handleDocumentDownload}
+        title="pdp.details"
       />
     </SelectedAssetsProvider>
   );

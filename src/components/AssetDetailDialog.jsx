@@ -136,7 +136,7 @@ const InfoContent = styled(Box)({
   overflow: 'auto',
   marginBottom: '6px',
   display: 'flex',
-  gap: '24px',
+  gap: '-2px',
   backgroundColor: '#f5f5f5',
   padding: '16px',
   borderRadius: '4px'
@@ -227,7 +227,6 @@ const DownloadButton = styled(Button)(({ theme }) => ({
 const AssetDetailDialog = ({
   open,
   onClose,
-  mediaData, 
   assetId, 
   onDownload,
   // 配置化参数
@@ -315,38 +314,28 @@ const AssetDetailDialog = ({
   customMediaUrlFetcher,
   customButtonRenderer,
   // 其他配置
-  title = 'pdp.details',
-  loadingDelay = 1000
+  title = 'pdp.details'
 }) => {
   const { t } = useTranslation();
   const [mediaUrl, setMediaUrl] = useState(''); 
   const [isMediaLoading, setIsMediaLoading] = useState(false);
   const [mediaError, setMediaError] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
   
   // 使用 useAssetInfo hook 获取数据
   const { data: assetInfo, loading: assetLoading, error: assetError, refetch } = useAssetInfo(assetId);
   
-  // 添加 hook 状态变化的日志
+
   useEffect(() => {
-    console.log('📊 AssetDetailDialog - Hook state changed:', {
-      assetId: assetId,
-      assetLoading: assetLoading,
-      assetError: assetError,
-      assetInfo: assetInfo ? 'Data received' : 'No data'
-    });
-  }, [assetId, assetLoading, assetError, assetInfo]);
+    if (assetId) {
+      setMediaUrl('');
+      setIsMediaLoading(false); 
+      setMediaError(false);
+    }
+  }, [assetId]);
   
   // 将 hook 数据转换为组件需要的格式
   const transformedMediaData = useMemo(() => {
-    console.log('🔄 AssetDetailDialog - Transforming data:', {
-      assetInfo: assetInfo,
-      mediaData: mediaData,
-      assetId: assetId
-    });
-    
     if (!assetInfo) {
-      console.log('📝 AssetDetailDialog - No assetInfo, showing -- for all fields');
 
       return {
         // 基础标识信息
@@ -403,7 +392,7 @@ const AssetDetailDialog = ({
       customerApprovalStatus: '• Published', // 默认值
       
       // Technical
-      // name: assetInfo.name || '--',
+      name: assetInfo.name || '--',
       dimensions: assetInfo.width && assetInfo.height ? `${assetInfo.width} X ${assetInfo.height}` : '--',
       size: assetInfo.fileSize || '--',
       creationDate: assetInfo.creationDate || '--',
@@ -421,7 +410,7 @@ const AssetDetailDialog = ({
       thumbnail: assetInfo.thumbnail || '--',
       mimetype: assetInfo.mimetype || '--'
     };
-  }, [assetInfo, mediaData, assetId]);
+  }, [assetInfo]);
   
   // 避免每次渲染都创建新对象
   const stableInfoSections = useMemo(() => infoSections, [infoSections]);
@@ -598,72 +587,46 @@ const AssetDetailDialog = ({
     return stableTagConfig.fallbackTags;
   };
 
-  // 可配置的媒体URL
-  const fetchMediaUrl = useCallback(async (data) => {
-    if (!data) return;
+  const setMediaUrlFromAssetInfo = useCallback(() => {
+    if (!assetInfo) return;
     
-    setIsMediaLoading(true);
     setMediaError(false);
     
     try {
       if (customMediaUrlFetcher) {
-        const url = await customMediaUrlFetcher(data);
-        setMediaUrl(url);
+        customMediaUrlFetcher(assetInfo).then(url => {
+          setMediaUrl(url);
+        }).catch(error => {
+          console.error('Error in custom media URL fetcher:', error);
+          setMediaError(true);
+        });
+        return;
+      }
+
+      const urlToUse = assetInfo.thumbnail || assetInfo.fullpath;
+      if (urlToUse) {
+        // 拼接URL的地方
+        const fullUrl = urlToUse.startsWith('http') ? urlToUse : `https://pim-test.kendo.com${urlToUse}`;
+        setMediaUrl(fullUrl);
         return;
       }
       
-      // 如果有 hook，就用hook的url
-      if (assetInfo && assetInfo.fullpath) {
-        setMediaUrl(assetInfo.fullpath);
-        return;
-      }
-      
-      // 模拟API请求延迟
-      await new Promise(resolve => setTimeout(resolve, loadingDelay));
-      
-      // 智能检测媒体类型
-      const mediaType = detectMediaType(data) || 'image';
-      
-      // Mock媒体数据
-      const mockMediaUrls = {
-        video: {
-          'video-123': 'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4',
-          '2900_Multicutter_2014_30sec_test': 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-          'default': 'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4'
-        },
-        image: {
-          'image-123': 'https://picsum.photos/800/600?random=1',
-          '2900_Multicutter_2014_30sec_test': 'https://picsum.photos/800/600?random=2',
-          'default': 'https://picsum.photos/800/600?random=3'
-        },
-        pdf: {
-          'pdf-123': 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-          'manual-pdf': 'https://www.africau.edu/images/default/sample.pdf',
-          'default': 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'
-        }
-      };
-      
-      const identifier = data.identifier || data.name || 'default';
-      const mockUrl = mockMediaUrls[mediaType]?.[identifier] || mockMediaUrls[mediaType]?.['default'];
-      setMediaUrl(mockUrl);
-    } catch (error) {
-      console.error('Error fetching media URL:', error);
+      // 如果没有URL，设置错误状态
       setMediaError(true);
-    } finally {
-      setIsMediaLoading(false);
+      console.warn("AssetDetailDialog - No media URL found for asset:", assetInfo);
+    } catch (error) {
+      console.error('Error setting media URL:', error);
+      setMediaError(true);
     }
-  }, [customMediaUrlFetcher, loadingDelay, detectMediaType, assetInfo]);
+  }, [customMediaUrlFetcher, assetInfo]);
 
 
 
-  // 初始化时获取媒体URL
   useEffect(() => {
-    const dataToUse = transformedMediaData;
-    if (dataToUse && open && !isInitialized) {
-      setIsInitialized(true);
-      fetchMediaUrl(dataToUse);
+    if (assetInfo) {
+      setMediaUrlFromAssetInfo();
     }
-  }, [transformedMediaData, open, fetchMediaUrl, isInitialized]);
+  }, [assetInfo, setMediaUrlFromAssetInfo]);
 
 
   useEffect(() => {
@@ -671,7 +634,6 @@ const AssetDetailDialog = ({
       setMediaUrl('');
       setIsMediaLoading(false);
       setMediaError(false);
-      setIsInitialized(false);
     }
   }, [open]);
 
@@ -796,10 +758,82 @@ const AssetDetailDialog = ({
                     preload="metadata"
                   />
                 ) : mediaType === 'pdf' ? (
-                  <PdfViewer
-                    src={`${mediaUrl}#toolbar=1&navpanes=1&scrollbar=1`}
-                    title={dataToUse.filename || dataToUse.name || 'PDF Document'}
-                  />
+                  <Box
+                    sx={{
+                      position: 'relative',
+                      width: '100%',
+                      height: '100%',
+                      overflow: 'hidden',
+                      cursor: 'pointer',
+                      borderRadius: '8px',
+                      '&:hover .pdf-preview-bg': {
+                        filter: 'blur(8px)'
+                      },
+                      '&:hover .pdf-overlay': {
+                        opacity: 1
+                      }
+                    }}
+                    onClick={() => window.open(mediaUrl, '_blank')}
+                  >
+                    {/* PDF 预览背景*/}
+                    <Box
+                      className="pdf-preview-bg"
+                      component="img"
+                      src={mediaUrl}
+                      alt={dataToUse.filename || dataToUse.name || 'PDF Document'}
+                      sx={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        // 设置最大显示尺寸，放缩pdf图片
+                        maxWidth: '260px',
+                        maxHeight: '260px',
+                        width: 'auto',
+                        height: 'auto',
+                        objectFit: 'contain',
+                        filter: 'none',
+                        transition: 'all 0.3s ease'
+                      }}
+                    />
+                    
+                    {/* 半透明遮罩层 */}
+                    <Box
+                      className="pdf-overlay"
+                      sx={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: 'transparent',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        opacity: 0,
+                        transition: 'opacity 0.3s ease'
+                      }}
+                    >
+                      {/* 预览按钮 */}
+                      <Button
+                        variant="contained"
+                        sx={{
+                          backgroundColor: 'rgba(0, 0, 0, 0.6) !important',
+                          color: 'white !important',
+                          padding: '12px 24px',
+                          fontSize: '14px',
+                          fontWeight: 'bold',
+                          textTransform: 'uppercase',
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                          cursor: 'pointer',
+                          transition: 'all 0.3s ease !important'
+                        }}
+                      >
+                        Preview PDF
+                      </Button>
+                    </Box>
+                  </Box>
                 ) : (
                   <Box
                     component="img"
@@ -808,7 +842,12 @@ const AssetDetailDialog = ({
                     sx={{
                       width: '100%',
                       height: '100%',
-                      objectFit: 'contain'
+                      objectFit: 'contain',
+                      // 设置最大显示尺寸，放缩图片
+                      maxWidth: '260px',
+                      maxHeight: '260px',
+                      display: 'block',
+                      margin: 'auto'
                     }}
                   />
                 )

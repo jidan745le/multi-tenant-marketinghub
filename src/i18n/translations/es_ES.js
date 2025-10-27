@@ -24,4 +24,7 @@ export default {
     "pdp.sections.packaging": "Embalaje",
     "pdp.sections.drawing": "Dibujo",
     "pdp.sections.patent": "Patente",
+    
+    // Media related translations
+    "media.loading": "Cargando...",
 }; 

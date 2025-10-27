@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -15,6 +15,7 @@ import { Download, Visibility, Search } from '@mui/icons-material';
 import { ScrollBarWrapperBox } from './ScrollBarThemeWrapper';
 import ProductCard from './DigitalAssetCard';
 import AssetPagination from './AssetPagination';
+import AssetDetailDialog from './AssetDetailDialog';
 import {
   TextField,
   Select,
@@ -52,6 +53,11 @@ const BrandbookContent = ({ data, onSectionInView }) => {
   // const [selectedDates, setSelectedDates] = useState({});
   const sectionRefs = useRef({});
   const scrollContainerRef = useRef(null);
+
+  // AssetDetailDialog 状态
+  const [assetDetailOpen, setAssetDetailOpen] = useState(false);
+  const [selectedAssetId, setSelectedAssetId] = useState(null);
+  const [selectedAssetData, setSelectedAssetData] = useState(null);
 
   // const [selectedLanguages, setSelectedLanguages] = useState({});
 
@@ -93,6 +99,42 @@ const BrandbookContent = ({ data, onSectionInView }) => {
       scrollContainer.removeEventListener('scroll', handleScroll);
     };
   }, [activeSection, onSectionInView]);
+
+  const handleAssetDetailClose = useCallback(() => {
+    setAssetDetailOpen(false);
+    setSelectedAssetId(null);
+    setSelectedAssetData(null);
+  }, []);
+
+  // 这里是AssetDetailDialog 中的下载
+  const handleAssetDetailDownload = useCallback((assetId) => {
+    console.log('Download from AssetDetailDialog in Brandbook:', assetId);
+    
+    if (selectedAssetData) {
+      try {
+        // 构建下载URL
+        const downloadUrl = selectedAssetData.downloadUrl || selectedAssetData.fullpath;
+        if (downloadUrl) {
+          const fullDownloadUrl = downloadUrl.startsWith('http') 
+            ? downloadUrl 
+            : `https://pim-test.kendo.com${downloadUrl}`;
+          
+          const link = document.createElement('a');
+          link.href = fullDownloadUrl;
+          link.download = selectedAssetData.filename || selectedAssetData.name || 'asset';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          console.log('Asset download initiated:', fullDownloadUrl);
+        } else {
+          console.warn('No download URL available for asset:', selectedAssetData);
+        }
+      } catch (error) {
+        console.error('Error downloading asset:', error);
+      }
+    }
+  }, [selectedAssetData]);
 
   const registerSectionRef = (sectionId, element) => {
     if (element) {
@@ -483,9 +525,19 @@ const BrandbookContent = ({ data, onSectionInView }) => {
 
     // 处理单个项目点击
     const handleItemClick = (item) => {
-      const imageUrl = item.image || item.img;
-      if (imageUrl) {
-        window.open(imageUrl, '_blank');
+      console.log('Brandbook item clicked:', item);
+      
+      // 如果有资产ID，打开 AssetDetailDialog
+      if (item.id) {
+        setSelectedAssetId(item.id);
+        setSelectedAssetData(item);
+        setAssetDetailOpen(true);
+      } else {
+        // 否则使用原来的逻辑，在新窗口打开图片
+        const imageUrl = item.image || item.img;
+        if (imageUrl) {
+          window.open(imageUrl, '_blank');
+        }
       }
     };
 
@@ -543,7 +595,14 @@ const BrandbookContent = ({ data, onSectionInView }) => {
 
       {renderMediaSection(data?.catelogs, data?.externalMedias?.[2]?.title, data?.externalMedias?.[2]?.mediaType,data?.externalMedias?.[2])}
       
-      
+      {/* 资产详情弹窗 */}
+      <AssetDetailDialog
+        open={assetDetailOpen}
+        onClose={handleAssetDetailClose}
+        assetId={selectedAssetId}
+        mediaData={selectedAssetData}
+        onDownload={handleAssetDetailDownload}
+      />
     </ScrollBarWrapperBox>
   );
 };
