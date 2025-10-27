@@ -190,6 +190,89 @@ class DownloadApiService {
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
     }
+
+    /**
+     * Product Mass Download API
+     * @param {Object} params - Download parameters
+     * @param {string} params.modelnumber - Model number(s), comma-separated
+     * @param {string} params.brand - Brand name
+     * @param {string} params.templateid - Template IDs, comma-separated
+     * @param {string} params.region - Region codes, comma-separated
+     * @param {Array<string>} params.derivateList - List of derivate names
+     * @param {boolean} params.async - Whether to send via email
+     * @param {string} params.ccemail - CC email address
+     * @param {string} params.tomail - Recipient email address
+     * @param {string} params.outputquality - Output quality (web, print, etc.)
+     * @param {string} params.language - Languages, comma-separated
+     * @returns {Promise<Object>} Download result
+     */
+    async productMassDownload(params) {
+        try {
+            const userInfo = CookieService.getUserInfo();
+            const tenant = userInfo?.tenant?.name;
+            const requestPayload = {
+                tenant: tenant,
+                modelnumber: params.modelnumber || '',
+                brand: params.brand || 'kendo',
+                templateid: params.templateid || '',
+                region: params.region || '',
+                "derivate-list": params.derivateList || [],
+                async: params.async || false,
+                ccemail: params.ccemail || '',
+                tomail: params.tomail || '',
+                outputquality: params.outputquality || 'web',
+                language: params.language || ''
+            };
+
+            console.log('📦 Product Mass Download Request:', requestPayload);
+
+            const response = await fetch('/srv/v1/main/mass-download/product', {
+                method: 'POST',
+                headers: this.getHeaders(),
+                body: JSON.stringify(requestPayload),
+            });
+
+            if (!response.ok) {
+                // Handle 401 Unauthorized errors
+                if (this.handleUnauthorizedError(response.status)) {
+                    throw new Error('Unauthorized - redirecting to login');
+                }
+
+                // Try to get error details from response
+                try {
+                    const errorData = await response.json();
+                    const errorMessage = errorData.msg || errorData.message || `HTTP error! status: ${response.status}`;
+                    throw new Error(errorMessage);
+                } catch {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+            }
+
+            // For async downloads, return success message
+            if (params.async) {
+                const result = await response.json().catch(() => ({}));
+                return { success: true, message: 'Email will be sent with download link', result };
+            }
+
+            // For direct downloads, return the blob
+            const blob = await response.blob();
+
+            // Extract filename from content-disposition header if available
+            const contentDisposition = response.headers.get('content-disposition');
+            let filename = 'product-mass-download.zip';
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename=(.+)/);
+                if (filenameMatch) {
+                    filename = filenameMatch[1].replace(/"/g, '');
+                }
+            }
+
+            return { blob, filename };
+        } catch (error) {
+            console.error('❌ Error in product mass download:', error);
+            throw new Error(error.message || 'Failed to download products');
+        }
+    }
 }
 
 export default new DownloadApiService();

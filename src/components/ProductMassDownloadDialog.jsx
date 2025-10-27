@@ -1,24 +1,27 @@
 import CloseIcon from '@mui/icons-material/Close';
 import {
-    Box,
-    Button,
-    Checkbox,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogTitle,
-    Divider,
-    FormControlLabel,
-    IconButton,
-    List,
-    Radio,
-    RadioGroup,
-    Typography,
-    useTheme
+  Box,
+  Button,
+  Checkbox,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  FormControlLabel,
+  IconButton,
+  List,
+  Radio,
+  RadioGroup,
+  Typography,
+  useTheme
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useBrand } from '../hooks/useBrand';
+import { useLanguage } from '../hooks/useLanguage';
+import downloadApi from '../services/downloadApi';
+import CookieService from '../utils/cookieService';
 import MultiEmailInput from './MultiEmailInput';
 
 /**
@@ -44,18 +47,18 @@ const ProductMassDownloadDialog = ({
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const { currentBrand, currentBrandCode } = useBrand();
+  const { supportedLanguages, currentLanguage, getCurrentLanguageInfo } = useLanguage();
 
   // Dialog states
   const [currentStep, setCurrentStep] = useState('formats'); // 'formats' | 'regions' | 'channels' | 'derivates' | 'options'
   const [loading, setLoading] = useState(false);
 
-  // Language selection
-  const [selectedLanguages, setSelectedLanguages] = useState(['English']);
+  // Language selection - 使用语言代码存储
+  const [selectedLanguages, setSelectedLanguages] = useState([]);
   const [showAllLanguages, setShowAllLanguages] = useState(false);
 
-  // Available languages (top 5 + expand for more)
-  const availableLanguages = ['English', 'French', 'German', 'Italian', 'Chinese', 'Spanish', 'Portuguese', 'Japanese'];
-  const displayedLanguages = showAllLanguages ? availableLanguages : availableLanguages.slice(0, 5);
+  // Available languages from Redux - 默认显示前5个，点击展开显示全部
+  const displayedLanguages = showAllLanguages ? supportedLanguages : supportedLanguages.slice(0, 5);
 
   // File format selection
   const [selectedFormats, setSelectedFormats] = useState({
@@ -101,30 +104,18 @@ const ProductMassDownloadDialog = ({
   // Track which step opened a sub-dialog
   const [returnToStep, setReturnToStep] = useState('formats');
 
-  // Initialize default language based on current i18n language
+  // Initialize default language based on current language from Redux
   useEffect(() => {
-    if (open) {
-      const currentLang = i18n.language;
-      // Map language codes to display names
-      const langMap = {
-        'en': 'English',
-        'fr': 'French',
-        'de': 'German',
-        'it': 'Italian',
-        'zh': 'Chinese',
-        'es': 'Spanish',
-        'pt': 'Portuguese',
-        'ja': 'Japanese'
-      };
-      const defaultLang = langMap[currentLang] || 'English';
-      setSelectedLanguages([defaultLang]);
+    if (open && currentLanguage) {
+      // 默认选中当前语言
+      setSelectedLanguages([currentLanguage]);
     }
-  }, [open, i18n.language]);
+  }, [open, currentLanguage]);
 
   const handleClose = () => {
     // Reset all states
     setCurrentStep('formats');
-    setSelectedLanguages(['English']);
+    setSelectedLanguages(currentLanguage ? [currentLanguage] : []);
     setShowAllLanguages(false);
     setSelectedFormats({
       catalog: false,
@@ -143,12 +134,12 @@ const ProductMassDownloadDialog = ({
     onClose();
   };
 
-  const handleLanguageToggle = (language) => {
+  const handleLanguageToggle = (languageCode) => {
     setSelectedLanguages(prev => {
-      if (prev.includes(language)) {
-        return prev.filter(l => l !== language);
+      if (prev.includes(languageCode)) {
+        return prev.filter(l => l !== languageCode);
       } else {
-        return [...prev, language];
+        return [...prev, languageCode];
       }
     });
   };
@@ -217,24 +208,79 @@ const ProductMassDownloadDialog = ({
     try {
       setLoading(true);
 
-      // Prepare download data
-      const downloadData = {
-        products: selectedProducts,
-        languages: selectedLanguages,
-        formats: selectedFormats,
-        regions: selectedRegions,
-        channels: selectedChannels,
-        derivates: selectedDerivates,
-        downloadOption,
-        emails: downloadOption === 'other' ? emails : []
+      // 格式映射关系
+      const formatMapping = {
+        catalog: 'CatalogGlobal',
+        datasheet: 'DatasheetGlobalSingle',
+        shelfCard1on1: 'ShelfCard',
+        shelfCardMultiple: 'ShelfCard',
+        setupSheetGeneral: 'SetupSheet',
+        setupSheetChannel: 'SetupSheet',
+        massMediaDownload: 'ProductMediaAssets'
       };
 
-      // Call the download handler
-      await onDownload?.(downloadData);
+      // 构建 templateid（选中的格式）
+      const selectedTemplateIds = Object.keys(selectedFormats)
+        .filter(key => selectedFormats[key])
+        .map(key => formatMapping[key])
+        .filter(Boolean)
+        .join(',');
+
+      // 获取用户信息
+      const userInfo = CookieService.getUserInfo();
+      const userEmail = userInfo?.email || '';
+
+      // 构建 regions（将 region IDs 转换为 region codes）
+      const regionCodes = selectedRegions
+        .map(id => availableRegions.find(r => r.id === id)?.name)
+        .filter(Boolean)
+        .join(',');
+
+      // 构建 derivate-list（从 availableDerivates 中获取名称）
+      const derivateNames = selectedDerivates
+        .map(id => availableDerivates.find(d => d.id === id)?.name)
+        .filter(Boolean);
+
+      // 构建 languages（从 supportedLanguages 中获取名称）
+      const languageNames = selectedLanguages
+        .map(code => supportedLanguages.find(lang => lang.code === code)?.name)
+        .filter(Boolean)
+        .join(',');
+
+      // 提取产品的 model numbers
+      const modelNumbers = selectedProducts
+        .map(product => product.modelNumber || product.id || product.VirtualProductID)
+        .filter(Boolean)
+        .join(',');
+
+      // 构建 API 请求参数
+      const params = {
+        modelnumber: modelNumbers,
+        brand: currentBrandCode || 'kendo',
+        templateid: selectedTemplateIds,
+        region: regionCodes,
+        derivateList: derivateNames,
+        async: downloadOption !== 'direct', // direct = false (sync), email/other = true (async)
+        ccemail: '',
+        tomail: downloadOption === 'other' ? emails.join(',') : (downloadOption === 'email' ? userEmail : ''),
+        outputquality: 'web',
+        language: languageNames
+      };
+
+      console.log('📦 Calling Product Mass Download API with params:', params);
+
+      // 调用 API
+      const result = await downloadApi.productMassDownload(params);
+
+      if (result.success) {
+        // Async download - email sent
+      } else if (result.blob) {
+        // Direct download - trigger file download
+        downloadApi.triggerDownload(result.blob, result.filename);
+      }
 
       handleClose();
     } catch (error) {
-      console.error('Download failed:', error);
       alert(`Download failed: ${error.message}`);
     } finally {
       setLoading(false);
@@ -252,9 +298,14 @@ const ProductMassDownloadDialog = ({
     <>
       <DialogTitle>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 2, mb: 2 }}>
-          <Typography sx={{ fontSize: '21px', fontWeight: 600, fontFamily: 'OpenSans-SemiBold' }}>
-            Download
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#333' }}>
+              download
+            </span>
+            <Typography sx={{ fontSize: '21px', fontWeight: 600, fontFamily: 'OpenSans-SemiBold' }}>
+              Download
+            </Typography>
+          </Box>
           <IconButton
             aria-label="close"
             onClick={handleClose}
@@ -278,12 +329,12 @@ const ProductMassDownloadDialog = ({
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
           {displayedLanguages.map((language) => (
             <FormControlLabel
-              key={language}
+              key={language.code}
               control={
                 <Checkbox
                   size="small"
-                  checked={selectedLanguages.includes(language)}
-                  onChange={() => handleLanguageToggle(language)}
+                  checked={selectedLanguages.includes(language.code)}
+                  onChange={() => handleLanguageToggle(language.code)}
                   sx={{
                     '&.Mui-checked': {
                       color: '#F16508'
@@ -291,8 +342,8 @@ const ProductMassDownloadDialog = ({
                   }}
                 />
               }
-              label={<Typography sx={{ fontSize: '14px', color: '#4d4d4d' }}>{language}</Typography>}
-              sx={{ minWidth: '80px' }}
+              label={<Typography sx={{ fontSize: '14px', color: '#4d4d4d' }}>{language.name}</Typography>}
+              sx={{ minWidth: '120px' }}
             />
           ))}
         </Box>
@@ -321,33 +372,40 @@ const ProductMassDownloadDialog = ({
           Publications
         </Typography>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2, ml: 2 }}>
-          <Box sx={{ display: 'flex', gap: 4 }}>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  size="small"
-                  checked={selectedFormats.catalog}
-                  onChange={() => handleFormatToggle('catalog')}
-                  sx={{ '&.Mui-checked': { color: '#F16508' } }}
-                />
-              }
-              label={<Typography sx={{ fontSize: '14px', color: '#4f4f4f' }}>Catalog</Typography>}
-            />
-            <FormControlLabel
-              control={
-                <Checkbox
-                  size="small"
-                  checked={selectedFormats.datasheet}
-                  onChange={() => handleFormatToggle('datasheet')}
-                  sx={{ '&.Mui-checked': { color: '#F16508' } }}
-                />
-              }
-              label={<Typography sx={{ fontSize: '14px', color: '#4f4f4f' }}>Datasheet</Typography>}
-            />
+          {/* 第一行：Catalog 和 Datasheet */}
+          <Box sx={{ display: 'flex', gap: 2, width: '100%' }}>
+            <Box sx={{ flex: 1 }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    size="small"
+                    checked={selectedFormats.catalog}
+                    onChange={() => handleFormatToggle('catalog')}
+                    sx={{ '&.Mui-checked': { color: '#F16508' } }}
+                  />
+                }
+                label={<Typography sx={{ fontSize: '14px', color: '#4f4f4f' }}>Catalog</Typography>}
+              />
+            </Box>
+            <Box sx={{ flex: 1 }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    size="small"
+                    checked={selectedFormats.datasheet}
+                    onChange={() => handleFormatToggle('datasheet')}
+                    sx={{ '&.Mui-checked': { color: '#F16508' } }}
+                  />
+                }
+                label={<Typography sx={{ fontSize: '14px', color: '#4f4f4f' }}>Datasheet</Typography>}
+              />
+            </Box>
           </Box>
 
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {/* 第二行：Shelf Card (1on1) 和 Shelf Card (Multiple) */}
+          <Box sx={{ display: 'flex', gap: 2, width: '100%' }}>
+            {/* Shelf Card (1on1) */}
+            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
               <FormControlLabel
                 control={
                   <Checkbox
@@ -357,34 +415,37 @@ const ProductMassDownloadDialog = ({
                     sx={{ '&.Mui-checked': { color: '#F16508' } }}
                   />
                 }
-                label={<Typography sx={{ fontSize: '14px', color: '#4f4f4f' }}>Shelf Card (1on1)</Typography>}
+                label={<Typography sx={{ fontSize: '14px', color: '#4f4f4f' }}>Shelf Card (1 on 1)</Typography>}
               />
+              {selectedFormats.shelfCard1on1 && (
+                <Box sx={{ ml: 4, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                  <Typography sx={{ fontSize: '12px', color: '#808080', mb: 0.5 }}>
+                    Select the Regions
+                  </Typography>
+                  {availableRegions.map((region) => (
+                    <FormControlLabel
+                      key={region.id}
+                      control={
+                        <Checkbox
+                          size="small"
+                          checked={selectedRegions.includes(region.id)}
+                          onChange={() => handleRegionToggle(region.id)}
+                          sx={{ 
+                            '&.Mui-checked': { color: '#F16508' },
+                            py: 0
+                          }}
+                        />
+                      }
+                      label={<Typography sx={{ fontSize: '13px', color: '#4d4d4d' }}>{region.name}</Typography>}
+                      sx={{ my: 0 }}
+                    />
+                  ))}
+                </Box>
+              )}
             </Box>
-            {selectedFormats.shelfCard1on1 && (
-              <Box sx={{ ml: 4, p: 1, backgroundColor: '#F5F5F5', borderRadius: '3px' }}>
-                <Typography sx={{ fontSize: '12px', color: '#808080', mb: 0.5 }}>
-                  Select the Regions{' '}
-                  <span
-                    onClick={handleOpenRegionSelection}
-                    style={{ color: '#F16508', fontWeight: 'bold', cursor: 'pointer', textDecoration: 'underline' }}
-                  >
-                    HERE
-                  </span>
-                </Typography>
-                {selectedRegions.length > 0 && (
-                  <Box sx={{ mt: 1 }}>
-                    <Typography sx={{ fontSize: '9.6px', color: '#F16508' }}>
-                      {selectedRegions.length} selected
-                    </Typography>
-                    <Typography sx={{ fontSize: '9.6px', color: '#4d4d4d' }}>
-                      {selectedRegions.map(id => availableRegions.find(r => r.id === id)?.name).join(' | ')}
-                    </Typography>
-                  </Box>
-                )}
-              </Box>
-            )}
 
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {/* Shelf Card (Multiple) */}
+            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
               <FormControlLabel
                 control={
                   <Checkbox
@@ -396,32 +457,32 @@ const ProductMassDownloadDialog = ({
                 }
                 label={<Typography sx={{ fontSize: '14px', color: '#4f4f4f' }}>Shelf Card (Multiple)</Typography>}
               />
+              {selectedFormats.shelfCardMultiple && (
+                <Box sx={{ ml: 4, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                  <Typography sx={{ fontSize: '12px', color: '#808080', mb: 0.5 }}>
+                    Select the Regions
+                  </Typography>
+                  {availableRegions.map((region) => (
+                    <FormControlLabel
+                      key={region.id}
+                      control={
+                        <Checkbox
+                          size="small"
+                          checked={selectedRegions.includes(region.id)}
+                          onChange={() => handleRegionToggle(region.id)}
+                          sx={{ 
+                            '&.Mui-checked': { color: '#F16508' },
+                            py: 0
+                          }}
+                        />
+                      }
+                      label={<Typography sx={{ fontSize: '13px', color: '#4d4d4d' }}>{region.name}</Typography>}
+                      sx={{ my: 0 }}
+                    />
+                  ))}
+                </Box>
+              )}
             </Box>
-            {selectedFormats.shelfCardMultiple && (
-              <Box sx={{ ml: 4, p: 1, backgroundColor: '#F5F5F5', borderRadius: '3px' }}>
-                <Typography sx={{ fontSize: '12px', color: '#808080', mb: 0.5 }}>
-                  Select the Channels{' '}
-                  <span
-                    onClick={handleOpenChannelSelection}
-                    style={{ color: '#F16508', fontWeight: 'bold', cursor: 'pointer', textDecoration: 'underline' }}
-                  >
-                    HERE
-                  </span>
-                </Typography>
-                {selectedChannels.length > 0 && (
-                  <Box sx={{ mt: 1 }}>
-                    <Typography sx={{ fontSize: '9.6px', color: '#F16508' }}>
-                      {selectedChannels.length} selected
-                    </Typography>
-                    <ul style={{ margin: '4px 0', paddingLeft: '16px', fontSize: '9.6px', color: '#4d4d4d' }}>
-                      {selectedChannels.map(id => (
-                        <li key={id}>{availableChannels.find(c => c.id === id)?.name}</li>
-                      ))}
-                    </ul>
-                  </Box>
-                )}
-              </Box>
-            )}
           </Box>
         </Box>
 
@@ -676,9 +737,14 @@ const ProductMassDownloadDialog = ({
   const downloadOptionsContent = () => (
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography sx={{ fontSize: '21px', fontWeight: 600, fontFamily: 'OpenSans-SemiBold' }}>
-          Download
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '24px', color: '#333' }}>
+            download
+          </span>
+          <Typography sx={{ fontSize: '21px', fontWeight: 600, fontFamily: 'OpenSans-SemiBold' }}>
+            Download
+          </Typography>
+        </Box>
       </Box>
 
       <Typography sx={{ fontSize: '16px', color: '#333', mb: 3, lineHeight: 1.4 }}>
