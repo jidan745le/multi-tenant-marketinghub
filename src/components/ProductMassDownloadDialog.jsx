@@ -37,11 +37,13 @@ import MultiEmailInput from './MultiEmailInput';
  * - Channel selection for Setup Sheets
  * - Derivate selection for Media downloads
  * - Download options (Email, Direct, Send to Others)
+ * 
+ * @param {string[]} selectedProductIds - Array of product IDs (modelNumber/VirtualProductID)
  */
 const ProductMassDownloadDialog = ({
   open,
   onClose,
-  selectedProducts = [],
+  selectedProductIds = [],
   onDownload
 }) => {
   const { t, i18n } = useTranslation();
@@ -247,9 +249,8 @@ const ProductMassDownloadDialog = ({
         .filter(Boolean)
         .join(',');
 
-      // 提取产品的 model numbers
-      const modelNumbers = selectedProducts
-        .map(product => product.modelNumber || product.id || product.VirtualProductID)
+      // 使用传入的产品 IDs
+      const modelNumbers = selectedProductIds
         .filter(Boolean)
         .join(',');
 
