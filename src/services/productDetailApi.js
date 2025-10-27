@@ -111,6 +111,12 @@ class ProductDetailApiService {
                 fullpath
                 filesize
                 assetThumb2: fullpath(thumbnail: "content", format: "webp")
+                creationDate
+                modificationDate
+                dimensions {
+                  width
+                  height
+                }
                 metadata {
                   data
                   name
@@ -354,6 +360,12 @@ class ProductDetailApiService {
             id
             filesize
             assetThumb2: fullpath(thumbnail: "content", format: "webp")
+            creationDate
+            modificationDate
+            dimensions {
+              width
+              height
+            }
             metadata {
               data
               name
@@ -370,6 +382,12 @@ class ProductDetailApiService {
             id
             filesize
             assetThumb2: fullpath(thumbnail: "content", format: "webp")
+            creationDate
+            modificationDate
+            dimensions {
+              width
+              height
+            }
             metadata {
               data
               name
@@ -386,6 +404,12 @@ class ProductDetailApiService {
             id
             filesize
             assetThumb2: fullpath(thumbnail: "content", format: "webp")
+            creationDate
+            modificationDate
+            dimensions {
+              width
+              height
+            }
             metadata {
               data
               name
@@ -402,6 +426,12 @@ class ProductDetailApiService {
             id
             filesize
             assetThumb2: fullpath(thumbnail: "content", format: "webp")
+            creationDate
+            modificationDate
+            dimensions {
+              width
+              height
+            }
             metadata {
               data
               name
@@ -418,6 +448,12 @@ class ProductDetailApiService {
             id
             filesize
             assetThumb2: fullpath(thumbnail: "content", format: "webp")
+            creationDate
+            modificationDate
+            dimensions {
+              width
+              height
+            }
             metadata {
               data
               name
@@ -436,6 +472,12 @@ class ProductDetailApiService {
             id
             filesize
             assetThumb2: fullpath(thumbnail: "content", format: "webp")
+            creationDate
+            modificationDate
+            dimensions {
+              width
+              height
+            }
             metadata {
               data
               name
@@ -453,6 +495,12 @@ class ProductDetailApiService {
             id
             filesize
             assetThumb2: fullpath(thumbnail: "content", format: "webp")
+            creationDate
+            modificationDate
+            dimensions {
+              width
+              height
+            }
             metadata {
               data
               name
@@ -470,6 +518,12 @@ class ProductDetailApiService {
         id
         filesize
         assetThumb2: fullpath(thumbnail: "content", format: "webp")
+        creationDate
+        modificationDate
+        dimensions {
+          width
+          height
+        }
         metadata {
           data
           name
@@ -486,6 +540,12 @@ class ProductDetailApiService {
         id
         filesize
         assetThumb2: fullpath(thumbnail: "content", format: "webp")
+        creationDate
+        modificationDate
+        dimensions {
+          width
+          height
+        }
         metadata {
           data
           name
@@ -494,7 +554,7 @@ class ProductDetailApiService {
         }
       }
     }
-    
+
     PackingGuideline {
       ... on asset {
         filename
@@ -502,6 +562,12 @@ class ProductDetailApiService {
         id
         filesize
         assetThumb2: fullpath(thumbnail: "content", format: "webp")
+        creationDate
+        modificationDate
+        dimensions {
+          width
+          height
+        }
         metadata {
           data
           name
@@ -518,6 +584,12 @@ class ProductDetailApiService {
         id
         filesize
         assetThumb2: fullpath(thumbnail: "content", format: "webp")
+        creationDate
+        modificationDate
+        dimensions {
+          width
+          height
+        }
         metadata {
           data
           name
@@ -535,6 +607,12 @@ class ProductDetailApiService {
         id
         filesize
         assetThumb2: fullpath(thumbnail: "content", format: "webp")
+        creationDate
+        modificationDate
+        dimensions {
+          width
+          height
+        }
         metadata {
           data
           name
@@ -551,6 +629,12 @@ class ProductDetailApiService {
         id
         filesize
         assetThumb2: fullpath(thumbnail: "content", format: "webp")
+        creationDate
+        modificationDate
+        dimensions {
+          width
+          height
+        }
         metadata {
           data
           name
@@ -567,6 +651,12 @@ class ProductDetailApiService {
         id
         filesize
         assetThumb2: fullpath(thumbnail: "content", format: "webp")
+        creationDate
+        modificationDate
+        dimensions {
+          width
+          height
+        }
         metadata {
           data
           name
@@ -585,6 +675,12 @@ class ProductDetailApiService {
             id
             filesize
             assetThumb2: fullpath(thumbnail: "content", format: "webp")
+            creationDate
+            modificationDate
+            dimensions {
+              width
+              height
+            }
             metadata {
               data
               name
