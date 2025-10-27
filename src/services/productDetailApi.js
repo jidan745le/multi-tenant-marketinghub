@@ -620,7 +620,7 @@ class ProductDetailApiService {
   // 主要数据转换函数
   transformProductData(rawData) {
     const product = rawData.data?.getProductListing?.edges?.[0]?.node;
-    
+
     if (!product) {
       throw new Error('Product not found');
     }
@@ -1074,22 +1074,31 @@ class ProductDetailApiService {
         downloadUrl: image.fullpath || '',
         fileName: image.filename || '',
         keywords: this.extractKeywords(image.metadata), // 新增keywords字段
+        // Basic Info - 参考 useAssetInfo.js 的字段映射
         basicInfo: {
-          modelNumber: this.extractMetadataValue(image.metadata, 'modelNumber'),
-          imageType: this.extractMetadataValue(image.metadata, 'imageType'),
-          lockDate: this.extractMetadataValue(image.metadata, 'lockDate'),
-          countryRestrictions: this.extractMetadataValue(image.metadata, 'countryRestrictions'),
-          usageRights: this.extractMetadataValue(image.metadata, 'usageRights'),
-          approvalStatus: this.extractMetadataValue(image.metadata, 'approvalStatus')
+          modelNumber: this.extractMetadataValue(image.metadata, 'Model Number'),
+          mediaType: this.extractMetadataValue(image.metadata, 'Media Type'),
+          usage: this.extractMetadataValue(image.metadata, 'Media Usage') || 'Internal',
+          language: this.extractMetadataValue(image.metadata, 'Media Language'),
+          languages: this.parseLanguages(image.metadata), // 数组格式
+          tags: this.extractKeywords(image.metadata), // 使用 extractKeywords (Media Key Words)
+          productIds: this.parseProductIds(image.metadata), // 数组格式
+          productIdsString: this.extractMetadataValue(image.metadata, 'Media Product IDs'), // 原始字符串
+          approvalStatus: this.parseApprovalStatus(image.metadata), // 数组格式
+          approvalStatusString: this.extractMetadataValue(image.metadata, 'Media Approval Status') // 原始字符串
         },
+        // Automatic/Technical Fields - 参考 useAssetInfo.js 的字段映射
         technical: {
-          colorSpace: this.extractMetadataValue(image.metadata, 'colorSpace'),
-          colorProfile: this.extractMetadataValue(image.metadata, 'colorProfile'),
-          resolution: this.extractMetadataValue(image.metadata, 'resolution'),
-          dimensions: this.extractMetadataValue(image.metadata, 'dimensions'),
+          name: image.filename || '',
+          width: image.dimensions?.width || 0,
+          height: image.dimensions?.height || 0,
+          dimensions: `${image.dimensions?.width || 0} x ${image.dimensions?.height || 0}`,
           size: this.formatFileSize(image.filesize),
-          createdOn: this.extractMetadataValue(image.metadata, 'createdDate'),
-          changeDate: this.extractMetadataValue(image.metadata, 'changeDate')
+          sizeBytes: image.filesize || 0,
+          createdOn: this.formatDateTime(image.creationDate),
+          // createdOnRaw: image.creationDate,
+          changeDate: this.formatDateTime(image.modificationDate),
+          // changeDateRaw: image.modificationDate
         }
       };
     });
@@ -1141,6 +1150,52 @@ class ProductDetailApiService {
     }
 
     return Array.isArray(keywordsItem.data) ? keywordsItem.data : [];
+  }
+
+  // 解析语言列表
+  parseLanguages(metadata) {
+    const languageValue = this.extractMetadataValue(metadata, 'Media Language');
+    if (!languageValue) return [];
+    return languageValue.split(',').map(lang => lang.trim()).filter(Boolean);
+  }
+
+  // 解析 Product IDs
+  parseProductIds(metadata) {
+    const productIdsValue = this.extractMetadataValue(metadata, 'Media Product IDs');
+    if (!productIdsValue) return [];
+    return productIdsValue.split(/[;,]/).map(id => id.trim()).filter(Boolean);
+  }
+
+  // 解析 Approval Status
+  parseApprovalStatus(metadata) {
+    const statusValue = this.extractMetadataValue(metadata, 'Media Approval Status');
+    if (!statusValue) return [];
+    return statusValue.split(/[;,]/).map(status => status.trim()).filter(Boolean);
+  }
+
+  // 格式化日期为 MM/DD/YYYY HH:mm:ss
+  formatDateTime(dateInput) {
+    if (!dateInput) return '';
+
+    let date;
+    if (typeof dateInput === 'number') {
+      date = new Date(dateInput * 1000);
+    } else if (typeof dateInput === 'string') {
+      date = new Date(dateInput);
+    } else {
+      return '';
+    }
+
+    if (isNaN(date.getTime())) return '';
+
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+
+    return `${month}/${day}/${year} ${hours}:${minutes}:${seconds}`;
   }
 
   formatFileSize(bytes) {
