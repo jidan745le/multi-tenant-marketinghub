@@ -74,6 +74,32 @@ const parseTags = (metadata) => {
 };
 
 /**
+ * Parse metadata to extract product IDs
+ * @param {Array} metadata - Metadata array
+ * @returns {Array<string>} Array of product IDs
+ */
+const parseProductIds = (metadata) => {
+    const productIdsValue = getMetadataValue(metadata, 'Media Product IDs');
+    if (!productIdsValue) return [];
+
+    // Split by semicolon or comma and trim whitespace
+    return productIdsValue.split(/[;,]/).map(id => id.trim()).filter(Boolean);
+};
+
+/**
+ * Parse metadata to extract approval status list
+ * @param {Array} metadata - Metadata array
+ * @returns {Array<string>} Array of approval statuses
+ */
+const parseApprovalStatus = (metadata) => {
+    const statusValue = getMetadataValue(metadata, 'Media Approval Status');
+    if (!statusValue) return [];
+
+    // Split by semicolon or comma and trim whitespace
+    return statusValue.split(/[;,]/).map(status => status.trim()).filter(Boolean);
+};
+
+/**
  * Format file size to human-readable format
  * @param {number} bytes - File size in bytes
  * @returns {string} Formatted file size
@@ -129,7 +155,7 @@ const formatDate = (dateInput) => {
 const transformAssetData = (assetData) => {
     if (!assetData) return null;
 
-    const { metadata, dimensions, filesize, creationDate, filename, type, mimetype, fullpath, assetThumb } = assetData;
+    const { metadata, dimensions, filesize, creationDate, modificationDate, filename, type, mimetype, fullpath, assetThumb } = assetData;
 
     return {
         // Basic info
@@ -142,14 +168,19 @@ const transformAssetData = (assetData) => {
 
         // Metadata fields
         mediaType: getMetadataValue(metadata, 'Media Type'),
-        usage: getMetadataValue(metadata, 'Usage') || 'Internal', // Default to Internal if not specified
+        usage: getMetadataValue(metadata, 'Media Usage') || 'Internal', // Default to Internal if not specified
         language: getMetadataValue(metadata, 'Media Language'),
         languages: parseLanguages(metadata),
         tags: parseTags(metadata),
+        productIds: parseProductIds(metadata),
+        productIdsString: getMetadataValue(metadata, 'Media Product IDs'), // Original string format
+        approvalStatus: parseApprovalStatus(metadata),
+        approvalStatusString: getMetadataValue(metadata, 'Media Approval Status'), // Original string format
 
-        // Technical details
+        // Automatic/Technical fields
         creationDate: formatDate(creationDate),
         creationDateRaw: creationDate,
+        changedOn: formatDate(modificationDate), // Alias for modificationDate
         width: dimensions?.width || 0,
         height: dimensions?.height || 0,
         fileSize: formatFileSize(filesize),
@@ -173,7 +204,7 @@ const useAssetInfo = (assetId) => {
 
     const fetchAsset = async (id) => {
         console.log('useAssetInfo - Starting to fetch asset with ID:', id);
-        
+
         if (!id) {
             console.warn('useAssetInfo - Asset ID is required');
             setError('Asset ID is required');

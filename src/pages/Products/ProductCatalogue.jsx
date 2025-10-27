@@ -19,7 +19,7 @@ function ProductCataloguePage() {
 
   // 批量下载对话框状态
   const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
-  const [selectedProductsForDownload, setSelectedProductsForDownload] = useState([]);
+  const [selectedProductIdsForDownload, setSelectedProductIdsForDownload] = useState([]);
   
   // 监听品牌变化
   useEffect(() => {
@@ -79,20 +79,26 @@ function ProductCataloguePage() {
 
   // 处理单个产品下载
   const handleProductDownload = useCallback((product) => {
-    setSelectedProductsForDownload([product]);
-    setDownloadDialogOpen(true);
-  }, [currentBrandCode]);
+    const productId = product.VirtualProductID || product.modelNumber || product.id;
+    if (productId) {
+      setSelectedProductIdsForDownload([productId]);
+      setDownloadDialogOpen(true);
+    }
+  }, []);
 
   // 处理批量下载选择 (来自ActionBar)
   const handleDownloadSelection = useCallback((selectedAssets) => {
-    setSelectedProductsForDownload(selectedAssets);
+    const productIds = selectedAssets
+      .map(asset => asset.VirtualProductID || asset.modelNumber || asset.id)
+      .filter(Boolean);
+    setSelectedProductIdsForDownload(productIds);
     setDownloadDialogOpen(true);
   }, []);
 
   // 处理下载对话框关闭
   const handleDownloadDialogClose = useCallback(() => {
     setDownloadDialogOpen(false);
-    setSelectedProductsForDownload([]);
+    setSelectedProductIdsForDownload([]);
   }, []);
 
   // 处理下载执行
@@ -122,7 +128,7 @@ function ProductCataloguePage() {
       <ProductMassDownloadDialog
         open={downloadDialogOpen}
         onClose={handleDownloadDialogClose}
-        selectedProducts={selectedProductsForDownload}
+        selectedProductIds={selectedProductIdsForDownload}
         onDownload={handleDownloadExecute}
       />
       
