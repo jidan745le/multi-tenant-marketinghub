@@ -2,6 +2,7 @@ import CookieService from '../utils/cookieService';
 
 const API_BASE_URL = '/srv/v1/email/base/email';
 const EMAIL_TEMPLATE_API_URL = '/srv/v1/email/email/template';
+const EMAIL_SEND_API_URL = '/srv/v1.0/email/send/general';
 
 class EmailApiService {
     constructor() {
@@ -435,6 +436,83 @@ class EmailApiService {
         } catch (error) {
             console.error('Error deleting email template:', error);
             throw new Error(error.message || 'Failed to delete email template');
+        }
+    }
+
+    /**
+     * Send feedback email
+     * @param {Object} feedbackData - Feedback data
+     * @param {string} feedbackData.comment - Feedback comment
+     * @param {string} feedbackData.reporter - Reporter name or email
+     * @param {string} feedbackData.mailTo - Recipient email address
+     * @param {string} feedbackData.mailCc - CC email addresses (optional)
+     * @param {Array} feedbackData.attachments - Attachment files (optional)
+     * @returns {Promise} API response
+     */
+    async sendFeedback(feedbackData) {
+        try {
+            const userInfo = CookieService.getUserInfo();
+            const tenant = userInfo?.tenant?.name;
+            const currentPath = window.location.pathname;
+            const pathSegments = currentPath.split('/').filter(Boolean);
+            const theme = pathSegments[1]
+            const locale = pathSegments[0]
+            // Create FormData for multipart/form-data
+            const formData = new FormData();
+
+            // Add required fields
+            formData.append('tenant', tenant);
+            formData.append('theme', theme);
+            formData.append('templateName', 'Send Feedback'); // 固定模板名称
+            formData.append('mailTo', feedbackData.mailTo || '');
+            formData.append('mailCc', feedbackData.mailCc || '');
+            formData.append('lang', locale || 'en_GB');
+
+            // Add template placeholders
+            const placeholders = {
+                comment: feedbackData.comment || '',
+                reporter: feedbackData.reporter || ''
+            };
+            formData.append('mailTemplatePlaceholders', JSON.stringify(placeholders));
+
+            // Add attachments if provided
+            if (feedbackData.attachments && feedbackData.attachments.length > 0) {
+                feedbackData.attachments.forEach((file) => {
+                    formData.append('attachments', file);
+                });
+            } else {
+                formData.append('attachments', '');
+            }
+
+            // Get token for authorization
+            const token = CookieService.getToken();
+            const headers = {
+                'Authorization': `Bearer ${token}`,
+                // Note: Don't set Content-Type for FormData, browser will set it with boundary
+            };
+
+            const response = await fetch(EMAIL_SEND_API_URL, {
+                method: 'POST',
+                headers: headers,
+                body: formData,
+            });
+
+            // Handle response
+            if (!response.ok) {
+                if (this.handleUnauthorizedError(response.status)) {
+                    const error = new Error('Unauthorized - redirecting to login');
+                    error.status = 401;
+                    throw error;
+                }
+
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `Failed to send feedback: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error sending feedback email:', error);
+            throw new Error(error.message || 'Failed to send feedback email');
         }
     }
 }
