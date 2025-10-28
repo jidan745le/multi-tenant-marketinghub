@@ -245,20 +245,26 @@ const Icon = ({ type }) => {
 
 const DigitalAssetCard = ({
     product,
-    isSelected = false,
     onSelect,
     onProductClick,
     onDownload,
+    showCheckbox = true,
     cardActionsConfig = {
         show_file_type: true,
         show_eyebrow: true,
         show_open_pdf: false,
         show_open_product_page: false,
         show_preview_media: true,
-    }
+    },
+    isAssetSelected,
+    toggleAsset
 }) => {
     const { fallbackImage } = useTheme();
-    const { toggleAsset, isAssetSelected } = useSelectedAssets();
+    
+    // 兼容性处理：如果没有传入选中状态函数，则使用全局context
+    const globalSelectedAssets = useSelectedAssets();
+    const finalIsAssetSelected = isAssetSelected || globalSelectedAssets.isAssetSelected;
+    const finalToggleAsset = toggleAsset || globalSelectedAssets.toggleAsset;
     
     const [imageError, setImageError] = useState(false);
     const [aspectRatio, setAspectRatio] = useState(1);
@@ -306,7 +312,7 @@ const DigitalAssetCard = ({
     
     const handleCheckboxChange = (event) => {
         const checked = event.target.checked;
-        toggleAsset(product, checked);
+        finalToggleAsset(product, checked);
         
         if (onSelect) {
             onSelect(product, checked);
@@ -355,26 +361,28 @@ const DigitalAssetCard = ({
             {/* Card Actions */}
             <CardActionsSection>
                 <CheckboxContainer>
-                    <StateLayer>
-                        <IconContainer>
-                            <Checkbox
-                                checked={isAssetSelected(product.id)}
-                                onChange={handleCheckboxChange}
-                                icon={<CheckBoxOutlineBlank />}
-                                checkedIcon={<CheckBox />}
-                                sx={{
-                                    padding: 0,
-                                    '& .MuiSvgIcon-root': {
-                                        fontSize: '24px',
-                                        '& path': {
-                                            strokeWidth: '0.1',
-                                            stroke: 'currentColor',
+                    {showCheckbox && (
+                        <StateLayer>
+                            <IconContainer>
+                                <Checkbox
+                                    checked={finalIsAssetSelected(product.id)}
+                                    onChange={handleCheckboxChange}
+                                    icon={<CheckBoxOutlineBlank />}
+                                    checkedIcon={<CheckBox />}
+                                    sx={{
+                                        padding: 0,
+                                        '& .MuiSvgIcon-root': {
+                                            fontSize: '24px',
+                                            '& path': {
+                                                strokeWidth: '0.1',
+                                                stroke: 'currentColor',
+                                            },
                                         },
-                                    },
-                                }}
-                            />
-                        </IconContainer>
-                    </StateLayer>
+                                    }}
+                                />
+                            </IconContainer>
+                        </StateLayer>
+                    )}
                 </CheckboxContainer>
 
                 <QuickActions>

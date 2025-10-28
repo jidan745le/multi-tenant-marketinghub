@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -9,11 +9,13 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Button,
   styled
 } from '@mui/material';
-import { Search } from '@mui/icons-material';
-import { useSelectedAssets } from '../context/SelectedAssetsContext';
+import { Search, Download } from '@mui/icons-material';
+// 使用本地状态管理
 import DigitalAssetCard from './DigitalAssetCard';
+import AssetViewActionBar from './AssetViewActionBar';
 import MediaDownloadDialog from './MediaDownloadDialog';
 
 
@@ -38,19 +40,51 @@ const AssetPagination = ({
   loading = false,
   pageSize = 24,
   onItemClick,
-  onDownloadAll,
   searchPlaceholder = 'Search file name'
 }) => {
   // 状态管理
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
-  const [downloadAllSelection, setDownloadAllSelection] = useState('');
   const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
   const [selectedItemsForDownload, setSelectedItemsForDownload] = useState([]);
 
-  // 获取选中状态
-  const { selectedAssets, toggleAsset, selectedCount } = useSelectedAssets();
+  // 本地选中状态管理
+  const [selectedAssets, setSelectedAssets] = useState([]);
+  const selectedCount = selectedAssets.length;
+  
+  const addAsset = useCallback((asset) => {
+    setSelectedAssets(prev => {
+      if (prev.some(item => item.id === asset.id)) {
+        return prev;
+      }
+      return [...prev, asset];
+    });
+  }, []);
+  
+  const removeAsset = useCallback((assetId) => {
+    setSelectedAssets(prev => prev.filter(item => item.id !== assetId));
+  }, []);
+  
+  const toggleAsset = useCallback((asset, isSelected) => {
+    if (isSelected) {
+      addAsset(asset);
+    } else {
+      removeAsset(asset.id);
+    }
+  }, [addAsset, removeAsset]);
+  
+  const clearSelection = useCallback(() => {
+    setSelectedAssets([]);
+  }, []);
+  
+  const selectAll = useCallback((assets) => {
+    setSelectedAssets([...assets]);
+  }, []);
+  
+  const isAssetSelected = useCallback((assetId) => {
+    return selectedAssets.some(item => item.id === assetId);
+  }, [selectedAssets]);
 
   // 搜索和分页逻辑
   const filteredItems = useMemo(() => {
@@ -102,6 +136,11 @@ const AssetPagination = ({
   const startIndex = (currentPage - 1) * pageSize;
   const paginatedItems = filteredItems.slice(startIndex, startIndex + pageSize);
 
+  // 计算是否全部选中
+  const isAllSelected = useMemo(() => {
+    return paginatedItems.length > 0 && selectedCount === paginatedItems.length;
+  }, [selectedCount, paginatedItems.length]);
+
   // 事件处理
   const handlePageChange = useCallback((event, page) => {
     setCurrentPage(page);
@@ -117,36 +156,19 @@ const AssetPagination = ({
     setCurrentPage(1); // 日期过滤时重置到第一页
   }, []);
 
-  const handleDownloadAll = useCallback(() => {
-    if (onDownloadAll) {
-      onDownloadAll(filteredItems);
-    } else {
-      // 默认打开下载对话框
-      setSelectedItemsForDownload(filteredItems);
-      setDownloadDialogOpen(true);
-    }
-  }, [filteredItems, onDownloadAll]);
 
-
-  const handleDownloadAllSelect = useCallback((value) => {
-    setDownloadAllSelection(value);
-    
-    if (value === 'selected') {
-      // 下载选中的东西
+  const handleDownloadSelection = useCallback(() => {
+    if (selectedCount > 0) {
       setSelectedItemsForDownload(selectedAssets);
       setDownloadDialogOpen(true);
-    } else {
-      // 下载所有
-      handleDownloadAll();
     }
-  }, [handleDownloadAll, selectedAssets]);
+  }, [selectedAssets, selectedCount]);
 
-  // 当选中状态变化时，自动重置下拉框选择
-  useEffect(() => {
-    if (selectedCount === 0 && downloadAllSelection === 'selected') {
-      setDownloadAllSelection('');
-    }
-  }, [selectedCount, downloadAllSelection]);
+  // 处理 AssetViewActionBar 的下载选择
+  const handleActionBarDownloadSelection = useCallback((selectedAssets) => {
+    setSelectedItemsForDownload(selectedAssets);
+    setDownloadDialogOpen(true);
+  }, []);
 
 
   const handleDownloadDialogClose = useCallback(() => {
@@ -164,12 +186,6 @@ const AssetPagination = ({
     setSelectedItemsForDownload([item]);
     setDownloadDialogOpen(true);
   }, []);
-
-  // 处理选中状态切换
-  const handleAssetToggle = useCallback((item) => {
-    const isCurrentlySelected = selectedAssets.some(asset => asset.id === (item.id || item.identifier));
-    toggleAsset(item, !isCurrentlySelected);
-  }, [selectedAssets, toggleAsset]);
 
   return (
     <>
@@ -204,13 +220,21 @@ const AssetPagination = ({
             sx={{ 
               minWidth: 200,
               '& .MuiOutlinedInput-root': {
-                backgroundColor: 'white',
+                backgroundColor: '#f5f5f5',
                 borderRadius: 1,
+                height: '36px',
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: 'primary.main'
+                },
                 '&:hover': {
                   '& .MuiOutlinedInput-notchedOutline': {
                     borderColor: 'primary.main'
                   }
                 }
+              },
+              '& .MuiInputBase-input': {
+                height: '36px',
+                padding: '0 14px'
               }
             }}
             InputProps={{
@@ -218,49 +242,88 @@ const AssetPagination = ({
             }}
           />
           
-          {/* Download All 下拉框 */}
-          <FormControl size="small" sx={{ minWidth: 180 }}>
-            <InputLabel>DOWNLOAD ALL</InputLabel>
-            <Select
-              value={downloadAllSelection}
-              label="DOWNLOAD ALL"
-              onChange={(e) => handleDownloadAllSelect(e.target.value)}
-              sx={{ 
-                backgroundColor: 'white',
-                borderRadius: 1,
-                '&:hover': {
-                  '& .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'primary.main'
-                  }
-                }
-              }}
-            >
-              <MenuItem value="">All</MenuItem>
-              <MenuItem 
-                value="selected" 
-                disabled={selectedCount === 0}
-                sx={{
-                  opacity: selectedCount === 0 ? 0.5 : 1,
-                  '&.Mui-disabled': {
-                    color: 'text.disabled'
-                  }
-                }}
-              >
-                Selected {selectedCount > 0 && `(${selectedCount})`}
-              </MenuItem>
-            </Select>
-          </FormControl>
+          {/* Download Selection 按钮 */}
+          <Button
+            variant="outlined"
+            onClick={handleDownloadSelection}
+            disabled={selectedCount === 0}
+            sx={{
+              background: '#f5f5f5', 
+              borderRadius: '4px',
+              borderStyle: 'solid',
+              borderColor: 'primary.main', 
+              borderWidth: '1px',
+              padding: '8px 12px',
+              display: 'flex',
+              flexDirection: 'row',
+              gap: '8px',
+              alignItems: 'center',
+              justifyContent: 'flex-start',
+              flexShrink: 0,
+              height: '36px',
+              position: 'relative',
+              color: '#000000',
+              textAlign: 'left',
+              fontFamily: '"Roboto-Medium", sans-serif',
+              fontSize: '14px',
+              lineHeight: '20px',
+              letterSpacing: '0.1px',
+              fontWeight: 500,
+              textTransform: 'uppercase',
+              minWidth: 'auto',
+              '&:hover': {
+                backgroundColor: '#e8e8e8', 
+                borderColor: 'primary.main', 
+              },
+              '&:disabled': {
+                backgroundColor: '#e0e0e0', 
+                color: '#999999',
+                borderColor: '#e0e0e0',
+              }
+            }}
+          >
+            Download Selection {selectedCount > 0 && `(${selectedCount})`}
+          </Button>
           
           {/* Date Created 下拉框 */}
-          <FormControl size="small" sx={{ minWidth: 160 }}>
-            <InputLabel>DATE CREATED</InputLabel>
+          <FormControl size="small" sx={{ minWidth: 160}}>
+            <InputLabel 
+              sx={{ 
+                fontFamily: '"Roboto-Medium", sans-serif',
+                fontSize: '14px',
+                lineHeight: '20px',
+                letterSpacing: '0.1px',
+                fontWeight: 500,
+                color: '#000000',
+                textTransform: 'uppercase',
+              }}
+            >
+              DATE CREATED
+            </InputLabel>
             <Select
               value={selectedDate}
               onChange={handleDateChange}
               label="DATE CREATED"
               sx={{ 
-                backgroundColor: 'white',
+                backgroundColor: '#f5f5f5', 
                 borderRadius: 1,
+                height: '36px', 
+                '& .MuiOutlinedInput-notchedOutline': {
+                  height: '40px',
+                  borderColor: 'primary.main'
+                },
+                '& .MuiSelect-select': {
+                  display: 'flex',
+                  alignItems: 'center',
+                  height: '36px',
+                  fontFamily: '"Roboto-Medium", sans-serif',
+                  fontSize: '14px',
+                  lineHeight: '20px',
+                  letterSpacing: '0.1px',
+                  fontWeight: 500,
+                  padding: '8px 12px',
+                  boxSizing: 'border-box'
+                },
                 '&:hover': {
                   '& .MuiOutlinedInput-notchedOutline': {
                     borderColor: 'primary.main'
@@ -278,6 +341,20 @@ const AssetPagination = ({
           </FormControl>
         </Box>
       </Box>
+
+      {/* Asset Action Bar */}
+       {selectedCount > 0 && (
+         <Box sx={{ mb: 1.5,ml: -2,mt: -1 }}>
+           <AssetViewActionBar 
+             onDownloadSelection={handleActionBarDownloadSelection}
+             selectedAssets={selectedAssets}
+             selectedCount={selectedCount}
+             clearSelection={clearSelection}
+             selectAll={() => selectAll(paginatedItems)}
+             isAllSelected={isAllSelected}
+           />
+         </Box>
+       )}
 
       {/* 网格内容区域 */}
       <Box sx={{ 
@@ -307,8 +384,7 @@ const AssetPagination = ({
                 product={item}
                 onProductClick={handleItemClick}
                 onDownload={handleItemDownload}
-                isSelected={selectedAssets.some(asset => asset.id === (item.id || item.identifier))}
-                onSelect={() => handleAssetToggle(item)}
+                showCheckbox={true}
                 cardActionsConfig={{
                   show_file_type: true,
                   show_eyebrow: true,
@@ -317,6 +393,8 @@ const AssetPagination = ({
                   show_preview_media: true,
                   show_select_checkbox: true,   // 显示复选框
                 }}
+                isAssetSelected={isAssetSelected}
+                toggleAsset={toggleAsset}
               />
             ))}
 

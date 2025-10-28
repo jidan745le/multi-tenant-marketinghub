@@ -642,6 +642,43 @@ const ProductDetailPage = () => {
     }
   });
 
+  // 数据检查函数 - 判断各个部分是否有数据
+  const hasData = React.useMemo(() => {
+    const data = productData;
+    console.log('data123', data);
+    return {
+      // References & Relationships
+      bundles: data?.referenceRelationship?.bundles && data.referenceRelationship.bundles.length > 0,
+      components: data?.referenceRelationship?.components && data.referenceRelationship.components.length > 0,
+      accessories: data?.referenceRelationship?.accessories && data.referenceRelationship.accessories.length > 0,
+      
+      // Marketing Collaterals
+      onWhite: data?.marketingCollaterals?.onWhite && data.marketingCollaterals.onWhite.length > 0,
+      actionLifestyle: data?.marketingCollaterals?.actionLifestyle && data.marketingCollaterals.actionLifestyle.length > 0,
+      videos: data?.marketingCollaterals?.videos && data.marketingCollaterals.videos.length > 0,
+      gallery: data?.marketingCollaterals?.imageGallery && data.marketingCollaterals.imageGallery.length > 0,
+      
+      // After Service
+      manuals: data?.afterService?.manuals && data.afterService.manuals.length > 0,
+      repairGuide: data?.afterService?.repairGuide && data.afterService.repairGuide.length > 0,
+      packaging: data?.afterService?.packaging && data.afterService.packaging.length > 0,
+      drawing: data?.afterService?.drawing && data.afterService.drawing.length > 0,
+      patent: data?.afterService?.patent && data.afterService.patent.length > 0,
+      
+      // Packaging & Logistics
+      packagingData: data?.packagingData && (data.packagingData.headers || data.packagingData.rows),
+      
+      // USPs & Benefits
+      packagingSpec: data?.packagingSpec && (data.packagingSpec.technicalSpecs || data.packagingSpec.logoMarking),
+      
+      // 其他部分
+      skuData: Array.isArray(data?.skuData) && data.skuData.length >= 2,
+      qrCodes: data?.qrCodes?.qrCodes && data.qrCodes.qrCodes.length > 0,
+      eans: data?.eans?.eans && data.eans.eans.length > 0,
+      iconsPictures: data?.iconsPictures?.icons && data.iconsPictures.icons.length > 0
+    };
+  }, [productData]);
+
   useEffect(() => {
     if (import.meta.env.DEV) {
       console.log('Strapi PDP Page Data:', getPdpPageData);
@@ -940,6 +977,79 @@ const ProductDetailPage = () => {
   const marketingFormItems = React.useMemo(() => 
     buildItemsFromFields(marketingFormData, marketingValueGetterMap, productData), [buildItemsFromFields, marketingFormData, marketingValueGetterMap, productData]
   );
+
+  // 通用的区域显示判断函数
+  const shouldShowSection = React.useCallback((hasDataCondition) => {
+    if (normalizedLayoutFromUrl === 'externalPDPBasic') {
+      return hasDataCondition;
+    }
+    return true;
+  }, [normalizedLayoutFromUrl]);
+
+  // 区域显示配置 - 集中管理所有区域的数据检查逻辑
+  const sectionDisplayConfig = React.useMemo(() => ({
+    basicData: () => hasData.skuData || 
+                     (basicFormItems && basicFormItems.length > 0) || 
+                     (sapFormItems && sapFormItems.length > 0),
+    
+    marketingData: () => (marketingFormItems && marketingFormItems.length > 0) || 
+                        hasData.iconsPictures || 
+                        hasData.qrCodes || 
+                        hasData.eans,
+    
+    references: () => hasData.bundles || hasData.components || hasData.accessories,
+    
+    packaging: () => hasData.packagingData,
+    
+    usps: () => hasData.packagingSpec,
+    
+    marketingCollaterals: () => hasData.onWhite || hasData.actionLifestyle || 
+                              hasData.videos || hasData.gallery
+  }), [hasData, basicFormItems, sapFormItems, marketingFormItems]);
+
+  // 判断各个区域是否应该显示
+  const shouldShowBasicDataSection = React.useMemo(() => 
+    shouldShowSection(sectionDisplayConfig.basicData()), 
+    [shouldShowSection, sectionDisplayConfig]
+  );
+
+  const shouldShowMarketingDataSection = React.useMemo(() => 
+    shouldShowSection(sectionDisplayConfig.marketingData()), 
+    [shouldShowSection, sectionDisplayConfig]
+  );
+
+  const shouldShowReferencesSection = React.useMemo(() => 
+    shouldShowSection(sectionDisplayConfig.references()), 
+    [shouldShowSection, sectionDisplayConfig]
+  );
+
+  const shouldShowPackagingSection = React.useMemo(() => 
+    shouldShowSection(sectionDisplayConfig.packaging()), 
+    [shouldShowSection, sectionDisplayConfig]
+  );
+
+  const shouldShowUSPsSection = React.useMemo(() => 
+    shouldShowSection(sectionDisplayConfig.usps()), 
+    [shouldShowSection, sectionDisplayConfig]
+  );
+
+  const shouldShowMarketingCollateralsSection = React.useMemo(() => 
+    shouldShowSection(sectionDisplayConfig.marketingCollaterals()), 
+    [shouldShowSection, sectionDisplayConfig]
+  );
+
+  // 判断整个After Service区域是否应该显示
+  const shouldShowAfterServiceSection = React.useMemo(() => {
+    const hasAnyAfterServiceData = hasData.manuals || hasData.repairGuide || hasData.packaging || hasData.drawing || hasData.patent;
+    
+    const shouldShowManuals = normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.manuals;
+    const shouldShowRepairGuide = normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.repairGuide;
+    const shouldShowPackaging = basicTab === 'internalPDPBasic' && (normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.packaging);
+    const shouldShowDrawing = normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.drawing;
+    const shouldShowPatent = normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.patent;
+    
+    return hasAnyAfterServiceData && (shouldShowManuals || shouldShowRepairGuide || shouldShowPackaging || shouldShowDrawing || shouldShowPatent);
+  }, [hasData.manuals, hasData.repairGuide, hasData.packaging, hasData.drawing, hasData.patent, normalizedLayoutFromUrl, basicTab]);
 
   // 简化版ProductCard infoPairs生成器
   const generateProductCardInfoPairs = React.useCallback(() => {
@@ -1670,21 +1780,66 @@ const ProductDetailPage = () => {
             
             // 多语言适配的过滤逻辑
             const skuDataKey = titleKey(t('pdp.sections.skuData'));
+            const bundlesKey = titleKey(t('pdp.sections.bundles'));
+            const componentsKey = titleKey(t('pdp.sections.components'));
+            const accessoriesKey = titleKey(t('pdp.sections.accessories'));
+            const onWhiteKey = titleKey(t('pdp.sections.onWhite'));
+            const actionLifestyleKey = titleKey(t('pdp.sections.actionAndLifestyle'));
+            const videosKey = titleKey(t('pdp.sections.videos'));
+            const galleryKey = titleKey(t('pdp.sections.gallery'));
+            const manualsKey = titleKey(t('pdp.sections.manuals'));
+            const repairGuideKey = titleKey(t('pdp.sections.repairGuide'));
+            const packagingKey = titleKey(t('pdp.sections.packaging'));
+            const drawingKey = titleKey(t('pdp.sections.drawing'));
+            const patentKey = titleKey(t('pdp.sections.patent'));
+            const qrCodesKey = titleKey(t('pdp.sections.qrCodes'));
+            const eansKey = titleKey(t('pdp.sections.eans'));
+            const iconsPicturesKey = titleKey(t('pdp.sections.iconsAndPictures'));
+            const packagingDataKey = titleKey(t('pdp.sections.packagingData') || 'Packaging Data');
+            const packagingSpecKey = titleKey(t('pdp.sections.packagingSpec') || 'Packaging Spec');
             
-            if (k === skuDataKey && !(Array.isArray(productData?.skuData) && productData.skuData.length >= 2)) {
-              return false;
+            // 在 externalPDPBasic 时隐藏空数据部分
+            if (normalizedLayoutFromUrl === 'externalPDPBasic') {
+              if (k === skuDataKey && !hasData.skuData) return false;
+              if (k === bundlesKey && !hasData.bundles) return false;
+              if (k === componentsKey && !hasData.components) return false;
+              if (k === accessoriesKey && !hasData.accessories) return false;
+              if (k === onWhiteKey && !hasData.onWhite) return false;
+              if (k === actionLifestyleKey && !hasData.actionLifestyle) return false;
+              if (k === videosKey && !hasData.videos) return false;
+              if (k === galleryKey && !hasData.gallery) return false;
+              if (k === manualsKey && !hasData.manuals) return false;
+              if (k === repairGuideKey && !hasData.repairGuide) return false;
+              if (k === packagingKey && !hasData.packaging) return false;
+              if (k === drawingKey && !hasData.drawing) return false;
+              if (k === patentKey && !hasData.patent) return false;
+              if (k === qrCodesKey && !hasData.qrCodes) return false;
+              if (k === eansKey && !hasData.eans) return false;
+              if (k === iconsPicturesKey && !hasData.iconsPictures) return false;
+              if (k === packagingDataKey && !hasData.packagingData) return false;
+              if (k === packagingSpecKey && !hasData.packagingSpec) return false;
+            } else {
+              // internalPDPBasic 保持原有逻辑
+              if (k === skuDataKey && !hasData.skuData) return false;
             }
+            
             if (subSet.has(k)) return false;
             subSet.add(k);
             return true;
           });
+        
+        // 如果该部分没有任何子项，也隐藏整个部分
+        if (subs.length === 0 && normalizedLayoutFromUrl === 'externalPDPBasic') {
+          return null;
+        }
+        
         return {
           id: root.id,
           title: (root.title || '').toString().toUpperCase(),
           icon: <Box component='img' src={documentIcon} alt='document' sx={{ width: 16, height: 16 }} />,
           subItems: subs
         };
-      });
+      }).filter(Boolean); // 过滤掉 null 项
       return items;
     };
     //动态目录的地方
@@ -1726,7 +1881,7 @@ const ProductDetailPage = () => {
         subItems: staticSubItems
       }
     ];
-  }, [getPdpPageData, productData?.skuData, t, currentLanguage, basicTab]);
+  }, [getPdpPageData, productData?.skuData, t, currentLanguage, basicTab, hasData, normalizedLayoutFromUrl]);
 
   const handleSectionToggle = (sectionId) => {
     setExpandedSections(prev => ({
@@ -1843,16 +1998,20 @@ const ProductDetailPage = () => {
       )}
 
       {/* Basic Data */}
-      <Typography ref={basicDataTitleRef} variant="h6" sx={{ mb: 2 , fontSize: '24px', fontFamily: '"Open Sans", sans-serif', fontWeight: 580, color:'#4d4d4d' }}>
-        {basicFormData?.title || 'Basic Data'}
-      </Typography>
-      {basicFormItems && basicFormItems.length > 0 && (
-        <Box sx={{ mb: 3, mt: 3 }}>
-          <Form
-            columns={basicFormData?.columnType || "double"}
-            items={basicFormItems}
-          />
-        </Box>
+      {(normalizedLayoutFromUrl !== 'externalPDPBasic' || (basicFormItems && basicFormItems.length > 0)) && (
+        <>
+          <Typography ref={basicDataTitleRef} variant="h6" sx={{ mb: 2 , fontSize: '24px', fontFamily: '"Open Sans", sans-serif', fontWeight: 580, color:'#4d4d4d' }}>
+            {basicFormData?.title || 'Basic Data'}
+          </Typography>
+          {basicFormItems && basicFormItems.length > 0 && (
+            <Box sx={{ mb: 3, mt: 3 }}>
+              <Form
+                columns={basicFormData?.columnType || "double"}
+                items={basicFormItems}
+              />
+            </Box>
+          )}
+        </>
       )}
 
       {/* SAP Detail */}
@@ -1896,109 +2055,121 @@ const ProductDetailPage = () => {
         </Box>
       )}
       {/* Icons & Pictures */}
-      <SectionHeader
-        titleRef={iconsPicturesTitleRef}
-        title={iconsAndPicturesData?.title || 'Icons & Pictures'}
-        showDownload={iconsAndPicturesData?.download}
-        onDownloadClick={handleIconsPicturesDownload}
-      />
-      {productData.iconsPictures?.icons && productData.iconsPictures.icons.length > 0 && (
-        <Box sx={{ mb: 3 }}>
-          <Image 
-            type={ iconsAndPicturesData?.type || "simple"}
-            images={productData.iconsPictures.icons.map(icon => ({
-              src: icon.thumbnailUrl? `https://pim-test.kendo.com${icon.thumbnailUrl}` : image1,
-              alt: icon.type || '',
-              assetId: icon.assetId || icon.id
-            }))}
-            onImageClick={handleImageClick}
-            onDownload={(imageData) => handleSingleImageDownload(imageData, 'Icons & Pictures')}
+      {(normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.iconsPictures) && (
+        <>
+          <SectionHeader
+            titleRef={iconsPicturesTitleRef}
+            title={iconsAndPicturesData?.title || 'Icons & Pictures'}
+            showDownload={iconsAndPicturesData?.download}
+            onDownloadClick={handleIconsPicturesDownload}
           />
-        </Box>
+          {productData.iconsPictures?.icons && productData.iconsPictures.icons.length > 0 && (
+            <Box sx={{ mb: 3 }}>
+              <Image 
+                type={ iconsAndPicturesData?.type || "simple"}
+                images={productData.iconsPictures.icons.map(icon => ({
+                  src: icon.thumbnailUrl? `https://pim-test.kendo.com${icon.thumbnailUrl}` : image1,
+                  alt: icon.type || '',
+                  assetId: icon.assetId || icon.id
+                }))}
+                onImageClick={handleImageClick}
+                onDownload={(imageData) => handleSingleImageDownload(imageData, 'Icons & Pictures')}
+              />
+            </Box>
+          )}
+        </>
       )}     
       {/* QR Codes */}
-      <SectionHeader
-        titleRef={qrCodesTitleRef}
-        title={qrCodesData?.title || 'QR Codes'}
-        showDownload={qrCodesData?.download}
-        onDownloadClick={() => console.log('Download languages clicked')}
-      />
-      
-      {/* QR Code Table */}
-      {productData.qrCodes?.qrCodes && productData.qrCodes.qrCodes.length > 0 && (
-        <Box sx={{ mb: 3 }}>
-          <UnifiedInfoTable 
-            type="qrcode"
-            data={productData.qrCodes.qrCodes.map(qr => ({
-              // image: qr.imageUrl ? `https://pim-test.kendo.com${qr.imageUrl}` : qrImage1,
-              name: qr.name || '',
-              link: qr.link || ''
-            }))}
-            onLinkClick={handleQRLinkClick}
-            onImageClick={handleQRImageClick}
+      {(normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.qrCodes) && (
+        <>
+          <SectionHeader
+            titleRef={qrCodesTitleRef}
+            title={qrCodesData?.title || 'QR Codes'}
+            showDownload={qrCodesData?.download}
+            onDownloadClick={() => console.log('Download languages clicked')}
           />
-        </Box>
+      
+          {/* QR Code Table */}
+          {productData.qrCodes?.qrCodes && productData.qrCodes.qrCodes.length > 0 && (
+            <Box sx={{ mb: 3 }}>
+              <UnifiedInfoTable 
+                type="qrcode"
+                data={productData.qrCodes.qrCodes.map(qr => ({
+                  // image: qr.imageUrl ? `https://pim-test.kendo.com${qr.imageUrl}` : qrImage1,
+                  name: qr.name || '',
+                  link: qr.link || ''
+                }))}
+                onLinkClick={handleQRLinkClick}
+                onImageClick={handleQRImageClick}
+              />
+            </Box>
+          )}
+        </>
       )}
       
       {/* EANS */}
-      <Box sx={{ 
-        display: 'flex',
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        mt: 4,
-        mb: 3.5
-      }}>
-        {/* 标题 */}
-        <Typography ref={eansTitleRef} sx={{
-          color: '#4d4d4d',
-          fontFamily: '"Open Sans", sans-serif',
-          fontSize: '24.5px',
-          fontWeight: 520
-        }}>
-          {eansData?.title || 'EANS'}
-        </Typography>
+      {(normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.eans) && (
+        <>
+          <Box sx={{ 
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            mt: 4,
+            mb: 3.5
+          }}>
+            {/* 标题 */}
+            <Typography ref={eansTitleRef} sx={{
+              color: '#4d4d4d',
+              fontFamily: '"Open Sans", sans-serif',
+              fontSize: '24.5px',
+              fontWeight: 520
+            }}>
+              {eansData?.title || 'EANS'}
+            </Typography>
 
-        {/* 操作按钮 */}
-        {eansData?.download && (
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            {/* 下载语言按钮 */}
-            <Button
-              variant="outlined"
-              startIcon={
-                <Box component="img" src={downloadIcon} alt="download" sx={{ width: 20, height: 20, display: 'block' }} />
-              }
-              onClick={() => console.log('Download languages clicked')}
-              sx={{
-                ...styles.topButtonBase,
-                bgcolor: '#ffffff',
-                borderColor: '#cccccc',
-                color: '#333333',
-                px: 2,
-                width: 'auto',
-                minWidth: '160px',
-                '&:hover': { bgcolor: '#eaeaea', borderColor: '#cccccc', color: '#000000' }
-              }}
-            >
-              {t('common.downloadAll')}
-            </Button>
+            {/* 操作按钮 */}
+            {eansData?.download && (
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                {/* 下载语言按钮 */}
+                <Button
+                  variant="outlined"
+                  startIcon={
+                    <Box component="img" src={downloadIcon} alt="download" sx={{ width: 20, height: 20, display: 'block' }} />
+                  }
+                  onClick={() => console.log('Download languages clicked')}
+                  sx={{
+                    ...styles.topButtonBase,
+                    bgcolor: '#ffffff',
+                    borderColor: '#cccccc',
+                    color: '#333333',
+                    px: 2,
+                    width: 'auto',
+                    minWidth: '160px',
+                    '&:hover': { bgcolor: '#eaeaea', borderColor: '#cccccc', color: '#000000' }
+                  }}
+                >
+                  {t('common.downloadAll')}
+                </Button>
+              </Box>
+            )}
           </Box>
-        )}
-      </Box>
-      
-      {/* EAN Code Table */}
-      {productData.eans?.eans && productData.eans.eans.length > 0 && (
-        <Box sx={{ mb: 3 }}>
-          <UnifiedInfoTable 
-            type="barcode"
-            data={productData.eans.eans.map(ean => ({
-              // image: ean.imageUrl ? `https://pim-test.kendo.com${ean.imageUrl}` : eanImage1,
-              name: ean.name || '',
-              eanCode: ean.eanCode || ''
-            }))}
-            onImageClick={handleEANImageClick}
-          />
-        </Box>
+          
+          {/* EAN Code Table */}
+          {productData.eans?.eans && productData.eans.eans.length > 0 && (
+            <Box sx={{ mb: 3 }}>
+              <UnifiedInfoTable 
+                type="barcode"
+                data={productData.eans.eans.map(ean => ({
+                  // image: ean.imageUrl ? `https://pim-test.kendo.com${ean.imageUrl}` : eanImage1,
+                  name: ean.name || '',
+                  eanCode: ean.eanCode || ''
+                }))}
+                onImageClick={handleEANImageClick}
+              />
+            </Box>
+          )}
+        </>
       )}
     </Box>
   );
@@ -2006,204 +2177,222 @@ const ProductDetailPage = () => {
   const renderReferencesRelationshipsSection = () => (
     <Box>
       {/* Bundles */}
-      <Typography ref={bundlesTitleRef} variant="h6" sx={{ mb: 2.5, fontSize: '24px', fontFamily: '"Open Sans", sans-serif', fontWeight: 520}}>
-        {bundlesData?.title || 'Bundles'}
-      </Typography>
-      
-      {/* Bundles Product Grid */}
-      {productData.referenceRelationship?.bundles && productData.referenceRelationship.bundles.length > 0 ? (
-        <Box sx={{ mb: 3 }}>
-          <ProductCardGrid 
-            products={productData.referenceRelationship.bundles.map(bundle => ({
-              image: bundle.imageUrl ? `https://pim-test.kendo.com${bundle.imageUrl}` : bundleImage1,
-              name: bundle.productName || '',
-              code: bundle.productNumber || ''
-            }))}
-            onProductClick={(product, index) => {
-              console.log('Bundle Product clicked:', product, index);
-              if (product.code) {
-                const currentLayout = searchParams.get('layout') || 'internalPDPBasic';
-                const encoded = parseLayoutFromUrl(currentLayout);
-                const newUrl = `/${currentLanguage}/${currentBrandCode}/product-detail/${product.code}?layout=${encoded}`;
-                window.open(newUrl, '_blank', 'noopener,noreferrer');
-              }
-            }}
-            onImageClick={(product, index) => console.log('Bundle Image clicked:', product, index)}
-          />
-        </Box>
-      ) : (
-        <Box sx={{ mb: 3 }}>
-          <ProductCardGrid 
-            products={[]}
-            onProductClick={(product, index) => {
-              console.log('Bundle Product clicked:', product, index);
-              if (product.code) {
-                const currentLayout = searchParams.get('layout') || 'internalPDPBasic';
-                const encoded = parseLayoutFromUrl(currentLayout);
-                const newUrl = `/${currentLanguage}/${currentBrandCode}/product-detail/${product.code}?layout=${encoded}`;
-                window.open(newUrl, '_blank', 'noopener,noreferrer');
-              }
-            }}
-            onImageClick={(product, index) => console.log('Bundle Image clicked:', product, index)}
-          />
-        </Box>
+      {(normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.bundles) && (
+        <>
+          <Typography ref={bundlesTitleRef} variant="h6" sx={{ mb: 2.5, fontSize: '24px', fontFamily: '"Open Sans", sans-serif', fontWeight: 520}}>
+            {bundlesData?.title || 'Bundles'}
+          </Typography>
+          
+          {/* Bundles Product Grid */}
+          {productData.referenceRelationship?.bundles && productData.referenceRelationship.bundles.length > 0 ? (
+            <Box sx={{ mb: 3 }}>
+              <ProductCardGrid 
+                products={productData.referenceRelationship.bundles.map(bundle => ({
+                  image: bundle.imageUrl ? `https://pim-test.kendo.com${bundle.imageUrl}` : bundleImage1,
+                  name: bundle.productName || '',
+                  code: bundle.productNumber || ''
+                }))}
+                onProductClick={(product, index) => {
+                  console.log('Bundle Product clicked:', product, index);
+                  if (product.code) {
+                    const currentLayout = searchParams.get('layout') || 'internalPDPBasic';
+                    const encoded = parseLayoutFromUrl(currentLayout);
+                    const newUrl = `/${currentLanguage}/${currentBrandCode}/product-detail/${product.code}?layout=${encoded}`;
+                    window.open(newUrl, '_blank', 'noopener,noreferrer');
+                  }
+                }}
+                onImageClick={(product, index) => console.log('Bundle Image clicked:', product, index)}
+              />
+            </Box>
+          ) : (
+            <Box sx={{ mb: 3 }}>
+              <ProductCardGrid 
+                products={[]}
+                onProductClick={(product, index) => {
+                  console.log('Bundle Product clicked:', product, index);
+                  if (product.code) {
+                    const currentLayout = searchParams.get('layout') || 'internalPDPBasic';
+                    const encoded = parseLayoutFromUrl(currentLayout);
+                    const newUrl = `/${currentLanguage}/${currentBrandCode}/product-detail/${product.code}?layout=${encoded}`;
+                    window.open(newUrl, '_blank', 'noopener,noreferrer');
+                  }
+                }}
+                onImageClick={(product, index) => console.log('Bundle Image clicked:', product, index)}
+              />
+            </Box>
+          )}
+        </>
       )}
 
       {/* Components */}
-      <Typography ref={componentsTitleRef} variant="h6" sx={{ mb: 2.5 , fontSize: '24px', fontFamily: '"Open Sans", sans-serif', fontWeight: 580 }}>
-        {componentsData?.title || 'Components'}
-      </Typography>
-      
-      {/* Components Product Grid */}
-      {productData.referenceRelationship?.components && productData.referenceRelationship.components.length > 0 ? (
-        <Box sx={{ mb: 3 }}>
-          <ProductCardGrid 
-            products={productData.referenceRelationship.components.map(component => ({
-              image: component.imageUrl ? `https://pim-test.kendo.com${component.imageUrl}` : componentImage1,
-              name: component.productName || '',
-              code: component.productNumber || ''
-            }))}
-            onProductClick={(product, index) => console.log('Component Product clicked:', product, index)}
-            onImageClick={(product, index) => console.log('Component Image clicked:', product, index)}
-          />
-        </Box>
-      ) : (
-        <Box sx={{ mb: 3 }}>
-          <ProductCardGrid 
-            products={[]}
-            onProductClick={(product, index) => console.log('Component Product clicked:', product, index)}
-            onImageClick={(product, index) => console.log('Component Image clicked:', product, index)}
-          />
-        </Box>
+      {(normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.components) && (
+        <>
+          <Typography ref={componentsTitleRef} variant="h6" sx={{ mb: 2.5 , fontSize: '24px', fontFamily: '"Open Sans", sans-serif', fontWeight: 580 }}>
+            {componentsData?.title || 'Components'}
+          </Typography>
+          
+          {/* Components Product Grid */}
+          {productData.referenceRelationship?.components && productData.referenceRelationship.components.length > 0 ? (
+            <Box sx={{ mb: 3 }}>
+              <ProductCardGrid 
+                products={productData.referenceRelationship.components.map(component => ({
+                  image: component.imageUrl ? `https://pim-test.kendo.com${component.imageUrl}` : componentImage1,
+                  name: component.productName || '',
+                  code: component.productNumber || ''
+                }))}
+                onProductClick={(product, index) => console.log('Component Product clicked:', product, index)}
+                onImageClick={(product, index) => console.log('Component Image clicked:', product, index)}
+              />
+            </Box>
+          ) : (
+            <Box sx={{ mb: 3 }}>
+              <ProductCardGrid 
+                products={[]}
+                onProductClick={(product, index) => console.log('Component Product clicked:', product, index)}
+                onImageClick={(product, index) => console.log('Component Image clicked:', product, index)}
+              />
+            </Box>
+          )}
+        </>
       )}
 
       {/* Accessories */}
-      <Typography ref={accessoriesTitleRef} variant="h6" sx={{ mb: 2.5, fontSize: '24.5px', fontFamily: '"Open Sans", sans-serif', fontWeight: 520}}>
-        {accessoriesData?.title || 'Accessories'}
-      </Typography>
-      
-      {/* Accessories Table */}
-      <Box sx={{ mb: 3 }}>
-        <UnifiedInfoTable 
-          type={"accessory"}
-          data={productData.referenceRelationship?.accessories?.map(accessory => ({
-            image: accessory.imageUrl ? `https://pim-test.kendo.com${accessory.imageUrl}` : accessoryImage1,
-            model: accessory.model || '',
-            name: accessory.name || '',
-            quantity: accessory.quantity || ''
-          })) || []}
-          onImageClick={(item, index) => console.log('Accessory Image clicked:', item, index)}
-        />
-      </Box>
+      {(normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.accessories) && (
+        <>
+          <Typography ref={accessoriesTitleRef} variant="h6" sx={{ mb: 2.5, fontSize: '24.5px', fontFamily: '"Open Sans", sans-serif', fontWeight: 520}}>
+            {accessoriesData?.title || 'Accessories'}
+          </Typography>
+          
+          {/* Accessories Table */}
+          <Box sx={{ mb: 3 }}>
+            <UnifiedInfoTable 
+              type={"accessory"}
+              data={productData.referenceRelationship?.accessories?.map(accessory => ({
+                image: accessory.imageUrl ? `https://pim-test.kendo.com${accessory.imageUrl}` : accessoryImage1,
+                model: accessory.model || '',
+                name: accessory.name || '',
+                quantity: accessory.quantity || ''
+              })) || []}
+              onImageClick={(item, index) => console.log('Accessory Image clicked:', item, index)}
+            />
+          </Box>
+        </>
+      )}
     </Box>
   );
 
   const renderPackagingLogisticsSection = () => (
     <Box>
-      <Box sx={{ 
-        display: 'flex',
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        mt: 3.5,
-        mb: 3.5
-      }}>
-        {/* 标题 */}
-        <Typography ref={packagingDataTitleRef} sx={{
-          color: '#4d4d4d',
-          fontFamily: '"Open Sans", sans-serif',
-          fontSize: '24.5px',
-          fontWeight: 520
-        }}>
-          {packagingData?.[0]?.title || 'Packaging Data'}
-        </Typography>
+      {(normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.packagingData) && (
+        <>
+          <Box sx={{ 
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            mt: 3.5,
+            mb: 3.5
+          }}>
+            {/* 标题 */}
+            <Typography ref={packagingDataTitleRef} sx={{
+              color: '#4d4d4d',
+              fontFamily: '"Open Sans", sans-serif',
+              fontSize: '24.5px',
+              fontWeight: 520
+            }}>
+              {packagingData?.[0]?.title || 'Packaging Data'}
+            </Typography>
 
-        {/* 操作按钮组 */}
-        {packagingData?.[0]?.download && (
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            {/* 下载语言按钮 */}
-            <Button
-              variant="outlined"
-              startIcon={
-                <Box component="img" src={downloadIcon} alt="download" sx={{ width: 20, height: 20, display: 'block' }} />
-              }
-              onClick={() => console.log('Download languages clicked')}
-              sx={{
-                ...styles.topButtonBase,
-                bgcolor: '#ffffff',
-                borderColor: '#cccccc',
-                color: '#333333',
-                px: 2,
-                width: 'auto',
-                minWidth: '200px',
-                '&:hover': { bgcolor: '#eaeaea', borderColor: '#cccccc', color: '#000000' }
-              }}
-            >
-              Download
-            </Button>
+            {/* 操作按钮组 */}
+            {packagingData?.[0]?.download && (
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                {/* 下载语言按钮 */}
+                <Button
+                  variant="outlined"
+                  startIcon={
+                    <Box component="img" src={downloadIcon} alt="download" sx={{ width: 20, height: 20, display: 'block' }} />
+                  }
+                  onClick={() => console.log('Download languages clicked')}
+                  sx={{
+                    ...styles.topButtonBase,
+                    bgcolor: '#ffffff',
+                    borderColor: '#cccccc',
+                    color: '#333333',
+                    px: 2,
+                    width: 'auto',
+                    minWidth: '200px',
+                    '&:hover': { bgcolor: '#eaeaea', borderColor: '#cccccc', color: '#000000' }
+                  }}
+                >
+                  Download
+                </Button>
+              </Box>
+            )}
           </Box>
-        )}
-      </Box>
-      
-      {/* Packaging Table */}
-      <Box sx={{ mb: 3 }}>
-        <PackagingTable 
-          data={productData.packagingData?.rows?.map(row => ({
-            values: row || []
-          })) || []}
-          columns={productData.packagingData?.headers || []}
-        />
-      </Box>
+          
+          {/* Packaging Table */}
+          <Box sx={{ mb: 3 }}>
+            <PackagingTable 
+              data={productData.packagingData?.rows?.map(row => ({
+                values: row || []
+              })) || []}
+              columns={productData.packagingData?.headers || []}
+            />
+          </Box>
+        </>
+      )}
     </Box>
   );
 
   const renderUSPSBenefitsSection = () => (
     <Box>
-      <Box sx={{ 
-        display: 'flex',
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        mt: 3.5,
-        mb: 3.5
-      }}>
-        {/* 标题 */}
-        <Typography ref={packagingSpecTitleRef} sx={{
-          color: '#4d4d4d',
-          fontFamily: '"Open Sans", sans-serif',
-          fontSize: '24.5px',
-          fontWeight: 520
-        }}>
-          {specificationData?.[0]?.title || 'Packaging & Spec'}
-        </Typography>
+      {(normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.packagingSpec) && (
+        <>
+          <Box sx={{ 
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            mt: 3.5,
+            mb: 3.5
+          }}>
+            {/* 标题 */}
+            <Typography ref={packagingSpecTitleRef} sx={{
+              color: '#4d4d4d',
+              fontFamily: '"Open Sans", sans-serif',
+              fontSize: '24.5px',
+              fontWeight: 520
+            }}>
+              {specificationData?.[0]?.title || 'Packaging & Spec'}
+            </Typography>
 
-        {/* 操作按钮组 */}
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          {/* 查看语言按钮 */}
-          {specificationData?.[0]?.show && (
-            <Button
-              variant="outlined"
-              startIcon={
-                <Box component="img" src={ViewIcon} alt="view" sx={{ width: 20, height: 20, display: 'block' }} />
-              }
-              onClick={() => console.log('Show languages clicked')}
-              sx={{
-                ...styles.topButtonBase,
-                bgcolor: '#ffffff',
-                borderColor: '#cccccc',
-                color: '#333333',
-                px: 2,
-                width: 'auto',
-                minWidth: '160px',
-                '&:hover': { bgcolor: '#eaeaea', borderColor: '#cccccc', color: '#000000' }
-              }}
-            >
-              Show Languages
-            </Button>
-          )}
+            {/* 操作按钮组 */}
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              {/* 查看语言按钮 */}
+              {specificationData?.[0]?.show && (
+                <Button
+                  variant="outlined"
+                  startIcon={
+                    <Box component="img" src={ViewIcon} alt="view" sx={{ width: 20, height: 20, display: 'block' }} />
+                  }
+                  onClick={() => console.log('Show languages clicked')}
+                  sx={{
+                    ...styles.topButtonBase,
+                    bgcolor: '#ffffff',
+                    borderColor: '#cccccc',
+                    color: '#333333',
+                    px: 2,
+                    width: 'auto',
+                    minWidth: '160px',
+                    '&:hover': { bgcolor: '#eaeaea', borderColor: '#cccccc', color: '#000000' }
+                  }}
+                >
+                  Show Languages
+                </Button>
+              )}
 
-          {/* 下载语言按钮 */}
-          {specificationData?.[0]?.download && (
+              {/* 下载语言按钮 */}
+              {specificationData?.[0]?.download && (
             <Button
               variant="outlined"
               startIcon={
@@ -2227,57 +2416,62 @@ const ProductDetailPage = () => {
         </Box>
       </Box>
       
-      {/* Specification Table */}
-      <Box sx={{ mb: 3 }}>
-        <SpecificationTable 
-          data={[
-            {
-              title: t('pdp.technicalSpecs'),
-              icon: 'straighten',
-              items: productData.packagingSpec?.technicalSpecs?.map(spec => ({
-                feature: spec.featureName || '',
-                value: spec.value || '',
-                unit: spec.unit || '',
-                showQuestion: true
-              })) || []
-            },
-            ...(basicTab === 'internalPDPBasic' ? [{
-              title: t('pdp.logoMarking'),
-              icon: 'category',
-              items: productData.packagingSpec?.logoMarking?.map(logo => ({
-                feature: logo.featureName || '',
-                value: logo.value || '',
-                unit: '',
-                showQuestion: true
-              })) || []
-            }] : [])
-          ]}
-          columns={(() => {
-            const firstSpec = productData.packagingSpec?.technicalSpecs?.[0];
-            if (!firstSpec) return [t('Feature Name'), t('Value'), t('Unit')];
-            const keys = Object.keys(firstSpec);
-            const columnMap = {
-              featureName: 'Feature Name',
-              value: 'Value',
-              unit: 'Unit'
-            };
-            return keys.map(key => t(columnMap[key] || key));
-          })()}
-        />
-      </Box>
+          {/* Specification Table */}
+          <Box sx={{ mb: 3 }}>
+            <SpecificationTable 
+              data={[
+                {
+                  title: t('pdp.technicalSpecs'),
+                  icon: 'straighten',
+                  items: productData.packagingSpec?.technicalSpecs?.map(spec => ({
+                    feature: spec.featureName || '',
+                    value: spec.value || '',
+                    unit: spec.unit || '',
+                    showQuestion: true
+                  })) || []
+                },
+                ...(basicTab === 'internalPDPBasic' ? [{
+                  title: t('pdp.logoMarking'),
+                  icon: 'category',
+                  items: productData.packagingSpec?.logoMarking?.map(logo => ({
+                    feature: logo.featureName || '',
+                    value: logo.value || '',
+                    unit: '',
+                    showQuestion: true
+                  })) || []
+                }] : [])
+              ]}
+              columns={(() => {
+                const firstSpec = productData.packagingSpec?.technicalSpecs?.[0];
+                if (!firstSpec) return [t('Feature Name'), t('Value'), t('Unit')];
+                const keys = Object.keys(firstSpec);
+                const columnMap = {
+                  featureName: 'Feature Name',
+                  value: 'Value',
+                  unit: 'Unit'
+                };
+                return keys.map(key => t(columnMap[key] || key));
+              })()}
+            />
+          </Box>
+        </>
+      )}
     </Box>
   );
 
   const renderMarketingCollateralsSection = () => (
     <Box>
-      <SectionHeader
-        titleRef={onWhiteTitleRef}
-        title={onWhiteData?.title || 'On White'}
-        showDownload={onWhiteData?.download}
-        onDownloadClick={handleOnWhiteDownload}
-      />
-      {/* On White Images */}
-      {productData.marketingCollaterals?.onWhite && productData.marketingCollaterals.onWhite.length > 0 && (
+      {/* On White */}
+      {(normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.onWhite) && (
+        <>
+          <SectionHeader
+            titleRef={onWhiteTitleRef}
+            title={onWhiteData?.title || 'On White'}
+            showDownload={onWhiteData?.download}
+            onDownloadClick={handleOnWhiteDownload}
+          />
+          {/* On White Images */}
+          {productData.marketingCollaterals?.onWhite && productData.marketingCollaterals.onWhite.length > 0 && (
         <Box sx={{ mb: 3 }}>
           <Image 
             type={ onWhiteData?.type || "gallery"}
@@ -2303,15 +2497,12 @@ const ProductDetailPage = () => {
               basic: [
                 { key: 'modelNumber', label: 'Model Number' },
                 { key: 'imageType', label: 'Image Type' },
-                { key: 'lockDate', label: 'Lock Date' },
-                { key: 'countryRestrictions', label: 'Country Restrictions' },
                 { key: 'usageRights', label: 'Usage Rights' },
+                { key: 'language', label: 'Language' },
+                { key: 'product', label: 'Country Restrictions' },
                 { key: 'approvalStatus', label: 'Approval Status' }
               ],
               technical: [
-                { key: 'colorSpace', label: 'Color Space' },
-                { key: 'colorProfile', label: 'Color Profile' },
-                { key: 'resolution', label: 'Resolution' },
                 { key: 'dimensions', label: 'Dimensions' },
                 { key: 'size', label: 'Size' },
                 { key: 'createdOn', label: 'Created On' },
@@ -2323,14 +2514,20 @@ const ProductDetailPage = () => {
           />
         </Box>
       )}
-      <SectionHeader
-        titleRef={actionLifestyleTitleRef}
-        title={actionAndLifestyleData?.title || 'Action & Lifestyle'}
-        showDownload={actionAndLifestyleData?.download}
-        onDownloadClick={handleActionLifestyleDownload}
-      />
-      {/* Action & Lifestyle Images */}
-      {productData.marketingCollaterals?.actionLifestyle && productData.marketingCollaterals.actionLifestyle.length > 0 && (
+        </>
+      )}
+      
+      {/* Action & Lifestyle */}
+      {(normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.actionLifestyle) && (
+        <>
+          <SectionHeader
+            titleRef={actionLifestyleTitleRef}
+            title={actionAndLifestyleData?.title || 'Action & Lifestyle'}
+            showDownload={actionAndLifestyleData?.download}
+            onDownloadClick={handleActionLifestyleDownload}
+          />
+          {/* Action & Lifestyle Images */}
+          {productData.marketingCollaterals?.actionLifestyle && productData.marketingCollaterals.actionLifestyle.length > 0 && (
         <Box sx={{ mb: 3 }}>
           <Image 
             type={ actionAndLifestyleData?.type || "gallery"}
@@ -2350,43 +2547,70 @@ const ProductDetailPage = () => {
               downloadUrl: img.downloadUrl || '',
               imageUrl: img.imageUrl || ''
             }))}
+             // 标签映射
+             infoLabels={{
+              basic: [
+                { key: 'modelNumber', label: 'Model Number' },
+                { key: 'imageType', label: 'Image Type' },
+                { key: 'usageRights', label: 'Usage Rights' },
+                { key: 'language', label: 'Language' },
+                { key: 'product', label: 'Country Restrictions' },
+                { key: 'approvalStatus', label: 'Approval Status' }
+              ],
+              technical: [
+                { key: 'dimensions', label: 'Dimensions' },
+                { key: 'size', label: 'Size' },
+                { key: 'createdOn', label: 'Created On' },
+                { key: 'changeDate', label: 'Change Date' }
+              ]
+            }}
             onImageSelect={(image, index) => console.log('Action & Lifestyle selected:', index, image)}
             onDownload={(imageData) => handleSingleImageDownload(imageData, 'Action & Lifestyle')}
           />
         </Box>
       )}
-      <SectionHeader
-        titleRef={videosTitleRef}
-        title={mediaData?.[0]?.title || 'Videos'}
-        showDownload={mediaData?.[0]?.download}
-        onDownloadClick={handleVideosDownload}
-      />
+        </>
+      )}
 
-      {/* Videos Media List */}
-      <Box sx={{ mb: 3 }}>
-        <MediaListTable
-          data={productData.marketingCollaterals?.videos?.map(video => ({
-            image: video.thumbnailUrl ? `https://pim-test.kendo.com${video.thumbnailUrl}` : '',
-            name: video.videoTitle || '',
-            language: video.language || '',
-            type: video.type || '',
-            format: video.format || '',
-            duration: video.duration || '',
-            downloadUrl: video.downloadUrl || '',
-            videoUrl: video.downloadUrl ? `https://pim-test.kendo.com${video.downloadUrl}` : '',
-            assetId: video.assetId || video.id
-          })) || []}
-          onDownloadClick={handleSingleVideoDownload}
-        />
-      </Box>
+      {/* Videos */}
+      {(normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.videos) && (
+        <>
+          <SectionHeader
+            titleRef={videosTitleRef}
+            title={mediaData?.[0]?.title || 'Videos'}
+            showDownload={mediaData?.[0]?.download}
+            onDownloadClick={handleVideosDownload}
+          />
+
+          {/* Videos Media List */}
+          <Box sx={{ mb: 3 }}>
+            <MediaListTable
+              data={productData.marketingCollaterals?.videos?.map(video => ({
+                image: video.thumbnailUrl ? `https://pim-test.kendo.com${video.thumbnailUrl}` : '',
+                name: video.videoTitle || '',
+                language: video.language || '',
+                type: video.type || '',
+                format: video.format || '',
+                duration: video.duration || '',
+                downloadUrl: video.downloadUrl || '',
+                videoUrl: video.downloadUrl ? `https://pim-test.kendo.com${video.downloadUrl}` : '',
+                assetId: video.assetId || video.id
+              })) || []}
+              onDownloadClick={handleSingleVideoDownload}
+            />
+          </Box>
+        </>
+      )}
 
       {/* Gallery */}
-      <SectionHeader
-        titleRef={galleryTitleRef}
-        title={galleryData?.title || 'Gallery'}
-        showDownload={galleryData?.download}
-        onDownloadClick={handleGalleryDownload}
-      />
+      {(normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.gallery) && (
+        <>
+          <SectionHeader
+            titleRef={galleryTitleRef}
+            title={galleryData?.title || 'Gallery'}
+            showDownload={galleryData?.download}
+            onDownloadClick={handleGalleryDownload}
+          />
 
       {/* Gallery Images */}
       {productData.marketingCollaterals?.imageGallery && productData.marketingCollaterals.imageGallery.length > 0 && (
@@ -2415,15 +2639,12 @@ const ProductDetailPage = () => {
               basic: [
                 { key: 'modelNumber', label: 'Model Number' },
                 { key: 'imageType', label: 'Image Type' },
-                { key: 'lockDate', label: 'Lock Date' },
-                { key: 'countryRestrictions', label: 'Country Restrictions' },
                 { key: 'usageRights', label: 'Usage Rights' },
+                { key: 'language', label: 'Language' },
+                { key: 'product', label: 'Country Restrictions' },
                 { key: 'approvalStatus', label: 'Approval Status' }
               ],
               technical: [
-                { key: 'colorSpace', label: 'Color Space' },
-                { key: 'colorProfile', label: 'Color Profile' },
-                { key: 'resolution', label: 'Resolution' },
                 { key: 'dimensions', label: 'Dimensions' },
                 { key: 'size', label: 'Size' },
                 { key: 'createdOn', label: 'Created On' },
@@ -2435,6 +2656,8 @@ const ProductDetailPage = () => {
           />
         </Box>
       )}
+        </>
+      )}
     </Box>
     
   );
@@ -2443,10 +2666,12 @@ const ProductDetailPage = () => {
   const renderAfterServiceSection = () => (
     <Box>
       {/* Manuals */}
-      <Typography ref={manualsTitleRef} variant="h6" sx={{ mb: 3.5, fontSize: '24px', fontFamily: '"Open Sans", sans-serif', fontWeight: 520, color:'#4d4d4d'}}>
-        {manualsData?.title || 'Manuals'}
-      </Typography>
-      {productData.afterService?.manuals && productData.afterService.manuals.length > 0 && (
+      {(normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.manuals) && (
+        <>
+          <Typography ref={manualsTitleRef} variant="h6" sx={{ mb: 3.5, fontSize: '24px', fontFamily: '"Open Sans", sans-serif', fontWeight: 520, color:'#4d4d4d'}}>
+            {manualsData?.title || 'Manuals'}
+          </Typography>
+          {productData.afterService?.manuals && productData.afterService.manuals.length > 0 && (
         <Box sx={{ mb: 3, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
           {afterServiceAssets.manuals.map((asset, idx) => (
             <DigitalAssetCard 
@@ -2454,6 +2679,7 @@ const ProductDetailPage = () => {
               product={asset}
               onProductClick={handleAfterServiceAssetClick}
               onDownload={handleAfterServiceDownload}
+              showCheckbox={false}
               cardActionsConfig={{
                 show_file_type: false,
                 show_eyebrow: true,
@@ -2465,12 +2691,16 @@ const ProductDetailPage = () => {
           ))}
         </Box>
       )}
+        </>
+      )}
 
-      {/* Repair  Guide*/}
-      <Typography ref={repairGuideTitleRef} variant="h6" sx={{ mb: 3.5 , fontSize: '24px', fontFamily: '"Open Sans", sans-serif', fontWeight: 580, color:'#4d4d4d' }}>
-        {repairGuidesData?.title || 'Repair Guide'}
-      </Typography>
-      {productData.afterService?.repairGuide && productData.afterService.repairGuide.length > 0 && (
+      {/* Repair Guide */}
+      {(normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.repairGuide) && (
+        <>
+          <Typography ref={repairGuideTitleRef} variant="h6" sx={{ mb: 3.5 , fontSize: '24px', fontFamily: '"Open Sans", sans-serif', fontWeight: 580, color:'#4d4d4d' }}>
+            {repairGuidesData?.title || 'Repair Guide'}
+          </Typography>
+          {productData.afterService?.repairGuide && productData.afterService.repairGuide.length > 0 && (
         <Box sx={{ mb: 3, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
           {afterServiceAssets.repairGuides.map((asset, idx) => (
             <DigitalAssetCard 
@@ -2478,6 +2708,7 @@ const ProductDetailPage = () => {
               product={asset}
               onProductClick={handleAfterServiceAssetClick}
               onDownload={handleAfterServiceDownload}
+              showCheckbox={false}
               cardActionsConfig={{
                 show_file_type: false,
                 show_eyebrow: true,
@@ -2489,9 +2720,11 @@ const ProductDetailPage = () => {
           ))}
         </Box>
       )}
+        </>
+      )}
 
       {/* Packaging */}
-      {basicTab === 'internalPDPBasic' && (
+      {basicTab === 'internalPDPBasic' && (normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.packaging) && (
         <>
           <Typography ref={packagingTitleRef} variant="h6" sx={{ mb: 3.5, fontSize: '24.5px', fontFamily: '"Open Sans", sans-serif', fontWeight: 520, color:'#4d4d4d' }}>
             {packagingsData?.title || 'Packaging'}
@@ -2504,6 +2737,7 @@ const ProductDetailPage = () => {
                   product={asset}
                   onProductClick={handleAfterServiceAssetClick}
                   onDownload={handleAfterServiceDownload}
+                  showCheckbox={false}
                   cardActionsConfig={{
                     show_file_type: false,
                     show_eyebrow: true,
@@ -2519,10 +2753,12 @@ const ProductDetailPage = () => {
       )}
 
       {/* Drawing */}
-      <Typography ref={drawingTitleRef} variant="h6" sx={{ mb: 3.5, fontSize: '24.5px', fontFamily: '"Open Sans", sans-serif', fontWeight: 520, color:'#4d4d4d' }}>
-        {drawingsData?.title || 'Drawing'}
-      </Typography>
-      {productData.afterService?.drawing && productData.afterService.drawing.length > 0 && (
+      {(normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.drawing) && (
+        <>
+          <Typography ref={drawingTitleRef} variant="h6" sx={{ mb: 3.5, fontSize: '24.5px', fontFamily: '"Open Sans", sans-serif', fontWeight: 520, color:'#4d4d4d' }}>
+            {drawingsData?.title || 'Drawing'}
+          </Typography>
+          {productData.afterService?.drawing && productData.afterService.drawing.length > 0 && (
         <Box sx={{ mb: 3, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
           {afterServiceAssets.drawings.map((asset, idx) => (
             <DigitalAssetCard 
@@ -2530,6 +2766,7 @@ const ProductDetailPage = () => {
               product={asset}
               onProductClick={handleAfterServiceAssetClick}
               onDownload={handleAfterServiceDownload}
+              showCheckbox={false}
               cardActionsConfig={{
                 show_file_type: false,
                 show_eyebrow: true,
@@ -2541,12 +2778,16 @@ const ProductDetailPage = () => {
           ))}
         </Box>
       )}
+        </>
+      )}
 
       {/* Patent */}
-      <Typography ref={patentTitleRef} variant="h6" sx={{ mb: 3.5, fontSize: '24.5px', fontFamily: '"Open Sans", sans-serif', fontWeight: 520, color:'#4d4d4d' }}>
-        {patentData?.title || 'Patent'}
-      </Typography>
-      {productData.afterService?.patent && productData.afterService.patent.length > 0 && (
+      {(normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.patent) && (
+        <>
+          <Typography ref={patentTitleRef} variant="h6" sx={{ mb: 3.5, fontSize: '24.5px', fontFamily: '"Open Sans", sans-serif', fontWeight: 520, color:'#4d4d4d' }}>
+            {patentData?.title || 'Patent'}
+          </Typography>
+          {productData.afterService?.patent && productData.afterService.patent.length > 0 && (
         <Box sx={{ mb: 3, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
           {afterServiceAssets.patents.map((asset, idx) => (
             <DigitalAssetCard 
@@ -2554,6 +2795,7 @@ const ProductDetailPage = () => {
               product={asset}
               onProductClick={handleAfterServiceAssetClick}
               onDownload={handleAfterServiceDownload}
+              showCheckbox={false}
               cardActionsConfig={{
                 show_file_type: false,
                 show_eyebrow: true,
@@ -2564,6 +2806,8 @@ const ProductDetailPage = () => {
             />
           ))}
         </Box>
+      )}
+        </>
       )}
     </Box>
   );
@@ -2624,62 +2868,76 @@ const ProductDetailPage = () => {
           {renderProductDataSection()}
 
           {/* 主要功能区块 */}
-          <MainSection 
-            icon={documentIcon} 
-            title={sectionTitles.basicSection}
-            primaryColor={primaryColor}
-            isFirst={true}
-          >
-            {renderBasicDataSection()}
-          </MainSection>
+          {shouldShowBasicDataSection && (
+            <MainSection 
+              icon={documentIcon} 
+              title={sectionTitles.basicSection}
+              primaryColor={primaryColor}
+              isFirst={true}
+            >
+              {renderBasicDataSection()}
+            </MainSection>
+          )}
 
-          <MainSection 
-            icon={marketingIcon} 
-            title={sectionTitles.marketingSection}
-            primaryColor={primaryColor}
-          >
-            {renderMarketingDataSection()}
-          </MainSection>
+          {shouldShowMarketingDataSection && (
+            <MainSection 
+              icon={marketingIcon} 
+              title={sectionTitles.marketingSection}
+              primaryColor={primaryColor}
+            >
+              {renderMarketingDataSection()}
+            </MainSection>
+          )}
 
-          <MainSection 
-            icon={referIcon} 
-            title={sectionTitles.referencesSection}
-            primaryColor={primaryColor}
-          >
-            {renderReferencesRelationshipsSection()}
-          </MainSection>
+          {shouldShowReferencesSection && (
+            <MainSection 
+              icon={referIcon} 
+              title={sectionTitles.referencesSection}
+              primaryColor={primaryColor}
+            >
+              {renderReferencesRelationshipsSection()}
+            </MainSection>
+          )}
 
-          <MainSection 
-            icon={packIcon} 
-            title={sectionTitles.packagingSection}
-            primaryColor={primaryColor}
-          >
-            {renderPackagingLogisticsSection()}
-          </MainSection>
+          {shouldShowPackagingSection && (
+            <MainSection 
+              icon={packIcon} 
+              title={sectionTitles.packagingSection}
+              primaryColor={primaryColor}
+            >
+              {renderPackagingLogisticsSection()}
+            </MainSection>
+          )}
 
-          <MainSection 
-            icon={specIcon} 
-            title={sectionTitles.uspsSection}
-            primaryColor={primaryColor}
-          >
-            {renderUSPSBenefitsSection()}
-          </MainSection>
+          {shouldShowUSPsSection && (
+            <MainSection 
+              icon={specIcon} 
+              title={sectionTitles.uspsSection}
+              primaryColor={primaryColor}
+            >
+              {renderUSPSBenefitsSection()}
+            </MainSection>
+          )}
 
-          <MainSection 
-            icon={labelIcon} 
-            title={sectionTitles.marketingCollateralsSection}
-            primaryColor={primaryColor}
-          >
-            {renderMarketingCollateralsSection()}
-          </MainSection>
+          {shouldShowMarketingCollateralsSection && (
+            <MainSection 
+              icon={labelIcon} 
+              title={sectionTitles.marketingCollateralsSection}
+              primaryColor={primaryColor}
+            >
+              {renderMarketingCollateralsSection()}
+            </MainSection>
+          )}
 
-          <MainSection 
-            icon={serviceIcon} 
-            title={sectionTitles.afterServiceSection}
-            primaryColor={primaryColor}
-          >
-            {renderAfterServiceSection()}
-          </MainSection>
+          {shouldShowAfterServiceSection && (
+            <MainSection 
+              icon={serviceIcon} 
+              title={sectionTitles.afterServiceSection}
+              primaryColor={primaryColor}
+            >
+              {renderAfterServiceSection()}
+            </MainSection>
+          )}
             </Box>
           </Box>
         </Box>

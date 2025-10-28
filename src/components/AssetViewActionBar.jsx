@@ -54,12 +54,29 @@ const ActionButton = styled(Button)(() => ({
   },
 }));
 
-const AssetViewActionBarComponent = ({ onDownloadSelection }) => {
-  const { selectedAssets, selectedCount, clearSelection } = useSelectedAssets();
+const AssetViewActionBarComponent = ({ 
+  onDownloadSelection, 
+  selectedAssets, 
+  selectedCount, 
+  clearSelection,
+  selectAll,
+  isAllSelected = false
+}) => {
+  // 兼容性处理：如果没有传入选中状态相关props，则使用全局context
+  const globalSelectedAssets = useSelectedAssets();
+  const finalSelectedAssets = selectedAssets || globalSelectedAssets.selectedAssets;
+  const finalSelectedCount = selectedCount !== undefined ? selectedCount : globalSelectedAssets.selectedCount;
+  const finalClearSelection = clearSelection || globalSelectedAssets.clearSelection;
+  const finalSelectAll = selectAll || globalSelectedAssets.selectAll;
 
   const handleSelectAll = () => {
-    // TODO: Implement select all functionality
-    console.log('Select All clicked');
+    if (isAllSelected) {
+      // 如果全部选中，则取消全选
+      finalClearSelection?.();
+    } else {
+      // 否则全选
+      finalSelectAll?.();
+    }
   };
 
   const handleMassTagging = () => {
@@ -68,19 +85,19 @@ const AssetViewActionBarComponent = ({ onDownloadSelection }) => {
   };
 
   const handleDownloadSelection = () => {
-    if (selectedCount === 0) {
+    if (finalSelectedCount === 0) {
       alert('Please select assets to download');
       return;
     }
     
-    console.log('Download Selection clicked, selected assets:', selectedAssets);
-    onDownloadSelection?.(selectedAssets);
+    console.log('Download Selection clicked, selected assets:', finalSelectedAssets);
+    onDownloadSelection?.(finalSelectedAssets);
   };
 
   return (
     <AssetViewActionBar>
       <ActionButton onClick={handleSelectAll}>
-        Select All
+        {isAllSelected ? 'UNSELECT ALL' : 'SELECT ALL'}
       </ActionButton>
       
       <ActionButton onClick={handleMassTagging}>
@@ -89,14 +106,14 @@ const AssetViewActionBarComponent = ({ onDownloadSelection }) => {
       
       <ActionButton 
         onClick={handleDownloadSelection}
-        disabled={selectedCount === 0}
+        disabled={finalSelectedCount === 0}
         sx={{
-          ...(selectedCount > 0 && {
+          ...(finalSelectedCount > 0 && {
          
           })
         }}
       >
-        Download Selection {selectedCount > 0 && `(${selectedCount})`}
+        Download Selection {finalSelectedCount > 0 && `(${finalSelectedCount})`}
       </ActionButton>
     </AssetViewActionBar>
   );
