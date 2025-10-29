@@ -1,65 +1,49 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { useLanguage } from '../hooks/useLanguage';
-import { useTranslation } from 'react-i18next';
-import { useTranslationLoader } from '../hooks/useTranslationLoader';
-import { usePdpDataMapping } from '../utils/pdpDataMapper.js';
-import ReportDataIssueDialog from '../components/ReportDataIssueDialog.jsx';
-import BackToTopButton from '../components/BackToTopButton.jsx';
-import SectionHeader from '../components/SectionHeader.jsx';
-import MainSection from '../components/MainSection.jsx';
-import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
-import ProductDetailApiService from '../services/productDetailApi';
-import { useTheme } from '../hooks/useTheme';
-import { useBrand } from '../hooks/useBrand';
-import { usePdpPage } from '../hooks/usePdpPage';
-import {
-  Box,
-  Typography,
-  Grid,
-  Button,
-  IconButton,
-  LinearProgress,
-  Divider,
-  Avatar,
-  Badge,
-  Menu,
-  MenuItem
-} from '@mui/material';
 import {
   OutlinedFlag as OutlinedFlagIcon,
 } from '@mui/icons-material';
-import ProductSidebar from '../components/ProductSidebar';
-import ProductCard from '../components/ProductCard';
-import UnifiedSkuTable from '../components/UnifiedSkuTable';
+import {
+  Box,
+  Button,
+  Grid,
+  IconButton,
+  Menu,
+  MenuItem,
+  Typography
+} from '@mui/material';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import databaseIcon from '../assets/icon/database.png';
+import documentIcon from '../assets/icon/document.png';
+import downloadIcon from '../assets/icon/download.png';
+import exportIcon from '../assets/icon/file_export.png';
+import labelIcon from '../assets/icon/labelIcon.png';
+import languageIcon from '../assets/icon/language.png';
+import marketingIcon from '../assets/icon/marketIcon.png';
+import packIcon from '../assets/icon/packIcon.png';
+import ViewIcon from '../assets/icon/pdp_view.png';
+import referIcon from '../assets/icon/referenceIcon.png';
+import serviceIcon from '../assets/icon/serviceIcon.png';
+import shareIcon from '../assets/icon/Share.png';
+import specIcon from '../assets/icon/specIcon.png';
+import { default as drawingImage, default as packagingImage } from '../assets/image/D.png';
+import { default as manualsImage, default as repairGuideImage } from '../assets/image/MR.png';
+import patentImage from '../assets/image/P.png';
+import AssetDetailDialog from '../components/AssetDetailDialog';
+import BackToTopButton from '../components/BackToTopButton.jsx';
+import DigitalAssetCard from '../components/DigitalAssetCard';
 import Form from '../components/Form';
 import Image from '../components/Image';
-import UnifiedInfoTable from '../components/UnifiedInfoTable';
-import ProductCardGrid from '../components/ProductCardGrid';
-import PackagingTable from '../components/PackagingTable';
-import SpecificationTable from '../components/SpecificationTable';
-import MediaListTable from '../components/MediaListTable';
-import DigitalAssetCard from '../components/DigitalAssetCard';
+import MainSection from '../components/MainSection.jsx';
 import MediaDownloadDialog from '../components/MediaDownloadDialog';
-import AssetDetailDialog from '../components/AssetDetailDialog';
 import ProductMassDownloadDialog from '../components/ProductMassDownloadDialog';
-import manualsImage from '../assets/image/MR.png';
-import repairGuideImage from '../assets/image/MR.png';
-import packagingImage from '../assets/image/D.png';
-import drawingImage from '../assets/image/D.png';
-import patentImage from '../assets/image/P.png';
-import databaseIcon from '../assets/icon/database.png';
-import languageIcon from '../assets/icon/language.png';
-import shareIcon from '../assets/icon/Share.png';
-import exportIcon from '../assets/icon/file_export.png';
-import downloadIcon from '../assets/icon/download.png';
-import documentIcon from '../assets/icon/document.png';
-import ViewIcon from '../assets/icon/pdp_view.png';
-import marketingIcon from '../assets/icon/marketIcon.png';
-import referIcon from '../assets/icon/referenceIcon.png';
-import packIcon from '../assets/icon/packIcon.png';
-import specIcon from '../assets/icon/specIcon.png';
-import labelIcon from '../assets/icon/labelIcon.png';
-import serviceIcon from '../assets/icon/serviceIcon.png';
+import { useTheme } from '../hooks/useTheme';
+import { useBrand } from '../hooks/useBrand';
+import { useLanguage } from '../hooks/useLanguage';
+import { usePdpPage } from '../hooks/usePdpPage';
+import { usePdpDataMapping } from '../utils/pdpDataMapper';
+import { useTranslationLoader } from '../hooks/useTranslationLoader';
+import ProductDetailApiService from '../services/productDetailApi';
 
 import image1 from '../assets/image/image1.png';
 // import qrImage1 from '../assets/image/imageQR1.png';
@@ -457,7 +441,7 @@ const ProductDetailPage = () => {
   const [error, setError] = useState(null);
   
   const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
-  const [selectedMediaForDownload, setSelectedMediaForDownload] = useState([]);
+  const [selectedMediaIds, setSelectedMediaIds] = useState([]); // Store media IDs instead of full objects
   
   // AssetDetailDialog 状态
   const [assetDetailOpen, setAssetDetailOpen] = useState(false);
@@ -479,18 +463,12 @@ const ProductDetailPage = () => {
       return;
     }
     
-    const mediaDataArray = idsArray.map(assetId => ({
-      id: assetId,
-      mediaId: assetId,
-      modelNumber: routeProductId,
-      // name: `Asset ${assetId}`,        
-      // filename: `asset-${assetId}`     
-    }));
+    console.log('📤 ProductDetailPage: Passing asset IDs to download dialog:', idsArray);
     
-    console.log('Download - assetIds:', assetIds);
-    console.log('Download - mediaDataArray:', mediaDataArray);
-    
-    setSelectedMediaForDownload(mediaDataArray);
+    // MediaDownloadDialog will handle the logic:
+    // 1. For single ID: fetch details and check format
+    // 2. For multiple IDs: show dialog
+    setSelectedMediaIds(idsArray);
     setDownloadDialogOpen(true);
   };
 
@@ -565,7 +543,7 @@ const ProductDetailPage = () => {
   // 下载对话框关闭
   const handleDownloadDialogClose = () => {
     setDownloadDialogOpen(false);
-    setSelectedMediaForDownload([]);
+    setSelectedMediaIds([]);
   };
   
   const handleIconsPicturesDownload = createBatchDownloadHandler('iconsPictures.icons', 'Icons & Pictures');
@@ -3006,7 +2984,7 @@ const ProductDetailPage = () => {
       <MediaDownloadDialog
         open={downloadDialogOpen}
         onClose={handleDownloadDialogClose}
-        selectedMedia={selectedMediaForDownload}
+        selectedMediaIds={selectedMediaIds}
       />
       
       {/* Asset Detail Dialog */}

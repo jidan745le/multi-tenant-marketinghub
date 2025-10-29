@@ -108,10 +108,10 @@ export const canDownloadDirectly = (media) => {
     const allNonRestricted = mediaArray.every(item => {
         const extensions = extractFileExtensions(item);
 
-        // If no extensions found, consider it non-restricted (safer fallback)
+        // If no extensions found, SHOW DIALOG for safety (cannot determine format)
         if (extensions.length === 0) {
-            console.log(`⚠️ No file extensions found for ${item.filename || item.name}, allowing direct download`);
-            return true;
+            console.log(`⚠️ No file extensions found for ${item.filename || item.name || item.id}, showing dialog for safety`);
+            return false; // Changed to false - show dialog when format is unknown
         }
 
         // Check that NONE of the extensions are restricted
@@ -123,6 +123,11 @@ export const canDownloadDirectly = (media) => {
             console.log(`✅ Non-restricted format detected for ${item.filename || item.name}:`, {
                 extensions,
                 canDownloadDirectly: true
+            });
+        } else {
+            console.log(`🔒 Restricted format detected for ${item.filename || item.name}:`, {
+                extensions,
+                restrictedExtensions: extensions.filter(ext => restrictedFormats.includes(ext?.toLowerCase()))
             });
         }
 
