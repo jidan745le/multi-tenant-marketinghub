@@ -1,7 +1,7 @@
 import CookieService from '../utils/cookieService';
 
 const API_BASE_URL = '/srv/v1/email/base/email';
-const EMAIL_TEMPLATE_API_URL = '/srv/v1/email/email/template';
+const EMAIL_TEMPLATE_API_URL = '/srv/v1/email/template';
 const EMAIL_SEND_API_URL = '/srv/v1/email/send/general';
 
 class EmailApiService {
