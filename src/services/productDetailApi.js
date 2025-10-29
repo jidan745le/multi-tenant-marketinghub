@@ -294,11 +294,17 @@ class ProductDetailApiService {
             id
             VirtualProductID
             CustomerFacingProductCode
+            objectType
             Main {
               id
               filename
               fullpath
               assetThumb2: fullpath(thumbnail: "content", format: "webp")
+            }
+            children {
+              ... on object_Product {
+                CustomerFacingProductCode
+              }
             }
           }
         }
@@ -310,11 +316,17 @@ class ProductDetailApiService {
               id
               VirtualProductID
               CustomerFacingProductCode
+              objectType
               Main {
                 id
                 filename
                 fullpath
                 assetThumb2: fullpath(thumbnail: "content", format: "webp")
+              }
+              children {
+                ... on object_Product {
+                  CustomerFacingProductCode
+                }
               }
             }
           }
@@ -327,11 +339,17 @@ class ProductDetailApiService {
               id
               VirtualProductID
               CustomerFacingProductCode
+              objectType
               Main {
                 id
                 filename
                 fullpath
                 assetThumb2: fullpath(thumbnail: "content", format: "webp")
+              }
+              children {
+                ... on object_Product {
+                  CustomerFacingProductCode
+                }
               }
             }
           }
@@ -1120,35 +1138,85 @@ class ProductDetailApiService {
   transformBundles(bundles) {
     if (!bundles || !Array.isArray(bundles)) return [];
 
-    return bundles.map(bundle => ({
-      productNumber: bundle.CustomerFacingProductCode || bundle.VirtualProductID || bundle.id || '',
-      productName: bundle.ProductName || '',
-      imageUrl: bundle.Main?.assetThumb2,
-      assetId: bundle.Main?.id || ''
-    }));
+    return bundles.map(bundle => {
+      let redirectId = '';
+
+      // 判断产品类型来确定 redirectId
+      if (bundle.CustomerFacingProductCode) {
+        // 如果是 SKU，redirectId 就是 CustomerFacingProductCode
+        redirectId = bundle.CustomerFacingProductCode;
+      } else if (bundle.VirtualProductID || bundle.objectType === 'virtual-product') {
+        // 如果是 virtual-product，从 children 获取第一个 CustomerFacingProductCode
+        if (bundle.children && Array.isArray(bundle.children) && bundle.children.length > 0) {
+          redirectId = bundle.children?.[0]?.CustomerFacingProductCode;
+        }
+      }
+
+      return {
+        productNumber: bundle.CustomerFacingProductCode || bundle.VirtualProductID || bundle.id || '',
+        redirectId: redirectId,
+        productName: bundle.ProductName || '',
+        imageUrl: bundle.Main?.assetThumb2,
+        assetId: bundle.Main?.id || ''
+      };
+    });
   }
 
   transformComponents(components) {
     if (!components || !Array.isArray(components)) return [];
 
-    return components.map(comp => ({
-      productNumber: comp.element?.CustomerFacingProductCode || comp.element?.VirtualProductID || comp.element?.id || '',
-      productName: comp.element?.ProductName || '',
-      imageUrl: comp.element?.Main?.assetThumb2 || '',
-      assetId: comp.element?.Main?.id || ''
-    }));
+    return components.map(comp => {
+      const element = comp.element;
+      let redirectId = '';
+
+      // 判断产品类型来确定 redirectId
+      if (element?.CustomerFacingProductCode) {
+        // 如果是 SKU，redirectId 就是 CustomerFacingProductCode
+        redirectId = element.CustomerFacingProductCode;
+      } else if (element?.VirtualProductID || element?.objectType === 'virtual-product') {
+        // 如果是 virtual-product，从 children 获取第一个 CustomerFacingProductCode
+        if (element?.children && Array.isArray(element.children) && element.children.length > 0) {
+          redirectId = element.children?.[0]?.CustomerFacingProductCode;
+        }
+      }
+
+      return {
+        productNumber: element?.CustomerFacingProductCode || element?.VirtualProductID || element?.id || '',
+        redirectId: redirectId,
+        productName: element?.ProductName || '',
+        imageUrl: element?.Main?.assetThumb2 || '',
+        assetId: element?.Main?.id || ''
+      };
+    });
   }
 
   transformAccessories(accessories) {
     if (!accessories || !Array.isArray(accessories)) return [];
 
-    return accessories.map(acc => ({
-      imageUrl: acc.element?.Main?.assetThumb2 || '',
-      model: acc.element?.CustomerFacingProductCode || acc.element?.VirtualProductID || acc.element?.id || '',
-      name: acc.element?.ProductName || '',
-      quantity: parseInt(acc.element?.Quantity) || 0,
-      assetId: acc.element?.Main?.id || ''
-    }));
+    return accessories.map(acc => {
+      const element = acc.element;
+      let redirectId = '';
+
+      // 判断产品类型来确定 redirectId
+      if (element?.CustomerFacingProductCode) {
+        // 如果是 SKU，redirectId 就是 CustomerFacingProductCode
+        redirectId = element.CustomerFacingProductCode;
+      } else if (element?.VirtualProductID || element?.objectType === 'virtual-product') {
+        // 如果是 virtual-product，从 children 获取第一个 CustomerFacingProductCode
+        if (element?.children && Array.isArray(element.children) && element.children.length > 0) {
+          redirectId = element.children?.[0]?.CustomerFacingProductCode;
+        }
+      }
+
+      return {
+        imageUrl: element?.Main?.assetThumb2 || '',
+        model: element?.CustomerFacingProductCode || element?.VirtualProductID || element?.id || '',
+        redirectId: redirectId,
+        name: element?.ProductName || '',
+        quantity: parseInt(element?.Quantity) || 0,
+        assetId: element?.Main?.id || ''
+      };
+    });
   }
 
   extractIconType(metadata) {
