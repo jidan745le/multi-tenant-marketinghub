@@ -457,6 +457,7 @@ class EmailApiService {
             const pathSegments = currentPath.split('/').filter(Boolean);
             const theme = pathSegments[1]
             const locale = pathSegments[0]
+
             // Create FormData for multipart/form-data
             const formData = new FormData();
 
@@ -465,23 +466,27 @@ class EmailApiService {
             formData.append('theme', theme);
             formData.append('templateName', 'Send Feedback'); // 固定模板名称
             formData.append('mailTo', feedbackData.mailTo || '');
-            formData.append('mailCc', feedbackData.mailCc || '');
+
+            // Add optional fields (only if provided)
+            if (feedbackData.mailCc) {
+                formData.append('mailCc', feedbackData.mailCc);
+            }
+
             formData.append('lang', locale || 'en_GB');
 
-            // Add template placeholders
-            const placeholders = {
-                comment: feedbackData.comment || '',
-                reporter: feedbackData.reporter || ''
-            };
-            formData.append('mailTemplatePlaceholders', JSON.stringify(placeholders));
+            // Add template placeholders in the format: mailTemplatePlaceholders[key]=value
+            if (feedbackData.comment) {
+                formData.append('mailTemplatePlaceholders[comment]', feedbackData.comment);
+            }
+            if (feedbackData.reporter) {
+                formData.append('mailTemplatePlaceholders[reporter]', feedbackData.reporter);
+            }
 
             // Add attachments if provided
             if (feedbackData.attachments && feedbackData.attachments.length > 0) {
                 feedbackData.attachments.forEach((file) => {
                     formData.append('attachments', file);
                 });
-            } else {
-                formData.append('attachments', '');
             }
 
             // Get token for authorization
@@ -490,6 +495,18 @@ class EmailApiService {
                 'Authorization': `Bearer ${token}`,
                 // Note: Don't set Content-Type for FormData, browser will set it with boundary
             };
+
+            console.log('📧 Sending feedback email:', {
+                tenant,
+                theme,
+                templateName: 'Send Feedback',
+                mailTo: feedbackData.mailTo,
+                mailCc: feedbackData.mailCc,
+                lang: locale,
+                comment: feedbackData.comment,
+                reporter: feedbackData.reporter,
+                attachmentsCount: feedbackData.attachments?.length || 0
+            });
 
             const response = await fetch(EMAIL_SEND_API_URL, {
                 method: 'POST',
