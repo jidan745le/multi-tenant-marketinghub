@@ -155,7 +155,8 @@ ProductCardGrid.propTypes = {
     PropTypes.shape({
       image: PropTypes.string.isRequired,
       name: PropTypes.string.isRequired,
-      code: PropTypes.string.isRequired
+      code: PropTypes.string.isRequired,
+      redirectId: PropTypes.string
     })
   ),
   onProductClick: PropTypes.func,
