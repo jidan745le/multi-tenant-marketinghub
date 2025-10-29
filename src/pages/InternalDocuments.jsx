@@ -4,9 +4,9 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { createInternalDocumentsConfig } from '../config/kendoMediaConfig';
 
 // 导入组件
+import AssetDetailDialog from '../components/AssetDetailDialog';
 import MediaDownloadDialog from '../components/MediaDownloadDialog';
 import ProductCatalogue from '../components/ProductCatalogue';
-import AssetDetailDialog from '../components/AssetDetailDialog';
 
 // 导入Context
 import { SelectedAssetsProvider } from '../context/SelectedAssetsContext';
@@ -16,15 +16,14 @@ import { useBrand } from '../hooks/useBrand';
 import { useLanguage } from '../hooks/useLanguage';
 
 // 导入工具和服务
-import downloadApi from '../services/downloadApi';
-import { canDownloadDirectly } from '../utils/downloadFormatClassifier';
+// Download logic is now handled internally by MediaDownloadDialog
 
 const InternalDocuments = () => {
   const { currentBrand, currentBrandCode } = useBrand();
   const { currentLanguage } = useLanguage();
   
   const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
-  const [selectedMediaForDownload, setSelectedMediaForDownload] = useState([]);
+  const [selectedMediaIds, setSelectedMediaIds] = useState([]); // Store media IDs instead of full objects
   
   // AssetDetailDialog 状态管理
   const [assetDetailDialogOpen, setAssetDetailDialogOpen] = useState(false);
@@ -45,30 +44,24 @@ const InternalDocuments = () => {
     }
   }, []);
 
-  const handleDocumentDownload = useCallback(async (document) => {
-    try {
-      const mediaArray = Array.isArray(document) ? document : [document];
-      
-      if (mediaArray.length === 1 && canDownloadDirectly(mediaArray)) {
-        const mediaIds = mediaArray.map(item => item.id || item.mediaId || 0);
-        const result = await downloadApi.massDownload(mediaIds, 'originalimage', null, false, '', '');
-        
-        if (result.blob && result.filename) {
-          downloadApi.triggerDownload(result.blob, result.filename);
-        }
-      } else {
-        setSelectedMediaForDownload(mediaArray);
-        setDownloadDialogOpen(true);
-      }
-    } catch (error) {
-      console.error('Download failed:', error);
-      alert(`Download failed: ${error.message}`);
-    }
+  const handleDocumentDownload = useCallback((document) => {
+    const mediaArray = Array.isArray(document) ? document : [document];
+    
+    // Extract IDs from media objects
+    const mediaIds = mediaArray.map(item => item.id || item.mediaId).filter(Boolean);
+    
+    console.log('📤 InternalDocuments: Passing media IDs to download dialog:', mediaIds);
+    
+    // MediaDownloadDialog will handle the logic:
+    // 1. For single ID: fetch details and check format
+    // 2. For multiple IDs: show dialog
+    setSelectedMediaIds(mediaIds);
+    setDownloadDialogOpen(true);
   }, []);
 
   const handleDownloadDialogClose = useCallback(() => {
     setDownloadDialogOpen(false);
-    setSelectedMediaForDownload([]);
+    setSelectedMediaIds([]);
   }, []);
 
   // AssetDetailDialog 关闭处理
@@ -77,25 +70,19 @@ const InternalDocuments = () => {
     setSelectedAssetForPreview(null);
   }, []);
 
-  const handleDownloadSelection = useCallback(async (selectedAssets) => {
-    try {
-      console.log('📂 Batch download from ActionBar:', selectedAssets);
-      
-      if (selectedAssets.length === 1 && canDownloadDirectly(selectedAssets)) {
-        const mediaIds = selectedAssets.map(item => item.id || item.mediaId || 0);
-        const result = await downloadApi.massDownload(mediaIds, 'originalimage', null, false, '', '');
-        
-        if (result.blob && result.filename) {
-          downloadApi.triggerDownload(result.blob, result.filename);
-        }
-      } else {
-        setSelectedMediaForDownload(selectedAssets);
-        setDownloadDialogOpen(true);
-      }
-    } catch (error) {
-      console.error('Batch download failed:', error);
-      alert(`Download failed: ${error.message}`);
-    }
+  const handleDownloadSelection = useCallback((selectedAssets) => {
+    console.log('📂 Batch download from ActionBar:', selectedAssets);
+    
+    // Extract IDs from selected assets
+    const mediaIds = selectedAssets.map(item => item.id || item.mediaId).filter(Boolean);
+    
+    console.log('📤 InternalDocuments: Passing batch media IDs to download dialog:', mediaIds);
+    
+    // MediaDownloadDialog will handle the logic:
+    // 1. For single ID: fetch details and check format
+    // 2. For multiple IDs: show dialog
+    setSelectedMediaIds(mediaIds);
+    setDownloadDialogOpen(true);
   }, []);
 
   const handleMassSearch = useCallback((item, childItem, filterValues) => {
@@ -123,7 +110,7 @@ const InternalDocuments = () => {
       <MediaDownloadDialog
         open={downloadDialogOpen}
         onClose={handleDownloadDialogClose}
-        selectedMedia={selectedMediaForDownload}
+        selectedMediaIds={selectedMediaIds}
       />
       
       {/* AssetDetailDialog for preview functionality */}

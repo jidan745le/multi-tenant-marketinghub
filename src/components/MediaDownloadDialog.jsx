@@ -26,7 +26,9 @@ import { useTranslation } from 'react-i18next';
 import { useBrand } from '../hooks/useBrand';
 import derivateManagementApi from '../services/derivateManagementApi';
 import downloadApi from '../services/downloadApi';
+import { fetchKendoAssets } from '../services/kendoAssetsApi';
 import CookieService from '../utils/cookieService';
+import { canDownloadDirectly } from '../utils/downloadFormatClassifier';
 import MultiEmailInput from './MultiEmailInput';
 
 // Initial derivate data structure
@@ -44,7 +46,7 @@ const getInitialDerivateData = (adhocFormats = []) => [
 const MediaDownloadDialog = ({
   open,
   onClose,
-  selectedMedia = [], // Changed to array to support multiple media
+  selectedMediaIds = [], // Array of media IDs (numbers or strings)
 }) => {
   const { t } = useTranslation();
   // const theme = useTheme();
@@ -60,6 +62,7 @@ const MediaDownloadDialog = ({
   const [derivateData, setDerivateData] = useState(getInitialDerivateData());
   const [loading, setLoading] = useState(false);
   const [cameFromDerivateSelection, setCameFromDerivateSelection] = useState(false); // Track dialog source
+  const [shouldShowDialog, setShouldShowDialog] = useState(false); // Control whether to actually show the dialog
   
   // Custom configuration states
   const [width, setWidth] = useState('');
@@ -70,12 +73,97 @@ const MediaDownloadDialog = ({
   const [dpi, setDpi] = useState('');
   const [compression, setCompression] = useState('none');
 
-  // Fetch derivate data when dialog opens
+  // Check and handle download when dialog opens
   useEffect(() => {
-    if (open) {
+    if (open && selectedMediaIds.length > 0) {
+      setShouldShowDialog(false); // Reset dialog visibility
+      checkAndHandleDownload();
+    } else if (!open) {
+      setShouldShowDialog(false); // Reset when closing
+    }
+  }, [open, selectedMediaIds]);
+
+  // Check if media can be downloaded directly without showing dialog
+  const checkAndHandleDownload = async () => {
+    try {
+      const mediaIdsArray = Array.isArray(selectedMediaIds) ? selectedMediaIds : [selectedMediaIds];
+      
+      console.log('🔍 MediaDownloadDialog: Processing IDs:', mediaIdsArray);
+      
+      // Only check for direct download if it's a single asset
+      if (mediaIdsArray.length === 1) {
+        console.log('📡 Fetching asset details for direct download check...');
+        
+        // Fetch asset details using kendoAssetsApi
+        const assetData = await fetchKendoAssets({ ids: mediaIdsArray });
+        
+        // Extract asset from response
+        const asset = assetData?.data?.getAssetListing?.edges?.[0]?.node;
+        
+        if (asset) {
+          console.log('✅ Asset details retrieved:', {
+            id: asset.id,
+            filename: asset.filename,
+            mimetype: asset.mimetype,
+            type: asset.type
+          });
+          
+          // Check if can download directly (non-restricted format like PDF)
+          if (canDownloadDirectly([asset])) {
+            console.log('✅ Direct download - no dialog shown');
+            // Directly download without showing dialog
+            await handleDirectDownload(mediaIdsArray);
+            return; // Exit without showing dialog
+          } else {
+            console.log('🔒 Restricted format - showing dialog');
+          }
+        } else {
+          console.warn('⚠️ No asset data returned, showing dialog');
+        }
+      } else {
+        console.log('📋 Multiple assets - showing dialog');
+      }
+      
+      // Show dialog for derivate selection
+      setShouldShowDialog(true);
+      fetchDerivateData();
+    } catch (error) {
+      console.error('Error in checkAndHandleDownload:', error);
+      // On error, show dialog as fallback
+      setShouldShowDialog(true);
       fetchDerivateData();
     }
-  }, [open, currentBrandCode]);
+  };
+
+  // Handle direct download without dialog
+  const handleDirectDownload = async (mediaIdsArray) => {
+    try {
+      setLoading(true);
+      
+      const result = await downloadApi.massDownload(
+        mediaIdsArray,
+        'originalimage', // Download original format
+        null, // No custom config
+        false, // async=false for direct download
+        '', // No email
+        '' // No CC
+      );
+      
+      // Trigger download if blob is returned
+      if (result.blob && result.filename) {
+        downloadApi.triggerDownload(result.blob, result.filename);
+      }
+      
+      // Close without showing dialog
+      onClose();
+    } catch (error) {
+      console.error('Direct download failed:', error);
+      alert(`Download failed: ${error.message}`);
+      onClose();
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchDerivateData = async () => {
     try {
@@ -86,23 +174,18 @@ const MediaDownloadDialog = ({
       const tenantId = userInfo?.tenant?.name || userInfo?.tenantName || 'Kendo';
       const theme = currentBrandCode || 'kendo';
       
-      // Use the first selected media's model number to get adhoc derivates
+      // Use selected media IDs to get adhoc derivates
       let adhocFormats = [];
       let shouldSkipDerivateSelection = false;
       
-      // Use selected media's model numbers to get adhoc derivates
-      if (selectedMedia && selectedMedia.length > 0) {
-        const mediaArray = Array.isArray(selectedMedia) ? selectedMedia : [selectedMedia];
+      // Use selected media IDs (they are model numbers in this context)
+      if (selectedMediaIds && selectedMediaIds.length > 0) {
+        const mediaIdsArray = Array.isArray(selectedMediaIds) ? selectedMediaIds : [selectedMediaIds];
         
-        // Collect all model numbers from selected media
-        const modelNumbers = mediaArray
-          .map(media => media.id || media.mediaId || media.modelNumber)
-          .filter(Boolean); // Remove empty values
-        
-        if (modelNumbers.length > 0) {
+        if (mediaIdsArray.length > 0) {
           try {
-            console.log('Fetching derivates by model numbers:', modelNumbers);
-            const derivates = await derivateManagementApi.getDerivatesByModelNumber(tenantId, theme, modelNumbers);
+            console.log('Fetching derivates by model numbers (IDs):', mediaIdsArray);
+            const derivates = await derivateManagementApi.getDerivatesByModelNumber(tenantId, theme, mediaIdsArray);
             
             // Filter for Adhoc derivates only and remove duplicates
             adhocFormats = [...new Set(derivates
@@ -187,10 +270,10 @@ const MediaDownloadDialog = ({
     try {
       setLoading(true);
       
-      // Prepare media IDs
-      const mediaIds = Array.isArray(selectedMedia) 
-        ? selectedMedia.map(media => media.id || media.mediaId || 0)
-        : [selectedMedia?.id || selectedMedia?.mediaId || 0];
+      // Prepare media IDs (they are already IDs)
+      const mediaIds = Array.isArray(selectedMediaIds) 
+        ? selectedMediaIds
+        : [selectedMediaIds];
 
       // Prepare derivates string - map display names to API values
       const derivatesString = selectedDerivates
@@ -875,7 +958,7 @@ const MediaDownloadDialog = ({
 
   return (
     <Dialog
-      open={open}
+      open={open && shouldShowDialog} // Only show dialog when both conditions are true
       onClose={handleClose}
       PaperProps={{
         style: { boxShadow: 'none' }

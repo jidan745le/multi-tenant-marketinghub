@@ -1,21 +1,21 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import { Search } from '@mui/icons-material';
 import {
-  Box,
-  Typography,
-  Pagination,
-  CircularProgress,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Button,
-  styled
+    Box,
+    Button,
+    CircularProgress,
+    FormControl,
+    InputLabel,
+    MenuItem,
+    Pagination,
+    Select,
+    styled,
+    TextField,
+    Typography
 } from '@mui/material';
-import { Search, Download } from '@mui/icons-material';
+import React, { useCallback, useMemo, useState } from 'react';
 // 使用本地状态管理
-import DigitalAssetCard from './DigitalAssetCard';
 import AssetViewActionBar from './AssetViewActionBar';
+import DigitalAssetCard from './DigitalAssetCard';
 import MediaDownloadDialog from './MediaDownloadDialog';
 
 
@@ -47,7 +47,7 @@ const AssetPagination = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
   const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
-  const [selectedItemsForDownload, setSelectedItemsForDownload] = useState([]);
+  const [selectedMediaIds, setSelectedMediaIds] = useState([]); // Store media IDs instead of full objects
 
   // 本地选中状态管理
   const [selectedAssets, setSelectedAssets] = useState([]);
@@ -159,21 +159,27 @@ const AssetPagination = ({
 
   const handleDownloadSelection = useCallback(() => {
     if (selectedCount > 0) {
-      setSelectedItemsForDownload(selectedAssets);
+      // Extract IDs from selected assets
+      const mediaIds = selectedAssets.map(item => item.id || item.mediaId).filter(Boolean);
+      console.log('📤 AssetPagination: Passing selected media IDs to download dialog:', mediaIds);
+      setSelectedMediaIds(mediaIds);
       setDownloadDialogOpen(true);
     }
   }, [selectedAssets, selectedCount]);
 
   // 处理 AssetViewActionBar 的下载选择
   const handleActionBarDownloadSelection = useCallback((selectedAssets) => {
-    setSelectedItemsForDownload(selectedAssets);
+    // Extract IDs from selected assets
+    const mediaIds = selectedAssets.map(item => item.id || item.mediaId).filter(Boolean);
+    console.log('📤 AssetPagination: Passing ActionBar media IDs to download dialog:', mediaIds);
+    setSelectedMediaIds(mediaIds);
     setDownloadDialogOpen(true);
   }, []);
 
 
   const handleDownloadDialogClose = useCallback(() => {
     setDownloadDialogOpen(false);
-    setSelectedItemsForDownload([]);
+    setSelectedMediaIds([]);
   }, []);
 
   const handleItemClick = useCallback((item) => {
@@ -183,7 +189,10 @@ const AssetPagination = ({
   }, [onItemClick]);
 
   const handleItemDownload = useCallback((item) => {
-    setSelectedItemsForDownload([item]);
+    // Extract ID from single item
+    const mediaId = item.id || item.mediaId;
+    console.log('📤 AssetPagination: Passing single media ID to download dialog:', mediaId);
+    setSelectedMediaIds(mediaId ? [mediaId] : []);
     setDownloadDialogOpen(true);
   }, []);
 
@@ -439,7 +448,7 @@ const AssetPagination = ({
       <MediaDownloadDialog
         open={downloadDialogOpen}
         onClose={handleDownloadDialogClose}
-        selectedMedia={selectedItemsForDownload}
+        selectedMediaIds={selectedMediaIds}
       />
     </>
   );
