@@ -41,6 +41,7 @@ import MediaListTable from '../components/MediaListTable';
 import DigitalAssetCard from '../components/DigitalAssetCard';
 import MediaDownloadDialog from '../components/MediaDownloadDialog';
 import AssetDetailDialog from '../components/AssetDetailDialog';
+import ProductMassDownloadDialog from '../components/ProductMassDownloadDialog';
 import manualsImage from '../assets/image/MR.png';
 import repairGuideImage from '../assets/image/MR.png';
 import packagingImage from '../assets/image/D.png';
@@ -463,6 +464,9 @@ const ProductDetailPage = () => {
   const [selectedAssetId, setSelectedAssetId] = useState(null);
   const [selectedAssetData, setSelectedAssetData] = useState(null);
   
+  // ProductMassDownloadDialog 状态
+  const [massDownloadDialogOpen, setMassDownloadDialogOpen] = useState(false);
+  
   // 通用下载
   const handleDownload = (assetIds) => {
     if (!assetIds) {
@@ -537,6 +541,25 @@ const ProductDetailPage = () => {
     } else {
       console.warn('ProductCard assetId not found');
     }
+  };
+  
+  // 产品批量下载处理函数
+  const handleProductMassDownload = () => {
+    // 获取当前产品的ID
+    const productId = productData?.basicData?.productNumber || productData?.productCardInfo?.productId;
+    
+    if (!productId) {
+      console.warn('Product ID not found for mass download');
+      return;
+    }
+    
+    console.log('Opening ProductMassDownloadDialog for product:', productId);
+    setMassDownloadDialogOpen(true);
+  };
+  
+  // 关闭批量下载对话框
+  const handleMassDownloadDialogClose = () => {
+    setMassDownloadDialogOpen(false);
   };
   
   // 下载对话框关闭
@@ -1554,8 +1577,7 @@ const ProductDetailPage = () => {
   };
 
   // 右上角图标按钮栏
-  // const ToolIconsBar = ({ onShare, onExport, onDownload }) => (
-  const ToolIconsBar = ({ onShare, onExport}) => (
+  const ToolIconsBar = ({ onShare, onExport, onDownload }) => (
     <Box sx={{ px: 3, pt: 1, pb: 0 }}>
       <Box
         sx={{
@@ -1577,7 +1599,7 @@ const ProductDetailPage = () => {
           </IconButton>
         )}
         {productCardData?.show && (
-          <IconButton size="small" aria-label="download" /* onClick={onDownload} */ sx={{ color: '#333333',fontSize: '20px' }}>
+          <IconButton size="small" aria-label="download" onClick={onDownload} sx={{ color: '#333333',fontSize: '20px' }}>
             <Box component="img" src={downloadIcon} alt="download" sx={{ display: 'block' }} />
           </IconButton>
         )}
@@ -2496,10 +2518,10 @@ const ProductDetailPage = () => {
             infoLabels={{
               basic: [
                 { key: 'modelNumber', label: 'Model Number' },
-                { key: 'imageType', label: 'Image Type' },
-                { key: 'usageRights', label: 'Usage Rights' },
+                { key: 'mediaType', label: 'Media Type' },
+                { key: 'usage', label: 'Usage Rights' },
                 { key: 'language', label: 'Language' },
-                { key: 'product', label: 'Country Restrictions' },
+                { key: 'productIds', label: 'Product IDs' },
                 { key: 'approvalStatus', label: 'Approval Status' }
               ],
               technical: [
@@ -2551,10 +2573,10 @@ const ProductDetailPage = () => {
              infoLabels={{
               basic: [
                 { key: 'modelNumber', label: 'Model Number' },
-                { key: 'imageType', label: 'Image Type' },
-                { key: 'usageRights', label: 'Usage Rights' },
+                { key: 'mediaType', label: 'Media Type' },
+                { key: 'usage', label: 'Usage Rights' },
                 { key: 'language', label: 'Language' },
-                { key: 'product', label: 'Country Restrictions' },
+                { key: 'productIds', label: 'Product IDs' },
                 { key: 'approvalStatus', label: 'Approval Status' }
               ],
               technical: [
@@ -2638,10 +2660,10 @@ const ProductDetailPage = () => {
             infoLabels={{
               basic: [
                 { key: 'modelNumber', label: 'Model Number' },
-                { key: 'imageType', label: 'Image Type' },
-                { key: 'usageRights', label: 'Usage Rights' },
+                { key: 'mediaType', label: 'Media Type' },
+                { key: 'usage', label: 'Usage Rights' },
                 { key: 'language', label: 'Language' },
-                { key: 'product', label: 'Country Restrictions' },
+                { key: 'productIds', label: 'Product IDs' },
                 { key: 'approvalStatus', label: 'Approval Status' }
               ],
               technical: [
@@ -2862,7 +2884,7 @@ const ProductDetailPage = () => {
             <TopActionsBar />
 
           {/* share / file_export / download */}
-          <ToolIconsBar onShare={handleShare} onExport={handleExport} onDownload={handleDownload} />
+          <ToolIconsBar onShare={handleShare} onExport={handleExport} onDownload={handleProductMassDownload} />
 
           <Box sx={{ p: 3 }}>
           {renderProductDataSection()}
@@ -2994,6 +3016,13 @@ const ProductDetailPage = () => {
         assetId={selectedAssetId}
         mediaData={selectedAssetData}
         onDownload={handleAssetDetailDownload}
+      />
+      
+      {/* Product Mass Download Dialog */}
+      <ProductMassDownloadDialog
+        open={massDownloadDialogOpen}
+        onClose={handleMassDownloadDialogClose}
+        selectedProductIds={[productData?.basicData?.productNumber || productData?.productCardInfo?.productId].filter(Boolean)}
       />
     </Box>
   );

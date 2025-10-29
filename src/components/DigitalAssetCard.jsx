@@ -392,7 +392,11 @@ const DigitalAssetCard = ({
                         </ActionButton>
                     )}
                     {cardActionsConfig.show_open_pdf && (
-                        <ActionButton onClick={handleAssetClick}>
+                        <ActionButton onClick={() => {
+                            // 暂时注释掉PDF图标的AssetDetailDialog链接
+                            console.log('PDF icon clicked - AssetDetailDialog link temporarily disabled');
+                            // handleAssetClick();
+                        }}>
                             <Icon type="picture_as_pdf" />
                         </ActionButton>
                     )}
