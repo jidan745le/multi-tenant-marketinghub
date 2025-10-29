@@ -1,16 +1,28 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Box, Typography } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Box, Typography, CircularProgress } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../hooks/useTheme';
 import { useTranslationLoader } from '../hooks/useTranslationLoader';
+import EmailApiService from '../services/emailApi';
 
-const ReportDataIssueDialog = ({ open, onClose, onSubmit, initialComment = '', initialUser = '' }) => {
+const ReportDataIssueDialog = ({ 
+  open, 
+  onClose, 
+  // onSubmit,//暂时不用这个参数
+  initialComment = '', 
+  initialUser = '',
+  mailTo = 'pdp-feedback@kendo.com',
+  mailCc = '', 
+  onSuccess, // 成功
+  onError // 错误
+}) => {
   const { t } = useTranslation();
   const { primaryColor } = useTheme();
   useTranslationLoader();
   const [comment, setComment] = React.useState(initialComment);
   const [reportedUser, setReportedUser] = React.useState(initialUser);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   React.useEffect(() => {
     if (open) {
@@ -19,8 +31,52 @@ const ReportDataIssueDialog = ({ open, onClose, onSubmit, initialComment = '', i
     }
   }, [open, initialComment, initialUser]);
 
-  const handleSubmit = () => {
-    if (onSubmit) onSubmit({ comment: comment?.trim(), reportedUser: reportedUser?.trim() });
+  const handleSubmit = async () => {
+    const trimmedComment = comment?.trim();
+    const trimmedUser = reportedUser?.trim();
+
+    // 基本验证
+    if (!trimmedComment) {
+      alert(t('pdp.commentRequired') || 'Comment is required');
+      return;
+    }
+    
+    if (!trimmedUser) {
+      alert(t('pdp.reporterRequired') || 'Reporter is required');
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      await EmailApiService.sendFeedback({
+        comment: trimmedComment,
+        reporter: trimmedUser,
+        mailTo: mailTo,
+        mailCc: mailCc,
+        attachments: [] 
+      });
+      
+      if (onSuccess) {
+        onSuccess({ comment: trimmedComment, reportedUser: trimmedUser });
+      } else {
+        alert(t('pdp.feedbackSubmitted') || 'Feedback submitted successfully');
+      }
+      
+      onClose();
+      
+    } catch (error) {
+      console.error('Failed to send feedback:', error);
+      
+      // 错误处理
+      if (onError) {
+        onError(error);
+      } else {
+        alert(t('pdp.feedbackError') || `Failed to submit feedback: ${error.message}`);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -113,9 +169,11 @@ const ReportDataIssueDialog = ({ open, onClose, onSubmit, initialComment = '', i
         <Button
           variant="contained"
           onClick={handleSubmit}
+          disabled={isSubmitting}
           sx={{
             bgcolor: primaryColor,
             '&:hover': { bgcolor: primaryColor, opacity: 0.8 },
+            '&:disabled': { bgcolor: '#cccccc', color: '#666666' },
             color: '#ffffff',
             textTransform: 'uppercase',
             fontSize: '14px',
@@ -124,10 +182,14 @@ const ReportDataIssueDialog = ({ open, onClose, onSubmit, initialComment = '', i
             fontFamily: '"Open Sans", sans-serif',
             fontWeight: 600,
             height: '33px',
-            px: 2.5
+            px: 2.5,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1
           }}
         >
-          {t('common.submit')}
+          {isSubmitting && <CircularProgress size={16} color="inherit" />}
+          {isSubmitting ? (t('common.submitting') || 'Submitting...') : t('common.submit')}
         </Button>
       </DialogActions>
     </Dialog>
@@ -137,9 +199,13 @@ const ReportDataIssueDialog = ({ open, onClose, onSubmit, initialComment = '', i
 ReportDataIssueDialog.propTypes = {
   open: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
-  onSubmit: PropTypes.func,
+  onSubmit: PropTypes.func, 
   initialComment: PropTypes.string,
   initialUser: PropTypes.string,
+  mailTo: PropTypes.string,
+  mailCc: PropTypes.string, 
+  onSuccess: PropTypes.func,
+  onError: PropTypes.func,
 };
 
 export default ReportDataIssueDialog;
