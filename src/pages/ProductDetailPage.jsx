@@ -557,6 +557,13 @@ const ProductDetailPage = () => {
   };
   
   const handleIconsPicturesDownload = createBatchDownloadHandler('iconsPictures.icons', 'Icons & Pictures');
+  const handleIconsPicturesDownloadImmediate = React.useCallback(() => {
+    // 先打开对话框，立刻显示loading，再异步触发原有逻辑
+    setDownloadDialogOpen(true);
+    Promise.resolve().then(() => {
+      handleIconsPicturesDownload();
+    });
+  }, [handleIconsPicturesDownload]);
   const handleOnWhiteDownload = createBatchDownloadHandler('marketingCollaterals.onWhite', 'On White');
   const handleActionLifestyleDownload = createBatchDownloadHandler('marketingCollaterals.actionAndLifestyle', 'Action & Lifestyle');
   const handleVideosDownload = createBatchDownloadHandler('marketingCollaterals.videos', 'Videos');
@@ -661,7 +668,7 @@ const ProductDetailPage = () => {
   // 数据检查函数 - 判断各个部分是否有数据
   const hasData = React.useMemo(() => {
     const data = productData;
-    console.log('data123', data);
+    console.log('data123', data?.packagingSpec && (data.packagingSpec.technicalSpecs));
     return {
       // References & Relationships
       bundles: data?.referenceRelationship?.bundles && data.referenceRelationship.bundles.length > 0,
@@ -682,10 +689,10 @@ const ProductDetailPage = () => {
       patent: data?.afterService?.patent && data.afterService.patent.length > 0,
       
       // Packaging & Logistics
-      packagingData: data?.packagingData && (data.packagingData.headers || data.packagingData.rows),
+      packagingData: !!(data?.packagingData && (data.packagingData.headers || data.packagingData.rows)),
       
       // USPs & Benefits
-      packagingSpec: data?.packagingSpec && (data.packagingSpec.technicalSpecs || data.packagingSpec.logoMarking),
+      packagingSpec: !!(data?.packagingSpec && data.packagingSpec.technicalSpecs && data.packagingSpec.technicalSpecs.length > 0),
       
       // 其他部分
       skuData: Array.isArray(data?.skuData) && data.skuData.length >= 2,
@@ -997,6 +1004,7 @@ const ProductDetailPage = () => {
   // 通用的区域显示判断函数
   const shouldShowSection = React.useCallback((hasDataCondition) => {
     if (normalizedLayoutFromUrl === 'externalPDPBasic') {
+      console.log('hasDataCondition111', hasDataCondition);
       return hasDataCondition;
     }
     return true;
@@ -1020,8 +1028,19 @@ const ProductDetailPage = () => {
     usps: () => hasData.packagingSpec,
     
     marketingCollaterals: () => hasData.onWhite || hasData.actionLifestyle || 
-                              hasData.videos || hasData.gallery
-  }), [hasData, basicFormItems, sapFormItems, marketingFormItems]);
+                              hasData.videos || hasData.gallery,
+
+    // After Service（融合到通用化配置）
+    afterService: () => {
+      const hasAnyAfterServiceData = hasData.manuals || hasData.repairGuide || hasData.packaging || hasData.drawing || hasData.patent;
+      const shouldShowManuals = normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.manuals;
+      const shouldShowRepairGuide = normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.repairGuide;
+      const shouldShowPackaging = basicTab === 'internalPDPBasic' && (normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.packaging);
+      const shouldShowDrawing = normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.drawing;
+      const shouldShowPatent = normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.patent;
+      return hasAnyAfterServiceData && (shouldShowManuals || shouldShowRepairGuide || shouldShowPackaging || shouldShowDrawing || shouldShowPatent);
+    }
+  }), [hasData, basicFormItems, sapFormItems, marketingFormItems, normalizedLayoutFromUrl, basicTab]);
 
   // 判断各个区域是否应该显示
   const shouldShowBasicDataSection = React.useMemo(() => 
@@ -1054,18 +1073,10 @@ const ProductDetailPage = () => {
     [shouldShowSection, sectionDisplayConfig]
   );
 
-  // 判断整个After Service区域是否应该显示
-  const shouldShowAfterServiceSection = React.useMemo(() => {
-    const hasAnyAfterServiceData = hasData.manuals || hasData.repairGuide || hasData.packaging || hasData.drawing || hasData.patent;
-    
-    const shouldShowManuals = normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.manuals;
-    const shouldShowRepairGuide = normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.repairGuide;
-    const shouldShowPackaging = basicTab === 'internalPDPBasic' && (normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.packaging);
-    const shouldShowDrawing = normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.drawing;
-    const shouldShowPatent = normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.patent;
-    
-    return hasAnyAfterServiceData && (shouldShowManuals || shouldShowRepairGuide || shouldShowPackaging || shouldShowDrawing || shouldShowPatent);
-  }, [hasData.manuals, hasData.repairGuide, hasData.packaging, hasData.drawing, hasData.patent, normalizedLayoutFromUrl, basicTab]);
+  const shouldShowAfterServiceSection = React.useMemo(() => 
+    shouldShowSection(sectionDisplayConfig.afterService()),
+    [shouldShowSection, sectionDisplayConfig]
+  );
 
   // 简化版ProductCard infoPairs生成器
   const generateProductCardInfoPairs = React.useCallback(() => {
@@ -2072,11 +2083,11 @@ const ProductDetailPage = () => {
       {/* Icons & Pictures */}
       {(normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.iconsPictures) && (
         <>
-          <SectionHeader
+            <SectionHeader
             titleRef={iconsPicturesTitleRef}
             title={iconsAndPicturesData?.title || 'Icons & Pictures'}
             showDownload={iconsAndPicturesData?.download}
-            onDownloadClick={handleIconsPicturesDownload}
+              onDownloadClick={handleIconsPicturesDownloadImmediate}
           />
           {productData.iconsPictures?.icons && productData.iconsPictures.icons.length > 0 && (
             <Box sx={{ mb: 3 }}>
@@ -2205,14 +2216,15 @@ const ProductDetailPage = () => {
                 products={productData.referenceRelationship.bundles.map(bundle => ({
                   image: bundle.imageUrl ? `https://pim-test.kendo.com${bundle.imageUrl}` : bundleImage1,
                   name: bundle.productName || '',
-                  code: bundle.productNumber || ''
+                  code: bundle.productNumber || '',
+                  redirectId: bundle.redirectId || ''
                 }))}
                 onProductClick={(product, index) => {
                   console.log('Bundle Product clicked:', product, index);
-                  if (product.code) {
+                  if (product.code && product.redirectId) {
                     const currentLayout = searchParams.get('layout') || 'internalPDPBasic';
                     const encoded = parseLayoutFromUrl(currentLayout);
-                    const newUrl = `/${currentLanguage}/${currentBrandCode}/product-detail/${product.code}?layout=${encoded}`;
+                    const newUrl = `/${currentLanguage}/${currentBrandCode}/product-detail/${product.redirectId}?layout=${encoded}`;
                     window.open(newUrl, '_blank', 'noopener,noreferrer');
                   }
                 }}
