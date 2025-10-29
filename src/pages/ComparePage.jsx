@@ -38,80 +38,80 @@ const MOCK_PRODUCTS = [
   {
     id: 'BH1001_EU',
     modelNumber: 'BH1001_EU',
-    name: 'EGO Professional Tool',
+    name: 'Kendo Professional Tool',
     image: '/assets/productcard_image.png',
     price: '$199.99',
-    category: 'Tool'
+    ean: 'Tool'
   },
   {
     id: 'BCX3800_EU', 
     modelNumber: 'BCX3800_EU',
-    name: 'EGO Professional X Tool',
+    name: 'Kendo Professional X Tool',
     image: '/assets/productcard_image.png',
     price: '$299.99',
-    category: 'Tool'
+    ean: 'Tool'
   },
   {
     id: 'LB7650E_EU',
     modelNumber: 'LB7650E_EU', 
-    name: 'EGO Professional Tool',
+    name: 'Kendo Professional Tool',
     image: '/assets/productcard_image.png',
     price: '$399.99',
-    category: 'Tool'
+    ean: 'Tool'
   },
   {
     id: 'CS1614E_EU',
     modelNumber: 'CS1614E_EU', 
-    name: 'EGO POWER+ Kit',
+    name: 'Kendo POWER+ Kit',
     image: '/assets/productcard_image.png',
     price: '$399.99',
-    category: 'Kit'
+    ean: 'Kit'
   },
   {
     id: 'LM2135E-SP_EU',
     modelNumber: 'LM2135E-SP_EU', 
-    name: 'EGO Professional Kit',
+    name: 'Kendo Professional Kit',
     image: '/assets/productcard_image.png',
     price: '$399.99',
-    category: 'Kit'
+    ean: 'Kit'
   }
 ];
 
 const MOCK_COMPARE_DATA = {
   headerData: [
     {
-      name: 'EGO Professional Tool',
+      name: 'Kendo Professional Tool',
       image: '/assets/productcard_image.png',
       modelNumber: 'BH1001_EU',
       price: '$199.99'
     },
     {
-      name: 'EGO Professional X Tool', 
+      name: 'Kendo Professional X Tool', 
       image: '/assets/productcard_image.png',
       modelNumber: 'BCX3800_EU',
       price: '$299.99'
     },
     {
-      name: 'EGO Professional Tool',
+      name: 'Kendo Professional Tool',
       image: '/assets/productcard_image.png', 
       modelNumber: 'LB7650E_EU',
       price: '$399.99'
     },
     {
-      name: 'EGO POWER+ Kit',
+      name: 'Kendo POWER+ Kit',
       image: '/assets/productcard_image.png', 
       modelNumber: 'CS1614E_EU',
       price: '$399.99'
     },
     {
-      name: 'EGO Professional Kit',
+      name: 'Kendo Professional Kit',
       image: '/assets/productcard_image.png', 
       modelNumber: 'LM2135E-SP_EU',
       price: '$399.99'
     }
   ],
   basicData: [
-    ['Series', 'EGO Professional', 'EGO Professional X', 'EGO Professional', 'EGO POWER+', 'EGO Professional'],
+    ['Series', 'Kendo Professional', 'Kendo Professional X', 'Kendo Professional', 'Kendo POWER+', 'Kendo Professional'],
     ['Product Type', 'Tool Only', 'Tool Only', 'Tool Only', 'Kit', 'Kit'],
     ['Model Number', 'BH1001_EU', 'BCX3800_EU', 'LB7650E_EU', 'CS1614E_EU', 'LM2135E-SP_EU'],
     ['Long Description', '--', '--', '--', '--', '--'],
@@ -213,7 +213,7 @@ const SearchProductModal = ({ open, onClose, onAddProduct, existingProducts = []
               >
                 <MenuItem value="model-number">Model Numbers</MenuItem>
                 <MenuItem value="name">Product Name</MenuItem>
-                <MenuItem value="category">Category</MenuItem>
+                <MenuItem value="ean">ean</MenuItem>
               </Select>
             </FormControl>
             <Box sx={{ 
@@ -266,7 +266,13 @@ const SearchProductModal = ({ open, onClose, onAddProduct, existingProducts = []
                   return (
                     <TextField
                       {...params}
-                      placeholder="Search by model number"
+                      placeholder={
+                        searchCriteria === 'model-number' 
+                          ? "Search by model number" 
+                          : searchCriteria === 'name' 
+                            ? "Search by product name" 
+                            : "Search by ean"
+                      }
                       variant="standard"
                       disableUnderline
                       fullWidth
@@ -700,6 +706,23 @@ const ComparePage = () => {
                     }}
                   >
                     {product.modelNumber}
+                  </Box>
+                  <Box
+                    sx={{
+                      fontSize: '0.9rem',
+                      color: '#4d4d4d',
+                      fontWeight: 500,
+                      lineHeight: 1.2,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      mb: 0.5,
+                      mt: 0.5
+                    }}
+                  >
+                    {product.name}
                   </Box>
                 </Box>
               </Box>

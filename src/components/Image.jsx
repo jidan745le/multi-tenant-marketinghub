@@ -335,7 +335,7 @@ const Image = ({
           <Box sx={{
             position: 'absolute',
             left: '13.53px',
-            top: '82.15px',
+            top: '92.15px',
             display: 'flex',
             flexDirection: 'column',
             gap: '8px'
@@ -351,7 +351,7 @@ const Image = ({
           <Box sx={{
             position: 'absolute',
             left: '150.53px',
-            top: '84px',
+            top: '94px',
             display: 'flex',
             flexDirection: 'column',
             gap: '8px'
@@ -378,7 +378,7 @@ const Image = ({
           <Box sx={{
             position: 'absolute',
             left: '281.24px',
-            top: '82.15px',
+            top: '92.15px',
             display: 'flex',
             flexDirection: 'column',
             gap: '8px'
@@ -394,7 +394,7 @@ const Image = ({
           <Box sx={{
             position: 'absolute',
             left: '390px',
-            top: '82.15px',
+            top: '92.15px',
             display: 'flex',
             flexDirection: 'column',
             gap: '8px'

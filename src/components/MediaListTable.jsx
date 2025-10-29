@@ -9,7 +9,8 @@ import AssetDetailDialog from './AssetDetailDialog';
 const MediaListTable = ({ 
   data = [],
   columns = ['Video Photo', 'Name', 'Language', 'Type', 'Format', 'Duration', 'Operation'],
-  onDownloadClick
+  onDownloadClick,
+  onAssetDialogDownload
 }) => {
   const { primaryColor } = useTheme();
   const [videoModalOpen, setVideoModalOpen] = useState(false);
@@ -292,10 +293,14 @@ const MediaListTable = ({
     setSelectedAssetId(null);
   };
 
-  // 视频下载
+  // 视频详情弹框内的下载
   const handleVideoDownload = (identifier) => {
-    console.log('Download video:', identifier);
-    // 这里可以添加下载逻辑
+    const idToUse = selectedAssetId || identifier;
+    if (onAssetDialogDownload && idToUse) {
+      onAssetDialogDownload(idToUse);
+      return;
+    }
+    console.log('Download video (fallback):', identifier);
   };
 
   // 操作图标
