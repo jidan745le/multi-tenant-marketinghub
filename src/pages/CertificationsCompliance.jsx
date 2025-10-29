@@ -55,16 +55,17 @@ const CertificationsCompliance = () => {
   }, []);
 
   const handleDocumentDownload = useCallback((document) => {
-    const mediaArray = Array.isArray(document) ? document : [document];
-    
-    // Extract IDs from media objects
-    const mediaIds = mediaArray.map(item => item.id || item.mediaId).filter(Boolean);
-    
+    let mediaIds = [];
+    if (Array.isArray(document)) {
+      mediaIds = document
+        .map(item => (typeof item === 'string' || typeof item === 'number') ? item : (item?.id || item?.mediaId))
+        .filter(Boolean);
+    } else {
+      mediaIds = [(typeof document === 'string' || typeof document === 'number') ? document : (document?.id || document?.mediaId)]
+        .filter(Boolean);
+    }
     console.log('📤 CertificationsCompliance: Passing media IDs to download dialog:', mediaIds);
-    
-    // MediaDownloadDialog will handle the logic:
-    // 1. For single ID: fetch details and check format
-    // 2. For multiple IDs: show dialog
+    if (mediaIds.length === 0) return;
     setSelectedMediaIds(mediaIds);
     setDownloadDialogOpen(true);
   }, []);
@@ -103,6 +104,11 @@ const CertificationsCompliance = () => {
   // 处理 AssetDetailDialog 中的下载
   const handleAssetDetailDownload = useCallback((assetId) => {
     console.log('Download from AssetDetailDialog:', assetId);
+    if (assetId) {
+      setSelectedMediaIds([assetId]);
+      setDownloadDialogOpen(true);
+      return;
+    }
     if (selectedAssetData) {
       handleDocumentDownload(selectedAssetData);
     }

@@ -16,6 +16,7 @@ import { ScrollBarWrapperBox } from './ScrollBarThemeWrapper';
 import ProductCard from './DigitalAssetCard';
 import AssetPagination from './AssetPagination';
 import AssetDetailDialog from './AssetDetailDialog';
+import MediaDownloadDialog from './MediaDownloadDialog';
 import {
   TextField,
   Select,
@@ -58,6 +59,10 @@ const BrandbookContent = ({ data, onSectionInView }) => {
   const [assetDetailOpen, setAssetDetailOpen] = useState(false);
   const [selectedAssetId, setSelectedAssetId] = useState(null);
   const [selectedAssetData, setSelectedAssetData] = useState(null);
+
+  // MediaDownloadDialog 状态
+  const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
+  const [selectedMediaIds, setSelectedMediaIds] = useState([]);
 
   // const [selectedLanguages, setSelectedLanguages] = useState({});
 
@@ -106,35 +111,46 @@ const BrandbookContent = ({ data, onSectionInView }) => {
     setSelectedAssetData(null);
   }, []);
 
+  const handleDownloadDialogClose = useCallback(() => {
+    setDownloadDialogOpen(false);
+    setSelectedMediaIds([]);
+  }, []);
+
+  const handleDownload = useCallback((assetIds) => {
+    if (!assetIds) return;
+    const idsArray = Array.isArray(assetIds) ? assetIds : [assetIds];
+    if (idsArray.length === 0) return;
+    setSelectedMediaIds(idsArray);
+    setDownloadDialogOpen(true);
+  }, []);
+
   // 这里是AssetDetailDialog 中的下载
   const handleAssetDetailDownload = useCallback((assetId) => {
     console.log('Download from AssetDetailDialog in Brandbook:', assetId);
-    
+    if (assetId) {
+      handleDownload(assetId);
+      return;
+    }
+    // 回退到旧的直接下载逻辑
     if (selectedAssetData) {
       try {
-        // 构建下载URL
         const downloadUrl = selectedAssetData.downloadUrl || selectedAssetData.fullpath;
         if (downloadUrl) {
           const fullDownloadUrl = downloadUrl.startsWith('http') 
             ? downloadUrl 
             : `https://pim-test.kendo.com${downloadUrl}`;
-          
           const link = document.createElement('a');
           link.href = fullDownloadUrl;
           link.download = selectedAssetData.filename || selectedAssetData.name || 'asset';
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
-          
-          console.log('Asset download initiated:', fullDownloadUrl);
-        } else {
-          console.warn('No download URL available for asset:', selectedAssetData);
         }
       } catch (error) {
         console.error('Error downloading asset:', error);
       }
     }
-  }, [selectedAssetData]);
+  }, [handleDownload, selectedAssetData]);
 
   const registerSectionRef = (sectionId, element) => {
     if (element) {
@@ -602,6 +618,13 @@ const BrandbookContent = ({ data, onSectionInView }) => {
         assetId={selectedAssetId}
         mediaData={selectedAssetData}
         onDownload={handleAssetDetailDownload}
+      />
+
+      {/* Media Download Dialog */}
+      <MediaDownloadDialog
+        open={downloadDialogOpen}
+        onClose={handleDownloadDialogClose}
+        selectedMediaIds={selectedMediaIds}
       />
     </ScrollBarWrapperBox>
   );

@@ -462,7 +462,7 @@ const ProductDetailPage = () => {
   const [massDownloadDialogOpen, setMassDownloadDialogOpen] = useState(false);
   
   // 通用下载
-  const handleDownload = (assetIds) => {
+  const handleDownload = React.useCallback((assetIds) => {
     if (!assetIds) {
       console.warn('No asset IDs provided for download');
       return;
@@ -480,7 +480,7 @@ const ProductDetailPage = () => {
     // 2. For multiple IDs: show dialog
     setSelectedMediaIds(idsArray);
     setDownloadDialogOpen(true);
-  };
+  }, []);
 
   // 通用批量下载
   const createBatchDownloadHandler = (dataPath, sectionName) => {
@@ -575,11 +575,16 @@ const ProductDetailPage = () => {
   // 处理 AssetDetailDialog 中的下载
   const handleAssetDetailDownload = useCallback((assetId) => {
     console.log('Download from AssetDetailDialog in ProductDetailPage:', assetId);
-    // 这里可以调用下载逻辑
+    if (assetId) {
+      // 直接打开 MediaDownloadDialog
+      handleDownload(assetId);
+      return;
+    }
+    // 回退：兼容旧逻辑
     if (selectedAssetData) {
       handleAfterServiceDownload(selectedAssetData);
     }
-  }, [selectedAssetData, handleAfterServiceDownload]);
+  }, [handleDownload, selectedAssetData, handleAfterServiceDownload]);
 
   // 处理售后服务资产点击
   const handleAfterServiceAssetClick = useCallback((asset) => {
@@ -2607,6 +2612,7 @@ const ProductDetailPage = () => {
                 assetId: video.assetId || video.id
               })) || []}
               onDownloadClick={handleSingleVideoDownload}
+              onAssetDialogDownload={handleDownload}
             />
           </Box>
         </>
