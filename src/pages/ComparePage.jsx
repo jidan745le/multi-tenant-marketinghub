@@ -707,6 +707,23 @@ const ComparePage = () => {
                   >
                     {product.modelNumber}
                   </Box>
+                  <Box
+                    sx={{
+                      fontSize: '0.9rem',
+                      color: '#4d4d4d',
+                      fontWeight: 500,
+                      lineHeight: 1.2,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      mb: 0.5,
+                      mt: 0.5
+                    }}
+                  >
+                    {product.name}
+                  </Box>
                 </Box>
               </Box>
             </Box>
