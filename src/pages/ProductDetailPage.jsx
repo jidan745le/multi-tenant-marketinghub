@@ -1140,8 +1140,8 @@ const ProductDetailPage = () => {
 
   // 简化版ProductCard配置
   const productCardConfig = React.useMemo(() => ({
-    modelNumberField: productCardData?.modelNumberField || 'modelNumber',
-    announcementPrefix: productCardData?.announcementPrefix || 'New Version Available:',
+    modelNumberField: productCardData?.modelNumberField || '',
+    announcementPrefix: productCardData?.announcementPrefix || '',
     // statusText: productCardData?.statusText || 'In Development'
   }), [productCardData]);
 
@@ -1647,7 +1647,7 @@ const ProductDetailPage = () => {
         
         // en_GB -> en
         const mappedLanguage = currentLanguage === 'en_GB' ? 'en' : currentLanguage;
-        const detail = await ProductDetailApiService.getProductDetail(routeProductId, mappedLanguage);
+        const detail = await ProductDetailApiService.getProductDetail(routeProductId, mappedLanguage, true);
 
         console.log('API响应结果:', {
           detail,

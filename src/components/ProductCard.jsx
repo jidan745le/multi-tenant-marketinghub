@@ -12,12 +12,12 @@ import UnifiedSkuTable from './UnifiedSkuTable';
 import SmallTriangleIcon from './SmallTriangleIcon';
 
 const ProductCard = ({
-  announcementPrefix = 'New Version Available:',
-  announcementLinkText = 'Big Capacity Drawer Roller Cabinet with 6 Drawers 2024',
+  announcementPrefix = '',
+  announcementLinkText = '',
   showAnnouncement = true,
-  statusText = 'In Development',
-  modelNumber = '90330',
-  title = 'Big Capacity Black Roller Cabinet with 6 Drawer - 160mm/6"',
+  statusText = '',
+  modelNumber = '',
+  title = '',
   infoPairs, // 统一使用infoPairs，移除单独的状态props
   infoLabelMinWidth = '155px',
   infoValueMinWidth = '118px',

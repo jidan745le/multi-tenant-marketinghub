@@ -12,7 +12,7 @@ const ReportDataIssueDialog = ({
   // onSubmit,//暂时不用这个参数
   initialComment = '', 
   initialUser = '',
-  mailTo = 'pdp-feedback@kendo.com',
+  mailTo = 'sophia.huang@rg-experience.com',
   mailCc = '', 
   onSuccess, // 成功
   onError // 错误
@@ -72,7 +72,7 @@ const ReportDataIssueDialog = ({
       if (onError) {
         onError(error);
       } else {
-        alert(t('pdp.feedbackError') || `Failed to submit feedback: ${error.message}`);
+        alert(t('pdp.feedbackError') || `Failed to submit feedback !.`);
       }
     } finally {
       setIsSubmitting(false);
