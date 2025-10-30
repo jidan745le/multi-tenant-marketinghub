@@ -1378,8 +1378,14 @@ class ProductDetailApiService {
   }
 
   // 获取产品详情
-  async getProductDetail(skuid, defaultLanguage = 'en') {
+  async getProductDetail(skuid, defaultLanguage = 'en', useBackendApi = false) {
     try {
+      // 如果使用后端接口
+      if (useBackendApi) {
+        return await this.getProductDetailFromBackend(skuid, defaultLanguage);
+      }
+
+      // 默认使用前端转换逻辑
       const filter = {
         CustomerFacingProductCode: { "$like": skuid }
       };
@@ -1408,6 +1414,35 @@ class ProductDetailApiService {
     }
   }
 
+  // 从后端API获取产品详情
+  async getProductDetailFromBackend(skuid, defaultLanguage = 'en') {
+    try {
+      const token = CookieService.getToken();
+      const backendUrl = `/srv/v1/main/pdp?skuId=${encodeURIComponent(skuid)}&lang=${encodeURIComponent(defaultLanguage)}`;
+
+      const response = await fetch(backendUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Backend API response:', data);
+
+      return data;
+    } catch (error) {
+      console.error('Error fetching product detail from backend:', error);
+      throw error;
+    }
+  }
+
   // SKU数据转换
   transformSkuData(product) {
     // 从 parent.children 中获取 SKU 数据
@@ -1423,9 +1458,9 @@ class ProductDetailApiService {
   }
 
   // 批量获取产品详情
-  async getProductDetails(skuids, defaultLanguage = 'en') {
+  async getProductDetails(skuids, defaultLanguage = 'en', useBackendApi = false) {
     try {
-      const promises = skuids.map(skuid => this.getProductDetail(skuid, defaultLanguage));
+      const promises = skuids.map(skuid => this.getProductDetail(skuid, defaultLanguage, useBackendApi));
       const results = await Promise.allSettled(promises);
 
       return results.map((result, index) => ({
