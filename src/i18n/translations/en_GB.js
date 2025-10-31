@@ -45,6 +45,26 @@ export default {
     "qrTable.action": "Action",
     "qrTable.linkAction": "Link",
     
-    // Media related translations
+
     "media.loading": "Loading...",
+    
+    "Feature Name": "Feature Name",
+    "Value": "Value",
+    "Unit": "Unit",
+    
+    "assetDetail.previewPdf": "Preview PDF",
+    
+    "common.basicInfo": "Basic Info",
+    "common.technical": "Technical",
+    "common.modelNumber": "Model Number",
+    "common.mediaType": "Media Type",
+    "common.usage": "Usage",
+    "common.language": "Language",
+    "common.productIds": "Product IDs",
+    "common.approvalStatus": "Approval Status",
+    "common.dimensions": "Dimensions",
+    "common.size": "Size",
+    "common.createdOn": "Created On",
+    "common.changeDate": "Change Date",
+    "common.copiedToClipboard": "Copied to clipboard!",
 }; 

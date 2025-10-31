@@ -129,9 +129,8 @@ const ProductDetailPage = () => {
   // 从URL获取layout参数，默认为'internalPDPBasic'
   const layoutFromUrl = searchParams.get('layout') || 'internalPDPBasic';
   const normalizedLayoutFromUrl = parseLayoutFromUrl(layoutFromUrl);
-  console.log('normalizedLayoutFromUrl111', normalizedLayoutFromUrl);
   
-  // 下拉选择：Marketing (Partner) /normalizedLayoutFromUrl111 Marketing
+  // 下拉选择：Marketing (Partner) /Marketing
   const [basicTab, setBasicTab] = useState(normalizedLayoutFromUrl);
   // 防抖处理
   const [, startTransition] = React.useTransition();
@@ -423,7 +422,7 @@ const ProductDetailPage = () => {
     patentData
   } = mappedData;
 
-  console.log('mappedData111', mappedData);
+  console.log('mappedData', mappedData);
 
   // 动态列头
   const skuColumnLabels = React.useMemo(() => {
@@ -1004,7 +1003,6 @@ const ProductDetailPage = () => {
   // 通用的区域显示判断函数
   const shouldShowSection = React.useCallback((hasDataCondition) => {
     if (normalizedLayoutFromUrl === 'externalPDPBasic') {
-      console.log('hasDataCondition111', hasDataCondition);
       return hasDataCondition;
     }
     return true;
@@ -1359,12 +1357,12 @@ const ProductDetailPage = () => {
       }
       
       // 显示成功提示
-      showToast('Copied to clipboard !', 'success');
+      showToast(t('common.copiedToClipboard'), 'success');
     } catch (error) {
       console.error('Copy failed:', error);
-      showToast('Copied to clipboard !', 'success'); // 即使失败也显示成功消息
+      showToast(t('common.copiedToClipboard'), 'success'); // 即使失败也显示成功消息
     }
-  }, []);
+  }, [t]);
   
   const handleExport = React.useCallback(() => { 
     console.log('export clicked'); 
@@ -1927,10 +1925,15 @@ const ProductDetailPage = () => {
           showAnnouncement={!!(productData.successor && (Object.keys(productData.successor).length > 0))}
           statusText={(() => {
             const enrichmentStatus = productData?.status?.enrichmentStatus;
-            if (enrichmentStatus == 'Global Data Ready' || enrichmentStatus == 'Deactivated') {
-              return enrichmentStatus;
-            }
-            return 'In Development';
+            // Enrichment Status标签映射
+            const statusLabelMap = {
+              'Coming Soon': 'Coming Soon',
+              'New': 'New',
+              'Deactivated': 'Deactivated',
+              'Local Data Ready': 'Active',
+              'Global Data Ready': 'Active'
+            };
+            return statusLabelMap[enrichmentStatus] || 'In Development';
           })()}
           modelNumber={routeProductId}
           title={productData.productCardInfo?.productName || productData.name || "Product Title"}
@@ -2468,17 +2471,7 @@ const ProductDetailPage = () => {
                   })) || []
                 }] : [])
               ]}
-              columns={(() => {
-                const firstSpec = productData.packagingSpec?.technicalSpecs?.[0];
-                if (!firstSpec) return [t('Feature Name'), t('Value'), t('Unit')];
-                const keys = Object.keys(firstSpec);
-                const columnMap = {
-                  featureName: 'Feature Name',
-                  value: 'Value',
-                  unit: 'Unit'
-                };
-                return keys.map(key => t(columnMap[key] || key));
-              })()}
+              columns={[t('Feature Name'), t('Value'), t('Unit')]}
             />
           </Box>
         </>
@@ -2522,18 +2515,18 @@ const ProductDetailPage = () => {
             // 标签映射
             infoLabels={{
               basic: [
-                { key: 'modelNumber', label: 'Model Number' },
-                { key: 'mediaType', label: 'Media Type' },
-                { key: 'usage', label: 'Usage Rights' },
-                { key: 'language', label: 'Language' },
-                { key: 'productIds', label: 'Product IDs' },
-                { key: 'approvalStatus', label: 'Approval Status' }
+                { key: 'modelNumber', label: 'common.modelNumber' },
+                { key: 'mediaType', label: 'common.mediaType' },
+                { key: 'usage', label: 'common.usage' },
+                { key: 'language', label: 'common.language' },
+                { key: 'productIds', label: 'common.productIds' },
+                { key: 'approvalStatus', label: 'common.approvalStatus' }
               ],
               technical: [
-                { key: 'dimensions', label: 'Dimensions' },
-                { key: 'size', label: 'Size' },
-                { key: 'createdOn', label: 'Created On' },
-                { key: 'changeDate', label: 'Change Date' }
+                { key: 'dimensions', label: 'common.dimensions' },
+                { key: 'size', label: 'common.size' },
+                { key: 'createdOn', label: 'common.createdOn' },
+                { key: 'changeDate', label: 'common.changeDate' }
               ]
             }}
             onImageSelect={(image, index) => console.log('On White selected:', index, image)}
@@ -2577,18 +2570,18 @@ const ProductDetailPage = () => {
              // 标签映射
              infoLabels={{
               basic: [
-                { key: 'modelNumber', label: 'Model Number' },
-                { key: 'mediaType', label: 'Media Type' },
-                { key: 'usage', label: 'Usage Rights' },
-                { key: 'language', label: 'Language' },
-                { key: 'productIds', label: 'Product IDs' },
-                { key: 'approvalStatus', label: 'Approval Status' }
+                { key: 'modelNumber', label: 'common.modelNumber' },
+                { key: 'mediaType', label: 'common.mediaType' },
+                { key: 'usage', label: 'common.usage' },
+                { key: 'language', label: 'common.language' },
+                { key: 'productIds', label: 'common.productIds' },
+                { key: 'approvalStatus', label: 'common.approvalStatus' }
               ],
               technical: [
-                { key: 'dimensions', label: 'Dimensions' },
-                { key: 'size', label: 'Size' },
-                { key: 'createdOn', label: 'Created On' },
-                { key: 'changeDate', label: 'Change Date' }
+                { key: 'dimensions', label: 'common.dimensions' },
+                { key: 'size', label: 'common.size' },
+                { key: 'createdOn', label: 'common.createdOn' },
+                { key: 'changeDate', label: 'common.changeDate' }
               ]
             }}
             onImageSelect={(image, index) => console.log('Action & Lifestyle selected:', index, image)}
@@ -2612,6 +2605,7 @@ const ProductDetailPage = () => {
           {/* Videos Media List */}
           <Box sx={{ mb: 3 }}>
             <MediaListTable
+              columns={mediaData?.[0]?.fields?.map(field => field.title || '') || []}
               data={productData.marketingCollaterals?.videos?.map(video => ({
                 image: video.thumbnailUrl ? `https://pim-test.kendo.com${video.thumbnailUrl}` : '',
                 name: video.videoTitle || '',
@@ -2665,18 +2659,18 @@ const ProductDetailPage = () => {
             // 标签映射
             infoLabels={{
               basic: [
-                { key: 'modelNumber', label: 'Model Number' },
-                { key: 'mediaType', label: 'Media Type' },
-                { key: 'usage', label: 'Usage Rights' },
-                { key: 'language', label: 'Language' },
-                { key: 'productIds', label: 'Product IDs' },
-                { key: 'approvalStatus', label: 'Approval Status' }
+                { key: 'modelNumber', label: 'common.modelNumber' },
+                { key: 'mediaType', label: 'common.mediaType' },
+                { key: 'usage', label: 'common.usage' },
+                { key: 'language', label: 'common.language' },
+                { key: 'productIds', label: 'common.productIds' },
+                { key: 'approvalStatus', label: 'common.approvalStatus' }
               ],
               technical: [
-                { key: 'dimensions', label: 'Dimensions' },
-                { key: 'size', label: 'Size' },
-                { key: 'createdOn', label: 'Created On' },
-                { key: 'changeDate', label: 'Change Date' }
+                { key: 'dimensions', label: 'common.dimensions' },
+                { key: 'size', label: 'common.size' },
+                { key: 'createdOn', label: 'common.createdOn' },
+                { key: 'changeDate', label: 'common.changeDate' }
               ]
             }}
             onImageSelect={(image, index) => console.log('Gallery selected:', index, image)}

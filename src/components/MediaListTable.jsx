@@ -5,6 +5,7 @@ import ViewIcon from '../assets/icon/pdp_view.png';
 import downloadIcon from '../assets/icon/download.png';
 import { useTheme } from '../hooks/useTheme';
 import AssetDetailDialog from './AssetDetailDialog';
+// import { useTranslation } from 'react-i18next';
 
 const MediaListTable = ({ 
   data = [],
@@ -14,7 +15,6 @@ const MediaListTable = ({
 }) => {
   const { primaryColor } = useTheme();
   const [videoModalOpen, setVideoModalOpen] = useState(false);
-  const [selectedVideoData, setSelectedVideoData] = useState(null);
   const [selectedAssetId, setSelectedAssetId] = useState(null);
   const mixWithWhite = (hexColor, amount = 0.15) => {
     try {
@@ -241,55 +241,12 @@ const MediaListTable = ({
       event.stopPropagation();
     }
     
-    // 支持视频、图片、PDF
-    const mediaData = {
-      // 基础标识信息
-      identifier: item.name || `media-${rowIndex}`, 
-      filename: item.name || '--', 
-      name: item.name || '--', 
-      format: item.format || (item.name?.toLowerCase().includes('.pdf') ? 'PDF' : 'Video'), 
-      type: item.type || (item.name?.toLowerCase().includes('.pdf') ? 'Document' : 'Video'),
-      
-      // Basic Info
-      customerModelNumber: '--',
-      customerImageType: item.type || (item.name?.toLowerCase().includes('.pdf') ? 'Document' : 'Video'), 
-      lockDate: '--',
-      customerRestricted: [], 
-      customerUsageRights: 'External Image', 
-      customerApprovalStatus: '• Published', 
-      
-      // Technical
-      colorSpace: 'RGB', 
-      colorProfile: 'SRGB',
-      resolution: '300 Dpi', 
-      dimensions: '17.14 X 13.65', 
-      size: '150 Kb', 
-      creationDate: '2025-01-01', 
-      lastModified: '2025-01-01', 
-      
-      // 标签
-      customerKeywords: item.name?.toLowerCase().includes('.pdf') ? 'document, pdf, manual' : '--', 
-      
-      // 其他
-      language: item.language || '--',
-      duration: item.duration || '--',
-      customerChannel: []
-    };
-    
-    console.log('🔍 MediaListTable - Setting asset data:', {
-      itemId: item.id || item.assetId || null,
-      mediaData: mediaData,
-      item: item
-    });
-    
-    setSelectedVideoData(mediaData);
     setSelectedAssetId(item.id || item.assetId || null); // 设置 assetId
     setVideoModalOpen(true);
   };
 
   const handleVideoModalClose = () => {
     setVideoModalOpen(false);
-    setSelectedVideoData(null);
     setSelectedAssetId(null);
   };
 
@@ -416,7 +373,6 @@ const MediaListTable = ({
       <AssetDetailDialog
         open={videoModalOpen}
         onClose={handleVideoModalClose}
-        mediaData={selectedVideoData}
         assetId={selectedAssetId}
         onDownload={handleVideoDownload}
       />

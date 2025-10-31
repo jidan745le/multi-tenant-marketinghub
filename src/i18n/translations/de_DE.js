@@ -56,6 +56,26 @@ export default {
     "qrTable.action": "Aktion",
     "qrTable.linkAction": "Link",
     
-    // Media related translations
+
     "media.loading": "Laden...",
+
+    "Feature Name": "Funktionsname",
+    "Value": "Wert",
+    "Unit": "Einheit",  
+
+    "assetDetail.previewPdf": "PDF-Vorschau",
+    
+    "common.basicInfo": "Grundinformationen",
+    "common.technical": "Technisch",
+    "common.modelNumber": "Modellnummer",
+    "common.mediaType": "Medientyp",
+    "common.usage": "Nutzung",
+    "common.language": "Sprache",
+    "common.productIds": "Produkt-IDs",
+    "common.approvalStatus": "Freigabestatus",
+    "common.dimensions": "Abmessungen",
+    "common.size": "Größe",
+    "common.createdOn": "Erstellt am",
+    "common.changeDate": "Änderungsdatum",
+    "common.copiedToClipboard": "In die Zwischenablage kopiert!",
 }; 

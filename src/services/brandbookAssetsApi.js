@@ -61,8 +61,6 @@ export const fetchBrandbookAssets = async (params = {}) => {
         // 使用Adapter转换数据
         const result = adaptGraphQLAssetsResponse(graphqlResponse);
 
-        console.log('result111', result);
-
         console.log(`Brandbook assets received:`, {
             count: result.list.length,
             totalSize: result.totalSize

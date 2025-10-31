@@ -314,7 +314,7 @@ const Image = ({
             left: '13.53px',
             top: '50.25px'
           }}>
-            Basic Info
+            {t('common.basicInfo')}
           </Typography>
 
           <Typography sx={{
@@ -328,7 +328,7 @@ const Image = ({
             left: '280.53px',
             top: '50.25px'
           }}>
-            Technical
+            {t('common.technical')}
           </Typography>
 
           {/* 信息内容*/}
@@ -342,7 +342,7 @@ const Image = ({
           }}>
             {Array.isArray(infoLabels?.basic) && infoLabels.basic.map((f, i) => (
               <Typography key={`basic-label-${i}`} sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-                {f.label}:
+                {t(f.label)}:
               </Typography>
             ))}
           </Box>
@@ -385,7 +385,7 @@ const Image = ({
           }}>
             {Array.isArray(infoLabels?.technical) && infoLabels.technical.map((f, i) => (
               <Typography key={`tech-label-${i}`} sx={{ fontSize: '13px', color: '#000000', fontFamily: '"Open Sans", sans-serif' }}>
-                {f.label}:
+                {t(f.label)}:
               </Typography>
             ))}
           </Box>
@@ -393,7 +393,7 @@ const Image = ({
           {/* 技术值*/}
           <Box sx={{
             position: 'absolute',
-            left: '390px',
+            left: '400px',
             top: '92.15px',
             display: 'flex',
             flexDirection: 'column',

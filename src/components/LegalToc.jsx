@@ -87,9 +87,6 @@ const LegalToc = ({ activeSection, onSectionClick, tocItems: externalTocItems })
         {tocItems.map((item) => {
           // const IconComponent = item.icon;
           const isActive = activeSection === item.id;
-
-
-          console.log('item1111', item);
           
           return (
             <ListItem key={item.id} disablePadding sx={{ width: '100%' }}>

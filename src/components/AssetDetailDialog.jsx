@@ -242,24 +242,24 @@ const AssetDetailDialog = ({
   // 信息字段配置
   infoSections = [
     {
-      title: 'Basic Info',
+      title: 'common.basicInfo',
       fields: [
-        { key: 'customerModelNumber', label: 'Model Number', fallback: '--', altKeys: ['modelNumber'] },
-        { key: 'customerImageType', label: 'Media Type', fallback: '--' },
-        { key: 'customerUsageRights', label: 'Usage', fallback: '--'},
-        { key: 'language', label: 'Language', fallback: '--' },
-        { key: 'productIds', label: 'Product IDs', fallback: '--' },
-        { key: 'customerApprovalStatus', label: 'Approval Status', fallback: '--', highlight: true }
+        { key: 'customerModelNumber', label: 'common.modelNumber', fallback: '--', altKeys: ['modelNumber'] },
+        { key: 'customerImageType', label: 'common.mediaType', fallback: '--' },
+        { key: 'customerUsageRights', label: 'common.usage', fallback: '--'},
+        { key: 'language', label: 'common.language', fallback: '--' },
+        { key: 'productIds', label: 'common.productIds', fallback: '--' },
+        { key: 'customerApprovalStatus', label: 'common.approvalStatus', fallback: '--', highlight: true }
       ]
     },
     {
-      title: 'Technical',
+      title: 'common.technical',
       fields: [
-        // { key: 'name', label: 'Name', fallback: '--' },
-        { key: 'dimensions', label: 'Dimensions', fallback: '--' },
-        { key: 'size', label: 'Size', fallback: '--' },
-        { key: 'creationDate', label: 'Created On', fallback: '--' },
-        { key: 'lastModified', label: 'Change Date', fallback: '--' }
+        // { key: 'name', label: 'common.name', fallback: '--' },
+        { key: 'dimensions', label: 'common.dimensions', fallback: '--' },
+        { key: 'size', label: 'common.size', fallback: '--' },
+        { key: 'creationDate', label: 'common.createdOn', fallback: '--' },
+        { key: 'lastModified', label: 'common.changeDate', fallback: '--' }
       ]
     }
   ],
@@ -422,7 +422,7 @@ const AssetDetailDialog = ({
   // 添加转换结果的日志
   useEffect(() => {
     if (transformedMediaData) {
-      console.log('✅ AssetDetailDialog - Transformed data result:', transformedMediaData);
+      console.log('AssetDetailDialog - Transformed data result:', transformedMediaData);
     }
   }, [transformedMediaData]);
 
@@ -538,7 +538,7 @@ const AssetDetailDialog = ({
     
     return (
       <InfoItem key={item.label}>
-        <InfoLabel>{item.label}</InfoLabel>
+        <InfoLabel>{t(item.label)}</InfoLabel>
         <InfoValue 
           sx={shouldHighlight ? { color: '#6eb82a' } : {}}
         >
@@ -551,7 +551,7 @@ const AssetDetailDialog = ({
   // 信息区块
   const renderInfoSection = (section) => (
     <InfoSection key={section.title}>
-      <SectionTitle>{section.title}</SectionTitle>
+      <SectionTitle>{t(section.title)}</SectionTitle>
       <InfoList>
         {section.data?.map((item) => renderInfoItem(item))}
       </InfoList>
@@ -830,7 +830,7 @@ const AssetDetailDialog = ({
                           transition: 'all 0.3s ease !important'
                         }}
                       >
-                        Preview PDF
+                        {t('assetDetail.previewPdf')}
                       </Button>
                     </Box>
                   </Box>
