@@ -1923,18 +1923,19 @@ const ProductDetailPage = () => {
           announcementPrefix={productCardConfig.announcementPrefix}
           announcementLinkText={productData.basicData?.productName}
           showAnnouncement={!!(productData.successor && (Object.keys(productData.successor).length > 0))}
-          statusText={(() => {
-            const enrichmentStatus = productData?.status?.enrichmentStatus;
-            // Enrichment Status标签映射
-            const statusLabelMap = {
-              'Coming Soon': 'Coming Soon',
-              'New': 'New',
-              'Deactivated': 'Deactivated',
-              'Local Data Ready': 'Active',
-              'Global Data Ready': 'Active'
-            };
-            return statusLabelMap[enrichmentStatus] || 'In Development';
-          })()}
+            statusText={(() => {
+              const enrichmentStatus = productData?.status?.enrichmentStatus;
+              // Enrichment Status标签映射
+              const statusLabelMap = {
+                'Coming Soon': 'status.comingSoon',
+                'New': 'status.new',
+                'Deactivated': 'status.deactivated',
+                'Local Data Ready': 'status.active',
+                'Global Data Ready': 'status.active'
+              };
+              const translationKey = statusLabelMap[enrichmentStatus] || 'status.inDevelopment';
+              return t(translationKey);
+            })()}
           modelNumber={routeProductId}
           title={productData.productCardInfo?.productName || productData.name || "Product Title"}
           strapiData={productCardData}
