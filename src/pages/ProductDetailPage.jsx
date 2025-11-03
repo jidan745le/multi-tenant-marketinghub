@@ -1646,6 +1646,8 @@ const ProductDetailPage = () => {
         // en_GB -> en
         const mappedLanguage = currentLanguage === 'en_GB' ? 'en' : currentLanguage;
         const detail = await ProductDetailApiService.getProductDetail(routeProductId, mappedLanguage, true);
+        // const detail = await ProductDetailApiService.getProductDetail(routeProductId, mappedLanguage);
+
 
         console.log('API响应结果:', {
           detail,
@@ -1820,7 +1822,7 @@ const ProductDetailPage = () => {
             const eansKey = titleKey(t('pdp.sections.eans'));
             const iconsPicturesKey = titleKey(t('pdp.sections.iconsAndPictures'));
             const packagingDataKey = titleKey(t('pdp.sections.packagingData') || 'Packaging Data');
-            const packagingSpecKey = titleKey(t('pdp.sections.packagingSpec') || 'Packaging Spec');
+            const packagingSpecKey = titleKey(t('pdp.sections.packagingSpec') || 'Specifications');
             
             // 在 externalPDPBasic 时隐藏空数据部分
             if (normalizedLayoutFromUrl === 'externalPDPBasic') {
@@ -2127,7 +2129,8 @@ const ProductDetailPage = () => {
                 data={productData.qrCodes.qrCodes.map(qr => ({
                   // image: qr.imageUrl ? `https://pim-test.kendo.com${qr.imageUrl}` : qrImage1,
                   name: qr.name || '',
-                  link: qr.link || ''
+                  link: qr.link || '',
+                  field: qr.field || ''
                 }))}
                 onLinkClick={handleQRLinkClick}
                 onImageClick={handleQRImageClick}
@@ -2394,7 +2397,7 @@ const ProductDetailPage = () => {
               fontSize: '24.5px',
               fontWeight: 520
             }}>
-              {specificationData?.[0]?.title || 'Packaging & Spec'}
+              {specificationData?.[0]?.title || 'Specifications'}
             </Typography>
 
             {/* 操作按钮组 */}

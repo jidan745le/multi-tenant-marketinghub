@@ -18,7 +18,7 @@ export default {
     "pdp.sections.components": "Components",
     "pdp.sections.accessories": "Accessories",
     "pdp.sections.packagingData": "Packaging Data",
-    "pdp.sections.packagingSpec": "Packaging & Spec",
+    "pdp.sections.packagingSpec": "Specifications",
     "pdp.sections.videos": "Videos",
     "pdp.sections.gallery": "Gallery",
     "pdp.sections.manuals": "Manuals",
@@ -44,6 +44,7 @@ export default {
     "qrTable.link": "Link",
     "qrTable.action": "Action",
     "qrTable.linkAction": "Link",
+    "qrTable.downloadQRCode": "Download QRcode",
     
 
     "media.loading": "Loading...",

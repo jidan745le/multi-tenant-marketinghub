@@ -18,7 +18,7 @@ export default {
     "pdp.sections.components": "组件",
     "pdp.sections.accessories": "配件",
     "pdp.sections.packagingData": "包装数据",
-    "pdp.sections.packagingSpec": "包装规格",
+    "pdp.sections.packagingSpec": "规格",
     "pdp.sections.videos": "视频",
     "pdp.sections.gallery": "图库",
     "pdp.sections.manuals": "使用手册",

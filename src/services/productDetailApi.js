@@ -870,12 +870,19 @@ class ProductDetailApiService {
   // 二维码数据转换
   transformQrCodesData(product) {
     const qrCodes = [];
-    if (product.WebsiteLinkDE) {
-      qrCodes.push({
-        name: 'Website Link',
-        link: product.WebsiteLinkDE
-      });
-    }
+    Object.keys(product).forEach(key => {
+      if (key.startsWith('WebsiteLink')) {
+        const field = key.replace('WebsiteLink', '');
+        const linkValue = product[key];
+        if (linkValue) {
+          qrCodes.push({
+            name: 'Website Link',
+            link: linkValue,
+            field: field
+          });
+        }
+      }
+    });
     return { qrCodes };
   }
 

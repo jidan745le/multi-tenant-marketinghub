@@ -16,7 +16,7 @@ export default {
     "pdp.sections.components": "コンポーネント",
     "pdp.sections.accessories": "アクセサリー",
     "pdp.sections.packagingData": "パッケージデータ",
-    "pdp.sections.packagingSpec": "パッケージ仕様",
+    "pdp.sections.packagingSpec": "仕様",
     "pdp.sections.videos": "ビデオ",
     "pdp.sections.gallery": "ギャラリー",
     "pdp.sections.manuals": "マニュアル",

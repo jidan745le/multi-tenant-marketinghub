@@ -14,7 +14,7 @@ import {
 } from '@mui/material';
 import React, { useCallback, useMemo, useState } from 'react';
 // 使用本地状态管理
-import AssetViewActionBar from './AssetViewActionBar';
+// import AssetViewActionBar from './AssetViewActionBar';
 import DigitalAssetCard from './DigitalAssetCard';
 import MediaDownloadDialog from './MediaDownloadDialog';
 
@@ -74,13 +74,13 @@ const AssetPagination = ({
     }
   }, [addAsset, removeAsset]);
   
-  const clearSelection = useCallback(() => {
-    setSelectedAssets([]);
-  }, []);
+  // const clearSelection = useCallback(() => {
+  //   setSelectedAssets([]);
+  // }, []);
   
-  const selectAll = useCallback((assets) => {
-    setSelectedAssets([...assets]);
-  }, []);
+  // const selectAll = useCallback((assets) => {
+  //   setSelectedAssets([...assets]);
+  // }, []);
   
   const isAssetSelected = useCallback((assetId) => {
     return selectedAssets.some(item => item.id === assetId);
@@ -137,9 +137,9 @@ const AssetPagination = ({
   const paginatedItems = filteredItems.slice(startIndex, startIndex + pageSize);
 
   // 计算是否全部选中
-  const isAllSelected = useMemo(() => {
-    return paginatedItems.length > 0 && selectedCount === paginatedItems.length;
-  }, [selectedCount, paginatedItems.length]);
+  // const isAllSelected = useMemo(() => {
+  //   return paginatedItems.length > 0 && selectedCount === paginatedItems.length;
+  // }, [selectedCount, paginatedItems.length]);
 
   // 事件处理
   const handlePageChange = useCallback((event, page) => {
@@ -161,20 +161,20 @@ const AssetPagination = ({
     if (selectedCount > 0) {
       // Extract IDs from selected assets
       const mediaIds = selectedAssets.map(item => item.id || item.mediaId).filter(Boolean);
-      console.log('📤 AssetPagination: Passing selected media IDs to download dialog:', mediaIds);
+      console.log('AssetPagination: Passing selected media IDs to download dialog:', mediaIds);
       setSelectedMediaIds(mediaIds);
       setDownloadDialogOpen(true);
     }
   }, [selectedAssets, selectedCount]);
 
   // 处理 AssetViewActionBar 的下载选择
-  const handleActionBarDownloadSelection = useCallback((selectedAssets) => {
-    // Extract IDs from selected assets
-    const mediaIds = selectedAssets.map(item => item.id || item.mediaId).filter(Boolean);
-    console.log('📤 AssetPagination: Passing ActionBar media IDs to download dialog:', mediaIds);
-    setSelectedMediaIds(mediaIds);
-    setDownloadDialogOpen(true);
-  }, []);
+  // const handleActionBarDownloadSelection = useCallback((selectedAssets) => {
+  //   // Extract IDs from selected assets
+  //   const mediaIds = selectedAssets.map(item => item.id || item.mediaId).filter(Boolean);
+  //   console.log('AssetPagination: Passing ActionBar media IDs to download dialog:', mediaIds);
+  //   setSelectedMediaIds(mediaIds);
+  //   setDownloadDialogOpen(true);
+  // }, []);
 
 
   const handleDownloadDialogClose = useCallback(() => {
@@ -191,7 +191,7 @@ const AssetPagination = ({
   const handleItemDownload = useCallback((item) => {
     // Extract ID from single item
     const mediaId = item.id || item.mediaId;
-    console.log('📤 AssetPagination: Passing single media ID to download dialog:', mediaId);
+    console.log('AssetPagination: Passing single media ID to download dialog:', mediaId);
     setSelectedMediaIds(mediaId ? [mediaId] : []);
     setDownloadDialogOpen(true);
   }, []);
@@ -352,7 +352,7 @@ const AssetPagination = ({
       </Box>
 
       {/* Asset Action Bar */}
-       {selectedCount > 0 && (
+       {/* {selectedCount > 0 && (
          <Box sx={{ mb: 1.5,ml: -2,mt: -1 }}>
            <AssetViewActionBar 
              onDownloadSelection={handleActionBarDownloadSelection}
@@ -363,7 +363,7 @@ const AssetPagination = ({
              isAllSelected={isAllSelected}
            />
          </Box>
-       )}
+       )} */}
 
       {/* 网格内容区域 */}
       <Box sx={{ 

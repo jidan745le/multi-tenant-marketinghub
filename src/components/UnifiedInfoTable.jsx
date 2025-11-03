@@ -94,7 +94,7 @@ const UnifiedInfoTable = ({
     }
   };
 
-  // 生成二维码图片
+  // 生成二维码图片（用于显示）
   const generateQRCode = async (link) => {
     try {
       const qrDataURL = await QRCode.toDataURL(link, {
@@ -108,6 +108,25 @@ const UnifiedInfoTable = ({
       return qrDataURL;
     } catch (error) {
       console.error('Error generating QR code:', error);
+      return null;
+    }
+  };
+
+  // 生成高清晰度二维码图片
+  const generateQRCodeForDownload = async (link) => {
+    try {
+      const qrDataURL = await QRCode.toDataURL(link, {
+        width: 600,
+        margin: 4,
+        color: {
+          dark: '#000000',
+          light: '#ffffff'
+        },
+        errorCorrectionLevel: 'H'
+      });
+      return qrDataURL;
+    } catch (error) {
+      console.error('Error generating QR code for download:', error);
       return null;
     }
   };
@@ -181,7 +200,7 @@ const UnifiedInfoTable = ({
     },
     linkButton: {
       color: '#4d4d4d', textAlign: 'left', fontFamily: '"Open Sans", sans-serif', fontSize: '12.5px',
-      lineHeight: '15.46px', letterSpacing: '0.39px', fontWeight: 400, textDecoration: 'underline',
+      lineHeight: '15.46px', letterSpacing: '0.39px', fontWeight: 400, textDecoration: 'none',
       position: 'relative', flex: 1, textOverflow: 'ellipsis', overflow: 'hidden', minWidth: 'auto', padding: 0,
       textTransform: 'none', justifyContent: 'flex-start',
       backgroundColor: 'transparent !important',
@@ -216,6 +235,21 @@ const UnifiedInfoTable = ({
       const barcodeImage = generateBarcode(item.eanCode);
       if (barcodeImage) {
         downloadImage(barcodeImage, `EAN_${item.eanCode}.png`);
+      }
+    }
+  };
+
+  const handleQRDownload = async (item, index) => {
+    if (onDownloadClick) {
+      onDownloadClick(item, index);
+    } else if (item.link) {
+      const qrImage = await generateQRCodeForDownload(item.link);
+      if (qrImage) {
+        // 文件名格式：QRCode_Website_EN_Date
+        const field = item.field || '';
+        const date = Date.now();
+        const filename = `QRCode_Website_${field}_${date}.png`;
+        downloadImage(qrImage, filename);
       }
     }
   };
@@ -326,9 +360,18 @@ const UnifiedInfoTable = ({
 
           {/* col 3 */}
           <Box sx={{ ...styles.cell, minHeight: cellMinHeight }}>
-            <Typography sx={styles.text}>
-              {type === 'accessory' ? item.name : type === 'barcode' ? item.eanCode : item.link}
-            </Typography>
+            {type === 'qrcode' && item.link ? (
+              <Button 
+                onClick={() => handleLinkClick(item, index)} 
+                sx={styles.linkButton}
+              >
+                {item.link}
+              </Button>
+            ) : (
+              <Typography sx={styles.text}>
+                {type === 'accessory' ? item.name : type === 'barcode' ? item.eanCode : item.link}
+              </Typography>
+            )}
           </Box>
 
           {/* col 4 - action */}
@@ -345,8 +388,9 @@ const UnifiedInfoTable = ({
               </Button>
             )}
             {type === 'qrcode' && (
-              <Button onClick={() => handleLinkClick(item, index)} sx={styles.linkButton}>
-                {t('qrTable.linkAction', 'Link')}
+              <Button onClick={() => handleQRDownload(item, index)} sx={styles.downloadButton}>
+                <Box sx={styles.downloadIconMask} />
+                {t('qrTable.downloadQRCode', 'Download QRcode')}
               </Button>
             )}
           </Box>

@@ -213,7 +213,7 @@ const SearchProductModal = ({ open, onClose, onAddProduct, existingProducts = []
               >
                 <MenuItem value="model-number">Model Numbers</MenuItem>
                 <MenuItem value="name">Product Name</MenuItem>
-                <MenuItem value="ean">ean</MenuItem>
+                <MenuItem value="ean">EAN</MenuItem>
               </Select>
             </FormControl>
             <Box sx={{ 
