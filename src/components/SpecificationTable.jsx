@@ -366,7 +366,6 @@ const SpecificationTable = ({
                       <Typography sx={commonStyles.featureText}>
                         {item.feature}
                       </Typography>
-                      {item.showQuestion && <QuestionIcon />}
                     </Box>
                   </Box>
                 </Box>
