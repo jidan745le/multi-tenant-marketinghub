@@ -30,8 +30,12 @@ const VideoPlayerContainer = styled(Box)({
 
 const VideoPlayer = styled('video')({
   objectFit: 'contain',
-  width: '100%',
-  maxHeight: '100%'
+  maxWidth: '280px',
+  maxHeight: '236px',
+  width: 'auto',
+  height: 'auto',
+  display: 'block',
+  margin: 'auto'
 });
 
 const PdfViewer = styled('iframe')({
@@ -603,6 +607,18 @@ const AssetDetailDialog = ({
         return;
       }
 
+      const isVideo = assetInfo.type === 'video' || 
+                      (assetInfo.mimetype && assetInfo.mimetype.toLowerCase().includes('video')) ||
+                      (assetInfo.name && /\.(mp4|avi|mov|wmv|flv|webm|mkv|m4v)$/i.test(assetInfo.name));
+      
+      // 是 video 且有 assetId，使用新的 URL 格式
+      if (isVideo && assetId) {
+        const videoUrl = `https://marketinghub-test.rg-experience.com/apis/kendo/asset-stream/${assetId}`;
+        console.log('Video URL (new format):', videoUrl);
+        setMediaUrl(videoUrl);
+        return;
+      }
+
       const urlToUse = assetInfo.thumbnail || assetInfo.fullpath;
       if (urlToUse) {
         // 拼接URL的地方
@@ -618,7 +634,7 @@ const AssetDetailDialog = ({
       console.error('Error setting media URL:', error);
       setMediaError(true);
     }
-  }, [customMediaUrlFetcher, assetInfo]);
+  }, [customMediaUrlFetcher, assetInfo, assetId]);
 
 
 
