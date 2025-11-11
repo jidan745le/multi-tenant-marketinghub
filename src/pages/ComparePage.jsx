@@ -398,8 +398,8 @@ const TABLE_STYLES = {
   tableRow: (isLastRow) => ({
     minHeight: '48px',
     display: 'flex',
-    borderTop: '1px solid #cccccc',
-    borderBottom: isLastRow ? 'none' : '1px solid #cccccc'
+    borderTop: '1px solid rgba(0, 0, 0, 0.15)',
+    borderBottom: isLastRow ? 'none' : '1px solid rgba(0, 0, 0, 0.15)'
   })
 };
 
@@ -718,6 +718,8 @@ const ComparePage = () => {
                       WebkitBoxOrient: 'vertical',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
+                      wordBreak: 'break-word',
+                      wordWrap: 'break-word',
                       mb: 0.5,
                       mt: 0.5
                     }}
@@ -779,7 +781,7 @@ const ComparePage = () => {
   const renderBasicSpecs = () => {
     
     return (
-      <Box sx={{ mb: 2 }}>
+      <Box sx={{ mb: 3 }}>
         <Box sx={{ 
           display: 'flex', 
           justifyContent: 'center',
@@ -827,7 +829,8 @@ const ComparePage = () => {
         <Box sx={{ display: 'flex', justifyContent: 'center' }}>
           <Paper sx={{ 
             width: tableUtils.getTableWidth(),
-            minWidth: '240px'
+            minWidth: '240px',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.15)'
           }}>
             <Box
               sx={{
@@ -909,10 +912,11 @@ const ComparePage = () => {
     return (
       <Fragment>
         {filteredFeatureData.map(([sectionName, features]) => (
-          <Box key={sectionName} sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+          <Box key={sectionName} sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
             <Paper sx={{ 
               width: tableUtils.getTableWidth(),
-              minWidth: '240px'
+              minWidth: '240px',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.15)'
             }}>
               <Box
                 sx={{
