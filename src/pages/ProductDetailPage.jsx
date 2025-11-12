@@ -1645,8 +1645,8 @@ const ProductDetailPage = () => {
         
         // en_GB -> en
         const mappedLanguage = currentLanguage === 'en_GB' ? 'en' : currentLanguage;
-        const detail = await ProductDetailApiService.getProductDetail(routeProductId, mappedLanguage, true);
-        // const detail = await ProductDetailApiService.getProductDetail(routeProductId, mappedLanguage);
+        // const detail = await ProductDetailApiService.getProductDetail(routeProductId, mappedLanguage, true);
+        const detail = await ProductDetailApiService.getProductDetail(routeProductId, mappedLanguage);
 
 
         console.log('API响应结果:', {
