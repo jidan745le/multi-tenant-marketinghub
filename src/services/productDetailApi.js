@@ -127,7 +127,8 @@ class ProductDetailApiService {
             }
             
             # QR CODES
-            WebsiteLinkDE
+            WebsiteLink_de_DE
+            WebsiteLink_en_US
             
             # EANS
             SingleProductEAN
@@ -872,7 +873,8 @@ class ProductDetailApiService {
     const qrCodes = [];
     Object.keys(product).forEach(key => {
       if (key.startsWith('WebsiteLink')) {
-        const field = key.replace('WebsiteLink', '');
+        const match = key.match(/WebsiteLink_[a-z]{2}_([A-Z]{2})/);
+        const field = match ? match[1] : key.replace('WebsiteLink_', '').split('_').pop();
         const linkValue = product[key];
         if (linkValue) {
           qrCodes.push({
