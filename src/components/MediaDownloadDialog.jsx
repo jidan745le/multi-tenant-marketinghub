@@ -63,6 +63,7 @@ const MediaDownloadDialog = ({
   const [loading, setLoading] = useState(false);
   const [cameFromDerivateSelection, setCameFromDerivateSelection] = useState(false); // Track dialog source
   const [shouldShowDialog, setShouldShowDialog] = useState(false); // Control whether to actually show the dialog
+  const [canOnlySendEmail, setCanOnlySendEmail] = useState(false); // Force email sending for large files
   
   // Custom configuration states
   const [width, setWidth] = useState('');
@@ -245,8 +246,43 @@ const MediaDownloadDialog = ({
     setDpi('');
     setCompression('none');
     setCameFromDerivateSelection(false);
+    setCanOnlySendEmail(false);
     onClose();
   };
+
+  // Check download restrictions based on derivates and media count
+  useEffect(() => {
+    // Force email sending based on:
+    // - If original image or TIFF is selected
+    // - If more than 5 images are in the mass download
+    const hasOriginalImage = selectedDerivates.includes('Original File Format') || 
+                             selectedDerivates.some(d => d.toLowerCase().includes('originalimage'));
+    const hasTiff = selectedDerivates.some(d => d.toLowerCase().includes('tiff'));
+    const hasMultipleMedia = selectedMediaIds.length > 5;
+    
+    // For single media download, allow both options
+    const isSingleMedia = selectedMediaIds.length === 1;
+    
+    if (isSingleMedia) {
+      // Single media can choose between wait and email
+      setCanOnlySendEmail(false);
+      setDownloadOption('wait');
+    } else if (hasOriginalImage || hasTiff || hasMultipleMedia) {
+      // Force email for large files or many files
+      setCanOnlySendEmail(true);
+      setDownloadOption('email');
+    } else {
+      // Allow user to choose
+      setCanOnlySendEmail(false);
+    }
+  }, [selectedDerivates, selectedMediaIds.length]);
+
+  // Clear emails when not sending to others
+  useEffect(() => {
+    if (downloadOption !== 'other') {
+      setEmails([]);
+    }
+  }, [downloadOption]);
 
   const handleDerivateConfirm = () => {
     if (selectedDerivates.length > 0 || isCustomConfiguration === 'yes') {
@@ -267,6 +303,12 @@ const MediaDownloadDialog = ({
   };
 
   const handleFinalDownload = async () => {
+    // Validate email input when sending to others
+    if (downloadOption === 'other' && emails.length === 0) {
+      alert('Please enter at least one email address');
+      return;
+    }
+
     try {
       setLoading(true);
       
@@ -305,8 +347,8 @@ const MediaDownloadDialog = ({
       if (downloadOption === 'email') {
         toEmail = userEmail;
       } else if (downloadOption === 'other') {
-        ccEmail = emails.join(',');
-        toEmail = userEmail; // CC the current user
+        toEmail = emails.join(',');
+        ccEmail = userEmail; // CC the current user
       }
 
       // Call download API with new parameters
@@ -323,7 +365,7 @@ const MediaDownloadDialog = ({
       if (isAsync) {
         // For async downloads, show success message
         console.log('Async download initiated:', result.message);
-        // You might want to show a success message to the user here
+        alert('Download link will be sent to your email shortly.');
       } else {
         // For direct downloads, trigger the download
         if (result.blob && result.filename) {
@@ -621,62 +663,88 @@ const MediaDownloadDialog = ({
     </>
   );
 
-  const optionsContent = () => (
-    <Box className="download-options-dialog" sx={{ 
-      backgroundColor: '#ffffff',
-      borderRadius: '2px',
-      padding: '24px',
-      height: 'auto',
-      minHeight: downloadOption === 'other' ? '500px' : '377px', // Increase height when email input is shown
-      position: 'relative',
-      width: '100%',
-      boxSizing: 'border-box'
-    }}>
-      {/* Dialog Header */}
-      <Box className="dialog-header" sx={{ 
-        display: 'flex',
-        flexDirection: 'row',
-        gap: '8px',
-        alignItems: 'center',
-        justifyContent: 'flex-start',
-        width: '100%',
-        position: 'absolute',
-        left: '18px',
-        top: '22px'
-      }}>
-        <span className="material-symbols-outlined" style={{ fontSize: '24px', color: '#333' }}>
-          download
-        </span>
-        <Typography className="dialog-title" sx={{
-          color: '#000000',
-          textAlign: 'left',
-          fontFamily: 'OpenSans-SemiBold, sans-serif',
-          fontSize: '21px',
-          lineHeight: '140%',
-          fontWeight: 600
-        }}>
-          Download
-        </Typography>
-      </Box>
+  const optionsContent = () => {
+    // Get download restriction reason
+    const getRestrictionReason = () => {
+      const hasOriginalImage = selectedDerivates.includes('Original File Format') || 
+                               selectedDerivates.some(d => d.toLowerCase().includes('originalimage'));
+      const hasTiff = selectedDerivates.some(d => d.toLowerCase().includes('tiff'));
+      const hasMultipleMedia = selectedMediaIds.length > 5;
+      
+      if (hasOriginalImage) return 'original format';
+      if (hasTiff) return 'TIFF format';
+      if (hasMultipleMedia) return `${selectedMediaIds.length} files`;
+      return '';
+    };
 
-      {/* Dialog Message */}
-      <Typography className="download-message" sx={{
-        color: '#333333',
-        textAlign: 'left',
-        fontFamily: 'OpenSans-Regular, sans-serif',
-        fontSize: '16px',
-        lineHeight: '140%',
-        fontWeight: 400,
-        position: 'absolute',
-        left: '35px',
-        top: '76px',
-        width: 'calc(100% - 70px)'
+    return (
+      <Box className="download-options-dialog" sx={{ 
+        backgroundColor: '#ffffff',
+        borderRadius: '2px',
+        padding: '24px',
+        height: 'auto',
+        minHeight: downloadOption === 'other' ? '520px' : '420px', // Increased base height for better spacing
+        position: 'relative',
+        width: '100%',
+        boxSizing: 'border-box'
       }}>
-        The file you're trying to download is large, and it will take a while.
-        You have three choices.
-        <br />
-        Please select your preference:
-      </Typography>
+        {/* Dialog Header */}
+        <Box className="dialog-header" sx={{ 
+          display: 'flex',
+          flexDirection: 'row',
+          gap: '8px',
+          alignItems: 'center',
+          justifyContent: 'flex-start',
+          width: '100%',
+          position: 'absolute',
+          left: '18px',
+          top: '22px'
+        }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '24px', color: '#333' }}>
+            download
+          </span>
+          <Typography className="dialog-title" sx={{
+            color: '#000000',
+            textAlign: 'left',
+            fontFamily: 'OpenSans-SemiBold, sans-serif',
+            fontSize: '21px',
+            lineHeight: '140%',
+            fontWeight: 600
+          }}>
+            Download ({selectedMediaIds.length} {selectedMediaIds.length === 1 ? 'file' : 'files'})
+          </Typography>
+        </Box>
+
+        {/* Dialog Message */}
+        <Typography className="download-message" sx={{
+          color: '#333333',
+          textAlign: 'left',
+          fontFamily: 'OpenSans-Regular, sans-serif',
+          fontSize: '16px',
+          lineHeight: '140%',
+          fontWeight: 400,
+          position: 'absolute',
+          left: '35px',
+          top: '76px',
+          width: 'calc(100% - 70px)'
+        }}>
+          {canOnlySendEmail ? (
+            <>
+              The file you're trying to download is large ({getRestrictionReason()}).
+              <br />
+              For large downloads, we'll send you an email with a download link.
+              <br />
+              Please select your preference:
+            </>
+          ) : (
+            <>
+              The file you're trying to download is large, and it will take a while.
+              You have three choices.
+              <br />
+              Please select your preference:
+            </>
+          )}
+        </Typography>
 
       {/* Download Options */}
       <Box className="download-options-container" sx={{
@@ -688,12 +756,12 @@ const MediaDownloadDialog = ({
         width: 'calc(100% - 70px)',
         position: 'absolute',
         left: '35px',
-        top: '159px'
+        top: '185px' // Increased from 159px to 185px for better spacing
       }}>
         <RadioGroup
           value={downloadOption}
           onChange={(e) => setDownloadOption(e.target.value)}
-          sx={{ width: '100%' }}
+          sx={{ width: '100%', mt: 0 }}
         >
           {/* Wait for Download Option */}
           <Box className="download-option-item" sx={{
@@ -703,16 +771,22 @@ const MediaDownloadDialog = ({
             alignItems: 'center',
             justifyContent: 'flex-start',
             width: '100%',
-            mb: 2
+            mb: 2,
+            opacity: canOnlySendEmail ? 0.5 : 1,
+            cursor: canOnlySendEmail ? 'not-allowed' : 'pointer'
           }}>
             <Radio 
               value="wait"
+              disabled={canOnlySendEmail}
               sx={{
                 color: '#cccccc',
                 width: '25px',
                 height: '24px',
                 '&.Mui-checked': {
                   color: '#f16508'
+                },
+                '&.Mui-disabled': {
+                  color: '#e0e0e0'
                 }
               }}
             />
@@ -725,7 +799,7 @@ const MediaDownloadDialog = ({
               width: '242px'
             }}>
               <Typography className="option-title" sx={{
-                color: '#212121',
+                color: canOnlySendEmail ? '#999999' : '#212121',
                 textAlign: 'left',
                 fontFamily: 'OpenSans-SemiBold, sans-serif',
                 fontSize: '14px',
@@ -736,7 +810,7 @@ const MediaDownloadDialog = ({
                 Wait for Download
               </Typography>
               <Typography className="option-description" sx={{
-                color: '#4f4f4f',
+                color: canOnlySendEmail ? '#999999' : '#4f4f4f',
                 textAlign: 'left',
                 fontFamily: 'OpenSans-Regular, sans-serif',
                 fontSize: '12px',
@@ -744,7 +818,7 @@ const MediaDownloadDialog = ({
                 fontWeight: 400,
                 width: '242px'
               }}>
-                Begin the download immediately.
+                Begin the download immediately.              
               </Typography>
             </Box>
           </Box>
@@ -954,7 +1028,8 @@ const MediaDownloadDialog = ({
         </Button>
       </Box>
     </Box>
-  );
+    );
+  };
 
   return (
     <Dialog
@@ -966,7 +1041,9 @@ const MediaDownloadDialog = ({
       sx={{
         '& .MuiDialog-paper': {
           width: '520px',
-          minHeight: currentStep === 'options' && downloadOption === 'other' ? '530px' : '400px',
+          minHeight: currentStep === 'options' 
+            ? (downloadOption === 'other' ? '560px' : '460px')
+            : '400px',
           overflow: 'hidden'
         }
       }}
