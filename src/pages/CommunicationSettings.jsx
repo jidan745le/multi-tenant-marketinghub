@@ -16,11 +16,14 @@ import {
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import React, { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { SectionCard, SubTitle } from '../components/SettingsComponents';
 import { useBrand } from '../hooks/useBrand';
 import { useLanguage } from '../hooks/useLanguage';
 import emailApi from '../services/emailApi';
+import { selectCurrentLanguage } from '../store/slices/themesSlice';
 import CookieService from '../utils/cookieService';
+import { createNotification, updateThemeWithLocale, validateBrandData } from '../utils/themeUpdateUtils';
 
 // 样式化保存按钮 - 使用主题色
 const SaveButton = styled(Button)(({ theme }) => ({
@@ -33,11 +36,17 @@ const SaveButton = styled(Button)(({ theme }) => ({
 }));
 
 function CommunicationSettings() {
-  const { currentBrandCode } = useBrand();
+  const { currentBrand, currentBrandCode } = useBrand();
   const { currentLanguage } = useLanguage();
+  const dispatch = useDispatch();
+  const currentLanguageFromRedux = useSelector(selectCurrentLanguage);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setSaving] = useState(false);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
+  
+  // Feedback Address state (from Strapi theme entity)
+  const [feedbackAddress, setFeedbackAddress] = useState('');
   
   // 表单数据状态
   const [formData, setFormData] = useState({
@@ -78,6 +87,14 @@ function CommunicationSettings() {
     'Derivate eMail',
     'Send Feedback'
   ];
+
+  // 从 Redux 加载 Feedback Address (feedback_address from Strapi theme)
+  useEffect(() => {
+    if (currentBrand?.feedback_address) {
+      setFeedbackAddress(currentBrand.feedback_address);
+      console.log('✅ 从 Redux 加载 Feedback Address:', currentBrand.feedback_address);
+    }
+  }, [currentBrand]);
 
   // 加载邮件模板配置
   useEffect(() => {
@@ -512,6 +529,42 @@ function CommunicationSettings() {
   };
 
 
+  // 保存 Feedback Address (单独保存到 Strapi theme entity)
+  const handleSaveFeedbackAddress = async () => {
+    try {
+      setFeedbackLoading(true);
+      
+      // 验证品牌数据
+      const validation = validateBrandData(currentBrand);
+      if (!validation.isValid) {
+        throw new Error(validation.error);
+      }
+
+      console.log('🔄 开始保存 Feedback Address...');
+
+      // 准备更新数据 - feedback_address 字段
+      const updateData = {
+        feedback_address: feedbackAddress
+      };
+
+      // 使用通用更新函数 - 支持locale和Redux刷新
+      await updateThemeWithLocale({
+        documentId: currentBrand.strapiData.documentId,
+        updateData,
+        currentLanguage: currentLanguageFromRedux,
+        dispatch,
+        description: 'Feedback Address'
+      });
+
+      setNotification(createNotification(true, 'Feedback Address 保存成功！'));
+    } catch (error) {
+      console.error('保存 Feedback Address 失败:', error);
+      setNotification(createNotification(false, `保存失败: ${error.message}`));
+    } finally {
+      setFeedbackLoading(false);
+    }
+  };
+
   // 关闭通知
   const handleCloseNotification = () => {
     setNotification({ ...notification, open: false });
@@ -635,6 +688,31 @@ function CommunicationSettings() {
               ),
             }}
           />
+        </Box>
+
+        {/* Feedback Address - from Strapi theme entity */}
+        <Box sx={{ mb: 3 }}>
+          <SubTitle>FEEDBACK ADDRESS</SubTitle>
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', width: "60%" }}>
+            <TextField
+              sx={{ flex: 1 }}
+              placeholder="feedback@example.com"
+              value={feedbackAddress}
+              onChange={(e) => setFeedbackAddress(e.target.value)}
+              variant="outlined"
+              size="medium"
+              type="email"
+            />
+            <SaveButton 
+              variant="contained"
+              onClick={handleSaveFeedbackAddress}
+              disabled={feedbackLoading || !feedbackAddress}
+              sx={{ minWidth: '100px' }}
+            >
+              {feedbackLoading ? <CircularProgress size={20} color="inherit" sx={{ mr: 1 }} /> : null}
+              Save
+            </SaveButton>
+          </Box>
         </Box>
       </SectionCard>
 
