@@ -492,17 +492,23 @@ function CommunicationSettings() {
   const extractKeywordsFromTemplate = (templateContent) => {
     if (!templateContent) return '';
     
-    // 使用正则表达式提取所有的占位符 [keyword]
-    const regex = /\[([^\]]+)\]/g;
     const keywords = [];
-    let match;
     
-    while ((match = regex.exec(templateContent)) !== null) {
+    // 1. 提取普通变量: [[${username}]]
+    const normalVarRegex = /\[\[\$\{([^}]+)\}\]\]/g;
+    let match;
+    while ((match = normalVarRegex.exec(templateContent)) !== null) {
       keywords.push(match[1]);
     }
     
-    // 去重并用逗号分隔
-    return [...new Set(keywords)].join(', ');
+    // 2. 提取URL变量: th:href="${activationLink}" 或其他 th: 属性
+    const thVarRegex = /th:[a-z]+=\"\$\{([^}]+)\}\"/g;
+    while ((match = thVarRegex.exec(templateContent)) !== null) {
+      keywords.push(match[1]);
+    }
+    
+    // 去重并用逗号分隔（不加空格）
+    return [...new Set(keywords)].join(',');
   };
 
 

@@ -17,26 +17,21 @@ function ProductCataloguePage() {
   
   // 监听品牌变化
   useEffect(() => {
-    console.log(`🔄 ProductCataloguePage: Brand changed to ${currentBrandCode}`);
+    // Brand change monitoring
   }, [currentBrandCode]);
   
   // 根据当前品牌动态创建配置
   const config = useMemo(() => {
-    console.log(`🏭 Creating product catalogue config for brand: ${currentBrandCode}`);
     const newConfig = createProductCatalogueConfig(currentBrandCode);
-    console.log(`🔧 Config created with fetchProducts.brand:`, newConfig.productConfig.fetchProducts.brand);
     return newConfig;
   }, [currentBrandCode]);
 
   // 处理产品点击 - 特殊逻辑：查找SKU产品并导航到第一个SKU的详情页
   const handleProductClick = async (product) => {
-    console.log(`Open ${currentBrandCode.toUpperCase()} product page for:`, product.name);
-    
     // 获取虚拟产品ID
     const virtualProductId = product.VirtualProductID || product.modelNumber;
     
     if (!virtualProductId) {
-      console.warn('VirtualProductID not found in product object:', product);
       setProductDetailError('VirtualProductID not available');
       return;
     }
@@ -44,8 +39,6 @@ function ProductCataloguePage() {
     try {
       setLoadingProductDetail(true);
       setProductDetailError(null);
-      
-      console.log(`🔍 Searching for SKU products with VirtualProductID: ${virtualProductId}`);
       
       // 查询与该虚拟产品ID相关的所有SKU产品
       const { skuProducts, error } = await fetchSKUProducts(virtualProductId);
@@ -55,29 +48,22 @@ function ProductCataloguePage() {
       }
       
       if (!skuProducts || skuProducts.length === 0) {
-        console.warn(`No SKU products found for VirtualProductID: ${virtualProductId}`);
         setProductDetailError('No SKU products found for this product');
         return;
       }
-      
-      console.log(`✅ Found ${skuProducts.length} SKU products:`, skuProducts);
       
       // 选择第一个SKU产品的ID
       const firstSku = skuProducts[0];
       const firstSkuId = firstSku.CustomerFacingProductCode;
       
-      console.log(`🎯 Selecting first SKU with ID: ${firstSkuId}`, firstSku);
-      
       // 构建产品详情页面URL: /en_GB/kendo/product-detail/${id}
       const detailUrl = `/${lang || 'en_GB'}/${brand || currentBrandCode}/product-detail/${firstSkuId}?layout=internalPDPBasic`;
       
-      console.log(`🚀 Navigating to product detail page: ${detailUrl}`);
       window.open(detailUrl, '_blank');
       // 导航到产品详情页面
       // navigate(detailUrl);
       
     } catch (error) {
-      console.error(`❌ Failed to fetch SKU products for VirtualProductID ${virtualProductId}:`, error);
       setProductDetailError(error.message);
       
     } finally {
@@ -87,13 +73,11 @@ function ProductCataloguePage() {
 
   // 处理产品下载
   const handleProductDownload = (product) => {
-    console.log(`Download ${currentBrandCode.toUpperCase()} product:`, product.name);
     // 处理产品下载逻辑
   };
 
   // 处理批量搜索
   const handleMassSearch = (item, childItem, filterValues) => {
-    console.log(`${currentBrandCode.toUpperCase()} Mass search:`, { item, childItem, filterValues });
     // 处理批量搜索逻辑
   };
 

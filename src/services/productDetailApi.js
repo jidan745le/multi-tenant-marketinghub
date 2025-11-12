@@ -127,7 +127,8 @@ class ProductDetailApiService {
             }
             
             # QR CODES
-            WebsiteLinkDE
+            WebsiteLink_de_DE
+            WebsiteLink_en_US
             
             # EANS
             SingleProductEAN
