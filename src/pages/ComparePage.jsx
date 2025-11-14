@@ -1,4 +1,4 @@
-import React, { useState, useCallback, Fragment } from 'react';
+import React, { useState, useCallback, Fragment, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -15,7 +15,9 @@ import {
   TextField,
   Typography,
   Autocomplete,
-  Paper
+  Paper,
+  CircularProgress,
+  Alert
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -27,119 +29,9 @@ import {
   Language as LanguageIcon
 } from '@mui/icons-material';
 import { useTheme } from '../hooks/useTheme';
-
-// Mock 数据
-const MOCK_BRANDS = [
-  { name: 'Kendo', value: 'Kendo', languages: ['en', 'es', 'fr','de','it','es','ja','zh'] },
-  { name: 'Bosch', value: 'Bosch', languages: ['en', 'zh', 'ja'] }
-];
-
-const MOCK_PRODUCTS = [
-  {
-    id: 'BH1001_EU',
-    modelNumber: 'BH1001_EU',
-    name: 'Kendo Professional Tool',
-    image: '/assets/productcard_image.png',
-    price: '$199.99',
-    ean: 'Tool'
-  },
-  {
-    id: 'BCX3800_EU', 
-    modelNumber: 'BCX3800_EU',
-    name: 'Kendo Professional X Tool',
-    image: '/assets/productcard_image.png',
-    price: '$299.99',
-    ean: 'Tool'
-  },
-  {
-    id: 'LB7650E_EU',
-    modelNumber: 'LB7650E_EU', 
-    name: 'Kendo Professional Tool',
-    image: '/assets/productcard_image.png',
-    price: '$399.99',
-    ean: 'Tool'
-  },
-  {
-    id: 'CS1614E_EU',
-    modelNumber: 'CS1614E_EU', 
-    name: 'Kendo POWER+ Kit',
-    image: '/assets/productcard_image.png',
-    price: '$399.99',
-    ean: 'Kit'
-  },
-  {
-    id: 'LM2135E-SP_EU',
-    modelNumber: 'LM2135E-SP_EU', 
-    name: 'Kendo Professional Kit',
-    image: '/assets/productcard_image.png',
-    price: '$399.99',
-    ean: 'Kit'
-  }
-];
-
-const MOCK_COMPARE_DATA = {
-  headerData: [
-    {
-      name: 'Kendo Professional Tool',
-      image: '/assets/productcard_image.png',
-      modelNumber: 'BH1001_EU',
-      price: '$199.99'
-    },
-    {
-      name: 'Kendo Professional X Tool', 
-      image: '/assets/productcard_image.png',
-      modelNumber: 'BCX3800_EU',
-      price: '$299.99'
-    },
-    {
-      name: 'Kendo Professional Tool',
-      image: '/assets/productcard_image.png', 
-      modelNumber: 'LB7650E_EU',
-      price: '$399.99'
-    },
-    {
-      name: 'Kendo POWER+ Kit',
-      image: '/assets/productcard_image.png', 
-      modelNumber: 'CS1614E_EU',
-      price: '$399.99'
-    },
-    {
-      name: 'Kendo Professional Kit',
-      image: '/assets/productcard_image.png', 
-      modelNumber: 'LM2135E-SP_EU',
-      price: '$399.99'
-    }
-  ],
-  basicData: [
-    ['Series', 'Kendo Professional', 'Kendo Professional X', 'Kendo Professional', 'Kendo POWER+', 'Kendo Professional'],
-    ['Product Type', 'Tool Only', 'Tool Only', 'Tool Only', 'Kit', 'Kit'],
-    ['Model Number', 'BH1001_EU', 'BCX3800_EU', 'LB7650E_EU', 'CS1614E_EU', 'LM2135E-SP_EU'],
-    ['Long Description', '--', '--', '--', '--', '--'],
-    ['Packaging Contains', '--', '--', '--', '--', '--'],
-    ['Launch Date', '2021-09-30', '2021-10-30', '2021-09-30', '2021-12-30', '2021-09-29']
-  ],
-  featureData: [
-    [
-      'Marketing Features',
-      [
-        ['Lightweight Design', '✓', '✓', '✗', '✗', '✗'],
-        ['Extended Runtime', '✗', '✓', '✓', '✓', '✓']
-      ]
-    ],
-    [
-      'Specifications', 
-      [
-        ['Cell Type', '21700 Li-ion', '21700 Li-ion', '21700 Li-ion', '21700 Li-ion', '21700 Li-ion']
-      ]
-    ],
-    [
-      'Noise and vibration levels',
-      [
-        ['Noise Level', '< 70 dB', '< 70 dB', '< 70 dB']
-      ]
-    ]
-  ]
-};
+// import { useBrand } from '../hooks/useBrand'; // 暂时未使用
+import { useSearchParams } from 'react-router-dom';
+import compareApi from '../services/compareApi';
 
 const MOCK_LANGUAGES = [
   { key: 'en', label: 'English', value: 'en' },
@@ -149,6 +41,57 @@ const MOCK_LANGUAGES = [
   { key: 'fr', label: 'Français', value: 'fr' },
   { key: 'es', label: 'Español', value: 'es' }
 ];
+
+// 空数据结构
+const EMPTY_COMPARE_DATA = {
+  headerData: [],
+  basicData: [],
+  featureData: []
+};
+
+// 数据转换函数：将 API 格式转换为页面使用的格式
+const transformApiData = (apiData) => {
+  if (!apiData) return EMPTY_COMPARE_DATA;
+
+  console.log('API 数据:', apiData);
+
+  // headerData: {assetId, modelNumber, productName} -> {name, image, modelNumber, assetId}
+  const transformedHeaderData = (apiData.headerData || []).map(item => ({
+    name: item.productName || '',
+    image: item.assetId 
+      ? `https://marketinghub-test.rg-experience.com/apis/kendo/asset-thumbnail/${item.assetId}`
+      : '/assets/productcard_image.png', // 默认图片
+    modelNumber: item.modelNumber || '',
+    assetId: item.assetId || ''
+  }));
+
+  // basicData: [{name, values}] -> [['FieldName', 'val1', 'val2', ...]]
+  const transformedBasicData = (apiData.basicData || []).map(item => [
+    item.name || '',
+    ...(item.values || [])
+  ]);
+
+  // featureData: [{category, features: [{name, values}]}] -> [['Category', [['Feature', 'val1', 'val2']]]]
+  const transformedFeatureData = (apiData.featureData || []).map(section => [
+    section.category || '',
+    (section.features || []).map(feature => [
+      feature.name || '',
+      ...(feature.values || [])
+    ])
+  ]);
+
+  console.log('转换后的数据:', {
+    headerData: transformedHeaderData,
+    basicData: transformedBasicData,
+    featureData: transformedFeatureData
+  });
+
+  return {
+    headerData: transformedHeaderData,
+    basicData: transformedBasicData,
+    featureData: transformedFeatureData
+  };
+};
 
 // 搜索产品弹窗
 const SearchProductModal = ({ open, onClose, onAddProduct, existingProducts = [], products }) => {
@@ -404,7 +347,7 @@ const TABLE_STYLES = {
 };
 
 // 公共工具函数
-const createTableUtils = (visibleHeaderProducts, selectedProducts, compareData) => {
+const createTableUtils = (visibleHeaderProducts, selectedProducts) => {
   // 计算表格宽度
   const getTableWidth = () => {
     const totalColumns = visibleHeaderProducts.length + (selectedProducts.length < TABLE_CONSTANTS.MAX_PRODUCTS ? 1 : 0);
@@ -419,9 +362,10 @@ const createTableUtils = (visibleHeaderProducts, selectedProducts, compareData) 
 
   // 数据重排和扩展
   const reorderAndExtendData = (values) => {
-    const reorderedValues = visibleHeaderProducts.map(product => {
-      const productIndex = compareData.headerData.findIndex(p => p.modelNumber === product.modelNumber);
-      return productIndex >= 0 ? values[productIndex] : '--';
+
+    const reorderedValues = visibleHeaderProducts.map((product, index) => {
+
+      return values[index] !== undefined ? values[index] : '--';
     });
     const allValues = [...reorderedValues];
     if (selectedProducts.length < TABLE_CONSTANTS.MAX_PRODUCTS) {
@@ -498,22 +442,43 @@ const ComparePage = () => {
       return hexColor;
     }
   }, []);
-  // 状态管理
-  const [currentBrand] = useState(MOCK_BRANDS[0]);
-  const [currentLanguage, setCurrentLanguage] = useState('en');
-  const [selectedProducts, setSelectedProducts] = useState(['BH1001_EU', 'BCX3800_EU', 'LB7650E_EU', 'CS1614E_EU', 'LM2135E-SP_EU']);
-  const compareData = MOCK_COMPARE_DATA;
+
+  // URL 参数在这里
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // 获取当前品牌
+  // const { currentBrand } = useBrand();
+  
+  // 从 URL 读取初始值
+  const getInitialLanguage = () => {
+    const urlLanguage = searchParams.get('language');
+    return urlLanguage || 'en';
+  };
+  
+  const getInitialProducts = () => {
+    const urlIds = searchParams.get('id');
+    if (urlIds) {
+      // 将逗号分隔的字符串转换为数组
+      return urlIds.split(',').filter(id => id.trim() !== '');
+    }
+    return [];
+  };
+  
+  const [currentLanguage, setCurrentLanguage] = useState(getInitialLanguage());
+  const [selectedProducts, setSelectedProducts] = useState(getInitialProducts());
+  
+  // API 数据状态
+  const [compareData, setCompareData] = useState(EMPTY_COMPARE_DATA);
+  // eslint-disable-next-line no-unused-vars
+  const [loading, setLoading] = useState(false);
+  // eslint-disable-next-line no-unused-vars
+  const [error, setError] = useState(null);
   
   // UI
   const [basicCollapsed, setBasicCollapsed] = useState(false);
   const [collapseAll, setCollapseAll] = useState(false);
   const [showDifferencesOnly, setShowDifferencesOnly] = useState(false);
-  const [featureCollapses, setFeatureCollapses] = useState({
-    'Marketing Features': false,
-    'Specifications': false,
-    'Noise and vibration levels': false,
-    'Compliance': false
-  });
+  const [featureCollapses, setFeatureCollapses] = useState({});
   
   // 弹窗状态
   const [searchModalOpen, setSearchModalOpen] = useState(false);
@@ -557,6 +522,66 @@ const ComparePage = () => {
     setCurrentLanguage(language);
   };
 
+  // 更新 URL 参数
+  useEffect(() => {
+    const newSearchParams = new URLSearchParams();
+    
+    if (selectedProducts && selectedProducts.length > 0) {
+      newSearchParams.set('id', selectedProducts.join(','));
+    }
+    if (currentLanguage) {
+      newSearchParams.set('language', currentLanguage);
+    }
+    
+    // 更新 URL
+    setSearchParams(newSearchParams, { replace: true });
+  }, [selectedProducts, currentLanguage, setSearchParams]);
+
+  // 从 API 获取比较数据
+  useEffect(() => {
+    const fetchCompareData = async () => {
+      // 至少需要2个产品才能比较
+      if (!selectedProducts || selectedProducts.length < 2) {
+        setCompareData(EMPTY_COMPARE_DATA);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        // 调用 compareApi
+        const apiData = await compareApi.compareProducts(selectedProducts, currentLanguage);
+        
+        console.log('成功获取比较数据:', apiData);
+        
+        // 转换 API 数据格式
+        if (apiData && (apiData.headerData || apiData.featureData || apiData.basicData)) {
+          const transformedData = transformApiData(apiData);
+          console.log('转换后的 compareData:', {
+            headerDataCount: transformedData.headerData?.length || 0,
+            basicDataCount: transformedData.basicData?.length || 0,
+            featureDataCount: transformedData.featureData?.length || 0,
+            headerModelNumbers: transformedData.headerData?.map(p => p.modelNumber) || []
+          });
+          setCompareData(transformedData);
+        } else {
+          console.warn('API 返回数据格式不符合预期', apiData);
+          setCompareData(EMPTY_COMPARE_DATA);
+        }
+      } catch (err) {
+        console.error('获取比较数据失败:', err);
+        setError(err.message || '获取比较数据失败，请稍后重试');
+        // 出错时使用空数据
+        setCompareData(EMPTY_COMPARE_DATA);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCompareData();
+  }, [selectedProducts, currentLanguage]);
+
   const handleAddProduct = (product) => {
     if (selectedProducts.length < TABLE_CONSTANTS.MAX_PRODUCTS) {
       setSelectedProducts(prev => [...prev, product.modelNumber]);
@@ -567,33 +592,63 @@ const ComparePage = () => {
     setSelectedProducts(prev => prev.filter(id => id !== productId));
   };
 
-  const getCustomOrder = (brandValue) => {
-    // 顺序：Marketing Features, Specifications, Noise and vibration levels
-    let sections = ["Marketing Features", "Specifications"];
-    
-    if (brandValue?.includes('Kendo')) {
-      sections.push("Noise and vibration levels");
+  // 直接使用API返回的featureData
+  const filteredFeatureData = React.useMemo(() => {
+    if (!Array.isArray(compareData.featureData) || compareData.featureData.length === 0) {
+      console.log('featureData为空或不是数组');
+      return [];
     }
-    
-    if (brandValue?.includes('Bosch')) {
-      sections.push("Compliance");
-    }
-    
-    return sections;
-  };
 
-  const customOrder = getCustomOrder(currentBrand.value);
-  const filteredFeatureData = customOrder
-    .map(sectionName => {
-      const section = compareData.featureData.find(item => item[0] === sectionName);
-      return section || [sectionName, []];
+    console.log('处理 featureData:', {
+      featureDataCount: compareData.featureData.length,
+      featureDataCategories: compareData.featureData.map(item => item[0])
     });
 
-  // 渲染产品卡片头部
+    console.log('filteredFeatureData 结果:', {
+      resultCount: compareData.featureData.length,
+      sections: compareData.featureData.map(([name, features]) => ({
+        name,
+        featuresCount: features?.length || 0
+      }))
+    });
+
+    return compareData.featureData;
+  }, [compareData.featureData]);
+
+  // 初始化featureCollapses状态，基于API返回的category名称
+  useEffect(() => {
+    if (filteredFeatureData.length > 0) {
+      setFeatureCollapses(prevState => {
+        const newState = { ...prevState };
+        filteredFeatureData.forEach(([sectionName]) => {
+          // 如果这个section还没有在状态中，初始化为false（展开状态）
+          if (!(sectionName in newState)) {
+            newState[sectionName] = false;
+          }
+        });
+        return newState;
+      });
+    }
+  }, [filteredFeatureData]);
+
+
   const visibleHeaderProducts = React.useMemo(() => {
     const all = Array.isArray(compareData?.headerData) ? compareData.headerData : [];
-    if (!Array.isArray(selectedProducts) || selectedProducts.length === 0) return [];
-    return all.filter(p => selectedProducts.includes(p.modelNumber));
+    if (!Array.isArray(selectedProducts) || selectedProducts.length === 0) {
+      console.log('visibleHeaderProducts: selectedProducts 为空', { selectedProducts, all });
+      return [];
+    }
+
+    const filtered = all.slice(0, selectedProducts.length);
+    console.log('visibleHeaderProducts 过滤结果:', {
+      selectedProducts,
+      allHeaderData: all,
+      filtered,
+      modelNumbers: all.map(p => p.modelNumber),
+      assetIds: all.map(p => p.assetId),
+      matchCount: filtered.length
+    });
+    return filtered;
   }, [compareData.headerData, selectedProducts]);
 
   // 创建表格工具函数
@@ -693,7 +748,7 @@ const ComparePage = () => {
                   display: 'flex',
                   mb: 3,
                   flexDirection: 'column',
-                  justifyContent: 'center',
+                  justifyContent: 'flex-start',
                   alignItems: 'flex-start',
                   textAlign: 'left',
                   minHeight: 0
@@ -702,7 +757,10 @@ const ComparePage = () => {
                     sx={{
                       fontSize: '0.875rem',
                       color: primaryColor,
-                      fontWeight: 600
+                      fontWeight: 600,
+                      flexShrink: 0,
+                      mb: 0.5,
+                      width: '100%'
                     }}
                   >
                     {product.modelNumber}
@@ -712,16 +770,12 @@ const ComparePage = () => {
                       fontSize: '0.9rem',
                       color: '#4d4d4d',
                       fontWeight: 500,
-                      lineHeight: 1.2,
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
+                      lineHeight: 1.4,
+                      width: '100%',
                       wordBreak: 'break-word',
                       wordWrap: 'break-word',
-                      mb: 0.5,
-                      mt: 0.5
+                      overflowWrap: 'break-word',
+                      whiteSpace: 'normal'
                     }}
                   >
                     {product.name}
@@ -949,11 +1003,23 @@ const ComparePage = () => {
                     minWidth: '240px'
                   }}>
                     {(() => {
+                      // 检查features是否存在且为数组
+                      if (!Array.isArray(features) || features.length === 0) {
+                        return null;
+                      }
+
                       // 过滤有效特性
                       const validFeatures = features.filter((feature) => {
                         const values = feature.slice(1);
                         const allValues = tableUtils.reorderAndExtendData(values);
-                        return tableUtils.hasValidData(allValues);
+                        const isValid = tableUtils.hasValidData(allValues);
+                        if (!isValid) {
+                          console.log(`  过滤掉无效特性: "${feature[0]}"`, {
+                            values,
+                            allValues
+                          });
+                        }
+                        return isValid;
                       });
 
                       // Show Differences Only的过滤
@@ -961,7 +1027,14 @@ const ComparePage = () => {
                         ? validFeatures.filter((feature) => {
                             const values = feature.slice(1);
                             const allValues = tableUtils.reorderAndExtendData(values);
-                            return hasDifferences(allValues);
+                            const hasDiff = hasDifferences(allValues);
+                            if (!hasDiff) {
+                              console.log(`  过滤掉无差异特性: "${feature[0]}"`, {
+                                values,
+                                allValues
+                              });
+                            }
+                            return hasDiff;
                           })
                         : validFeatures;
 
@@ -1055,7 +1128,10 @@ const ComparePage = () => {
       <Box sx={{ 
         backgroundColor: '#f5f5f5',
         p: 3,
-        width: '100%'
+        width: '100%',
+        position: 'sticky',
+        top: 0,
+        zIndex: 100
       }}>
         {/* 卡片比较行容器 - 最多5张卡片 */}
         {renderProductHeaders}
@@ -1073,7 +1149,7 @@ const ComparePage = () => {
         {/* Basic Data */}
         {renderBasicSpecs()}
 
-        {/* Marketing Features, Specifications, Noise and vibration levels */}
+        {/* Marketing Features, Specifications */}
         {renderFeatureGroups()}
       </Box>
 
@@ -1083,7 +1159,7 @@ const ComparePage = () => {
         onClose={() => setSearchModalOpen(false)}
         onAddProduct={handleAddProduct}
         existingProducts={selectedProducts}
-        products={MOCK_PRODUCTS}
+        products={[]}
       />
     </Box>
   );

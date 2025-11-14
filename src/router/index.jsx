@@ -36,6 +36,8 @@ const EmailVerificationPage = Loader(lazy(() => import('../pages/EmailVerificati
 const ThankYouPage = Loader(lazy(() => import('../pages/ThankYouPage')));
 const UserManagement = Loader(lazy(() => import('../pages/UserManagement')));
 const DerivateManagement = Loader(lazy(() => import('../pages/DerivateManagement')));
+const SuperAdmin = Loader(lazy(() => import('../pages/SuperAdmin')));
+const TenantAdmin = Loader(lazy(() => import('../pages/TenantAdmin')));
 const ProductDetailPage = Loader(lazy(() => import('../pages/ProductDetailPage')));
 const ComparePage = Loader(lazy(() => import('../pages/ComparePage')));
 
@@ -202,6 +204,14 @@ const router = [
       {
         path: 'derivate-management',
         element: <DerivateManagement />
+      },
+      {
+        path: 'super-admin',
+        element: <SuperAdmin />
+      },
+      {
+        path: 'tenant-admin',
+        element: <TenantAdmin />
       },
       {
         path: 'under-construction',
