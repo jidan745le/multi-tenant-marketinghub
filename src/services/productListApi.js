@@ -5,24 +5,9 @@
  * 保持与原有fetchKendoProductsAPI完全相同的接口
  */
 
-const API_BASE_URL = "/srv/v1/main";
+import CookieService from '../utils/cookieService';
 
-/**
- * Get authentication token from localStorage
- * @returns {string|null} Authentication token
- */
-const getAuthToken = () => {
-    try {
-        const userInfo = localStorage.getItem('user_info');
-        if (userInfo) {
-            const userData = JSON.parse(userInfo);
-            return userData.token;
-        }
-    } catch (error) {
-        // Silent fail
-    }
-    return null;
-};
+const API_BASE_URL = "/srv/v1/main";
 
 /**
  * Fetch product list from backend REST API
@@ -63,7 +48,7 @@ export const fetchProductList = async (params = {}, brand = 'kendo') => {
         };
 
         // 获取认证token
-        const token = getAuthToken();
+        const token = CookieService.getToken();
 
         // 调用REST API
         const response = await fetch(`${API_BASE_URL}/products/list`, {
