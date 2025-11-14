@@ -748,7 +748,7 @@ const ComparePage = () => {
                   display: 'flex',
                   mb: 3,
                   flexDirection: 'column',
-                  justifyContent: 'center',
+                  justifyContent: 'flex-start',
                   alignItems: 'flex-start',
                   textAlign: 'left',
                   minHeight: 0
@@ -757,7 +757,10 @@ const ComparePage = () => {
                     sx={{
                       fontSize: '0.875rem',
                       color: primaryColor,
-                      fontWeight: 600
+                      fontWeight: 600,
+                      flexShrink: 0,
+                      mb: 0.5,
+                      width: '100%'
                     }}
                   >
                     {product.modelNumber}
@@ -767,16 +770,12 @@ const ComparePage = () => {
                       fontSize: '0.9rem',
                       color: '#4d4d4d',
                       fontWeight: 500,
-                      lineHeight: 1.2,
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
+                      lineHeight: 1.4,
+                      width: '100%',
                       wordBreak: 'break-word',
                       wordWrap: 'break-word',
-                      mb: 0.5,
-                      mt: 0.5
+                      overflowWrap: 'break-word',
+                      whiteSpace: 'normal'
                     }}
                   >
                     {product.name}
@@ -1129,7 +1128,10 @@ const ComparePage = () => {
       <Box sx={{ 
         backgroundColor: '#f5f5f5',
         p: 3,
-        width: '100%'
+        width: '100%',
+        position: 'sticky',
+        top: 0,
+        zIndex: 100
       }}>
         {/* 卡片比较行容器 - 最多5张卡片 */}
         {renderProductHeaders}
