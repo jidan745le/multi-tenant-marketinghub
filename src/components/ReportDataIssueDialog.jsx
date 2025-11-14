@@ -4,6 +4,7 @@ import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, B
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../hooks/useTheme';
 import { useTranslationLoader } from '../hooks/useTranslationLoader';
+import { useBrand } from '../hooks/useBrand';
 import EmailApiService from '../services/emailApi';
 
 const ReportDataIssueDialog = ({ 
@@ -20,9 +21,22 @@ const ReportDataIssueDialog = ({
   const { t } = useTranslation();
   const { primaryColor } = useTheme();
   useTranslationLoader();
+  const { currentBrand } = useBrand();
   const [comment, setComment] = React.useState(initialComment);
   const [reportedUser, setReportedUser] = React.useState(initialUser);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  const [effectiveMailTo, setEffectiveMailTo] = React.useState(mailTo);
+  
+  React.useEffect(() => {
+    if (currentBrand?.strapiData?.feedback_address) {
+      const feedbackAddress = currentBrand.strapiData.feedback_address;
+      setEffectiveMailTo(feedbackAddress);
+      console.log('Feedback Address:', feedbackAddress);
+    } else if (mailTo) {
+      setEffectiveMailTo('notification@rg-experience.com');
+    }
+  }, [currentBrand, mailTo]);
 
   React.useEffect(() => {
     if (open) {
@@ -52,7 +66,7 @@ const ReportDataIssueDialog = ({
       await EmailApiService.sendFeedback({
         comment: trimmedComment,
         reporter: trimmedUser,
-        mailTo: mailTo,
+        mailTo: effectiveMailTo,
         mailCc: mailCc,
         attachments: [] 
       });
