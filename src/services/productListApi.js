@@ -5,7 +5,7 @@
  * 保持与原有fetchKendoProductsAPI完全相同的接口
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+const API_BASE_URL = "/srv/v1/main";
 
 /**
  * Get authentication token from localStorage
