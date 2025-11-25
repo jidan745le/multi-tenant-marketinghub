@@ -152,6 +152,7 @@ const adminMenuItems = [
   { id: 'theme-general-settings', label: 'Theme General Settings', iconName: 'settings' },
   { id: 'theme-configuration', label: 'Theme Configuration', iconName: 'Design_Services' },
   { id: 'derivate-management', label: 'Derivate Management', iconName: 'imagesmode' },
+  { id: 'channel-management', label: 'Channel Management', iconImage: '/assets/SymbolsIcon.png', isSpecial: true },
   { id: 'legal', label: 'Legal', iconName: 'contract' },
   { id: 'communication-email', label: 'Communication & Email', iconName: 'email' },
   { 
@@ -276,20 +277,40 @@ function AdminLayout() {
                   disablePadding
                   sx={item.isSpecial ? {
                     '& .MuiListItemText-primary': {
-                      color: (theme) => theme.palette.primary.main
+                      color: (isActive && !hasSubMenu)
+                        ? (theme) => theme.palette.primary.main
+                        : (theme) => theme.palette.text.primary || '#000000',
                     },
                     '& .material-symbols-outlined': {
-                      color: (theme) => theme.palette.primary.main
+                      color: (isActive && !hasSubMenu)
+                        ? (theme) => theme.palette.primary.main
+                        : (theme) => theme.palette.text.primary || '#000000',
                     }
                   } : {}}
                 >
                   <MenuItemIconContainer>
-                    <MenuItemIconText 
-                      active={isActive && !hasSubMenu}
-                      className="material-symbols-outlined"
-                    >
-                      {item.iconName}
-                    </MenuItemIconText>
+                    {item.iconImage ? (
+                      <Box
+                        sx={{
+                          width: '24px',
+                          height: '24px',
+                          maskImage: `url(${item.iconImage})`,
+                          maskSize: 'contain',
+                          maskRepeat: 'no-repeat',
+                          maskPosition: 'center',
+                          backgroundColor: (isActive && !hasSubMenu)
+                            ? (theme) => theme.palette.primary.main
+                            : (theme) => theme.palette.text.primary || '#000000',
+                        }}
+                      />
+                    ) : (
+                      <MenuItemIconText 
+                        active={isActive && !hasSubMenu}
+                        className="material-symbols-outlined"
+                      >
+                        {item.iconName}
+                      </MenuItemIconText>
+                    )}
                   </MenuItemIconContainer>
                   <MenuItemLabel 
                     active={isActive && !hasSubMenu}

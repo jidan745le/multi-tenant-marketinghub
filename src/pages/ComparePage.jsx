@@ -30,8 +30,9 @@ import {
 } from '@mui/icons-material';
 import { useTheme } from '../hooks/useTheme';
 // import { useBrand } from '../hooks/useBrand'; // 暂时未使用
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
 import compareApi from '../services/compareApi';
+import { fetchProductList } from '../services/productListApi';
 
 const MOCK_LANGUAGES = [
   { key: 'en', label: 'English', value: 'en' },
@@ -94,23 +95,119 @@ const transformApiData = (apiData) => {
 };
 
 // 搜索产品弹窗
-const SearchProductModal = ({ open, onClose, onAddProduct, existingProducts = [], products }) => {
+const SearchProductModal = ({ open, onClose, onAddProduct, existingProducts = [], brand = 'kendo' }) => {
   const [searchCriteria, setSearchCriteria] = useState('model-number');
   const [inputValue, setInputValue] = useState('');
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [options, setOptions] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [searchError, setSearchError] = useState(null);
 
+  // 防抖搜索
+  const searchTimeoutRef = React.useRef(null);
+
+  // 重置状态
   React.useEffect(() => {
     if (open) {
       setInputValue('');
       setSelectedProduct(null);
-      setOptions(products.filter(p => !existingProducts.includes(p.modelNumber)));
+      setOptions([]);
+      setSearchError(null);
     }
-  }, [open, products, existingProducts]);
+  }, [open]);
+
+  // 搜索产品
+  const searchProducts = React.useCallback(async (searchText, criteria) => {
+    if (!searchText || searchText.trim().length === 0) {
+      setOptions([]);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setSearchError(null);
+
+      // 构建搜索参数
+      const searchParams = {
+        limit: 50, // 限制返回50个结果
+        offset: 0
+      };
+
+      // 根据搜索条件设置不同的参数
+      if (criteria === 'model-number') {
+        searchParams['model-number'] = searchText.trim();
+      } else if (criteria === 'name') {
+        searchParams['product-name'] = searchText.trim();
+      } else if (criteria === 'ean') {
+        searchParams['ean'] = searchText.trim();
+      }
+
+      // 调用 API
+      const result = await fetchProductList(searchParams, brand);
+
+      if (result && result.list && Array.isArray(result.list)) {
+        // 过滤掉已存在的产品（根据产品ID或modelNumber）
+        const filtered = result.list.filter(product => {
+          const productId = product.id || product.productId || product.modelNumber;
+          return !existingProducts.includes(productId);
+        });
+
+        // 转换数据格式，确保有 modelNumber 和 name 字段
+        const formattedProducts = filtered.map(product => ({
+          id: product.id || product.productId || product.modelNumber,
+          modelNumber: product.modelNumber || product.id || product.productId || '',
+          name: product.name || product.productName || '',
+          ean: product.ean || product.eanCode || ''
+        }));
+
+        setOptions(formattedProducts);
+      } else {
+        setOptions([]);
+      }
+    } catch (error) {
+      console.error('搜索产品失败:', error);
+      setSearchError(error.message || '搜索失败，请稍后重试');
+      setOptions([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [brand, existingProducts]);
+
+  // 处理输入变化，使用防抖
+  React.useEffect(() => {
+    // 清除之前的定时器
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // 如果输入为空，清空选项
+    if (!inputValue || inputValue.trim().length === 0) {
+      setOptions([]);
+      setSelectedProduct(null);
+      return;
+    }
+
+    // 设置防抖，500ms 后执行搜索
+    searchTimeoutRef.current = setTimeout(() => {
+      searchProducts(inputValue, searchCriteria);
+    }, 500);
+
+    // 清理函数
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [inputValue, searchCriteria, searchProducts]);
 
   const handleAdd = () => {
     if (selectedProduct) {
-      onAddProduct(selectedProduct);
+      // 使用产品的 ID 或 modelNumber 作为产品标识
+      const productId = selectedProduct.id || selectedProduct.modelNumber;
+      onAddProduct({
+        ...selectedProduct,
+        modelNumber: productId // 确保 modelNumber 是产品ID
+      });
       onClose();
     }
   };
@@ -175,18 +272,27 @@ const SearchProductModal = ({ open, onClose, onAddProduct, existingProducts = []
             }}>
               <Autocomplete
                 options={options}
-                getOptionLabel={(option) => option[searchCriteria === 'model-number' ? 'modelNumber' : searchCriteria]}
+                getOptionLabel={(option) => {
+                  if (searchCriteria === 'model-number') {
+                    return option.modelNumber || '';
+                  } else if (searchCriteria === 'name') {
+                    return option.name || '';
+                  } else if (searchCriteria === 'ean') {
+                    return option.ean || '';
+                  }
+                  return option.name || option.modelNumber || '';
+                }}
                 value={selectedProduct}
                 onChange={(event, newValue) => setSelectedProduct(newValue)}
                 inputValue={inputValue}
                 onInputChange={(event, newInputValue) => setInputValue(newInputValue)}
+                loading={loading}
                 fullWidth
                 sx={{
                   backgroundColor: '#f5f5f5',
                   '& .MuiAutocomplete-inputRoot': {
                     backgroundColor: '#f5f5f5',
                     minHeight: '42px',
-                    // mb: 1
                   },
                   '& .MuiAutocomplete-endAdornment': {
                     top: 'calc(50% + 7px)',
@@ -222,6 +328,12 @@ const SearchProductModal = ({ open, onClose, onAddProduct, existingProducts = []
                       InputProps={{
                         ...params.InputProps,
                         startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />,
+                        endAdornment: (
+                          <React.Fragment>
+                            {loading ? <CircularProgress color="inherit" size={20} /> : null}
+                            {params.InputProps.endAdornment}
+                          </React.Fragment>
+                        ),
                         sx: inputStyles
                       }}
                       sx={{
@@ -239,17 +351,25 @@ const SearchProductModal = ({ open, onClose, onAddProduct, existingProducts = []
                 renderOption={(props, option) => (
                   <Box component="li" {...props}>
                     <Box>
-                      <Typography variant="body1">{option.name}</Typography>
+                      <Typography variant="body1">{option.name || 'N/A'}</Typography>
                       <Typography variant="body2" color="text.secondary">
-                        {option.modelNumber}
+                        {option.modelNumber || 'N/A'}
                       </Typography>
                     </Box>
                   </Box>
                 )}
+                noOptionsText={loading ? '搜索中...' : inputValue ? '未找到产品' : '输入关键词搜索'}
               />
             </Box>
           </Box>
         </Box>
+
+        {/* 错误提示 */}
+        {searchError && (
+          <Alert severity="error" sx={{ mt: 2, mb: 2 }} onClose={() => setSearchError(null)}>
+            {searchError}
+          </Alert>
+        )}
         
         <Box display="flex" justifyContent="flex-end" gap={2}>
           <Button 
@@ -445,6 +565,12 @@ const ComparePage = () => {
 
   // URL 参数在这里
   const [searchParams, setSearchParams] = useSearchParams();
+  const params = useParams();
+  const navigate = useNavigate();
+  
+  // 从 URL 路径获取语言和品牌
+  const currentLang = params.lang || 'en_GB';
+  const currentBrand = params.brand || 'kendo';
   
   // 获取当前品牌
   // const { currentBrand } = useBrand();
@@ -584,13 +710,26 @@ const ComparePage = () => {
 
   const handleAddProduct = (product) => {
     if (selectedProducts.length < TABLE_CONSTANTS.MAX_PRODUCTS) {
-      setSelectedProducts(prev => [...prev, product.modelNumber]);
+      // 使用产品的 ID 作为标识（product.modelNumber 在 SearchProductModal 中已经被设置为产品ID）
+      const productId = product.modelNumber || product.id;
+      if (productId) {
+        setSelectedProducts(prev => [...prev, productId]);
+      }
     }
   };
 
   const handleRemoveProduct = (productId) => {
     setSelectedProducts(prev => prev.filter(id => id !== productId));
   };
+
+  // 处理点击 modelNumber 跳转到 PDP 页面
+  const handleModelNumberClick = useCallback((productId) => {
+    if (!productId) return;
+    
+    // 构建 PDP 页面 URL: /:lang/:brand/product-detail/:id
+    const pdpUrl = `/${currentLang}/${currentBrand}/product-detail/${productId}?layout=internalPDPBasic`;
+    navigate(pdpUrl);
+  }, [currentLang, currentBrand, navigate]);
 
   // 直接使用API返回的featureData
   const filteredFeatureData = React.useMemo(() => {
@@ -639,14 +778,17 @@ const ComparePage = () => {
       return [];
     }
 
-    const filtered = all.slice(0, selectedProducts.length);
+
+    const filtered = all.slice(0, Math.min(selectedProducts.length, all.length));
+    
     console.log('visibleHeaderProducts 过滤结果:', {
       selectedProducts,
       allHeaderData: all,
       filtered,
       modelNumbers: all.map(p => p.modelNumber),
       assetIds: all.map(p => p.assetId),
-      matchCount: filtered.length
+      matchCount: filtered.length,
+      selectedCount: selectedProducts.length
     });
     return filtered;
   }, [compareData.headerData, selectedProducts]);
@@ -681,9 +823,12 @@ const ComparePage = () => {
             flexShrink: 0,
             boxSizing: 'border-box'
           }} />
-          {visibleHeaderProducts.map((product) => (
+          {visibleHeaderProducts.map((product, index) => {
+            // 根据索引找到对应的 selectedProducts 中的值
+            const productId = selectedProducts[index];
+            return (
             <Box 
-              key={product.modelNumber}
+              key={`${product.modelNumber}-${index}`}
               sx={{ 
                 width: `${TABLE_CONSTANTS.CARD_WIDTH}px`,
                 minWidth: `${TABLE_CONSTANTS.CARD_WIDTH}px`,
@@ -710,7 +855,7 @@ const ComparePage = () => {
               >
                 <IconButton
                   size="small"
-                  onClick={() => handleRemoveProduct(product.modelNumber)}
+                  onClick={() => handleRemoveProduct(productId)}
                   sx={{
                     position: 'absolute',
                     right: 8,
@@ -754,13 +899,18 @@ const ComparePage = () => {
                   minHeight: 0
                 }}>
                   <Box
+                    onClick={() => handleModelNumberClick(productId)}
                     sx={{
                       fontSize: '0.875rem',
                       color: primaryColor,
                       fontWeight: 600,
                       flexShrink: 0,
                       mb: 0.5,
-                      width: '100%'
+                      width: '100%',
+                      cursor: 'pointer',
+                      // '&:hover': {
+                      //   textDecoration: 'underline'
+                      // }
                     }}
                   >
                     {product.modelNumber}
@@ -783,7 +933,8 @@ const ComparePage = () => {
                 </Box>
               </Box>
             </Box>
-          ))}
+            );
+          })}
         
           {selectedProducts.length < TABLE_CONSTANTS.MAX_PRODUCTS && (
             <Box sx={{ 
@@ -829,7 +980,7 @@ const ComparePage = () => {
       </Box>
     </Box>
     </Box>
-  ), [visibleHeaderProducts, selectedProducts.length, primaryColor, tableUtils, mixWithWhite]);
+  ), [visibleHeaderProducts, selectedProducts, primaryColor, tableUtils, mixWithWhite, handleModelNumberClick]);
 
   // 渲染基础规格表格
   const renderBasicSpecs = () => {
@@ -1159,7 +1310,7 @@ const ComparePage = () => {
         onClose={() => setSearchModalOpen(false)}
         onAddProduct={handleAddProduct}
         existingProducts={selectedProducts}
-        products={[]}
+        brand={currentBrand}
       />
     </Box>
   );

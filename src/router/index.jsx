@@ -38,8 +38,11 @@ const UserManagement = Loader(lazy(() => import('../pages/UserManagement')));
 const DerivateManagement = Loader(lazy(() => import('../pages/DerivateManagement')));
 const SuperAdmin = Loader(lazy(() => import('../pages/SuperAdmin')));
 const TenantAdmin = Loader(lazy(() => import('../pages/TenantAdmin')));
+const ChannelManagement = Loader(lazy(() => import('../pages/ChannelManagement')));
 const ProductDetailPage = Loader(lazy(() => import('../pages/ProductDetailPage')));
 const ComparePage = Loader(lazy(() => import('../pages/ComparePage')));
+const MyPublications = Loader(lazy(() => import('../pages/MyPublications')));
+const TemplateMarketplace = Loader(lazy(() => import('../pages/TemplateMarketplace')));
 
 const router = [
   // Login page route with tenant validation
@@ -206,12 +209,24 @@ const router = [
         element: <DerivateManagement />
       },
       {
+        path: 'channel-management',
+        element: <ChannelManagement />
+      },
+      {
         path: 'super-admin',
         element: <SuperAdmin />
       },
       {
         path: 'tenant-admin',
         element: <TenantAdmin />
+      },
+      {
+        path: 'my-publications',
+        element: <MyPublications />
+      },
+      {
+        path: 'template-marketplace',
+        element: <TemplateMarketplace />
       },
       {
         path: 'under-construction',

@@ -2,6 +2,10 @@ import {
     Box,
     Button,
     Chip,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
     FormControl,
     IconButton,
     MenuItem,
@@ -13,11 +17,16 @@ import {
     TableContainer,
     TableHead,
     TableRow,
+    TextField,
     Typography
   } from '@mui/material';
   import { styled } from '@mui/material/styles';
   import CloseIcon from '@mui/icons-material/Close';
-  import React, { useState } from 'react';
+  import React, { useState, useEffect } from 'react';
+  import templateApi from '../services/templateApi';
+  import { CircularProgress, Alert } from '@mui/material';
+  import NewPublicationDialog from '../components/NewPublicationDialog';
+  import UploadDialog from '../components/UploadDialog';
   
   // Styled components
   const HeaderContainer = styled(Box)(() => ({
@@ -30,16 +39,26 @@ import {
     fontSize: '20px',
     fontWeight: 600,
     fontFamily: 'var(--label-large-font-family, "Roboto-Medium", sans-serif)',
+    paddingTop: '20px',
   }));
   
   const TableHeader = styled(TableCell)(({ theme }) => ({
     backgroundColor: theme.palette.grey[200], 
-    fontWeight: 700,
-    fontSize: '14px',
+    fontFamily: '"Roboto-Medium", "Roboto", "Helvetica", "Arial", sans-serif',
+    fontWeight: 500,
+    fontSize: '15px',
     borderTop: `2px solid ${theme.palette.grey[300]}`,
     borderBottom: `2px solid ${theme.palette.grey[300]}`, 
     padding: '10px 12px',
-    height: '75px', 
+    height: '75px',
+    '& *': {
+      fontFamily: '"Roboto-Medium", "Roboto", "Helvetica", "Arial", sans-serif',
+      fontWeight: 500,
+    },
+    '& .MuiTypography-root': {
+      fontFamily: '"Roboto-Medium", "Roboto", "Helvetica", "Arial", sans-serif',
+      fontWeight: 500,
+    }
   }));
   
   const TableRowStyled = styled(TableRow)(() => ({
@@ -64,6 +83,16 @@ const StickyHeader = styled(TableHeader)(({ theme }) => ({
   backgroundColor: theme.palette.grey[200],
   zIndex: 10,
   borderLeft: `1px solid ${theme.palette.primary.main}`,
+  fontFamily: '"Roboto-Medium", "Roboto", "Helvetica", "Arial", sans-serif',
+  fontWeight: 500,
+  '& *': {
+    fontFamily: '"Roboto-Medium", "Roboto", "Helvetica", "Arial", sans-serif',
+    fontWeight: 500,
+  },
+  '& .MuiTypography-root': {
+    fontFamily: '"Roboto-Medium", "Roboto", "Helvetica", "Arial", sans-serif',
+    fontWeight: 500,
+  }
 }));
 
 const StickyCell = styled(TableCellStyled)(({ theme }) => ({
@@ -171,206 +200,144 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
     WebkitBoxOrient: 'vertical',
   }));
   
-  // Mock data
-  const mockData = [
-    {
-      id: 1,
-      name: 'Template 01',
-      description: 'Introducing the Data Sheet Config: a comprehensive tool designed to enhance your workflow and streamline your operations. This innovative solution offers customizable features...',
-      image: null,
-      pdfExample: 'https://via.placeholder.com/60x75?text=PDF',
-      tenant: 'Saame',
-      theme: 'KENDO',
-      label: '-',
-      type: 'Catalog',
-      usage: ['Internal', 'External'],
-      templateType: 'Global',
-      created: '2025/11/3',
-      createdBy: 'Admin',
-      lastUpdate: '2025/11/3',
-      lastUpdatedBy: 'Admin',
-      css: '-',
-      html: '-',
-    },
-    {
-      id: 2,
-      name: 'Template 02',
-      description: 'Introducing the Data Sheet Config: a comprehensive tool designed to enhance your workflow and streamline your operations. This innovative solution offers customizable features...',
-      image: null,
-      pdfExample: 'https://via.placeholder.com/60x75?text=PDF',
-      tenant: 'Saame',
-      theme: 'KENDO',
-      label: '-',
-      type: 'Catalog',
-      usage: ['Internal', 'External'],
-      templateType: 'Global',
-      created: '2025/11/3',
-      createdBy: 'Admin',
-      lastUpdate: '2025/11/3',
-      lastUpdatedBy: 'Admin',
-      css: '-',
-      html: '-',
-    },
-    {
-      id: 3,
-      name: 'Template 03',
-      description: 'Introducing the Data Sheet Config: a comprehensive tool designed to enhance your workflow and streamline your operations. This innovative solution offers customizable features...',
-      image: null,
-      pdfExample: 'https://via.placeholder.com/60x75?text=PDF',
-      tenant: 'Saame',
-      theme: 'KENDO',
-      label: '-',
-      type: 'Catalog',
-      usage: ['Internal', 'External'],
-      templateType: 'Global',
-      created: '2025/11/3',
-      createdBy: 'Admin',
-      lastUpdate: '2025/11/3',
-      lastUpdatedBy: 'Admin',
-      css: '-',
-      html: '-',
-    },
-    {
-      id: 4,
-      name: 'Template 04',
-      description: 'Introducing the Data Sheet Config: a comprehensive tool designed to enhance your workflow and streamline your operations. This innovative solution offers customizable features...',
-      image: null,
-      pdfExample: 'https://via.placeholder.com/60x75?text=PDF',
-      tenant: 'Saame',
-      theme: 'KENDO',
-      label: '-',
-      type: 'Catalog',
-      usage: ['Internal', 'External'],
-      templateType: 'Global',
-      created: '2025/11/3',
-      createdBy: 'Admin',
-      lastUpdate: '2025/11/3',
-      lastUpdatedBy: 'Admin',
-      css: '-',
-      html: '-',
-    },
-    {
-      id: 5,
-      name: 'Template 05',
-      description: 'Introducing the Data Sheet Config: a comprehensive tool designed to enhance your workflow and streamline your operations. This innovative solution offers customizable features...',
-      image: null,
-      pdfExample: 'https://via.placeholder.com/60x75?text=PDF',
-      tenant: 'Saame',
-      theme: 'KENDO',
-      label: '-',
-      type: 'Catalog',
-      usage: ['Internal', 'External'],
-      templateType: 'Global',
-      created: '2025/11/4',
-      createdBy: 'Admin',
-      lastUpdate: '2025/11/4',
-      lastUpdatedBy: 'Admin',
-      css: '-',
-      html: '-',
-    },
-    {
-      id: 6,
-      name: 'Template 06',
-      description: 'Introducing the Data Sheet Config: a comprehensive tool designed to enhance your workflow and streamline your operations. This innovative solution offers customizable features...',
-      image: null,
-      pdfExample: 'https://via.placeholder.com/60x75?text=PDF',
-      tenant: 'Saame',
-      theme: 'KENDO',
-      label: '-',
-      type: 'Catalog',
-      usage: ['Internal', 'External'],
-      templateType: 'Global',
-      created: '2025/11/4',
-      createdBy: 'Admin',
-      lastUpdate: '2025/11/4',
-      lastUpdatedBy: 'Admin',
-      css: '-',
-      html: '-',
-    },
-    {
-      id: 7,
-      name: 'Template 07',
-      description: 'Introducing the Data Sheet Config: a comprehensive tool designed to enhance your workflow and streamline your operations. This innovative solution offers customizable features...',
-      image: null,
-      pdfExample: 'https://via.placeholder.com/60x75?text=PDF',
-      tenant: 'Saame',
-      theme: 'KENDO',
-      label: '-',
-      type: 'Catalog',
-      usage: ['Internal', 'External'],
-      templateType: 'Global',
-      created: '2025/11/5',
-      createdBy: 'Admin',
-      lastUpdate: '2025/11/5',
-      lastUpdatedBy: 'Admin',
-      css: '-',
-      html: '-',
-    },
-    {
-      id: 8,
-      name: 'Template 08',
-      description: 'Introducing the Data Sheet Config: a comprehensive tool designed to enhance your workflow and streamline your operations. This innovative solution offers customizable features...',
-      image: null,
-      pdfExample: 'https://via.placeholder.com/60x75?text=PDF',
-      tenant: 'Saame',
-      theme: 'KENDO',
-      label: '-',
-      type: 'Catalog',
-      usage: ['Internal', 'External'],
-      templateType: 'Global',
-      created: '2025/11/5',
-      createdBy: 'Admin',
-      lastUpdate: '2025/11/5',
-      lastUpdatedBy: 'Admin',
-      css: '-',
-      html: '-',
-    },
-    {
-      id: 9,
-      name: 'Template 09',
-      description: 'Introducing the Data Sheet Config: a comprehensive tool designed to enhance your workflow and streamline your operations. This innovative solution offers customizable features...',
-      image: null,
-      pdfExample: 'https://via.placeholder.com/60x75?text=PDF',
-      tenant: 'Saame',
-      theme: 'KENDO',
-      label: '-',
-      type: 'Catalog',
-      usage: ['Internal', 'External'],
-      templateType: 'Global',
-      created: '2025/11/6',
-      createdBy: 'Admin',
-      lastUpdate: '2025/11/6',
-      lastUpdatedBy: 'Admin',
-      css: '-',
-      html: '-',
-    },
-    {
-      id: 10,
-      name: 'Template 10',
-      description: 'Introducing the Data Sheet Config: a comprehensive tool designed to enhance your workflow and streamline your operations. This innovative solution offers customizable features...',
-      image: null,
-      pdfExample: 'https://via.placeholder.com/60x75?text=PDF',
-      tenant: 'Saame',
-      theme: 'KENDO',
-      label: '-',
-      type: 'Catalog',
-      usage: ['Internal', 'External'],
-      templateType: 'Global',
-      created: '2025/11/6',
-      createdBy: 'Admin',
-      lastUpdate: '2025/11/6',
-      lastUpdatedBy: 'Admin',
-      css: '-',
-      html: '-',
-    }
-  ];
   
+  const transformApiData = (apiData) => {
+    if (!apiData || !Array.isArray(apiData)) {
+      return [];
+    }
+
+    return apiData.map((item, index) => {
+      const usage = Array.isArray(item.usage) && item.usage.length > 0 
+        ? item.usage.map(u => {
+            // 如果已经是字符串，转换为首字母大写的格式
+            if (typeof u === 'string') {
+              const lower = u.toLowerCase();
+              if (lower === 'internal') return 'Internal';
+              if (lower === 'external') return 'External';
+              return u.charAt(0).toUpperCase() + u.slice(1).toLowerCase();
+            }
+            return String(u);
+          })
+        : [];
+
+      // 日期格式
+      const formatDate = (dateString) => {
+        if (!dateString) return '-';
+        try {
+          const date = new Date(dateString);
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          return `${year}/${month}/${day}`;
+        } catch {
+          return dateString;
+        }
+      };
+
+      const templateId = item.id || item.templateId || index + 1;
+      
+      // 判断是否有 icon 和 pdfExample
+      const hasIcon = item.iconFileId && item.iconFileId !== null;
+      const hasPdfExample = item.pdfFileId && item.pdfFileId !== null;
+      
+      // 判断 templateType：根据 templateTypeName 判断
+      let templateType = 'Specific';
+      if (item.templateTypeName) {
+        templateType = item.templateTypeName === 'Global' ? 'Global' : 'Specific';
+      } else if (!item.tenant || item.tenant === 'global') {
+        templateType = 'Global';
+      }
+      
+      // 判断 css 和 html
+      const hasCss = item.css && item.css.trim() !== '' && item.css !== 'string';
+      const hasHtml = item.html && item.html.trim() !== '' && item.html !== 'string';
+      
+      return {
+        id: templateId,
+        name: item.name || '-',
+        description: item.description || '-',
+        image: hasIcon ? `/srv/v1/main/publication/templates/${templateId}/assets/icon` : null,
+        pdfExample: hasPdfExample ? `/srv/v1/main/publication/templates/${templateId}/assets/pdf-example` : null,
+        tenant: item.tenant || '-',
+        theme: item.theme || '-',
+        type: item.typeName || '-',
+        usage: usage.length > 0 ? usage : ['-'],
+        templateType: templateType,
+        created: formatDate(item.createdAt || '-'),
+        createdBy: item.createdBy || '-',
+        lastUpdate: formatDate(item.updatedAt || '-'),
+        lastUpdatedBy: item.updatedBy || '-',
+        css: hasCss ? 'Edit' : '-',
+        html: hasHtml ? 'Edit' : '-',
+      };
+    });
+  };
+
   function SuperAdmin() {
-    const [selectedTenant, setSelectedTenant] = useState('global');
-    const [data, setData] = useState(mockData);
+    const [selectedTenant, setSelectedTenant] = useState('tenant1');
+    const [data, setData] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     
-    // 调试：确认数据数量
-    console.log('Total data rows:', data.length);
+    // Dialog 相关状态
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [editType, setEditType] = useState(null); // 'css' 或 'html'
+    const [currentTemplateId, setCurrentTemplateId] = useState(null);
+    const [editContent, setEditContent] = useState('');
+    const [saving, setSaving] = useState(false);
+    const [loadingContent, setLoadingContent] = useState(false);
+    
+    // NewPublicationDialog 相关状态
+    const [newPublicationDialogOpen, setNewPublicationDialogOpen] = useState(false);
+    
+    // UploadDialog 相关状态
+    const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+    const [uploadingTemplateId, setUploadingTemplateId] = useState(null);
+    const [uploadType, setUploadType] = useState(null); // 'icon' 或 'pdfExample'
+  
+    // 从 API 获取模板数据
+    useEffect(() => {
+      const fetchTemplates = async () => {
+        try {
+          setLoading(true);
+          setError(null);
+          
+          console.log('开始获取模板数据...');
+          const apiData = await templateApi.getTemplates();
+          
+          console.log('成功获取模板数据:', apiData);
+          
+          // 转换数据格式
+          let transformedData = transformApiData(Array.isArray(apiData) ? apiData : (apiData._embedded?.templates || apiData.content || []));
+          
+          if (selectedTenant === 'global') {
+            transformedData = transformedData.filter(item => 
+              item.templateType === 'Global'
+            );
+          } else if (selectedTenant === 'tenant1' || selectedTenant === 'specific') {
+            transformedData = transformedData.filter(item => 
+              item.templateType === 'Specific'
+            );
+          }
+          
+          console.log('过滤后的数据:', {
+            selectedTenant,
+            totalCount: transformedData.length,
+            data: transformedData
+          });
+          
+          setData(transformedData);
+          console.log('转换后的数据:', transformedData);
+        } catch (err) {
+          console.error('获取模板数据失败:', err);
+          setData([]);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchTemplates();
+    }, [selectedTenant]);
   
     const handleTenantChange = (event) => {
       setSelectedTenant(event.target.value);
@@ -384,6 +351,160 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
             : row
         )
       );
+    };
+
+    const handleTypeChange = (rowId, newType) => {
+      setData(prevData =>
+        prevData.map(row =>
+          row.id === rowId
+            ? { ...row, type: newType }
+            : row
+        )
+      );
+    };
+
+    // 处理编辑图标点击
+    const handleEditClick = async (templateId, type) => {
+      setCurrentTemplateId(templateId);
+      setEditType(type);
+      setDialogOpen(true);
+      setEditContent('');
+      setLoadingContent(true);
+      
+      try {
+        // 获取当前模板的 CSS 或 HTML 内容
+        const blob = await templateApi.downloadTemplateAsset(templateId, type);
+        const text = await blob.text();
+        setEditContent(text);
+      } catch (error) {
+        console.error(`failed to get ${type} content:`, error);
+        setEditContent(''); // 如果获取失败，显示空内容
+      } finally {
+        setLoadingContent(false);
+      }
+    };
+
+    // 关闭 Dialog
+    const handleCloseDialog = () => {
+      setDialogOpen(false);
+      setEditType(null);
+      setCurrentTemplateId(null);
+      setEditContent('');
+    };
+
+    // 保存编辑内容
+    const handleSaveContent = async () => {
+      if (!currentTemplateId || !editType) return;
+      
+      try {
+        setSaving(true);
+        
+        // 获取当前模板的完整数据
+        const templateData = await templateApi.getTemplateById(currentTemplateId);
+        
+        // 只更新 css 或 html 字段
+        const updateData = {
+          name: templateData.name || '',
+          type: templateData.type || templateData.typeName || '',
+          description: templateData.description || '',
+          usage: Array.isArray(templateData.usage) ? templateData.usage : [], // 使用数组格式
+          tenant: templateData.tenant || '',
+          theme: templateData.theme || '',
+          [editType]: editContent
+        };
+        
+        // 更新模板
+        await templateApi.updateTemplate(currentTemplateId, updateData);
+        
+        // 刷新数据
+        const apiData = await templateApi.getTemplates();
+        let transformedData = transformApiData(Array.isArray(apiData) ? apiData : (apiData._embedded?.templates || apiData.content || []));
+        
+        if (selectedTenant === 'global') {
+          transformedData = transformedData.filter(item => 
+            item.templateType === 'Global'
+          );
+        } else if (selectedTenant === 'tenant1' || selectedTenant === 'specific') {
+          transformedData = transformedData.filter(item => 
+            item.templateType === 'Specific'
+          );
+        }
+        
+        setData(transformedData);
+        handleCloseDialog();
+        
+        // 显示成功消息
+        setError(null);
+      } catch (error) {
+        console.error(`保存${editType.toUpperCase()}失败:`, error);
+        setError(`保存失败: ${error.message}`);
+      } finally {
+        setSaving(false);
+      }
+    };
+
+    // 处理上传图标点击
+    const handleUploadClick = (templateId, type) => {
+      setUploadingTemplateId(templateId);
+      setUploadType(type); // 'icon' 或 'pdfExample'
+      setUploadDialogOpen(true);
+    };
+
+    // 处理文件上传
+    const handleUploadFiles = async (files) => {
+      if (!uploadingTemplateId || !uploadType || !files || files.length === 0) {
+        return;
+      }
+
+      try {
+        const file = files[0].file;
+        const templateData = await templateApi.getTemplateById(uploadingTemplateId);
+
+        // 准备更新数据
+        const updateData = {
+          name: templateData.name || '',
+          type: templateData.type || templateData.typeName || '',
+          description: templateData.description || '',
+          usage: Array.isArray(templateData.usage) ? templateData.usage : [],
+          tenant: templateData.tenant || '',
+          theme: templateData.theme || '',
+        };
+
+        // 根据上传类型决定传递哪个文件
+        const pdfExample = uploadType === 'pdfExample' ? file : null;
+        const icon = uploadType === 'icon' ? file : null;
+
+        // 更新模板
+        await templateApi.updateTemplate(uploadingTemplateId, updateData, pdfExample, icon);
+
+        // 刷新数据
+        const apiData = await templateApi.getTemplates();
+        let transformedData = transformApiData(Array.isArray(apiData) ? apiData : (apiData._embedded?.templates || apiData.content || []));
+        
+        if (selectedTenant === 'global') {
+          transformedData = transformedData.filter(item => 
+            item.templateType === 'Global'
+          );
+        } else if (selectedTenant === 'tenant1' || selectedTenant === 'specific') {
+          transformedData = transformedData.filter(item => 
+            item.templateType === 'Specific'
+          );
+        }
+        
+        setData(transformedData);
+        setUploadDialogOpen(false);
+        setUploadingTemplateId(null);
+        setUploadType(null);
+      } catch (error) {
+        console.error('上传文件失败:', error);
+      }
+    };
+
+    // 关闭上传对话框
+    const handleCloseUploadDialog = () => {
+      setUploadDialogOpen(false);
+      setUploadingTemplateId(null);
+      setUploadType(null);
     };
   
     return (
@@ -411,6 +532,7 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
               <Button
                 variant="contained"
                 size="small"
+                onClick={() => setNewPublicationDialogOpen(true)}
                 sx={(theme) => ({
                   backgroundColor: theme.palette.primary.main,
                   color: 'white',
@@ -432,66 +554,100 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
             </Box>
           </HeaderContainer>
 
-          <Box sx={{ paddingTop: 0, flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-            <TableContainer 
-              component={Paper} 
-              sx={{ 
-                boxShadow: 1, 
-                minWidth: 1200,
-                height: '100%', 
-                overflowX: 'auto',
-                overflowY: 'auto', 
-                display: 'flex',
-                flexDirection: 'column',
-                borderLeft: (theme) => `1px solid ${theme.palette.divider}`,
-                borderRight: (theme) => `1px solid ${theme.palette.divider}`,
-                // 隐藏垂直滚动条，保留水平滚动条
-                '&::-webkit-scrollbar': {
-                  width: 0, 
-                  height: '8px',
-                },
-                '&::-webkit-scrollbar-track': {
-                  background: (theme) => theme.palette.grey[200],
-                  borderRadius: '4px',
-                },
-                '&::-webkit-scrollbar-thumb': {
-                  background: (theme) => theme.palette.grey[400],
-                  borderRadius: '4px',
-                  '&:hover': {
-                    background: (theme) => theme.palette.grey[500],
+          {/* 错误提示 */}
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+              {error}
+            </Alert>
+          )}
+
+          {/* 加载状态 */}
+          {loading && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
+              <CircularProgress />
+            </Box>
+          )}
+
+          {!loading && (
+            <Box sx={{ paddingTop: 0, flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+              <TableContainer 
+                component={Paper} 
+                sx={{ 
+                  boxShadow: 1, 
+                  minWidth: 1200,
+                  height: '100%', 
+                  overflowX: 'auto',
+                  overflowY: 'auto', 
+                  display: 'flex',
+                  flexDirection: 'column',
+                  borderLeft: (theme) => `1px solid ${theme.palette.divider}`,
+                  borderRight: (theme) => `1px solid ${theme.palette.divider}`,
+                  // 隐藏垂直滚动条，保留水平滚动条
+                  '&::-webkit-scrollbar': {
+                    width: 0, 
+                    height: '8px',
                   },
-                },
-                scrollbarWidth: 'thin',
-                scrollbarColor: (theme) => `${theme.palette.grey[400]} ${theme.palette.grey[200]}`,
-              }}
-            >
-                <Table stickyHeader>
-                  <TableHead>
-                    <TableRow>
-                      <TableHeader sx={{ minWidth: 135, textAlign: 'center', fontWeight: 'bold'}}>Name</TableHeader>
-                      <TableHeader sx={{ minWidth: 500, fontWeight: 'bold' }}>Description</TableHeader>
-                      <TableHeader sx={{ minWidth: 140, textAlign: 'center', fontWeight: 'bold' }}>Image</TableHeader>
-                      <TableHeader sx={{ minWidth: 220, textAlign: 'center', fontWeight: 'bold' }}>PDF Example</TableHeader>
-                      <TableHeader sx={{ minWidth: 140, fontWeight: 'bold' }}>Tenant</TableHeader>
-                      <TableHeader sx={{ minWidth: 140, fontWeight: 'bold' }}>Theme</TableHeader>
-                      <TableHeader sx={{ minWidth: 200, fontWeight: 'bold' }}>Label</TableHeader>
-                      <TableHeader sx={{ minWidth: 200, textAlign: 'center', fontWeight: 'bold' }}>Type</TableHeader>
-                      <TableHeader sx={{ minWidth: 180, textAlign: 'center', fontWeight: 'bold' }}>Usage</TableHeader>
-                      <TableHeader sx={{ minWidth: 190, textAlign: 'center', fontWeight: 'bold' }}>Template Type</TableHeader>
-                      <TableHeader sx={{ minWidth: 200, textAlign: 'center', fontWeight: 'bold' }}>Created</TableHeader>
-                      <TableHeader sx={{ minWidth: 180, textAlign: 'center', fontWeight: 'bold' }}>Created by</TableHeader>
-                      <TableHeader sx={{ minWidth: 200, textAlign: 'center', fontWeight: 'bold' }}>Last Update</TableHeader>
-                      <TableHeader sx={{ minWidth: 180, textAlign: 'center', fontWeight: 'bold' }}>Last Updated by</TableHeader>
-                      <TableHeader sx={{ minWidth: 220, textAlign: 'center', fontWeight: 'bold' }}>CSS</TableHeader>
-                      <TableHeader sx={{ minWidth: 220, textAlign: 'center', fontWeight: 'bold' }}>HTML</TableHeader>
-                      <StickyHeader sx={{ minWidth: 120, textAlign: 'center', fontWeight: 'bold' }}>Operation</StickyHeader>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {data.map((row) => (
+                  '&::-webkit-scrollbar-track': {
+                    background: (theme) => theme.palette.grey[200],
+                    borderRadius: '4px',
+                  },
+                  '&::-webkit-scrollbar-thumb': {
+                    background: (theme) => theme.palette.grey[400],
+                    borderRadius: '4px',
+                    '&:hover': {
+                      background: (theme) => theme.palette.grey[500],
+                    },
+                  },
+                  scrollbarWidth: 'thin',
+                  scrollbarColor: (theme) => `${theme.palette.grey[400]} ${theme.palette.grey[200]}`,
+                }}
+              >
+                  <Table stickyHeader>
+                    <TableHead>
+                      <TableRow>
+                        <TableHeader sx={{ minWidth: 190, textAlign: 'center', fontWeight: 'bold'}}>Name</TableHeader>
+                        <TableHeader sx={{ minWidth: 500, fontWeight: 'bold' }}>Description</TableHeader>
+                        <TableHeader sx={{ minWidth: 140, textAlign: 'center', fontWeight: 'bold' }}>Image</TableHeader>
+                        <TableHeader sx={{ minWidth: 220, textAlign: 'center', fontWeight: 'bold' }}>PDF Example</TableHeader>
+                        <TableHeader sx={{ minWidth: 140, fontWeight: 'bold' }}>Tenant</TableHeader>
+                        <TableHeader sx={{ minWidth: 140, fontWeight: 'bold' }}>Theme</TableHeader>
+                        <TableHeader sx={{ minWidth: 200, textAlign: 'center', fontWeight: 'bold' }}>Type</TableHeader>
+                        <TableHeader sx={{ minWidth: 180, textAlign: 'center', fontWeight: 'bold' }}>Usage</TableHeader>
+                        <TableHeader sx={{ minWidth: 190, textAlign: 'center', fontWeight: 'bold' }}>Template Type</TableHeader>
+                        <TableHeader sx={{ minWidth: 200, textAlign: 'center', fontWeight: 'bold' }}>Created</TableHeader>
+                        <TableHeader sx={{ minWidth: 180, textAlign: 'center', fontWeight: 'bold' }}>Created by</TableHeader>
+                        <TableHeader sx={{ minWidth: 200, textAlign: 'center', fontWeight: 'bold' }}>Last Update</TableHeader>
+                        <TableHeader sx={{ minWidth: 180, textAlign: 'center', fontWeight: 'bold' }}>Last Updated by</TableHeader>
+                        <TableHeader sx={{ minWidth: 220, textAlign: 'center', fontWeight: 'bold' }}>CSS</TableHeader>
+                        <TableHeader sx={{ minWidth: 220, textAlign: 'center', fontWeight: 'bold' }}>HTML</TableHeader>
+                        <StickyHeader sx={{ minWidth: 120, textAlign: 'center', fontWeight: 'bold' }}>Operation</StickyHeader>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {data.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={16} sx={{ textAlign: 'center', py: 4 }}>
+                            <Typography variant="body2" color="text.secondary">
+                              No data
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        data.map((row) => (
                       <TableRowStyled key={row.id} hover>
-                        <TableCellStyled sx={{ textAlign: 'center' }}>
-                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                        <TableCellStyled sx={{ textAlign: 'center', width: '190px', minWidth: '190px', maxWidth: '190px' }}>
+                          <Typography 
+                            variant="body2" 
+                            sx={{ 
+                              fontWeight: 500,
+                              width: '100%',
+                              maxWidth: '100%',
+                              wordBreak: 'break-word',
+                              wordWrap: 'break-word',
+                              overflowWrap: 'break-word',
+                              whiteSpace: 'normal'
+                            }}
+                          >
                             {row.name}
                           </Typography>
                         </TableCellStyled>
@@ -499,25 +655,38 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
                           <DescriptionText>{row.description}</DescriptionText>
                         </TableCellStyled>
                         <TableCellStyled sx={{ textAlign: 'center' }}>
-                          {row.image ? (
-                            <Box
-                              component="img"
-                              src={row.image}
-                              alt={row.name}
-                              sx={{
-                                width: 40,
-                                height: 40,
-                                objectFit: 'cover',
-                                borderRadius: 1,
-                                margin: '0 auto',
-                                display: 'block',
-                              }}
-                            />
-                          ) : (
-                            <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 1 }}>
+                            {row.image ? (
+                              <Box
+                                component="img"
+                                src={row.image}
+                                alt={row.name}
+                                sx={{
+                                  width: 40,
+                                  height: 40,
+                                  objectFit: 'cover',
+                                  borderRadius: 1,
+                                }}
+                              />
+                            ) : (
                               <ImagePlaceholder />
-                            </Box>
-                          )}
+                            )}
+                            <UploadIconButton 
+                              size="small"
+                              onClick={() => handleUploadClick(row.id, 'icon')}
+                            >
+                              <Box
+                                component="img"
+                                src="/assets/upload.png"
+                                alt="Upload"
+                                sx={{
+                                  width: 16,
+                                  height: 16,
+                                  objectFit: 'contain',
+                                }}
+                              />
+                            </UploadIconButton>
+                          </Box>
                         </TableCellStyled>
                         <TableCellStyled sx={{ textAlign: 'center' }}>
                           <Box sx={{ display: 'flex', justifyContent: 'center' }}>
@@ -527,7 +696,10 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
                                   PDF
                                 </Typography>
                               </PdfThumbnail>
-                              <UploadIconButton size="small">
+                              <UploadIconButton 
+                                size="small"
+                                onClick={() => handleUploadClick(row.id, 'pdfExample')}
+                              >
                                 <Box
                                   component="img"
                                   src="/assets/upload.png"
@@ -548,14 +720,12 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
                         <TableCellStyled>
                           <Typography variant="body2">{row.theme}</Typography>
                         </TableCellStyled>
-                        <TableCellStyled>
-                          <Typography variant="body2">{row.label}</Typography>
-                        </TableCellStyled>
                         <TableCellStyled >
                           <Box sx={{ display: 'flex', justifyContent: 'center' }}>
                             <FormControl size="small" sx={{ minWidth: 110 }}>
                               <Select
                                 value={row.type}
+                                onChange={(e) => handleTypeChange(row.id, e.target.value)}
                                 sx={{
                                   fontSize: '14px',
                                   height: '28px',
@@ -601,6 +771,7 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
                             component="img"
                             src="/assets/edit.png"
                             alt="Edit CSS"
+                            onClick={() => handleEditClick(row.id, 'css')}
                             sx={{
                               width: 20,
                               height: 20,
@@ -614,6 +785,7 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
                             component="img"
                             src="/assets/edit.png"
                             alt="Edit HTML"
+                            onClick={() => handleEditClick(row.id, 'html')}
                             sx={{
                               width: 20,
                               height: 20,
@@ -636,12 +808,108 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
                           />
                         </StickyCell>
                       </TableRowStyled>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-          </Box>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+            </Box>
+          )}
         </Paper>
+
+        {/* 编辑 CSS/HTML 的 Dialog */}
+        <Dialog
+          open={dialogOpen}
+          onClose={handleCloseDialog}
+          maxWidth="md"
+          fullWidth
+          PaperProps={{
+            sx: {
+              minHeight: '500px',
+              maxHeight: '90vh'
+            }
+          }}
+        >
+          <DialogTitle>
+            Edit {editType?.toUpperCase() || ''}
+          </DialogTitle>
+          <DialogContent>
+            {loadingContent ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+                <CircularProgress />
+              </Box>
+            ) : (
+              <Box sx={{ mt: 2 }}>
+                <TextField
+                  placeholder={`Enter your ${editType?.toUpperCase()} content here...`}
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  variant="outlined"
+                  multiline
+                  rows={15}
+                  sx={{
+                    width: "100%",
+                    '& .MuiOutlinedInput-root': {
+                      fontFamily: 'Monaco, Consolas, "Courier New", monospace',
+                      fontSize: '14px',
+                      backgroundColor: '#2d2d2d',
+                      color: '#ffffff',
+                      '& fieldset': {
+                        borderColor: '#555',
+                      },
+                      '&:hover fieldset': {
+                        borderColor: '#777',
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: (theme) => theme.palette.primary.main,
+                      },
+                    }
+                  }}
+                />
+              </Box>
+            )}
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={handleCloseDialog} disabled={saving}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveContent}
+              variant="contained"
+              disabled={saving || loadingContent}
+              sx={{
+                backgroundColor: (theme) => theme.palette.primary.main,
+                color: 'white',
+                '&:hover': {
+                  backgroundColor: (theme) => theme.palette.primary.dark,
+                },
+              }}
+            >
+              {saving ? <CircularProgress size={20} color="inherit" sx={{ mr: 1 }} /> : null}
+              Save
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* New Publication Dialog */}
+        <NewPublicationDialog
+          open={newPublicationDialogOpen}
+          onClose={() => setNewPublicationDialogOpen(false)}
+          onConfirm={(formData) => {
+            // TODO: 实现创建新 publication 的逻辑
+            console.log('Confirm new publication:', formData);
+            setNewPublicationDialogOpen(false);
+          }}
+        />
+
+        {/* Upload Dialog */}
+        <UploadDialog
+          open={uploadDialogOpen}
+          onClose={handleCloseUploadDialog}
+          onNext={handleUploadFiles}
+          onCancel={handleCloseUploadDialog}
+          uploadType={uploadType}
+        />
       </Box>
     );
   }
