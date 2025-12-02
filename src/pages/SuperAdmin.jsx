@@ -2,6 +2,7 @@ import {
     Box,
     Button,
     Chip,
+    Checkbox,
     Dialog,
     DialogTitle,
     DialogContent,
@@ -18,11 +19,12 @@ import {
     TableHead,
     TableRow,
     TextField,
-    Typography
+    Typography,
+    Autocomplete
   } from '@mui/material';
   import { styled } from '@mui/material/styles';
-  import CloseIcon from '@mui/icons-material/Close';
-  import React, { useState, useEffect } from 'react';
+import CloseIcon from '@mui/icons-material/Close';
+import React, { useState, useEffect } from 'react';
   import templateApi from '../services/templateApi';
   import { CircularProgress, Alert } from '@mui/material';
   import NewPublicationDialog from '../components/NewPublicationDialog';
@@ -102,7 +104,7 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
   zIndex: 9,
   borderLeft: `1px solid ${theme.palette.primary.main}`,
   '&:hover': {
-    backgroundColor: theme.palette.action.hover,
+    backgroundColor: theme.palette.grey[100],
   },
 }));
   
@@ -193,11 +195,44 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
     color: 'rgba(0, 0, 0, 0.87)',
     width: '100%', 
     maxWidth: '100%',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    display: '-webkit-box',
-    WebkitLineClamp: 3,
-    WebkitBoxOrient: 'vertical',
+    wordBreak: 'break-word',
+    wordWrap: 'break-word',
+    overflowWrap: 'break-word',
+    whiteSpace: 'normal',
+  }));
+  
+  const StyledAutocomplete = styled(Autocomplete)(({ theme }) => ({
+    width: '100%',
+    '& .MuiOutlinedInput-root': {
+      borderRadius: '4px',
+      minHeight: '40px',
+      height: 'auto',
+      '& fieldset': {
+        borderColor: '#b3b3b3',
+        borderWidth: '1px',
+      },
+      '&:hover fieldset': {
+        borderColor: '#b3b3b3',
+      },
+      '&.Mui-focused fieldset': {
+        borderColor: theme.palette.primary.main || '#f16508',
+      },
+    },
+    '& .MuiAutocomplete-inputRoot': {
+      padding: '5px 14px !important',
+      minHeight: '40px',
+      height: 'auto',
+      '&.MuiOutlinedInput-root': {
+        padding: '5px 14px !important',
+      },
+      '& .MuiAutocomplete-input': {
+        padding: '0px !important',
+        fontSize: '14px',
+        fontFamily: '"Roboto-Regular", sans-serif',
+        color: '#4d4d4d',
+        height: '20px',
+      },
+    },
   }));
   
   
@@ -263,6 +298,7 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
         type: item.typeName || '-',
         usage: usage.length > 0 ? usage : ['-'],
         templateType: templateType,
+        parentId: item.parentId !== null && item.parentId !== undefined ? item.parentId : '-',
         created: formatDate(item.createdAt || '-'),
         createdBy: item.createdBy || '-',
         lastUpdate: formatDate(item.updatedAt || '-'),
@@ -294,6 +330,9 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
     const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
     const [uploadingTemplateId, setUploadingTemplateId] = useState(null);
     const [uploadType, setUploadType] = useState(null); // 'icon' 或 'pdfExample'
+    
+    // 行编辑模式状态
+    const [editingRows, setEditingRows] = useState(new Set());
   
     // 从 API 获取模板数据
     useEffect(() => {
@@ -343,11 +382,21 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
       setSelectedTenant(event.target.value);
     };
   
-    const handleUsageDelete = (rowId, usageIndex) => {
+    const handleUsageChange = (rowId, newValue) => {
+      // 将小写的值转换为首字母大写的格式用于显示
+      const formattedUsage = Array.isArray(newValue) 
+        ? newValue.map(u => {
+            const lower = u.toLowerCase();
+            if (lower === 'internal') return 'Internal';
+            if (lower === 'external') return 'External';
+            return u.charAt(0).toUpperCase() + u.slice(1).toLowerCase();
+          })
+        : [];
+      
       setData(prevData =>
         prevData.map(row =>
           row.id === rowId
-            ? { ...row, usage: row.usage.filter((_, index) => index !== usageIndex) }
+            ? { ...row, usage: formattedUsage.length > 0 ? formattedUsage : ['-'] }
             : row
         )
       );
@@ -358,6 +407,30 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
         prevData.map(row =>
           row.id === rowId
             ? { ...row, type: newType }
+            : row
+        )
+      );
+    };
+
+    const handleNameChange = (rowId, newName) => {
+      // 限制最多 30 个字符
+      const truncatedName = newName.length > 30 ? newName.slice(0, 30) : newName;
+      setData(prevData =>
+        prevData.map(row =>
+          row.id === rowId
+            ? { ...row, name: truncatedName }
+            : row
+        )
+      );
+    };
+
+    const handleDescriptionChange = (rowId, newDescription) => {
+      // 限制最多 150 个字符
+      const truncatedDescription = newDescription.length > 150 ? newDescription.slice(0, 150) : newDescription;
+      setData(prevData =>
+        prevData.map(row =>
+          row.id === rowId
+            ? { ...row, description: truncatedDescription }
             : row
         )
       );
@@ -387,6 +460,10 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
     // 关闭 Dialog
     const handleCloseDialog = () => {
       setDialogOpen(false);
+    };
+
+    // 对话框完全关闭后清理状态
+    const handleDialogExited = () => {
       setEditType(null);
       setCurrentTemplateId(null);
       setEditContent('');
@@ -506,12 +583,25 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
       setUploadingTemplateId(null);
       setUploadType(null);
     };
-  
+
+    // 切换行编辑模式
+    const handleToggleRowEdit = (rowId) => {
+      setEditingRows(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(rowId)) {
+          newSet.delete(rowId);
+        } else {
+          newSet.add(rowId);
+        }
+        return newSet;
+      });
+    };
+
     return (
       <Box sx={{ backgroundColor: 'grey.200', height: '85vh', paddingTop: 6, paddingLeft: 5, paddingRight: 5,paddingBottom: 6, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <Paper sx={{ backgroundColor: 'background.paper', padding: 3, boxShadow: 'none', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <HeaderContainer>
-            <Title>Super Admin</Title>
+            <Title>Manage Publications (Global)</Title>
             <Box sx={{ marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <FormControl size="small" sx={{ minWidth: 125 }}>
                 <Select
@@ -569,7 +659,7 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
           )}
 
           {!loading && (
-            <Box sx={{ paddingTop: 0, flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            <Box sx={{ paddingTop: '0px', flex: 1, overflow: 'visible', display: 'flex', flexDirection: 'column', minHeight: 0, position: 'relative' }}>
               <TableContainer 
                 component={Paper} 
                 sx={{ 
@@ -580,6 +670,7 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
                   overflowY: 'auto', 
                   display: 'flex',
                   flexDirection: 'column',
+                  position: 'relative',
                   borderLeft: (theme) => `1px solid ${theme.palette.divider}`,
                   borderRight: (theme) => `1px solid ${theme.palette.divider}`,
                   // 隐藏垂直滚动条，保留水平滚动条
@@ -605,28 +696,31 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
                   <Table stickyHeader>
                     <TableHead>
                       <TableRow>
-                        <TableHeader sx={{ minWidth: 190, textAlign: 'center', fontWeight: 'bold'}}>Name</TableHeader>
-                        <TableHeader sx={{ minWidth: 500, fontWeight: 'bold' }}>Description</TableHeader>
                         <TableHeader sx={{ minWidth: 140, textAlign: 'center', fontWeight: 'bold' }}>Image</TableHeader>
-                        <TableHeader sx={{ minWidth: 220, textAlign: 'center', fontWeight: 'bold' }}>PDF Example</TableHeader>
-                        <TableHeader sx={{ minWidth: 140, fontWeight: 'bold' }}>Tenant</TableHeader>
-                        <TableHeader sx={{ minWidth: 140, fontWeight: 'bold' }}>Theme</TableHeader>
-                        <TableHeader sx={{ minWidth: 200, textAlign: 'center', fontWeight: 'bold' }}>Type</TableHeader>
-                        <TableHeader sx={{ minWidth: 180, textAlign: 'center', fontWeight: 'bold' }}>Usage</TableHeader>
+                        <TableHeader sx={{ minWidth: 100, textAlign: 'center', fontWeight: 'bold' }}>ID</TableHeader>
+                        <TableHeader sx={{ minWidth: 190, textAlign: 'center', fontWeight: 'bold'}}>Name</TableHeader>
                         <TableHeader sx={{ minWidth: 190, textAlign: 'center', fontWeight: 'bold' }}>Template Type</TableHeader>
+                        <TableHeader sx={{ minWidth: 200, textAlign: 'center', fontWeight: 'bold' }}>Type</TableHeader>
+                        <TableHeader sx={{ minWidth: 140, textAlign: 'center', fontWeight: 'bold' }}>Tenant</TableHeader>
+                        <TableHeader sx={{ minWidth: 140, textAlign: 'center', fontWeight: 'bold' }}>Theme</TableHeader>
+                        <TableHeader sx={{ minWidth: 200, textAlign: 'center', fontWeight: 'bold' }}>Parent</TableHeader>
+                        <TableHeader sx={{ minWidth: 400, textAlign: 'center', fontWeight: 'bold' }}>Description</TableHeader>
+                        <TableHeader sx={{ minWidth: 265, textAlign: 'center', fontWeight: 'bold' }}>Usage</TableHeader>
+                        <TableHeader sx={{ minWidth: 150, textAlign: 'center', fontWeight: 'bold' }}>PDF per Product</TableHeader>
                         <TableHeader sx={{ minWidth: 200, textAlign: 'center', fontWeight: 'bold' }}>Created</TableHeader>
                         <TableHeader sx={{ minWidth: 180, textAlign: 'center', fontWeight: 'bold' }}>Created by</TableHeader>
                         <TableHeader sx={{ minWidth: 200, textAlign: 'center', fontWeight: 'bold' }}>Last Update</TableHeader>
                         <TableHeader sx={{ minWidth: 180, textAlign: 'center', fontWeight: 'bold' }}>Last Updated by</TableHeader>
                         <TableHeader sx={{ minWidth: 220, textAlign: 'center', fontWeight: 'bold' }}>CSS</TableHeader>
                         <TableHeader sx={{ minWidth: 220, textAlign: 'center', fontWeight: 'bold' }}>HTML</TableHeader>
+                        <TableHeader sx={{ minWidth: 120, textAlign: 'center', fontWeight: 'bold' }}>PDF Example</TableHeader>
                         <StickyHeader sx={{ minWidth: 120, textAlign: 'center', fontWeight: 'bold' }}>Operation</StickyHeader>
                       </TableRow>
                     </TableHead>
                     <TableBody>
                       {data.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={16} sx={{ textAlign: 'center', py: 4 }}>
+                          <TableCell colSpan={19} sx={{ textAlign: 'center', py: 4 }}>
                             <Typography variant="body2" color="text.secondary">
                               No data
                             </Typography>
@@ -635,25 +729,6 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
                       ) : (
                         data.map((row) => (
                       <TableRowStyled key={row.id} hover>
-                        <TableCellStyled sx={{ textAlign: 'center', width: '190px', minWidth: '190px', maxWidth: '190px' }}>
-                          <Typography 
-                            variant="body2" 
-                            sx={{ 
-                              fontWeight: 500,
-                              width: '100%',
-                              maxWidth: '100%',
-                              wordBreak: 'break-word',
-                              wordWrap: 'break-word',
-                              overflowWrap: 'break-word',
-                              whiteSpace: 'normal'
-                            }}
-                          >
-                            {row.name}
-                          </Typography>
-                        </TableCellStyled>
-                        <TableCellStyled>
-                          <DescriptionText>{row.description}</DescriptionText>
-                        </TableCellStyled>
                         <TableCellStyled sx={{ textAlign: 'center' }}>
                           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 1 }}>
                             {row.image ? (
@@ -671,34 +746,10 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
                             ) : (
                               <ImagePlaceholder />
                             )}
-                            <UploadIconButton 
-                              size="small"
-                              onClick={() => handleUploadClick(row.id, 'icon')}
-                            >
-                              <Box
-                                component="img"
-                                src="/assets/upload.png"
-                                alt="Upload"
-                                sx={{
-                                  width: 16,
-                                  height: 16,
-                                  objectFit: 'contain',
-                                }}
-                              />
-                            </UploadIconButton>
-                          </Box>
-                        </TableCellStyled>
-                        <TableCellStyled sx={{ textAlign: 'center' }}>
-                          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                            <PdfThumbnailContainer>
-                              <PdfThumbnail>
-                                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '10px' }}>
-                                  PDF
-                                </Typography>
-                              </PdfThumbnail>
+                            {editingRows.has(row.id) && (
                               <UploadIconButton 
                                 size="small"
-                                onClick={() => handleUploadClick(row.id, 'pdfExample')}
+                                onClick={() => handleUploadClick(row.id, 'icon')}
                               >
                                 <Box
                                   component="img"
@@ -711,48 +762,254 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
                                   }}
                                 />
                               </UploadIconButton>
-                            </PdfThumbnailContainer>
-                          </Box>
-                        </TableCellStyled>
-                        <TableCellStyled>
-                          <Typography variant="body2">{row.tenant}</Typography>
-                        </TableCellStyled>
-                        <TableCellStyled>
-                          <Typography variant="body2">{row.theme}</Typography>
-                        </TableCellStyled>
-                        <TableCellStyled >
-                          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                            <FormControl size="small" sx={{ minWidth: 110 }}>
-                              <Select
-                                value={row.type}
-                                onChange={(e) => handleTypeChange(row.id, e.target.value)}
-                                sx={{
-                                  fontSize: '14px',
-                                  height: '28px',
-                                }}
-                              >
-                                <MenuItem value="Catalog">Catalog</MenuItem>
-                                <MenuItem value="Shelfcard">Shelfcard</MenuItem>
-                                <MenuItem value="DataSheet">DataSheet</MenuItem>
-                                <MenuItem value="Flyer">Flyer</MenuItem>
-                              </Select>
-                            </FormControl>
+                            )}
                           </Box>
                         </TableCellStyled>
                         <TableCellStyled sx={{ textAlign: 'center' }}>
-                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, justifyContent: 'center' }}>
-                            {row.usage.map((usage, index) => (
-                              <UsageChip
-                                key={index}
-                                label={usage}
-                                onDelete={() => handleUsageDelete(row.id, index)}
-                                deleteIcon={<CloseIcon />}
-                              />
-                            ))}
-                          </Box>
+                          <Typography variant="body2">{row.id}</Typography>
+                        </TableCellStyled>
+                        <TableCellStyled sx={{ textAlign: 'left', width: '190px', minWidth: '190px', maxWidth: '190px' }}>
+                          {editingRows.has(row.id) ? (
+                            <TextField
+                              value={row.name}
+                              onChange={(e) => handleNameChange(row.id, e.target.value)}
+                              variant="outlined"
+                              size="small"
+                              multiline
+                              maxRows={3}
+                              inputProps={{ maxLength: 30 }}
+                              sx={{
+                                width: '100%',
+                                '& .MuiOutlinedInput-root': {
+                                  fontSize: '14px',
+                                  padding: '5px 14px',
+                                  minHeight: '40px',
+                                  height: 'auto',
+                                },
+                              }}
+                            />
+                          ) : (
+                            <Typography 
+                              variant="body2" 
+                              sx={{ 
+                                fontWeight: 500,
+                                width: '100%',
+                                maxWidth: '100%',
+                                wordBreak: 'break-word',
+                                wordWrap: 'break-word',
+                                overflowWrap: 'break-word',
+                                whiteSpace: 'normal'
+                              }}
+                            >
+                              {row.name}
+                            </Typography>
+                          )}
                         </TableCellStyled>
                         <TableCellStyled sx={{ textAlign: 'center' }}>
                           <Typography variant="body2">{row.templateType}</Typography>
+                        </TableCellStyled>
+                        <TableCellStyled>
+                          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                            {editingRows.has(row.id) ? (
+                              <FormControl size="small" sx={{ minWidth: 110 }}>
+                                <Select
+                                  value={row.type}
+                                  onChange={(e) => handleTypeChange(row.id, e.target.value)}
+                                  sx={{
+                                    fontSize: '14px',
+                                    minHeight: '40px',
+                                    height: 'auto',
+                                    '& .MuiOutlinedInput-notchedOutline': {
+                                      padding: '5px 14px',
+                                    },
+                                    '& .MuiSelect-select': {
+                                      padding: '5px 14px',
+                                    },
+                                  }}
+                                >
+                                  <MenuItem value="Catalog">Catalog</MenuItem>
+                                  <MenuItem value="Shelfcard">Shelfcard</MenuItem>
+                                  <MenuItem value="DataSheet">DataSheet</MenuItem>
+                                  <MenuItem value="Flyer">Flyer</MenuItem>
+                                </Select>
+                              </FormControl>
+                            ) : (
+                              <Typography variant="body2">{row.type}</Typography>
+                            )}
+                          </Box>
+                        </TableCellStyled>
+                        <TableCellStyled sx={{ textAlign: 'center' }}>
+                          <Typography variant="body2">{row.tenant}</Typography>
+                        </TableCellStyled>
+                        <TableCellStyled sx={{ textAlign: 'center' }}>
+                          <Typography variant="body2">{row.theme}</Typography>
+                        </TableCellStyled>
+                        <TableCellStyled sx={{ textAlign: 'center' }}>
+                          <Typography variant="body2">{row.parentId}</Typography>
+                        </TableCellStyled>
+                        <TableCellStyled sx={{ textAlign: 'left' }}>
+                          {editingRows.has(row.id) ? (
+                            <TextField
+                              value={row.description}
+                              onChange={(e) => handleDescriptionChange(row.id, e.target.value)}
+                              variant="outlined"
+                              size="small"
+                              multiline
+                              maxRows={3}
+                              inputProps={{ maxLength: 150 }}
+                              sx={{
+                                width: '100%',
+                                '& .MuiOutlinedInput-root': {
+                                  fontSize: '14px',
+                                  padding: '5px 14px',
+                                  minHeight: '40px',
+                                  height: 'auto',
+                                },
+                              }}
+                            />
+                          ) : (
+                            <DescriptionText>{row.description}</DescriptionText>
+                          )}
+                        </TableCellStyled>
+                        <TableCellStyled sx={{ textAlign: 'center' }}>
+                          {editingRows.has(row.id) ? (
+                            <StyledAutocomplete
+                              multiple
+                              disableClearable
+                              options={['internal', 'external']}
+                              value={row.usage
+                                .filter(u => u !== '-')
+                                .map(u => u.toLowerCase())}
+                              onChange={(event, newValue) => handleUsageChange(row.id, newValue)}
+                              renderInput={(params) => (
+                                <TextField
+                                  {...params}
+                                  placeholder={row.usage.filter(u => u !== '-').length === 0 ? 'Select Usage' : ''}
+                                  InputProps={{
+                                    ...params.InputProps,
+                                    sx: {
+                                      '& input::placeholder': {
+                                        color: '#808080',
+                                        opacity: 1,
+                                        fontSize: '14px',
+                                        fontFamily: '"Roboto-Regular", sans-serif',
+                                      },
+                                    },
+                                  }}
+                                />
+                              )}
+                              renderTags={(value, getTagProps) =>
+                                value.map((option, index) => (
+                                  <Chip
+                                    key={index}
+                                    label={option.charAt(0).toUpperCase() + option.slice(1)}
+                                    {...getTagProps({ index })}
+                                    deleteIcon={<CloseIcon />}
+                                    sx={(theme) => ({
+                                      height: '24px',
+                                      fontSize: '12px',
+                                      marginRight: '4px',
+                                      backgroundColor: theme.palette.grey[200],
+                                      border: `1px solid ${theme.palette.grey[400]}`,
+                                      color: '#4d4d4d',
+                                      fontFamily: '"Roboto-Regular", sans-serif',
+                                      '& .MuiChip-deleteIcon': {
+                                        fontSize: '16px',
+                                        color: theme.palette.text.secondary,
+                                        margin: '0 4px 0 -4px',
+                                        '&:hover': {
+                                          color: theme.palette.error.main,
+                                          backgroundColor: 'transparent',
+                                        },
+                                      },
+                                    })}
+                                  />
+                                ))
+                              }
+                              renderOption={(props, option) => (
+                                <Box component="li" {...props}>
+                                  {option.charAt(0).toUpperCase() + option.slice(1)}
+                                </Box>
+                              )}
+                              PaperComponent={({ children, ...other }) => (
+                                <Box
+                                  {...other}
+                                  sx={{
+                                    boxShadow: '0px 1px 3px 1px rgba(0, 0, 0, 0.15), 0px 1px 2px 0px rgba(0, 0, 0, 0.3)',
+                                    borderRadius: '4px',
+                                    marginTop: '4px',
+                                    backgroundColor: '#ffffff !important',
+                                    '& .MuiAutocomplete-listbox': {
+                                      backgroundColor: '#ffffff !important',
+                                      padding: 0,
+                                    },
+                                    '& .MuiAutocomplete-option': {
+                                      fontSize: '14px',
+                                      fontFamily: '"Roboto-Regular", sans-serif',
+                                      padding: '8px 16px',
+                                      minHeight: 'auto',
+                                      backgroundColor: '#ffffff !important',
+                                      opacity: '1 !important',
+                                      '&:hover': {
+                                        backgroundColor: '#f5f5f5 !important',
+                                        opacity: '1 !important',
+                                      },
+                                      '&.Mui-focused': {
+                                        backgroundColor: '#f5f5f5 !important',
+                                        opacity: '1 !important',
+                                      },
+                                      '&[aria-selected="true"]': {
+                                        backgroundColor: '#f5f5f5 !important',
+                                        opacity: '1 !important',
+                                        '&.Mui-focused': {
+                                          backgroundColor: '#eeeeee !important',
+                                          opacity: '1 !important',
+                                        },
+                                      },
+                                    },
+                                  }}
+                                >
+                                  {children}
+                                </Box>
+                              )}
+                              getOptionLabel={(option) => option}
+                              isOptionEqualToValue={(option, value) => option === value}
+                              filterOptions={(options) => {
+                                const currentUsage = row.usage
+                                  .filter(u => u !== '-')
+                                  .map(u => u.toLowerCase());
+                                return options.filter((option) => !currentUsage.includes(option));
+                              }}
+                            />
+                          ) : (
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, alignItems: 'center' }}>
+                              {row.usage.filter(u => u !== '-').length > 0 ? (
+                                row.usage.filter(u => u !== '-').map((usage, index) => (
+                                  <UsageChip
+                                    key={index}
+                                    label={usage}
+                                    sx={{
+                                      '& .MuiChip-deleteIcon': {
+                                        display: 'none',
+                                      },
+                                    }}
+                                  />
+                                ))
+                              ) : (
+                                <Typography variant="body2">-</Typography>
+                              )}
+                            </Box>
+                          )}
+                        </TableCellStyled>
+                        <TableCellStyled sx={{ textAlign: 'center' }}>
+                          <Checkbox 
+                            disabled={!editingRows.has(row.id)}
+                            sx={{
+                              '&.Mui-disabled': {
+                                color: (theme) => theme.palette.grey[400],
+                              },
+                            }}
+                          />
                         </TableCellStyled>
                         <TableCellStyled sx={{ textAlign: 'center' }}>
                           <Typography variant="body2">{row.created}</Typography>
@@ -771,12 +1028,14 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
                             component="img"
                             src="/assets/edit.png"
                             alt="Edit CSS"
-                            onClick={() => handleEditClick(row.id, 'css')}
+                            onClick={editingRows.has(row.id) ? () => handleEditClick(row.id, 'css') : undefined}
                             sx={{
                               width: 20,
                               height: 20,
                               objectFit: 'contain',
-                              cursor: 'pointer',
+                              cursor: editingRows.has(row.id) ? 'pointer' : 'not-allowed',
+                              opacity: editingRows.has(row.id) ? 1 : 0.5,
+                              filter: editingRows.has(row.id) ? 'none' : 'grayscale(100%)',
                             }}
                           />
                         </TableCellStyled>
@@ -785,27 +1044,84 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
                             component="img"
                             src="/assets/edit.png"
                             alt="Edit HTML"
-                            onClick={() => handleEditClick(row.id, 'html')}
+                            onClick={editingRows.has(row.id) ? () => handleEditClick(row.id, 'html') : undefined}
                             sx={{
                               width: 20,
                               height: 20,
                               objectFit: 'contain',
-                              cursor: 'pointer',
+                              cursor: editingRows.has(row.id) ? 'pointer' : 'not-allowed',
+                              opacity: editingRows.has(row.id) ? 1 : 0.5,
+                              filter: editingRows.has(row.id) ? 'none' : 'grayscale(100%)',
                             }}
                           />
                         </TableCellStyled>
+                        <TableCellStyled sx={{ textAlign: 'center' }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                            <PdfThumbnailContainer>
+                              {row.pdfExample ? (
+                                <PdfThumbnail
+                                  component="img"
+                                  src={row.pdfExample}
+                                  alt="PDF Example"
+                                  sx={{
+                                    width: 35,
+                                    height: 50,
+                                    objectFit: 'cover',
+                                  }}
+                                />
+                              ) : (
+                                <PdfThumbnail>
+                                  <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '10px' }}>
+                                    PDF
+                                  </Typography>
+                                </PdfThumbnail>
+                              )}
+                              {editingRows.has(row.id) && (
+                                <UploadIconButton 
+                                  size="small"
+                                  onClick={() => handleUploadClick(row.id, 'pdfExample')}
+                                >
+                                  <Box
+                                    component="img"
+                                    src="/assets/upload.png"
+                                    alt="Upload"
+                                    sx={{
+                                      width: 16,
+                                      height: 16,
+                                      objectFit: 'contain',
+                                    }}
+                                  />
+                                </UploadIconButton>
+                              )}
+                            </PdfThumbnailContainer>
+                          </Box>
+                        </TableCellStyled>
                         <StickyCell sx={{ textAlign: 'center' }}>
-                          <Box
-                            component="img"
-                            src="/assets/delete.png"
-                            alt="Delete"
-                            sx={{
-                              width: 20,
-                              height: 20,
-                              objectFit: 'contain',
-                              cursor: 'pointer',
-                            }}
-                          />
+                          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 2 }}>
+                            <Box
+                              component="img"
+                              src="/assets/edit.png"
+                              alt="Edit"
+                              onClick={() => handleToggleRowEdit(row.id)}
+                              sx={{
+                                width: 20,
+                                height: 20,
+                                objectFit: 'contain',
+                                cursor: 'pointer',
+                              }}
+                            />
+                            <Box
+                              component="img"
+                              src="/assets/delete.png"
+                              alt="Delete"
+                              sx={{
+                                width: 20,
+                                height: 20,
+                                objectFit: 'contain',
+                                cursor: 'pointer',
+                              }}
+                            />
+                          </Box>
                         </StickyCell>
                       </TableRowStyled>
                         ))
@@ -823,6 +1139,9 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
           onClose={handleCloseDialog}
           maxWidth="md"
           fullWidth
+          TransitionProps={{
+            onExited: handleDialogExited
+          }}
           PaperProps={{
             sx: {
               minHeight: '500px',
@@ -895,10 +1214,59 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
         <NewPublicationDialog
           open={newPublicationDialogOpen}
           onClose={() => setNewPublicationDialogOpen(false)}
-          onConfirm={(formData) => {
-            // TODO: 实现创建新 publication 的逻辑
-            console.log('Confirm new publication:', formData);
-            setNewPublicationDialogOpen(false);
+          onConfirm={async (formData) => {
+            try {
+              if (!formData.name) {
+                throw new Error('Template name is required');
+              }
+
+              // 根据 selectedTenant 决定模板类型
+              const templateTypeId = selectedTenant === 'global' ? 2 : 1; // 2 = Global, 1 = Specific
+              
+              // 获取类型ID
+              const typeId = templateApi.getTypeId(formData.type);
+              
+              // 构建模板元数据
+              const metadata = {
+                name: formData.name,
+                description: formData.description || '',
+                usage: formData.usage || [],
+                typeId: typeId,
+                typeName: formData.type,
+                templateTypeId: templateTypeId,
+                html: '',
+                css: '',
+                pdfPerModel: false,
+              };
+
+              // 创建新模板
+              await templateApi.createTemplate(
+                metadata,
+                formData.pdfFile || null,
+                formData.imageFile || null
+              );
+
+              // 刷新数据列表
+              const apiData = await templateApi.getTemplates();
+              let transformedData = transformApiData(Array.isArray(apiData) ? apiData : (apiData._embedded?.templates || apiData.content || []));
+              
+              if (selectedTenant === 'global') {
+                transformedData = transformedData.filter(item => 
+                  item.templateType === 'Global'
+                );
+              } else if (selectedTenant === 'tenant1' || selectedTenant === 'specific') {
+                transformedData = transformedData.filter(item => 
+                  item.templateType === 'Specific'
+                );
+              }
+              
+              setData(transformedData);
+              setNewPublicationDialogOpen(false);
+              setError(null);
+            } catch (err) {
+              console.error('Failed to create publication:', err);
+              setError(`Failed to create publication: ${err.message}`);
+            }
           }}
         />
 

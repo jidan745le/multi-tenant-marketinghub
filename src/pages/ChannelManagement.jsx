@@ -10,6 +10,8 @@ import {
   TableRow,
   Typography,
   IconButton,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import React, { useState } from 'react';
@@ -259,11 +261,6 @@ const StyledIconButton = styled(IconButton)(() => ({
   },
 }));
 
-const DividerLine = styled(Box)(() => ({
-  height: '0px',
-  borderTop: '1px solid transparent',
-  width: '100%',
-}));
 
 // Mock data
 const mockData = [
@@ -321,6 +318,11 @@ function ChannelManagement() {
   const [addTemplateDialogOpen, setAddTemplateDialogOpen] = useState(false);
   const [addChannelDialogOpen, setAddChannelDialogOpen] = useState(false);
   const [currentChannelId, setCurrentChannelId] = useState(null);
+  const [editingChannel, setEditingChannel] = useState(null);
+  const [copyingChannel, setCopyingChannel] = useState(null);
+  const [editingTemplate, setEditingTemplate] = useState(null);
+  const [copyingTemplate, setCopyingTemplate] = useState(null);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'error' });
 
   const handleToggleExpand = (id) => {
     setData(prevData =>
@@ -331,62 +333,311 @@ function ChannelManagement() {
   };
 
   const handleAddChannel = () => {
+    setEditingChannel(null);
+    setCopyingChannel(null);
     setAddChannelDialogOpen(true);
   };
 
   const handleCloseAddChannelDialog = () => {
     setAddChannelDialogOpen(false);
+    setEditingChannel(null);
+    setCopyingChannel(null);
   };
 
   const handleSaveChannel = (formData) => {
-    // TODO: 实现保存频道功能
-    console.log('Save channel:', formData);
-    // 可以在这里调用 API 保存频道
+    if (editingChannel) {
+      // 编辑模式：更新现有 channel
+      setData(prevData =>
+        prevData.map(item =>
+          item.id === editingChannel.id
+            ? {
+                ...item,
+                name: formData.name,
+                description: formData.description || '-',
+                icon: formData.icon || item.icon,
+                type: formData.type === 'Channel' ? 'Channel' : 'Custom',
+                // 如果 type 是 Channel，保持 theme，否则可能需要从 description 中提取
+                theme: formData.type === 'Channel' ? (item.theme || 'KENDO') : (item.theme || 'KENDO'),
+              }
+            : item
+        )
+      );
+    } else {
+      // 新增模式：添加新 channel
+      const newId = Math.max(...data.map(item => item.id), 0) + 1;
+      const newChannel = {
+        id: newId,
+        isChannel: true,
+        name: formData.name,
+        icon: formData.icon || null,
+        theme: 'KENDO', // 默认主题，可以根据需要调整
+        type: formData.type === 'Channel' ? 'Channel' : 'Custom',
+        tenant: '-',
+        mappings: '-',
+        description: formData.description || '-',
+        expanded: false, // 默认折叠
+        templates: [],
+      };
+      setData(prevData => [...prevData, newChannel]);
+    }
     handleCloseAddChannelDialog();
   };
 
   const handleAddTemplate = (channelId) => {
     setCurrentChannelId(channelId);
+    setEditingTemplate(null);
+    setCopyingTemplate(null);
     setAddTemplateDialogOpen(true);
   };
 
   const handleCloseAddTemplateDialog = () => {
     setAddTemplateDialogOpen(false);
     setCurrentChannelId(null);
+    setEditingTemplate(null);
+    setCopyingTemplate(null);
   };
 
   const handleSaveTemplate = (formData) => {
-    // TODO: 实现保存模板功能
-    console.log('Save template:', formData);
-    // 可以在这里调用 API 保存模板
+    if (editingTemplate) {
+      // 编辑模式：更新现有 template
+      setData(prevData =>
+        prevData.map(channel => {
+          if (channel.templates && channel.templates.some(t => t.id === editingTemplate.id)) {
+            return {
+              ...channel,
+              templates: channel.templates.map(template =>
+                template.id === editingTemplate.id
+                  ? {
+                      ...template,
+                      name: formData.templateLabel,
+                      label: formData.templateLabel, // 同时更新 label 字段
+                      theme: formData.theme,
+                      type: formData.templateType,
+                      templateType: formData.templateType, // 同时更新 templateType 字段
+                      tenant: formData.channelName || template.tenant,
+                      mappings: formData.templateDataDetails?.length 
+                        ? `${formData.templateDataDetails.length} mappings` 
+                        : (template.mappings || '0 mappings'),
+                      file: formData.fileName || template.file || '-',
+                      fileName: formData.fileName || template.fileName || '-',
+                      description: formData.description || template.description || '-',
+                      templateDataDetails: formData.templateDataDetails || [],
+                    }
+                  : template
+              ),
+            };
+          }
+          return channel;
+        })
+      );
+      setSnackbar({
+        open: true,
+        message: `Template "${formData.templateLabel}" has been updated successfully.`,
+        severity: 'success',
+      });
+    } else {
+      // 新增模式：添加新 template
+      const channel = data.find(item => item.id === currentChannelId);
+      if (channel) {
+        const newTemplateId = Math.max(
+          ...channel.templates?.map(t => t.id) || [0],
+          ...data.flatMap(c => c.templates?.map(t => t.id) || [0]),
+          0
+        ) + 1;
+        
+        const newTemplate = {
+          id: newTemplateId,
+          name: formData.templateLabel,
+          label: formData.templateLabel,
+          theme: formData.theme,
+          type: formData.templateType,
+          templateType: formData.templateType,
+          tenant: formData.channelName || '-',
+          mappings: formData.templateDataDetails?.length 
+            ? `${formData.templateDataDetails.length} mappings` 
+            : '0 mappings',
+          file: formData.fileName || '-',
+          fileName: formData.fileName || '-',
+          description: formData.description || '-',
+          templateDataDetails: formData.templateDataDetails || [],
+        };
+
+        setData(prevData =>
+          prevData.map(item =>
+            item.id === currentChannelId
+              ? {
+                  ...item,
+                  templates: [...(item.templates || []), newTemplate],
+                }
+              : item
+          )
+        );
+        setSnackbar({
+          open: true,
+          message: `Template "${formData.templateLabel}" has been created successfully.`,
+          severity: 'success',
+        });
+      }
+    }
     handleCloseAddTemplateDialog();
   };
 
   const handleEdit = (id) => {
-    // TODO: 实现编辑功能
-    console.log('Edit clicked for:', id);
+    // 先查找是否是 channel
+    const channel = data.find(item => item.id === id && item.isChannel);
+    if (channel) {
+      setEditingChannel(channel);
+      setAddChannelDialogOpen(true);
+      return;
+    }
+    
+    // 如果不是 channel，查找是否是 template
+    for (const channelItem of data) {
+      if (channelItem.templates) {
+        const template = channelItem.templates.find(t => t.id === id);
+        if (template) {
+          setEditingTemplate({
+            ...template,
+            channelId: channelItem.id,
+            channelName: channelItem.name,
+          });
+          setCurrentChannelId(channelItem.id);
+          setAddTemplateDialogOpen(true);
+          return;
+        }
+      }
+    }
   };
 
   const handleCopy = (id) => {
-    // TODO: 实现复制功能
-    console.log('Copy clicked for:', id);
+    // 先查找是否是 channel
+    const channel = data.find(item => item.id === id && item.isChannel);
+    if (channel) {
+      setCopyingChannel(channel);
+      setEditingChannel(null);
+      setAddChannelDialogOpen(true);
+      return;
+    }
+    
+    // 如果不是 channel，查找是否是 template
+    for (const channelItem of data) {
+      if (channelItem.templates) {
+        const template = channelItem.templates.find(t => t.id === id);
+        if (template) {
+          setCopyingTemplate({
+            ...template,
+            channelId: channelItem.id,
+            channelName: channelItem.name,
+            // 确保 templateDataDetails 被包含在复制数据中
+            templateDataDetails: template.templateDataDetails || [],
+          });
+          setEditingTemplate(null);
+          setCurrentChannelId(channelItem.id);
+          setAddTemplateDialogOpen(true);
+          return;
+        }
+      }
+    }
   };
 
   const handleDelete = (id) => {
-    // TODO: 实现删除功能
-    console.log('Delete clicked for:', id);
+    // 先查找是否是 channel
+    const channel = data.find(item => item.id === id && item.isChannel);
+    if (channel) {
+      // 检查是否有 templates
+      if (channel.templates && channel.templates.length > 0) {
+        // 有 templates，显示错误提示
+        setSnackbar({
+          open: true,
+          message: `Channel "${channel.name}" is being used and cannot be deleted.`,
+          severity: 'error',
+        });
+      } else {
+        // 没有 templates，可以删除
+        setData(prevData => prevData.filter(item => item.id !== id));
+        setSnackbar({
+          open: true,
+          message: `Channel "${channel.name}" has been deleted successfully.`,
+          severity: 'success',
+        });
+      }
+      return;
+    }
+    
+    // 如果不是 channel，查找是否是 template
+    for (const channelItem of data) {
+      if (channelItem.templates) {
+        const template = channelItem.templates.find(t => t.id === id);
+        if (template) {
+          // 删除 template
+          setData(prevData =>
+            prevData.map(item =>
+              item.id === channelItem.id
+                ? {
+                    ...item,
+                    templates: item.templates.filter(t => t.id !== id),
+                  }
+                : item
+            )
+          );
+          setSnackbar({
+            open: true,
+            message: `Template "${template.name}" has been deleted successfully.`,
+            severity: 'success',
+          });
+          return;
+        }
+      }
+    }
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
   };
 
   const handleDownload = (id) => {
-    // TODO: 实现下载功能
-    console.log('Download clicked for:', id);
+    // 查找 template
+    for (const channelItem of data) {
+      if (channelItem.templates) {
+        const template = channelItem.templates.find(t => t.id === id);
+        if (template) {
+          // 如果有文件，创建下载链接
+          if (template.file && template.file !== '-') {
+            // 使用 mock 数据，实际应该从 API 获取文件
+            // 这里创建一个临时的下载链接
+            const link = document.createElement('a');
+            link.href = template.file.startsWith('http') 
+              ? template.file 
+              : `/excel/template/templateFile/${template.id}`;
+            link.download = template.file;
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            setSnackbar({
+              open: true,
+              message: `Downloading template file: ${template.file}`,
+              severity: 'success',
+            });
+          } else {
+            setSnackbar({
+              open: true,
+              message: `Template "${template.name}" has no file to download.`,
+              severity: 'error',
+            });
+          }
+          return;
+        }
+      }
+    }
   };
 
   return (
     <Box sx={{ backgroundColor: 'grey.200', height: '85vh', paddingTop: 6, paddingLeft: 5, paddingRight: 5, paddingBottom: 6, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       <Paper sx={{ backgroundColor: 'background.paper', padding: 3, boxShadow: 'none', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <HeaderContainer>
-          <Title>Channel and Templete Managment</Title>
+          <Title>Channel & Template Managment</Title>
           <AddChannelButton onClick={handleAddChannel}>
             ADD CHANNEL
           </AddChannelButton>
@@ -509,7 +760,7 @@ function ChannelManagement() {
                               </StyledIconButton>
                             </IconGroup>
                             <ActionButton onClick={() => handleAddTemplate(row.id)}>
-                              Add Templete
+                              ADD TEMPLATE
                             </ActionButton>
                           </OperationContent>
                         </OperationCell>
@@ -620,6 +871,9 @@ function ChannelManagement() {
         onClose={handleCloseAddTemplateDialog}
         onSave={handleSaveTemplate}
         channelId={currentChannelId}
+        editData={editingTemplate}
+        copyData={copyingTemplate}
+        channels={data.filter(item => item.isChannel)}
       />
 
       {/* Add Channel Dialog */}
@@ -627,7 +881,36 @@ function ChannelManagement() {
         open={addChannelDialogOpen}
         onClose={handleCloseAddChannelDialog}
         onSave={handleSaveChannel}
+        editData={editingChannel}
+        copyData={copyingChannel}
       />
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={(theme) => ({
+            backgroundColor: snackbar.severity === 'success' 
+              ? theme.palette.primary.main 
+              : undefined,
+            '&.MuiAlert-filledSuccess': {
+              backgroundColor: theme.palette.primary.main,
+            },
+            '&.MuiAlert-filledError': {
+              backgroundColor: theme.palette.error.main,
+            }
+          })}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

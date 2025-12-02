@@ -392,9 +392,14 @@ function NewPublicationDialog({ open, onClose, onConfirm }) {
     description: '',
   });
 
-  const usageOptions = ['internal', 'external'];
+  const usageOptions = ['Internal', 'External'];
   const imageInputRef = useRef(null);
   const pdfInputRef = useRef(null);
+  
+  // 上传文件状态
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [pdfFile, setPdfFile] = useState(null);
 
   const handleTypeChange = (event) => {
     setPublicationType(event.target.value);
@@ -425,8 +430,13 @@ function NewPublicationDialog({ open, onClose, onConfirm }) {
   const handleImageFileChange = (event) => {
     const file = event.target.files?.[0];
     if (file) {
-      // TODO: 实现图片上传
-      console.log('Selected image file:', file);
+      setImageFile(file);
+      // 创建图片预览URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
     }
     // 这里可以再次选择同一个文件
     if (event.target) {
@@ -437,8 +447,7 @@ function NewPublicationDialog({ open, onClose, onConfirm }) {
   const handlePdfFileChange = (event) => {
     const file = event.target.files?.[0];
     if (file) {
-      // TODO: 实现PDF上传
-      console.log('Selected PDF file:', file);
+      setPdfFile(file);
     }
     if (event.target) {
       event.target.value = '';
@@ -457,6 +466,10 @@ function NewPublicationDialog({ open, onClose, onConfirm }) {
       description: '',
     });
     setPublicationType('specific');
+    // 清理上传的文件和预览
+    setImageFile(null);
+    setImagePreview(null);
+    setPdfFile(null);
     onClose();
   };
 
@@ -465,6 +478,8 @@ function NewPublicationDialog({ open, onClose, onConfirm }) {
       onConfirm({
         ...formData,
         publicationType,
+        imageFile,
+        pdfFile,
       });
     }
     handleCancel();
@@ -520,39 +535,19 @@ function NewPublicationDialog({ open, onClose, onConfirm }) {
                 />
               }
               label={
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', flex: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px', flex: '0 0 auto' }}>
-                    <Box
-                      sx={(theme) => ({
-                        width: '20px',
-                        height: '20px',
-                        maskImage: `url(/assets/X.png)`,
-                        maskSize: 'contain',
-                        maskRepeat: 'no-repeat',
-                        maskPosition: 'center',
-                        backgroundColor: theme.palette.primary.main || '#f16508',
-                      })}
-                    />
-                    <span style={{ color: '#4d4d4d' }}>Specific</span>
-                  </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <Box
                     sx={(theme) => ({
-                      width: '18px',
-                      height: '18px',
-                      borderRadius: '2px',
-                      border: publicationType === 'specific' ? 'none' : '1px solid #e6e6e6',
-                      backgroundColor: publicationType === 'specific' ? (theme.palette.primary.main || '#f16508') : '#ffffff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                      marginLeft: 'auto',
+                      width: '20px',
+                      height: '20px',
+                      maskImage: `url(/assets/X.png)`,
+                      maskSize: 'contain',
+                      maskRepeat: 'no-repeat',
+                      maskPosition: 'center',
+                      backgroundColor: theme.palette.primary.main || '#f16508',
                     })}
-                  >
-                    {publicationType === 'specific' && (
-                      <span style={{ color: '#ffffff', fontSize: '12px', fontWeight: 'bold', lineHeight: '1' }}>✓</span>
-                    )}
-                  </Box>
+                  />
+                  <span style={{ color: '#4d4d4d' }}>Specific</span>
                 </Box>
               }
               selected={publicationType === 'specific'}
@@ -568,39 +563,19 @@ function NewPublicationDialog({ open, onClose, onConfirm }) {
                 />
               }
               label={
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', flex: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px', flex: '0 0 auto' }}>
-                    <Box
-                      sx={(theme) => ({
-                        width: '20px',
-                        height: '20px',
-                        maskImage: `url(/assets/global.png)`,
-                        maskSize: 'contain',
-                        maskRepeat: 'no-repeat',
-                        maskPosition: 'center',
-                        backgroundColor: theme.palette.primary.main || '#f16508',
-                      })}
-                    />
-                    <span style={{ color: '#4d4d4d' }}>Global</span>
-                  </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <Box
                     sx={(theme) => ({
-                      width: '18px',
-                      height: '18px',
-                      borderRadius: '2px',
-                      border: publicationType === 'global' ? 'none' : '1px solid #e6e6e6',
-                      backgroundColor: publicationType === 'global' ? (theme.palette.primary.main || '#f16508') : '#ffffff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                      marginLeft: 'auto',
+                      width: '20px',
+                      height: '20px',
+                      maskImage: `url(/assets/global.png)`,
+                      maskSize: 'contain',
+                      maskRepeat: 'no-repeat',
+                      maskPosition: 'center',
+                      backgroundColor: theme.palette.primary.main || '#f16508',
                     })}
-                  >
-                    {publicationType === 'global' && (
-                      <span style={{ color: '#ffffff', fontSize: '12px', fontWeight: 'bold', lineHeight: '1' }}>✓</span>
-                    )}
-                  </Box>
+                  />
+                  <span style={{ color: '#4d4d4d' }}>Global</span>
                 </Box>
               }
               selected={publicationType === 'global'}
@@ -772,18 +747,44 @@ function NewPublicationDialog({ open, onClose, onConfirm }) {
                       onChange={handleImageFileChange}
                       style={{ display: 'none' }}
                     />
-                    <CloudUploadIcon sx={{ width: 50, height: 50, color: '#b3b3b3' }} />
-                    <Typography
-                      sx={{
-                        color: '#b3b3b3',
-                        fontFamily: '"Roboto-Medium", sans-serif',
-                        fontSize: '14px',
-                        fontWeight: 400,
-                        textTransform: 'uppercase',
-                      }}
-                    >
-                      UPLOAD
-                    </Typography>
+                    {imagePreview ? (
+                      <Box
+                        sx={{
+                          width: '100%',
+                          height: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          position: 'relative',
+                        }}
+                      >
+                        <img
+                          src={imagePreview}
+                          alt="Preview"
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'contain',
+                            borderRadius: '4px',
+                          }}
+                        />
+                      </Box>
+                    ) : (
+                      <>
+                        <CloudUploadIcon sx={{ width: 50, height: 50, color: '#b3b3b3' }} />
+                        <Typography
+                          sx={{
+                            color: '#b3b3b3',
+                            fontFamily: '"Roboto-Medium", sans-serif',
+                            fontSize: '14px',
+                            fontWeight: 400,
+                            textTransform: 'uppercase',
+                          }}
+                        >
+                          UPLOAD
+                        </Typography>
+                      </>
+                    )}
                   </UploadContainer>
                 </UploadSection>
 
@@ -797,18 +798,54 @@ function NewPublicationDialog({ open, onClose, onConfirm }) {
                       onChange={handlePdfFileChange}
                       style={{ display: 'none' }}
                     />
-                    <CloudUploadIcon sx={{ width: 50, height: 50, color: '#b3b3b3' }} />
-                    <Typography
-                      sx={{
-                        color: '#b3b3b3',
-                        fontFamily: '"Roboto-Medium", sans-serif',
-                        fontSize: '14px',
-                        fontWeight: 400,
-                        textTransform: 'uppercase',
-                      }}
-                    >
-                      UPLOAD
-                    </Typography>
+                    {pdfFile ? (
+                      <Box
+                        sx={{
+                          width: '100%',
+                          height: '100%',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '8px',
+                          gap: '4px',
+                        }}
+                      >
+                        <CloudUploadIcon sx={{ width: 30, height: 30, color: '#b3b3b3' }} />
+                        <Typography
+                          sx={{
+                            color: '#4d4d4d',
+                            fontFamily: '"Roboto-Regular", sans-serif',
+                            fontSize: '10px',
+                            fontWeight: 400,
+                            textAlign: 'center',
+                            wordBreak: 'break-word',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                          }}
+                        >
+                          {pdfFile.name}
+                        </Typography>
+                      </Box>
+                    ) : (
+                      <>
+                        <CloudUploadIcon sx={{ width: 50, height: 50, color: '#b3b3b3' }} />
+                        <Typography
+                          sx={{
+                            color: '#b3b3b3',
+                            fontFamily: '"Roboto-Medium", sans-serif',
+                            fontSize: '14px',
+                            fontWeight: 400,
+                            textTransform: 'uppercase',
+                          }}
+                        >
+                          UPLOAD
+                        </Typography>
+                      </>
+                    )}
                   </UploadContainer>
                 </UploadSection>
               </Box>

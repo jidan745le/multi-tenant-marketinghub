@@ -184,13 +184,69 @@ const SelectButton = styled(Button)(({ theme }) => ({
 
 // Mock data for channels
 const mockChannels = [
-  { id: 1, theme: 'Kendo', name: 'KENDO', logo: '/assets/kendo-logo-3.png' },
-  { id: 2, theme: 'Bosch', name: 'SAAME', logo: '/assets/kendo-logo-4.png' },
-  { id: 3, theme: 'kendo', name: 'SAAME', logo: '/assets/kendo-logo-4.png' },
-  { id: 4, theme: 'Kendo', name: 'KENDO', logo: '/assets/kendo-logo-3.png' },
-  { id: 5, theme: 'Bosch', name: 'SAAME', logo: '/assets/kendo-logo-5.png' },
-  { id: 6, theme: 'Bosch', name: 'SAAME', logo: '/assets/kendo-logo-4.png' },
-  { id: 7, theme: 'Kendo', name: 'KENDO', logo: '/assets/kendo-logo-4.png' },
+  { 
+    id: "1", 
+    tenant: "Kendo", 
+    theme: "Kendo", 
+    name: "Amazon", 
+    iconId: "fc6e5675-8f5c-4e6d-8fbb-653a803ba478", 
+    description: "Some description updated",
+    logo: '/assets/kendo-logo-3.png' // 临时用于显示，实际应从 iconId 获取
+  },
+  { 
+    id: "2", 
+    tenant: "Bosch", 
+    theme: "Bosch", 
+    name: "SAAME", 
+    iconId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890", 
+    description: "Bosch channel description",
+    logo: '/assets/kendo-logo-4.png'
+  },
+  { 
+    id: "3", 
+    tenant: "Kendo", 
+    theme: "kendo", 
+    name: "SAAME", 
+    iconId: "b2c3d4e5-f6a7-8901-bcde-f12345678901", 
+    description: "Kendo channel description",
+    logo: '/assets/kendo-logo-4.png'
+  },
+  { 
+    id: "4", 
+    tenant: "Kendo", 
+    theme: "Kendo", 
+    name: "KENDO", 
+    iconId: "c3d4e5f6-a7b8-9012-cdef-123456789012", 
+    description: "Kendo main channel",
+    logo: '/assets/kendo-logo-3.png'
+  },
+  { 
+    id: "5", 
+    tenant: "Bosch", 
+    theme: "Bosch", 
+    name: "SAAME", 
+    iconId: "d4e5f6a7-b8c9-0123-def0-234567890123", 
+    description: "Bosch SAAME channel",
+    logo: '/assets/kendo-logo-5.png'
+  },
+  { 
+    id: "6", 
+    tenant: "Bosch", 
+    theme: "Bosch", 
+    name: "SAAME", 
+    iconId: "e5f6a7b8-c9d0-1234-ef01-345678901234", 
+    description: "Another Bosch channel",
+    logo: '/assets/kendo-logo-4.png'
+  },
+  { 
+    id: "7", 
+    tenant: "Kendo", 
+    theme: "Kendo", 
+    name: "KENDO", 
+    iconId: "f6a7b8c9-d0e1-2345-f012-456789012345", 
+    description: "Kendo alternative channel",
+    logo: '/assets/kendo-logo-4.png'
+  },
 ];
 
 const SelectChannel = ({ open, onClose, onSelect }) => {

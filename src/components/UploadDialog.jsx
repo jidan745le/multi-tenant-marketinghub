@@ -418,21 +418,21 @@ const UploadDialog = ({ open, onClose, onNext, onCancel, uploadType = 'all' }) =
         acceptedTypes: ['.jpg', '.jpeg', '.png', '.svg'],
         acceptedMimeTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/svg+xml'],
         accept: '.jpg,.jpeg,.png,.svg',
-        description: 'Only support .jpg, .png, .svg and zip files',
+        description: 'Only supports .jpg, .png, .svg and zip files',
       };
     } else if (uploadType === 'pdfExample') {
       return {
         acceptedTypes: ['.pdf'],
         acceptedMimeTypes: ['application/pdf'],
         accept: '.pdf',
-        description: 'Only support .pdf files',
+        description: 'Only supports .pdf files',
       };
     } else {
       return {
         acceptedTypes: ['.jpg', '.jpeg', '.png', '.svg', '.zip'],
         acceptedMimeTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/svg+xml', 'application/zip'],
         accept: '.jpg,.jpeg,.png,.svg,.zip',
-        description: 'Only support .jpg, .png and .svg and zip files',
+        description: 'Only supports .jpg, .png and .svg and zip files',
       };
     }
   };

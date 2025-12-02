@@ -10,7 +10,7 @@ import {
   FormControlLabel,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import CloseIcon from '@mui/icons-material/Close';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import SelectChannel from './SelectChannel';
@@ -65,10 +65,10 @@ const RadioButtonGroup = styled(Box)(() => ({
   marginBottom: '24px',
 }));
 
-const RadioButton = styled(FormControlLabel)(({ selected, theme }) => ({
+const RadioButton = styled(FormControlLabel)(({ selected, disabled, theme }) => ({
   borderRadius: '4px',
   borderStyle: 'solid',
-  borderColor: selected ? (theme.palette.primary.main || '#f16508') : '#e6e6e6',
+  borderColor: disabled ? '#a0a0a0' : (selected ? (theme.palette.primary.main || '#f16508') : '#e6e6e6'),
   borderWidth: '1px',
   padding: '6px 16px',
   display: 'flex',
@@ -79,9 +79,12 @@ const RadioButton = styled(FormControlLabel)(({ selected, theme }) => ({
   width: '205px',
   minHeight: '60px',
   margin: 0,
-  backgroundColor: selected ? 'rgba(141, 77, 45, 0.08)' : 'transparent',
+  backgroundColor: disabled ? '#f5f5f5' : (selected ? 'rgba(141, 77, 45, 0.08)' : 'transparent'),
+  opacity: disabled ? 0.6 : 1,
+  cursor: disabled ? 'not-allowed' : 'pointer',
+  pointerEvents: disabled ? 'none' : 'auto',
   '& .MuiFormControlLabel-label': {
-    color: '#4d4d4d',
+    color: disabled ? '#808080' : '#4d4d4d',
     fontFamily: '"OpenSans-SemiBold", sans-serif',
     fontSize: '17px',
     fontWeight: 600,
@@ -128,7 +131,7 @@ const IconUploadContainer = styled(Box)(() => ({
   width: '100%',
 }));
 
-const IconPreviewBox = styled(Box)(() => ({
+const IconPreviewBox = styled(Box)(({ theme }) => ({
   borderRadius: '4px',
   borderStyle: 'solid',
   borderColor: '#dbdbdb',
@@ -141,6 +144,11 @@ const IconPreviewBox = styled(Box)(() => ({
   justifyContent: 'center',
   overflow: 'hidden',
   flexShrink: 0,
+  cursor: 'pointer',
+  '&:hover': {
+    borderColor: theme.palette.primary.main,
+    backgroundColor: 'rgba(0, 0, 0, 0.02)',
+  },
   '& img': {
     maxWidth: '100%',
     maxHeight: '100%',
@@ -272,13 +280,55 @@ const ConfirmButton = styled(Button)(({ theme }) => ({
   },
 }));
 
-const AddChannelDialog = ({ open, onClose, onSave }) => {
+const AddChannelDialog = ({ open, onClose, onSave, editData, copyData }) => {
   const [channelType, setChannelType] = useState('Custom'); // 'Custom' or 'Channel'
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [iconPreview, setIconPreview] = useState(null);
   const [selectChannelOpen, setSelectChannelOpen] = useState(false);
   const fileInputRef = useRef(null);
+  const [internalEditData, setInternalEditData] = useState(null);
+
+  useEffect(() => {
+    if (open && editData) {
+      // 编辑模式
+      setInternalEditData(editData);
+      setName(editData.name || '');
+      setDescription(editData.description || '');
+      setIconPreview(editData.icon || null);
+      setChannelType('Custom');
+    } else if (open && copyData) {
+      // 复制模式
+      setInternalEditData(null);
+      setName(copyData.name ? `${copyData.name} (copy)` : '');
+      setDescription(copyData.description || '');
+      setIconPreview(copyData.icon || null);
+      if (copyData.type === 'Channel') {
+        setChannelType('Channel');
+      } else {
+        setChannelType('Custom');
+      }
+    } else if (open && !editData && !copyData) {
+      setInternalEditData(null);
+      setChannelType('Custom');
+      setName('');
+      setDescription('');
+      setIconPreview(null);
+    }
+  }, [open, editData, copyData]);
+
+  useEffect(() => {
+    if (!open) {
+      const timer = setTimeout(() => {
+        setInternalEditData(null);
+        setChannelType('Custom');
+        setName('');
+        setDescription('');
+        setIconPreview(null);
+      }, 300); //防止关闭时提前置空
+      return () => clearTimeout(timer);
+    }
+  }, [open]);
 
   const handleTypeChange = (event) => {
     setChannelType(event.target.value);
@@ -292,8 +342,15 @@ const AddChannelDialog = ({ open, onClose, onSave }) => {
     if (channel.name) {
       setName(channel.name);
     }
-    if (channel.theme) {
+    if (channel.description) {
+      setDescription(channel.description);
+    } else if (channel.theme) {
       setDescription(`${channel.theme} - ${channel.name}`);
+    }
+    if (channel.logo) {
+      setIconPreview(channel.logo);
+    } else if (channel.iconId) {
+      setIconPreview(null);
     }
     setSelectChannelOpen(false);
   };
@@ -358,7 +415,7 @@ const AddChannelDialog = ({ open, onClose, onSave }) => {
           {/* Header */}
           <HeaderContainer>
             <img src="/assets/channel.png" alt="Channel" style={{ width: 28, height: 28 }} />
-            <Title>Add Channel</Title>
+            <Title>{internalEditData ? 'Edit Channel' : 'Add Channel'}</Title>
             <CloseButton onClick={handleCancel}>
               <CloseIcon sx={{ width: '16px', height: '16px' }} />
             </CloseButton>
@@ -373,48 +430,34 @@ const AddChannelDialog = ({ open, onClose, onSave }) => {
                     onChange={handleTypeChange}
                     value="Custom"
                     sx={{ display: 'none' }}
+                    disabled={!!internalEditData}
                   />
                 }
                 label={
                   <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%', flex: 1, gap: '1px', justifyContent: 'center' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px', flex: '0 0 auto' }}>
-                        <Box
-                          sx={(theme) => ({
-                            width: '20px',
-                            height: '20px',
-                            maskImage: `url(/assets/X.png)`,
-                            maskSize: 'contain',
-                            maskRepeat: 'no-repeat',
-                            maskPosition: 'center',
-                            backgroundColor: theme.palette.primary.main || '#f16508',
-                          })}
-                        />
-                        <span style={{ color: '#4d4d4d' }}>Custom</span>
-                      </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <Box
                         sx={(theme) => ({
-                          width: '18px',
-                          height: '18px',
-                          borderRadius: '2px',
-                          border: channelType === 'Custom' ? 'none' : '1px solid #e6e6e6',
-                          backgroundColor: channelType === 'Custom' ? (theme.palette.primary.main || '#f16508') : '#ffffff',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                          marginLeft: 'auto',
+                          width: '20px',
+                          height: '20px',
+                          maskImage: `url(/assets/X.png)`,
+                          maskSize: 'contain',
+                          maskRepeat: 'no-repeat',
+                          maskPosition: 'center',
+                          backgroundColor: internalEditData ? '#808080' : (theme.palette.primary.main || '#f16508'),
                         })}
-                      >
-                        {channelType === 'Custom' && (
-                          <span style={{ color: '#ffffff', fontSize: '12px', fontWeight: 'bold', lineHeight: '1' }}>✓</span>
-                        )}
-                      </Box>
+                      />
+                      <span style={{ color: internalEditData ? '#808080' : '#4d4d4d' }}>Custom</span>
                     </Box>
                   </Box>
                 }
                 selected={channelType === 'Custom'}
-                onClick={() => setChannelType('Custom')}
+                disabled={!!internalEditData}
+                onClick={() => {
+                  if (!internalEditData) {
+                    setChannelType('Custom');
+                  }
+                }}
               />
               <RadioButton
                 control={
@@ -423,46 +466,27 @@ const AddChannelDialog = ({ open, onClose, onSave }) => {
                     onChange={handleTypeChange}
                     value="Channel"
                     sx={{ display: 'none' }}
+                    disabled={!!internalEditData}
                   />
                 }
                 label={
                   <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%', flex: 1, gap: '1px', justifyContent: 'center' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px', flex: '0 0 auto' }}>
-                        <Box
-                          sx={(theme) => ({
-                            width: '20px',
-                            height: '20px',
-                            maskImage: `url(/assets/global.png)`,
-                            maskSize: 'contain',
-                            maskRepeat: 'no-repeat',
-                            maskPosition: 'center',
-                            backgroundColor: theme.palette.primary.main || '#f16508',
-                          })}
-                        />
-                        <span style={{ color: '#4d4d4d' }}>Channel</span>
-                      </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <Box
                         sx={(theme) => ({
-                          width: '18px',
-                          height: '18px',
-                          borderRadius: '2px',
-                          border: channelType === 'Channel' ? 'none' : '1px solid #e6e6e6',
-                          backgroundColor: channelType === 'Channel' ? (theme.palette.primary.main || '#f16508') : '#ffffff',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                          marginLeft: 'auto',
+                          width: '20px',
+                          height: '20px',
+                          maskImage: `url(/assets/global.png)`,
+                          maskSize: 'contain',
+                          maskRepeat: 'no-repeat',
+                          maskPosition: 'center',
+                          backgroundColor: internalEditData ? '#808080' : (theme.palette.primary.main || '#f16508'),
                         })}
-                      >
-                        {channelType === 'Channel' && (
-                          <span style={{ color: '#ffffff', fontSize: '12px', fontWeight: 'bold', lineHeight: '1' }}>✓</span>
-                        )}
-                      </Box>
+                      />
+                      <span style={{ color: internalEditData ? '#808080' : '#4d4d4d' }}>Channel</span>
                     </Box>
                     {/* Channel Selection Hint */}
-                    {channelType === 'Channel' && (
+                    {channelType === 'Channel' && !internalEditData && (
                       <Typography
                         onClick={handleSelectChannelClick}
                         sx={(theme) => ({
@@ -471,7 +495,7 @@ const AddChannelDialog = ({ open, onClose, onSave }) => {
                           fontSize: '10px',
                           fontWeight: 400,
                           lineHeight: '1.2',
-                          marginLeft: '0px',
+                          marginLeft: '30px',
                           marginTop: '0px',
                           cursor: 'pointer',
                           '&:hover': {
@@ -485,7 +509,12 @@ const AddChannelDialog = ({ open, onClose, onSave }) => {
                   </Box>
                 }
                 selected={channelType === 'Channel'}
-                onClick={() => setChannelType('Channel')}
+                disabled={!!internalEditData}
+                onClick={() => {
+                  if (!internalEditData) {
+                    setChannelType('Channel');
+                  }
+                }}
               />
           </RadioButtonGroup>
 
@@ -495,19 +524,18 @@ const AddChannelDialog = ({ open, onClose, onSave }) => {
             <IconUploadSection>
               <IconLabel>Icon</IconLabel>
               <IconUploadContainer>
-                {iconPreview && (
-                  <IconPreviewBox>
+                <IconPreviewBox onClick={handleUploadIcon}>
+                  {iconPreview ? (
                     <img src={iconPreview} alt="Icon preview" />
-                  </IconPreviewBox>
-                )}
-                <UploadButtonContainer>
-                  <UploadButton onClick={handleUploadIcon}>
+                  ) : (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                     <CloudUploadIcon sx={{ width: '50px', height: '50px', color: '#bdbdbd', marginBottom: '8px' }} />
                     <Typography sx={{ color: '#bdbdbd', fontSize: '14px', fontWeight: 500 }}>
                       UPLOAD
                     </Typography>
-                  </UploadButton>
-                </UploadButtonContainer>
+                    </Box>
+                  )}
+                </IconPreviewBox>
                 <input
                   ref={fileInputRef}
                   type="file"

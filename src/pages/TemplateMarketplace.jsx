@@ -1,7 +1,8 @@
-import { Box, Button, Typography } from '@mui/material';
+import { Box, Button, Typography, CircularProgress } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import NewPublicationSpecDialog from '../components/NewPublicationSpecDialog';
+import templateApi from '../services/templateApi';
 
 // 样式化组件
 const PageContainer = styled(Box)(() => ({
@@ -10,23 +11,24 @@ const PageContainer = styled(Box)(() => ({
   padding: '50px 55px',
   overflow: 'visible',
   width: '100%',
-  height: '85vh',
+  minHeight: '85vh',
   display: 'flex',
   flexDirection: 'column',
+  justifyContent: 'flex-start',
 }));
 
 const BackgroundBox = styled(Box)(() => ({
   background: '#ffffff',
   minWidth: '1100px',
   width: '100%',
-  minHeight: '1508px',
-  flex: 1,
+  minHeight: 'auto',
   position: 'relative',
   overflow: 'visible',
-  padding: '36px 39px',
+  padding: '50px 39px',
   display: 'flex',
   flexDirection: 'column',
   boxSizing: 'border-box',
+  alignSelf: 'flex-start', // 防止拉伸，保持顶部对齐
 }));
 
 const ContentWrapper = styled(Box)(() => ({
@@ -71,7 +73,7 @@ const TemplatesContainer = styled(Box)(() => ({
   flexDirection: 'row',
   gap: '24px',
   alignItems: 'flex-start',
-  justifyContent: 'center', // 为了确保确保左右边距相等
+  justifyContent: 'flex-start', // 左对齐，确保奇数个时最后一个靠左
   flexWrap: 'wrap',
   alignContent: 'flex-start',
   width: '100%',
@@ -93,7 +95,7 @@ const TemplateCard = styled(Box)(() => ({
   justifyContent: 'flex-start',
   flexShrink: 0,
   minWidth: '420px', 
-  flex: '1 1 calc(50% - 12px)', // 2列布局
+  flex: '0 1 calc(50% - 12px)', // 2列布局，不拉伸，确保奇数个时最后一个靠左
   maxWidth: '750px', 
   position: 'relative',
 }));
@@ -265,36 +267,54 @@ const PreviewContent = styled(Box)(() => ({
   overflow: 'hidden',
 }));
 
-// 模板数据
-const templates = [
-  {
-    id: 1,
-    name: 'Template 01',
-    description: 'Introducing the Data Sheet Config: a comprehensive tool designed to enhance your workflow and streamline your operations. This innovative solution offers customizable features that adapt to your specific needs, ensuring optimal performance in any environment. With a user-friendly interface and robust functionality, the Data Sheet Config is perfect for professionals seeking efficiency and organization in their projects.',
-  },
-  {
-    id: 2,
-    name: 'Template 02',
-    description: 'Introducing the Data Sheet Config: a comprehensive tool designed to enhance your workflow and streamline your operations. This innovative solution offers customizable features that adapt to your specific needs, ensuring optimal performance in any environment. With a user-friendly interface and robust functionality, the Data Sheet Config is perfect for professionals seeking efficiency and organization in their projects.',
-  },
-  {
-    id: 3,
-    name: 'Template 03',
-    description: 'Introducing the Data Sheet Config: a comprehensive tool designed to enhance your workflow and streamline your operations. This innovative solution offers customizable features that adapt to your specific needs, ensuring optimal performance in any environment. With a user-friendly interface and robust functionality, the Data Sheet Config is perfect for professionals seeking efficiency and organization in their projects.',
-  },
-  {
-    id: 4,
-    name: 'Template 04',
-    description: 'Introducing the Data Sheet Config: a comprehensive tool designed to enhance your workflow and streamline your operations. This innovative solution offers customizable features that adapt to your specific needs, ensuring optimal performance in any environment. With a user-friendly interface and robust functionality, the Data Sheet Config is perfect for professionals seeking efficiency and organization in their projects.',
-  },
-];
-
 function TemplateMarketplace() {
+  const [templates, setTemplates] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [templateImages] = useState({}); // 存储模板图片的 URL (下载逻辑已注释)
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedTemplateId, setSelectedTemplateId] = useState(null);
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const imageUrlsRef = useRef([]); // 用于存储所有创建的图片 URL，以便清理
 
-  const handleAdd = (templateId) => {
-    setSelectedTemplateId(templateId);
+  // 获取模板列表
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        // 只获取 Global 类型的模板
+        const data = await templateApi.getTemplates();
+        const globalTemplates = (data || []).filter(template => 
+          template.templateTypeId === 2 || 
+          template.templateTypeName === 'Global' ||
+          template.templateType === 'Global'
+        );
+        console.log('globalTemplates1111', globalTemplates);
+        setTemplates(globalTemplates);
+        
+      } catch (err) {
+        console.error('Failed to fetch templates:', err);
+        setError(err.message || 'Failed to load templates');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTemplates();
+
+    // 清理函数：释放图片 URL
+    return () => {
+      imageUrlsRef.current.forEach((url) => {
+        if (url) {
+          URL.revokeObjectURL(url);
+        }
+      });
+      imageUrlsRef.current = [];
+    };
+  }, []);
+
+  const handleAdd = (template) => {
+    setSelectedTemplate(template);
     setDialogOpen(true);
   };
 
@@ -305,20 +325,48 @@ function TemplateMarketplace() {
 
   const handleDialogClose = () => {
     setDialogOpen(false);
-    setSelectedTemplateId(null);
+    setSelectedTemplate(null);
   };
 
   const handleDialogConfirm = async (formData) => {
     try {
-      // TODO: 实现创建新 publication 的逻辑
-      console.log('Confirm new publication:', formData);
-      console.log('Selected template ID:', selectedTemplateId);
-    
+      if (!selectedTemplate) {
+        throw new Error('No template selected');
+      }
+
+      // 获取类型ID
+      const typeId = templateApi.getTypeId(formData.type);
       
+      // 构建模板元数据
+      const metadata = {
+        name: formData.name,
+        description: formData.description || '',
+        usage: formData.usage || [],
+        typeId: typeId,
+        typeName: formData.type,
+        templateTypeId: 1, // 1 = Specific (Tenant Specific)
+        parentId: selectedTemplate.id, // 基于选中的 Global 模板创建
+        html: selectedTemplate.html || '',
+        css: selectedTemplate.css || '',
+        pdfPerModel: selectedTemplate.pdfPerModel || false,
+      };
+
+      // 创建新模板
+      await templateApi.createTemplate(
+        metadata,
+        formData.pdfFile || null,
+        formData.imageFile || null
+      );
+
       setDialogOpen(false);
-      setSelectedTemplateId(null);
+      setSelectedTemplate(null);
+      
+      // 可以在这里添加成功提示或刷新列表
+      console.log('Publication created successfully');
     } catch (err) {
       console.error('Failed to create publication:', err);
+      // 可以在这里添加错误提示
+      throw err;
     }
   };
 
@@ -333,61 +381,112 @@ function TemplateMarketplace() {
           </TitleContainer>
           
           <TemplatesContainer>
-            {templates.map((template) => (
-            <TemplateCard key={template.id}>
-              <TemplateInfoSection>
-                <TemplateInfoContent>
-                  <TemplateName>{template.name}</TemplateName>
-                  <TemplateDescription>{template.description}</TemplateDescription>
-                </TemplateInfoContent>
-                
-                <ActionButtons>
-                  <ActionButton
-                    onClick={() => handleAdd(template.id)}
-                    disableRipple
-                  >
-                    ADD
-                    <IconButton>
-                      <IconCircle>
-                        <IconText>add</IconText>
-                      </IconCircle>
-                    </IconButton>
-                  </ActionButton>
+            {loading ? (
+              <Box
+                sx={{
+                  width: '100%',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  padding: '40px',
+                }}
+              >
+                <CircularProgress />
+              </Box>
+            ) : error ? (
+              <Box
+                sx={{
+                  width: '100%',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  padding: '40px',
+                  color: '#d32f2f',
+                }}
+              >
+                <Typography>Error: {error}</Typography>
+              </Box>
+            ) : templates.length === 0 ? (
+              <Box
+                sx={{
+                  width: '100%',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  padding: '40px',
+                  color: '#999',
+                }}
+              >
+                <Typography>No templates found</Typography>
+              </Box>
+            ) : (
+              templates.map((template) => (
+                <TemplateCard key={template.id}>
+                  <TemplateInfoSection>
+                    <TemplateInfoContent>
+                      <TemplateName>{template.name || 'Unnamed Template'}</TemplateName>
+                      <TemplateDescription>{template.description || 'No description available'}</TemplateDescription>
+                    </TemplateInfoContent>
+                    
+                    <ActionButtons>
+                      <ActionButton
+                        onClick={() => handleAdd(template)}
+                        disableRipple
+                      >
+                        ADD
+                        <IconButton>
+                          <IconCircle>
+                            <IconText>add</IconText>
+                          </IconCircle>
+                        </IconButton>
+                      </ActionButton>
+                      
+                      <ActionButton
+                        onClick={() => handleViewPreview(template.id)}
+                        disableRipple
+                      >
+                        PREVIEW
+                        <IconButton>
+                          <IconCircle>
+                            <IconText>arrow_upward</IconText>
+                          </IconCircle>
+                        </IconButton>
+                      </ActionButton>
+                    </ActionButtons>
+                  </TemplateInfoSection>
                   
-                  <ActionButton
-                    onClick={() => handleViewPreview(template.id)}
-                    disableRipple
-                  >
-                    View Preview
-                    <IconButton>
-                      <IconCircle>
-                        <IconText>arrow_upward</IconText>
-                      </IconCircle>
-                    </IconButton>
-                  </ActionButton>
-                </ActionButtons>
-              </TemplateInfoSection>
-              
-              <PreviewSection>
-                <PreviewContent>
-                  {/* 预览内容区域 */}
-                  <Box
-                    sx={{
-                      width: '100%',
-                      height: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#999',
-                      fontSize: '12px',
-                    }}
-                  >
-                    Preview Area
-                  </Box>
-                </PreviewContent>
-              </PreviewSection>
-            </TemplateCard>
-          ))}
+                  <PreviewSection>
+                    <PreviewContent>
+                      {templateImages[template.id] ? (
+                        <img
+                          src={templateImages[template.id]}
+                          alt={template.name || 'Template preview'}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'contain',
+                          }}
+                        />
+                      ) : (
+                        <Box
+                          sx={{
+                            width: '100%',
+                            height: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#999',
+                            fontSize: '12px',
+                          }}
+                        >
+                          Preview Area
+                        </Box>
+                      )}
+                    </PreviewContent>
+                  </PreviewSection>
+                </TemplateCard>
+              ))
+            )}
           </TemplatesContainer>
         </ContentWrapper>
       </BackgroundBox>
@@ -397,6 +496,14 @@ function TemplateMarketplace() {
         open={dialogOpen}
         onClose={handleDialogClose}
         onConfirm={handleDialogConfirm}
+        initialData={selectedTemplate ? {
+          name: selectedTemplate.name,
+          description: selectedTemplate.description,
+          usage: selectedTemplate.usage,
+          type: selectedTemplate.typeName,
+          // 传递所有字段，但对话框只使用需要的字段
+          ...selectedTemplate,
+        } : null}
       />
     </PageContainer>
   );

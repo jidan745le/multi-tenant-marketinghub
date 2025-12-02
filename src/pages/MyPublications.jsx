@@ -1,7 +1,8 @@
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, CircularProgress } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import templateApi from '../services/templateApi';
 
 // 样式化组件
 const PageContainer = styled(Box)(() => ({
@@ -367,140 +368,251 @@ const TopArrows = styled(NavigationArrows)(() => ({}));
 const BottomArrows = styled(NavigationArrows)(() => ({}));
 
 function MyPublications() {
-  // 数据表列表
-  const [dataSheets, setDataSheets] = useState([
-    'Data_Sheet_01',
-    'Data_Sheet_02',
-    'Data_Sheet_03',
-    'Data_Sheet_04',
-    'Data_Sheet_05',
-    'Data_Sheet_06'
-  ]);
+  // 存储所有模板数据（只包含 id、name、usage）
+  const [allTemplates, setAllTemplates] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Internal box
-  const [internalDataSheets, setInternalDataSheets] = useState([
-    'Data_Sheet_07',
-    'Data_Sheet_08'
-  ]);
+  // 管理选中的项 - 分别管理每个框的选中状态（使用 id）
+  const [selectedInMain, setSelectedInMain] = useState(new Set());
+  const [selectedInInternal, setSelectedInInternal] = useState(new Set());
+  const [selectedInExternal, setSelectedInExternal] = useState(new Set());
 
-  // External box
-  const [externalDataSheets, setExternalDataSheets] = useState([
-    'Data_Sheet_09',
-    'Data_Sheet_10'
-  ]);
+  // 根据 usage 分类数据
+  const getTemplatesByUsage = () => {
+    const mainTemplates = []; // usage 为空或没有 usage
+    const internalTemplates = []; // usage 包含 internal
+    const externalTemplates = []; // usage 包含 external
 
-  // 管理选中的项
-  const [selectedItems, setSelectedItems] = useState(new Set());
+    allTemplates.forEach(template => {
+      const usage = template.usage || [];
+      const hasInternal = usage.some(u => 
+        typeof u === 'string' && u.toLowerCase() === 'internal'
+      );
+      const hasExternal = usage.some(u => 
+        typeof u === 'string' && u.toLowerCase() === 'external'
+      );
 
-  const handleItemClick = (item) => {
-    setSelectedItems((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(item)) {
-        newSet.delete(item); 
-      } else {
-        newSet.add(item); 
+      if (!hasInternal && !hasExternal) {
+        mainTemplates.push(template);
       }
-      return newSet;
+      if (hasInternal) {
+        internalTemplates.push(template);
+      }
+      if (hasExternal) {
+        externalTemplates.push(template);
+      }
     });
+
+    return { mainTemplates, internalTemplates, externalTemplates };
   };
 
-  const hasSelectedInMainList = Array.from(selectedItems).some(item => 
-    dataSheets.includes(item)
-  );
+  const { mainTemplates, internalTemplates, externalTemplates } = getTemplatesByUsage();
 
-  //  Internal 框
-  const hasSelectedInInternal = Array.from(selectedItems).some(item => 
-    internalDataSheets.includes(item)
-  );
+  // 获取模板数据
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        setLoading(true);
+        const templates = await templateApi.getTemplates();
+        // 只保留 id、name、usage 字段
+        const simplifiedTemplates = templates.map(t => ({
+          id: t.id,
+          name: t.name,
+          usage: t.usage || []
+        }));
+        setAllTemplates(simplifiedTemplates);
+      } catch (error) {
+        console.error('获取模板数据失败:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // External 框
-  const hasSelectedInExternal = Array.from(selectedItems).some(item => 
-    externalDataSheets.includes(item)
-  );
+    fetchTemplates();
+  }, []);
 
-  const handleMoveToInternal = () => {
-    if (!hasSelectedInMainList) return;
+  const handleItemClick = (templateId, source) => {
+    const setters = {
+      main: setSelectedInMain,
+      internal: setSelectedInInternal,
+      external: setSelectedInExternal
+    };
+    const setter = setters[source];
+    if (setter) {
+      setter((prev) => {
+        const newSet = new Set(prev);
+        newSet.has(templateId) ? newSet.delete(templateId) : newSet.add(templateId);
+        return newSet;
+      });
+    }
+  };
+
+  const hasSelectedInMainList = selectedInMain.size > 0;
+  const hasSelectedInInternalList = selectedInInternal.size > 0;
+  const hasSelectedInExternalList = selectedInExternal.size > 0;
+
+  const canMoveToInternal = hasSelectedInMainList && Array.from(selectedInMain).some(id => {
+    const template = allTemplates.find(t => t.id === id);
+    if (!template) return false;
+    const usage = template.usage || [];
+    return !usage.some(u => typeof u === 'string' && u.toLowerCase() === 'internal');
+  });
+
+  const canMoveToExternal = hasSelectedInMainList && Array.from(selectedInMain).some(id => {
+    const template = allTemplates.find(t => t.id === id);
+    if (!template) return false;
+    const usage = template.usage || [];
+    return !usage.some(u => typeof u === 'string' && u.toLowerCase() === 'external');
+  });
+
+  const isInternalLeftArrowActive = hasSelectedInInternalList;
+  const isExternalLeftArrowActive = hasSelectedInExternalList;
+
+  // 更新模板的 usage
+  const updateTemplateUsage = async (templateId, newUsage) => {
+    try {
+      // 获取 tenant 和 theme
+      const tenant = templateApi.getTenantName();
+      const theme = templateApi.getThemeFromUrl();
+      
+      // 传递 usage、tenant 和 theme
+      await templateApi.updateTemplate(templateId, { 
+        usage: newUsage,
+        tenant: tenant,
+        theme: theme
+      });
+      // 更新本地状态
+      setAllTemplates(prev => prev.map(t => 
+        t.id === templateId ? { ...t, usage: newUsage } : t
+      ));
+    } catch (error) {
+      console.error('更新模板 usage 失败:', error);
+      throw error;
+    }
+  };
+
+  const handleMoveToInternal = async () => {
+    if (!canMoveToInternal) return;
     
-    const selectedInMain = Array.from(selectedItems).filter(item => 
-      dataSheets.includes(item)
+    const selectedIds = Array.from(selectedInMain);
+    const templatesToUpdate = allTemplates.filter(t => selectedIds.includes(t.id));
+    
+    // 更新每个模板的 usage
+    const updatePromises = templatesToUpdate.map(template => {
+      const currentUsage = template.usage || [];
+      const hasInternal = currentUsage.some(u => 
+        typeof u === 'string' && u.toLowerCase() === 'internal'
+      );
+      
+      if (!hasInternal) {
+        const newUsage = [...currentUsage, 'Internal'];
+        return updateTemplateUsage(template.id, newUsage);
+      }
+      return Promise.resolve();
+    });
+
+    try {
+      await Promise.all(updatePromises);
+      setSelectedInMain(new Set());
+    } catch (error) {
+      console.error('移动到 Internal 失败:', error);
+    }
+  };
+
+  const handleMoveToExternal = async () => {
+    if (!canMoveToExternal) return;
+    
+    const selectedIds = Array.from(selectedInMain);
+    const templatesToUpdate = allTemplates.filter(t => selectedIds.includes(t.id));
+    
+    // 更新每个模板的 usage
+    const updatePromises = templatesToUpdate.map(template => {
+      const currentUsage = template.usage || [];
+      const hasExternal = currentUsage.some(u => 
+        typeof u === 'string' && u.toLowerCase() === 'external'
+      );
+      
+      if (!hasExternal) {
+        const newUsage = [...currentUsage, 'External'];
+        return updateTemplateUsage(template.id, newUsage);
+      }
+      return Promise.resolve();
+    });
+
+    try {
+      await Promise.all(updatePromises);
+      setSelectedInMain(new Set());
+    } catch (error) {
+      console.error('移动到 External 失败:', error);
+    }
+  };
+
+  const handleMoveFromInternal = async () => {
+    if (!hasSelectedInInternalList) return;
+    
+    const selectedIds = Array.from(selectedInInternal);
+    const templatesToUpdate = allTemplates.filter(t => selectedIds.includes(t.id));
+    
+    // 更新每个模板的 usage，移除 Internal
+    const updatePromises = templatesToUpdate.map(template => {
+      const currentUsage = template.usage || [];
+      const newUsage = currentUsage.filter(u => 
+        typeof u === 'string' && u.toLowerCase() !== 'internal'
+      );
+      return updateTemplateUsage(template.id, newUsage);
+    });
+
+    try {
+      await Promise.all(updatePromises);
+      setSelectedInInternal(new Set());
+    } catch (error) {
+      console.error('从 Internal 移出失败:', error);
+    }
+  };
+
+  const handleMoveFromExternal = async () => {
+    if (!hasSelectedInExternalList) return;
+    
+    const selectedIds = Array.from(selectedInExternal);
+    const templatesToUpdate = allTemplates.filter(t => selectedIds.includes(t.id));
+    
+    // 更新每个模板的 usage，移除 External
+    const updatePromises = templatesToUpdate.map(template => {
+      const currentUsage = template.usage || [];
+      const newUsage = currentUsage.filter(u => 
+        typeof u === 'string' && u.toLowerCase() !== 'external'
+      );
+      return updateTemplateUsage(template.id, newUsage);
+    });
+
+    try {
+      await Promise.all(updatePromises);
+      setSelectedInExternal(new Set());
+    } catch (error) {
+      console.error('从 External 移出失败:', error);
+    }
+  };
+
+  if (loading) {
+    return (
+      <PageContainer>
+        <BackgroundBox>
+          <PublicationsTitle>Publications</PublicationsTitle>
+          <Box
+            sx={{
+              width: '100%',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              padding: '40px',
+            }}
+          >
+            <CircularProgress />
+          </Box>
+        </BackgroundBox>
+      </PageContainer>
     );
-    
-    if (selectedInMain.length === 0) return;
-
-    setDataSheets(prev => prev.filter(item => !selectedInMain.includes(item)));
-    setInternalDataSheets(prev => [...prev, ...selectedInMain]);
-
-    setSelectedItems(prev => {
-      const newSet = new Set(prev);
-      selectedInMain.forEach(item => newSet.delete(item));
-      return newSet;
-    });
-  };
-
-  // 移动数据到 External
-  const handleMoveToExternal = () => {
-    if (!hasSelectedInMainList) return;
-    
-    const selectedInMain = Array.from(selectedItems).filter(item => 
-      dataSheets.includes(item)
-    );
-    
-    if (selectedInMain.length === 0) return;
-
-
-    setDataSheets(prev => prev.filter(item => !selectedInMain.includes(item)));
-
-    setExternalDataSheets(prev => [...prev, ...selectedInMain]);
-
-    setSelectedItems(prev => {
-      const newSet = new Set(prev);
-      selectedInMain.forEach(item => newSet.delete(item));
-      return newSet;
-    });
-  };
-
-
-  const handleMoveFromInternal = () => {
-    if (!hasSelectedInInternal) return;
-    
-    const selectedInInternal = Array.from(selectedItems).filter(item => 
-      internalDataSheets.includes(item)
-    );
-    
-    if (selectedInInternal.length === 0) return;
-
-    setInternalDataSheets(prev => prev.filter(item => !selectedInInternal.includes(item)));
-
-    setDataSheets(prev => [...prev, ...selectedInInternal]);
-
-    setSelectedItems(prev => {
-      const newSet = new Set(prev);
-      selectedInInternal.forEach(item => newSet.delete(item));
-      return newSet;
-    });
-  };
-
-  // 从 External 框移回橙色框
-  const handleMoveFromExternal = () => {
-    if (!hasSelectedInExternal) return;
-    
-    const selectedInExternal = Array.from(selectedItems).filter(item => 
-      externalDataSheets.includes(item)
-    );
-    
-    if (selectedInExternal.length === 0) return;
-
-    // 从 External 列表移除
-    setExternalDataSheets(prev => prev.filter(item => !selectedInExternal.includes(item)));
-
-    setDataSheets(prev => [...prev, ...selectedInExternal]);
-
-    setSelectedItems(prev => {
-      const newSet = new Set(prev);
-      selectedInExternal.forEach(item => newSet.delete(item));
-      return newSet;
-    });
-  };
+  }
 
   return (
     <PageContainer>
@@ -511,14 +623,14 @@ function MyPublications() {
           <LeftSection>
             <MainContainer>
               <LabelContainer>
-                {dataSheets.map((sheet, index) => {
-                  const isSelected = selectedItems.has(sheet);
+                {mainTemplates.map((template) => {
+                  const isSelected = selectedInMain.has(template.id);
                   return (
                     <LabelItem 
-                      key={index} 
-                      onClick={() => handleItemClick(sheet)}
+                      key={template.id} 
+                      onClick={() => handleItemClick(template.id, 'main')}
                     >
-                      <Label selected={isSelected}>{sheet}</Label>
+                      <Label selected={isSelected}>{template.name}</Label>
                     </LabelItem>
                   );
                 })}
@@ -531,19 +643,19 @@ function MyPublications() {
               <MiddleSection>
                 <TopArrows>
                   <ArrowButton 
-                    active={hasSelectedInMainList}
+                    active={canMoveToInternal}
                     onClick={handleMoveToInternal}
                   >
-                    <ArrowCircle active={hasSelectedInMainList}>
-                      <ArrowIcon active={hasSelectedInMainList} />
+                    <ArrowCircle active={canMoveToInternal}>
+                      <ArrowIcon active={canMoveToInternal} />
                     </ArrowCircle>
                   </ArrowButton>
                   <ArrowButtonDown 
-                    active={hasSelectedInInternal}
+                    active={isInternalLeftArrowActive}
                     onClick={handleMoveFromInternal}
                   >
-                    <ArrowCircle active={hasSelectedInInternal}>
-                      <ArrowIcon active={hasSelectedInInternal} />
+                    <ArrowCircle active={isInternalLeftArrowActive}>
+                      <ArrowIcon active={isInternalLeftArrowActive} />
                     </ArrowCircle>
                   </ArrowButtonDown>
                 </TopArrows>
@@ -553,14 +665,14 @@ function MyPublications() {
                 <BoxTitle>Internal</BoxTitle>
                 <InternalContainer>
                   <InternalLabelContainer>
-                    {internalDataSheets.map((sheet, index) => {
-                      const isSelected = selectedItems.has(sheet);
+                    {internalTemplates.map((template) => {
+                      const isSelected = selectedInInternal.has(template.id);
                       return (
                         <LabelItem 
-                          key={index} 
-                          onClick={() => handleItemClick(sheet)}
+                          key={template.id} 
+                          onClick={() => handleItemClick(template.id, 'internal')}
                         >
-                          <Label selected={isSelected}>{sheet}</Label>
+                          <Label selected={isSelected}>{template.name}</Label>
                         </LabelItem>
                       );
                     })}
@@ -574,19 +686,19 @@ function MyPublications() {
               <MiddleSection>
                 <BottomArrows>
                   <ArrowButton 
-                    active={hasSelectedInMainList}
+                    active={canMoveToExternal}
                     onClick={handleMoveToExternal}
                   >
-                    <ArrowCircle active={hasSelectedInMainList}>
-                      <ArrowIcon active={hasSelectedInMainList} />
+                    <ArrowCircle active={canMoveToExternal}>
+                      <ArrowIcon active={canMoveToExternal} />
                     </ArrowCircle>
                   </ArrowButton>
                   <ArrowButtonDown 
-                    active={hasSelectedInExternal}
+                    active={isExternalLeftArrowActive}
                     onClick={handleMoveFromExternal}
                   >
-                    <ArrowCircle active={hasSelectedInExternal}>
-                      <ArrowIcon active={hasSelectedInExternal} />
+                    <ArrowCircle active={isExternalLeftArrowActive}>
+                      <ArrowIcon active={isExternalLeftArrowActive} />
                     </ArrowCircle>
                   </ArrowButtonDown>
                 </BottomArrows>
@@ -596,14 +708,14 @@ function MyPublications() {
                 <BoxTitle>External</BoxTitle>
                 <ExternalContainer>
                   <ExternalLabelContainer>
-                    {externalDataSheets.map((sheet, index) => {
-                      const isSelected = selectedItems.has(sheet);
+                    {externalTemplates.map((template) => {
+                      const isSelected = selectedInExternal.has(template.id);
                       return (
                         <LabelItem 
-                          key={index} 
-                          onClick={() => handleItemClick(sheet)}
+                          key={template.id} 
+                          onClick={() => handleItemClick(template.id, 'external')}
                         >
-                          <Label selected={isSelected}>{sheet}</Label>
+                          <Label selected={isSelected}>{template.name}</Label>
                         </LabelItem>
                       );
                     })}

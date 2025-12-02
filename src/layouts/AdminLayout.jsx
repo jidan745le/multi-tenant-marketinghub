@@ -15,7 +15,7 @@ import SmallTriangleIcon from '../components/SmallTriangleIcon';
 
 // Styled Components
 const AdminSidebar = styled(Box)(({ theme }) => ({
-  width: 245,
+  width: 265,
   flexShrink: 0,
   borderRight: `1px solid ${theme.palette.divider || '#e0e0e0'}`,
   backgroundColor: theme.palette.background.paper || '#fff',
@@ -163,8 +163,8 @@ const adminMenuItems = [
     subMenu: [
       { id: 'template-marketplace', label: 'Template Marketplace' },
       { id: 'my-publications', label: 'My Publications' },
-      { id: 'tenant-admin', label: 'Tenant Admin' },
-      { id: 'super-admin', label: 'Super Admin' }
+      { id: 'tenant-admin', label: 'Manage Publications' },
+      { id: 'super-admin', label: 'Manage Publications (Global)' }
     ]
   },
   { id: 'data-sheet-config', label: 'Data Sheet Config', iconName: 'bar_chart' },

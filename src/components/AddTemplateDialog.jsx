@@ -10,9 +10,11 @@ import {
   FormControl,
   InputLabel,
   IconButton,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import AddIcon from '@mui/icons-material/Add';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -63,32 +65,6 @@ const LabelBold = styled(Typography)(() => ({
   marginBottom: '10px',
 }));
 
-const InputContainer = styled(Box)(() => ({
-  borderRadius: '4px',
-  borderStyle: 'solid',
-  borderColor: '#b3b3b3',
-  borderWidth: '1px',
-  padding: '10px',
-  display: 'flex',
-  flexDirection: 'row',
-  gap: '10px',
-  alignItems: 'center',
-  justifyContent: 'flex-start',
-  height: '40px',
-  width: '100%',
-  boxSizing: 'border-box',
-}));
-
-const InputText = styled(Typography)(() => ({
-  color: '#000000',
-  textAlign: 'left',
-  fontFamily: '"Lato-Regular", sans-serif',
-  fontSize: '14px',
-  lineHeight: '140%',
-  letterSpacing: '0.2px',
-  fontWeight: 400,
-  flex: 1,
-}));
 
 const SectionContainer = styled(Box)(() => ({
   display: 'flex',
@@ -394,6 +370,17 @@ const StyledSelect = styled(Select)(() => ({
   '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
     borderColor: '#b3b3b3',
   },
+  '&.Mui-disabled': {
+    backgroundColor: '#f5f5f5',
+    color: '#808080',
+    cursor: 'not-allowed',
+    '& .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#a0a0a0',
+    },
+    '& .MuiSelect-icon': {
+      color: '#808080',
+    },
+  },
 }));
 
 const FormRow = styled(Box)(() => ({
@@ -420,22 +407,126 @@ const ButtonContainer = styled(Box)(() => ({
   gap: '16px',
   alignItems: 'center',
   justifyContent: 'flex-end',
-  marginTop: '20px',
-  paddingTop: '20px',
 }));
 
-// eslint-disable-next-line no-unused-vars
-const AddTemplateDialog = ({ open, onClose, onSave, channelId }) => {
+const AddTemplateDialog = ({ open, onClose, onSave, channelId, editData, copyData, channels = [] }) => {
   const [templateLabel, setTemplateLabel] = useState('');
-  const [channelName, setChannelName] = useState('SAAME');
+  const [channelName, setChannelName] = useState('');
   const [theme, setTheme] = useState('KENDO');
   const [templateType, setTemplateType] = useState('Line');
   const [sheets, setSheets] = useState([]);
+  const [fileName, setFileName] = useState('');
+  const [uploadedFile, setUploadedFile] = useState(null);
   const fileInputRef = useRef(null);
+  const [internalEditData, setInternalEditData] = useState(null);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'error' });
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
+
+  useEffect(() => {
+    if (open && editData) {
+      // 编辑模式
+      setInternalEditData(editData);
+      setTemplateLabel(editData.name || editData.label || '');
+      setChannelName(editData.channelName || editData.tenant || '');
+      setTheme(editData.theme || 'KENDO');
+      setTemplateType(editData.type || editData.templateType || 'Line');
+      setFileName(editData.file || editData.fileName || '');
+      
+      // 设置 templateDataDetails
+      if (editData.templateDataDetails && Array.isArray(editData.templateDataDetails)) {
+        const initSheets = editData.templateDataDetails.map((item, index) => ({
+          id: item.id || `sheet_${Date.now()}_${index}`,
+          worksheet: item.worksheet !== undefined ? item.worksheet : index,
+          firstDataColumn: item.firstDataColumn !== undefined ? item.firstDataColumn : 0,
+          firstDataRow: item.firstDataRow !== undefined ? item.firstDataRow : 3,
+          lastDataColumn: item.lastDataColumn !== undefined ? item.lastDataColumn : 0,
+          expanded: false,
+        }));
+        setSheets(initSheets);
+      } else {
+        setSheets([]);
+      }
+    } else if (open && copyData) {
+      // 复制模式
+      setInternalEditData(null);
+      setTemplateLabel(copyData.name ? `${copyData.name} (Copy)` : (copyData.label ? `${copyData.label} (Copy)` : ''));
+      setChannelName(copyData.channelName || copyData.tenant || '');
+      setTheme(copyData.theme || 'KENDO');
+      setTemplateType(copyData.type || copyData.templateType || 'Line');
+      setFileName(copyData.file || copyData.fileName || '');
+      setUploadedFile(null);
+      
+      if (copyData.templateDataDetails && Array.isArray(copyData.templateDataDetails) && copyData.templateDataDetails.length > 0) {
+        const initSheets = copyData.templateDataDetails.map((item, index) => ({
+          id: `sheet_${Date.now()}_${index}`,
+          worksheet: item.worksheet !== undefined ? item.worksheet : index,
+          firstDataColumn: item.firstDataColumn !== undefined ? item.firstDataColumn : 0,
+          firstDataRow: item.firstDataRow !== undefined ? item.firstDataRow : 3,
+          lastDataColumn: item.lastDataColumn !== undefined ? item.lastDataColumn : 0,
+          expanded: false,
+        }));
+        setSheets(initSheets);
+      } else {
+        setSheets([]);
+      }
+    } else if (open && channelId) {
+      // 根据 channelId 设置默认值
+      setInternalEditData(null);
+      setTemplateLabel('');
+      // 从 channelId 获取 channel 信息
+      const channel = channels.find(c => c.id === channelId);
+      if (channel) {
+        setChannelName(channel.name || '');
+        setTheme(channel.theme || 'KENDO');
+      } else {
+        setChannelName('');
+        setTheme('KENDO');
+      }
+      setTemplateType('Line');
+      setFileName('');
+      setUploadedFile(null);
+      setSheets([]);
+    } else if (open && !editData && !copyData && !channelId) {
+      // 完全新增模式
+      setInternalEditData(null);
+      setTemplateLabel('');
+      setChannelName('');
+      setTheme('KENDO');
+      setTemplateType('Line');
+      setFileName('');
+      setUploadedFile(null);
+      setSheets([]);
+    }
+  }, [open, editData, copyData, channelId, channels]);
+
+  // 当对话框关闭时，延迟重置状态
+  useEffect(() => {
+    if (!open) {
+      const timer = setTimeout(() => {
+        setInternalEditData(null);
+        setTemplateLabel('');
+        setChannelName('');
+        setTheme('KENDO');
+        setTemplateType('Line');
+        setFileName('');
+        setUploadedFile(null);
+        setSheets([]);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [open]);
 
   const handleCancel = () => {
     // 重置表单
     setTemplateLabel('');
+    setChannelName('');
+    setTheme('KENDO');
+    setTemplateType('Flat');
+    setFileName('');
+    setUploadedFile(null);
     setSheets([]);
     if (onClose) {
       onClose();
@@ -443,13 +534,46 @@ const AddTemplateDialog = ({ open, onClose, onSave, channelId }) => {
   };
 
   const handleSave = () => {
+    // 验证必填字段
+    if (!templateLabel || !templateLabel.trim()) {
+      setSnackbar({
+        open: true,
+        message: 'Template label is mandatory',
+        severity: 'error',
+      });
+      return;
+    }
+    if (!channelName || !channelName.trim()) {
+      setSnackbar({
+        open: true,
+        message: 'Channel name is mandatory',
+        severity: 'error',
+      });
+      return;
+    }
+    if (!uploadedFile && !fileName) {
+      setSnackbar({
+        open: true,
+        message: 'Excel file is mandatory',
+        severity: 'error',
+      });
+      return;
+    }
+
     if (onSave) {
       onSave({
-        templateLabel,
-        channelName,
+        templateLabel: templateLabel.trim(),
+        channelName: channelName.trim(),
         theme,
         templateType,
-        templateDataDetails: sheets,
+        templateDataDetails: sheets.map(sheet => ({
+          worksheet: sheet.worksheet,
+          firstDataColumn: sheet.firstDataColumn,
+          firstDataRow: sheet.firstDataRow,
+          lastDataColumn: sheet.lastDataColumn,
+        })),
+        fileName: uploadedFile ? uploadedFile.name : fileName,
+        file: uploadedFile,
       });
     }
     handleCancel();
@@ -462,8 +586,8 @@ const AddTemplateDialog = ({ open, onClose, onSave, channelId }) => {
   const handleFileChange = (event) => {
     const file = event.target.files?.[0];
     if (file) {
-      // TODO: 处理文件上传
-      console.log('Excel file selected:', file);
+      setUploadedFile(file);
+      setFileName(file.name);
     }
   };
 
@@ -482,8 +606,7 @@ const AddTemplateDialog = ({ open, onClose, onSave, channelId }) => {
   };
 
   const syncToParent = (newSheets) => {
-    // 如果需要同步到父组件，可以在这里实现
-    // 目前直接更新本地状态
+    // 同步到本地状态
     setSheets(newSheets);
   };
 
@@ -545,7 +668,7 @@ const AddTemplateDialog = ({ open, onClose, onSave, channelId }) => {
     >
       <DialogContent sx={{ p: 0, position: 'relative', overflow: 'hidden', maxHeight: '90vh' }}>
         <DialogContainer>
-          <Title>Add template</Title>
+          <Title>{internalEditData ? 'Edit template' : 'Add template'}</Title>
 
           {/* Template Basic Information - Two Column Layout */}
           <FormRow>
@@ -565,9 +688,9 @@ const AddTemplateDialog = ({ open, onClose, onSave, channelId }) => {
                     value={theme}
                     onChange={(e) => setTheme(e.target.value)}
                     IconComponent={ArrowDropDownIcon}
+                    disabled={!!internalEditData}
                   >
                     <MenuItem value="KENDO">KENDO</MenuItem>
-                    {/* 可以添加更多主题选项 */}
                   </StyledSelect>
                 </FormControl>
               </Box>
@@ -579,11 +702,22 @@ const AddTemplateDialog = ({ open, onClose, onSave, channelId }) => {
               <FormControl fullWidth>
                 <StyledSelect
                   value={channelName}
-                  onChange={(e) => setChannelName(e.target.value)}
+                  onChange={(e) => {
+                    const selectedChannelName = e.target.value;
+                    setChannelName(selectedChannelName);
+                    // 根据选择的 channel 名称更新 theme
+                    const selectedChannel = channels.find(c => c.name === selectedChannelName);
+                    if (selectedChannel) {
+                      setTheme(selectedChannel.theme || theme);
+                    }
+                  }}
                   IconComponent={ArrowDropDownIcon}
                 >
-                  <MenuItem value="SAAME">SAAME</MenuItem>
-                  {/* 可以添加更多频道选项 */}
+                  {channels.map((channel) => (
+                    <MenuItem key={channel.id} value={channel.name}>
+                      {channel.name}
+                    </MenuItem>
+                  ))}
                 </StyledSelect>
               </FormControl>
               <Box sx={{ marginTop: '20px', width: '100%' }}>
@@ -595,8 +729,6 @@ const AddTemplateDialog = ({ open, onClose, onSave, channelId }) => {
                     IconComponent={ArrowDropDownIcon}
                   >
                     <MenuItem value="Line">Line</MenuItem>
-                    <MenuItem value="Setup">Setup</MenuItem>
-                    {/* 可以添加更多类型选项 */}
                   </StyledSelect>
                 </FormControl>
               </Box>
@@ -777,27 +909,70 @@ const AddTemplateDialog = ({ open, onClose, onSave, channelId }) => {
           </Box>
 
           {/* Buttons */}
-          <ButtonContainer>
-            <UploadButton onClick={handleUploadExcel}>
-              Upload Excel File
-            </UploadButton>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".xlsx,.xls"
-              style={{ display: 'none' }}
-              onChange={handleFileChange}
-            />
-            <Box sx={{ flex: 1 }} />
-            <CancelButton onClick={handleCancel}>
-              CANCEL
-            </CancelButton>
-            <SaveButton onClick={handleSave}>
-              SAVE
-            </SaveButton>
-          </ButtonContainer>
+          <Box sx={{ marginTop: '20px', paddingTop: '20px' }}>
+            <ButtonContainer>
+              <UploadButton onClick={handleUploadExcel}>
+                Upload Excel File*
+              </UploadButton>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls"
+                style={{ display: 'none' }}
+                onChange={handleFileChange}
+              />
+              <Box sx={{ flex: 1 }} />
+              <CancelButton onClick={handleCancel}>
+                CANCEL
+              </CancelButton>
+              <SaveButton onClick={handleSave}>
+                SAVE
+              </SaveButton>
+            </ButtonContainer>
+            {(fileName || uploadedFile) && (
+              <Typography sx={{ 
+                color: '#666666', 
+                fontFamily: '"Lato-Regular", sans-serif', 
+                fontSize: '14px',
+                lineHeight: '140%',
+                letterSpacing: '0.2px',
+                fontWeight: 400,
+                marginTop: '8px',
+                marginLeft: '0px',
+              }}>
+                Current file: {uploadedFile ? uploadedFile.name : fileName}
+              </Typography>
+            )}
+          </Box>
         </DialogContainer>
       </DialogContent>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={(theme) => ({
+            backgroundColor: snackbar.severity === 'success' 
+              ? theme.palette.primary.main 
+              : undefined,
+            '&.MuiAlert-filledSuccess': {
+              backgroundColor: theme.palette.primary.main,
+            },
+            '&.MuiAlert-filledError': {
+              backgroundColor: theme.palette.error.main,
+            }
+          })}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Dialog>
   );
 };
