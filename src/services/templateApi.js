@@ -232,7 +232,6 @@ class TemplateApiService {
      * @param {string} metadata.description - 描述
      * @param {string[]} metadata.usage - 使用方式数组，如 ["internal", "external"] 或 ["Internal", "External"]
      * @param {number} metadata.typeId - 类型ID（如 Catalog=1, Shelfcard=2, DataSheet=3, Flyer=4）
-     * @param {string} metadata.typeName - 类型名称（如 "Catalog", "Shelfcard"）
      * @param {number} metadata.templateTypeId - 模板类型ID（1=Specific, 2=Global）
      * @param {string} metadata.templateId - 模板ID（可选，系统可自动生成）
      * @param {string} metadata.html - HTML内容
@@ -241,11 +240,11 @@ class TemplateApiService {
      * @param {boolean} metadata.pdfPerModel - PDF是否按模型生成
      * @param {string} metadata.tenant - 租户名称（可选，自动填充）
      * @param {string} metadata.theme - 主题（可选，自动填充）
-     * @param {File} pdfExample - PDF示例文件 (可选)
-     * @param {File} icon - 图标文件 (可选)
+     * @param {string} metadata.pdfFileId - PDF文件ID（可选）
+     * @param {string} metadata.iconFileId - 图标文件ID（可选）
      * @returns {Promise<Object>} 创建的模板对象
      */
-    async createTemplate(metadata, pdfExample = null, icon = null) {
+    async createTemplate(metadata) {
         try {
             if (!metadata || !metadata.name) {
                 throw new Error('Template name is required');
@@ -258,15 +257,19 @@ class TemplateApiService {
             // 标准化 usage 数组
             const normalizedUsage = this.normalizeUsage(metadata.usage || []);
 
+            // 生成随机字符串作为templateId
+            const generateRandomId = () => {
+                return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+            };
+            
             // 构建完整的元数据
-            const fullMetadata = {
+            const requestData = {
                 name: metadata.name,
                 description: metadata.description || '',
                 usage: normalizedUsage,
                 typeId: metadata.typeId || null,
-                typeName: metadata.typeName || null,
                 templateTypeId: metadata.templateTypeId,
-                templateId: metadata.templateId || null,
+                templateId: metadata.templateId || generateRandomId(), // 默认使用随机字符串作为templateId
                 html: metadata.html || '',
                 css: metadata.css || '',
                 parentId: metadata.parentId || null,
@@ -277,34 +280,21 @@ class TemplateApiService {
                 updatedBy: metadata.updatedBy || currentUser,
             };
 
-            // 创建 FormData
-            const formData = new FormData();
-
-
-            console.log('🔍 Full metadata:', fullMetadata);
-            
-            // 添加 metadata (JSON 字符串)
-            formData.append('metadata', JSON.stringify(fullMetadata));
-
-            // 添加可选文件
-            if (pdfExample) {
-                formData.append('pdfExample', pdfExample);
+            // 添加可选的文件ID字段
+            if (metadata.pdfFileId) {
+                requestData.pdfFileId = metadata.pdfFileId;
             }
 
-            if (icon) {
-                formData.append('icon', icon);
+            if (metadata.iconFileId) {
+                requestData.iconFileId = metadata.iconFileId;
             }
 
-            console.log('🔍 Creating template with metadata:', fullMetadata);
-            console.log('📎 Files:', { 
-                pdfExample: pdfExample ? pdfExample.name : null, 
-                icon: icon ? icon.name : null 
-            });
+            console.log('🔍 Creating template with data:', requestData);
 
             const response = await fetch(this.baseURL, {
                 method: 'POST',
-                headers: this.getHeaders(false), // multipart/form-data 不需要 Content-Type
-                body: formData
+                headers: this.getHeaders(), // 使用 Content-Type: application/json
+                body: JSON.stringify(requestData)
             });
 
             console.log('🔍 Response:', response);
@@ -337,11 +327,9 @@ class TemplateApiService {
      * 更新模板
      * @param {string|number} id - 模板ID
      * @param {Object} metadata - 模板元数据（只包含需要更新的字段）
-     * @param {File} pdfExample - PDF示例文件 (可选，传入 null 表示不更新)
-     * @param {File} icon - 图标文件 (可选，传入 null 表示不更新)
      * @returns {Promise<Object>} 更新后的模板对象
      */
-    async updateTemplate(id, metadata, pdfExample = null, icon = null) {
+    async updateTemplate(id, metadata) {
         try {
             if (!id) {
                 throw new Error('Template ID is required');
@@ -356,36 +344,25 @@ class TemplateApiService {
             }
 
             // 添加更新者信息
-            const updateMetadata = {
+            const requestData = {
                 ...metadata,
                 updatedBy: metadata.updatedBy || currentUser,
             };
 
-            // 创建 FormData
-            const formData = new FormData();
-            
-            // 添加 metadata (JSON 字符串)
-            formData.append('metadata', JSON.stringify(updateMetadata));
-
-            // 添加可选文件（如果提供）
-            if (pdfExample !== null) {
-                if (pdfExample instanceof File) {
-                    formData.append('pdfExample', pdfExample);
-                }
+            // 确保 templateId 是随机字符串（如果需要更新）
+            if (metadata.templateId === undefined && metadata.name !== undefined) {
+                const generateRandomId = () => {
+                    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+                };
+                requestData.templateId = generateRandomId();
             }
 
-            if (icon !== null) {
-                if (icon instanceof File) {
-                    formData.append('icon', icon);
-                }
-            }
-
-            console.log('🔍 Updating template:', { id, metadata: updateMetadata });
+            console.log('🔍 Updating template:', { id, data: requestData });
 
             const response = await fetch(url, {
                 method: 'PUT',
-                headers: this.getHeaders(false), // multipart/form-data 不需要 Content-Type
-                body: formData
+                headers: this.getHeaders(), // 使用 Content-Type: application/json
+                body: JSON.stringify(requestData)
             });
 
             if (!response.ok) {
@@ -437,11 +414,11 @@ class TemplateApiService {
      * 复制模板（基于现有模板创建新模板）
      * @param {string|number} sourceId - 源模板ID
      * @param {Object} overrides - 要覆盖的字段（如新的名称、描述等）
-     * @param {File} pdfExample - 新的PDF示例文件 (可选)
-     * @param {File} icon - 新的图标文件 (可选)
+     * @param {string} overrides.pdfFileId - PDF文件ID（可选）
+     * @param {string} overrides.iconFileId - 图标文件ID（可选）
      * @returns {Promise<Object>} 新创建的模板对象
      */
-    async copyTemplate(sourceId, overrides = {}, pdfExample = null, icon = null) {
+    async copyTemplate(sourceId, overrides = {}) {
         try {
             // 获取源模板
             const sourceTemplate = await this.getTemplateById(sourceId);
@@ -452,40 +429,29 @@ class TemplateApiService {
                 description: overrides.description || sourceTemplate.description,
                 usage: overrides.usage || sourceTemplate.usage || [],
                 typeId: overrides.typeId || sourceTemplate.typeId,
-                typeName: overrides.typeName || sourceTemplate.typeName,
                 templateTypeId: overrides.templateTypeId || sourceTemplate.templateTypeId,
-                templateId: overrides.templateId || null,
+                templateId: overrides.templateId || Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
                 html: overrides.html || sourceTemplate.html || '',
                 css: overrides.css || sourceTemplate.css || '',
                 parentId: sourceId, // 设置父模板ID
                 pdfPerModel: overrides.pdfPerModel !== undefined ? overrides.pdfPerModel : sourceTemplate.pdfPerModel,
             };
 
-            // 如果没有提供新的文件，尝试下载源模板的文件
-            let pdfFile = pdfExample;
-            let iconFile = icon;
+            // 添加文件ID（如果源模板有）
+            if (sourceTemplate.pdfFileId && !overrides.pdfFileId) {
+                newMetadata.pdfFileId = sourceTemplate.pdfFileId;
+            } else if (overrides.pdfFileId) {
+                newMetadata.pdfFileId = overrides.pdfFileId;
+            }
 
-            // 下载逻辑已注释
-            // if (!pdfFile && sourceTemplate.pdfFileId) {
-            //     try {
-            //         const pdfBlob = await this.downloadTemplateAsset(sourceId, 'pdf-example');
-            //         pdfFile = new File([pdfBlob], `template-${sourceId}-pdf.pdf`, { type: 'application/pdf' });
-            //     } catch (e) {
-            //         console.warn('Could not download source PDF:', e);
-            //     }
-            // }
-
-            // if (!iconFile && sourceTemplate.iconFileId) {
-            //     try {
-            //         const iconBlob = await this.downloadTemplateAsset(sourceId, 'icon');
-            //         iconFile = new File([iconBlob], `template-${sourceId}-icon.png`, { type: 'image/png' });
-            //     } catch (e) {
-            //         console.warn('Could not download source icon:', e);
-            //     }
-            // }
+            if (sourceTemplate.iconFileId && !overrides.iconFileId) {
+                newMetadata.iconFileId = sourceTemplate.iconFileId;
+            } else if (overrides.iconFileId) {
+                newMetadata.iconFileId = overrides.iconFileId;
+            }
 
             // 创建新模板
-            return await this.createTemplate(newMetadata, pdfFile, iconFile);
+            return await this.createTemplate(newMetadata);
         } catch (error) {
             console.error('❌ Error copying template:', error);
             throw error;

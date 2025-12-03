@@ -1,6 +1,6 @@
-import { Box, Button, Typography, CircularProgress } from '@mui/material';
+import { Box, Button, CircularProgress, Typography } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import NewPublicationSpecDialog from '../components/NewPublicationSpecDialog';
 import templateApi from '../services/templateApi';
 
@@ -344,7 +344,7 @@ function TemplateMarketplace() {
         usage: formData.usage || [],
         typeId: typeId,
         typeName: formData.type,
-        templateTypeId: 1, // 1 = Specific (Tenant Specific)
+        templateTypeId: 2, // 2 = Specific (Tenant Specific)
         parentId: selectedTemplate.id, // 基于选中的 Global 模板创建
         html: selectedTemplate.html || '',
         css: selectedTemplate.css || '',

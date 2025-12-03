@@ -1,34 +1,35 @@
+import CloseIcon from '@mui/icons-material/Close';
 import {
-    Box,
-    Button,
-    Chip,
-    Checkbox,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    FormControl,
-    IconButton,
-    MenuItem,
-    Paper,
-    Select,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    TextField,
-    Typography,
-    Autocomplete
-  } from '@mui/material';
-  import { styled } from '@mui/material/styles';
-  import CloseIcon from '@mui/icons-material/Close';
-  import React, { useState, useEffect } from 'react';
-  import templateApi from '../services/templateApi';
-  import { CircularProgress, Alert } from '@mui/material';
-  import NewPublicationSpecDialog from '../components/NewPublicationSpecDialog';
-  import UploadDialog from '../components/UploadDialog';
+  Alert,
+  Autocomplete,
+  Box,
+  Button,
+  Checkbox,
+  Chip,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControl,
+  IconButton,
+  MenuItem,
+  Paper,
+  Select,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
+  Typography
+} from '@mui/material';
+import { styled } from '@mui/material/styles';
+import React, { useEffect, useState } from 'react';
+import NewPublicationSpecDialog from '../components/NewPublicationSpecDialog';
+import UploadDialog from '../components/UploadDialog';
+import templateApi from '../services/templateApi';
   
   // Styled components
   const HeaderContainer = styled(Box)(() => ({
@@ -1149,7 +1150,7 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
                 usage: formData.usage || [],
                 typeId: typeId,
                 typeName: formData.type,
-                templateTypeId: 1, // 1 = Specific (Tenant Specific)
+                templateTypeId: 2, // 2 = Specific (Tenant Specific)
                 html: '',
                 css: '',
                 pdfPerModel: false,
