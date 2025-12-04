@@ -4,6 +4,7 @@ import { Navigate } from 'react-router-dom';
 // 使用导入的加载器组件
 import AdminRedirect from '../components/AdminRedirect';
 import AdminRootRedirect from '../components/AdminRootRedirect';
+import AdminRoute from '../components/AdminRoute';
 import DefaultRedirect from '../components/DefaultRedirect';
 import ProtectedRoute from '../components/ProtectedRoute';
 import Loader from '../utils/Loader';
@@ -170,7 +171,7 @@ const router = [
   },
   {
     path: '/:lang/:brand/admin',
-    element: <ProtectedRoute><AdminLayout /></ProtectedRoute>,
+    element: <AdminRoute><AdminLayout /></AdminRoute>,
     children: [
       {
         index: true,
@@ -242,7 +243,7 @@ const router = [
   // 独立的管理页面路由 (从localStorage读取默认路径)
   {
     path: '/admin',
-    element: <AdminRootRedirect />
+    element: <AdminRoute><AdminRootRedirect /></AdminRoute>
   },
   
   // Dashboard route - redirect to default page

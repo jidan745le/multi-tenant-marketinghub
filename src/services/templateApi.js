@@ -7,6 +7,7 @@ import CookieService from '../utils/cookieService';
 class TemplateApiService {
     constructor() {
         this.baseURL = '/srv/v1/main/publication/templates';
+  
     }
 
     /**
@@ -579,7 +580,65 @@ class TemplateApiService {
         }
         return null;
     }
+
+    /**
+     * 获取文件元数据和预览URL
+     * @param {string} fileId - 文件ID
+     * @param {string} endpoint - API端点 (默认为 '/srv/v1/main/files/')
+     * @returns {Promise<{previewUrl: string, fileName: string}>} 如果是图片，返回预览URL和文件名；否则返回空的预览URL和文件名
+     */
+    async getFileMetadata(fileId, endpoint = '/srv/v1/main/files/') {
+        try {
+            if (!fileId) {
+                throw new Error('File ID is required');
+            }
+
+            console.log('🔍 Downloading file:', fileId);
+
+            const response = await fetch(`${endpoint}${fileId}`, {
+                method: 'GET',
+                headers: this.getHeaders(false), // 不包含 Content-Type
+            });
+
+            if (!response.ok) {
+                throw await this.handleError(response);
+            }
+
+            // 从 Content-Disposition 头提取文件名
+            const disposition = response.headers.get('Content-Disposition');
+            let fileName = 'downloaded-file'; // 默认文件名
+            
+            if (disposition) {
+                if (disposition.includes('attachment') || disposition.includes('inline')) {
+                    const matches = /filename="?([^"]*)"?.*?/i.exec(disposition);
+                    if (matches?.[1]) {
+                        fileName = matches[1];
+                    }
+                }
+            }
+
+            const contentType = response.headers.get('Content-Type') || '';
+            
+            // 直接返回文件的实际URL，而不是创建blob URL
+            const fileUrl = `${endpoint}${fileId}`;
+
+            // 判断是否为图片
+            if (contentType.startsWith('image/')) {
+                console.log('✅ Image preview ready:', { fileName, contentType });
+                return { previewUrl: fileUrl, fileName };
+            } else {
+                // 对于非图片，返回空的预览URL
+                console.log('✅ Non-image file processed:', { fileName, contentType });
+                return { previewUrl: "", fileName };
+            }
+        } catch (error) {
+            console.error('❌ Error downloading/previewing file:', error);
+            throw error;
+        }
+    }
 }
+
+
 
 export default new TemplateApiService();
 

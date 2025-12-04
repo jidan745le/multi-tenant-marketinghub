@@ -2,7 +2,6 @@ import {
   ArrowDropDown,
   DownloadOutlined,
   Language,
-  SettingsOutlined,
   ShareOutlined,
   StickyNote2Outlined
 } from '@mui/icons-material';
@@ -12,17 +11,19 @@ import {
   IconButton,
   Menu,
   MenuItem,
-  Tooltip,
   Typography
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSelector } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useBrand } from '../hooks/useBrand';
 import { useDynamicMenus } from '../hooks/useDynamicMenus';
 import { useLanguage } from '../hooks/useLanguage';
+import { selectUserRoles } from '../store/slices/userSlice';
+import CookieService from '../utils/cookieService';
 
 // Styled Components
 const StyledTopBar = styled(Box)(() => ({
@@ -327,6 +328,24 @@ const TopRow = () => {
   const [profileAnchorEl, setProfileAnchorEl] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // 检查用户是否有admin角色
+  const reduxRoles = useSelector(selectUserRoles);
+  const fullUserInfo = CookieService.getFullUserInfo();
+  const basicUserInfo = CookieService.getUserInfo();
+  const localStorageRoles = fullUserInfo?.roles || basicUserInfo?.roles || [];
+  const allRoles = [...new Set([...reduxRoles, ...localStorageRoles])];
+  
+  const hasAdminRole = allRoles.some(role => {
+    if (typeof role === 'string') {
+      return role.toLowerCase().includes('admin');
+    }
+    if (typeof role === 'object' && role !== null) {
+      const roleName = role.name || role.code || role.role || role.id || '';
+      return String(roleName).toLowerCase().includes('admin');
+    }
+    return false;
+  });
 
   // 调试信息
   console.log('🖥️ TopBar - 语言数据:', {
@@ -398,9 +417,6 @@ const TopRow = () => {
     handleClose();
   };
   
-  const navigateToAdmin = () => {
-    navigate(`/${currentLanguage}/${currentBrand.code}/admin`);
-  };
 
   console.log("supportedLanguages", supportedLanguages);
 
@@ -459,11 +475,6 @@ const TopRow = () => {
           <ActionIconButton title={translate('topbar.notes')}>
             <StickyNote2Outlined />
           </ActionIconButton>
-          <Tooltip title="主题管理">
-            <ActionIconButton onClick={navigateToAdmin}>
-              <SettingsOutlined />
-            </ActionIconButton>
-          </Tooltip>
         </Box>
 
         {/* Language Dropdown */}
@@ -520,22 +531,24 @@ const TopRow = () => {
                 },
               }}
             >
-              {/* Header with ADMIN label */}
+              {/* Header with ADMIN label - 只在有admin角色时显示 */}
               <Box sx={{ 
                 padding: '16px 12px 12px 12px',
                 borderBottom: '1px solid #e0e0e0',
                 position: 'relative',
               }}>
-                <Typography sx={{ 
-                  color: '#1e1e1e',
-                  fontFamily: '"Lato-Bold", sans-serif',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  lineHeight: '140%',
-                  marginBottom: '12px',
-                }}>
-                  ADMIN
-                </Typography>
+                {hasAdminRole && (
+                  <Typography sx={{ 
+                    color: '#1e1e1e',
+                    fontFamily: '"Lato-Bold", sans-serif',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    lineHeight: '140%',
+                    marginBottom: '12px',
+                  }}>
+                    ADMIN
+                  </Typography>
+                )}
                 
                 {/* User Info Row */}
                 <Box sx={{ 
