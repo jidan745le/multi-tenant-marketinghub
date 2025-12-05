@@ -1,9 +1,6 @@
 import {
   ArrowDropDown,
-  DownloadOutlined,
-  Language,
-  ShareOutlined,
-  StickyNote2Outlined
+  Language
 } from '@mui/icons-material';
 import {
   Avatar,
@@ -448,7 +445,7 @@ const TopRow = () => {
       {/* Right side - Actions, Language, Profile */}
       <ActionsContainer>
         {/* Action Buttons */}
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        {/* <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <ActionIconButton title={translate('topbar.download')}>
             <DownloadOutlined />
           </ActionIconButton>
@@ -458,7 +455,7 @@ const TopRow = () => {
           <ActionIconButton title={translate('topbar.notes')}>
             <StickyNote2Outlined />
           </ActionIconButton>
-        </Box>
+        </Box> */}
 
         {/* Language Dropdown */}
         <LanguageDropdown onClick={handleLanguageClick}>
