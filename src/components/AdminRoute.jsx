@@ -1,52 +1,42 @@
 import React from 'react';
-import { useSelector } from 'react-redux';
 import { Navigate, useLocation } from 'react-router-dom';
-import { selectUserRoles } from '../store/slices/userSlice';
-import CookieService from '../utils/cookieService';
 import ProtectedRoute from './ProtectedRoute';
 
 /**
  * AdminRoute - 保护admin管理页面，只允许admin角色访问
- * 检查用户角色（从localStorage或Redux store）
+ * 直接从localStorage读取user_info检查角色
  */
 const AdminRoute = ({ children }) => {
   const location = useLocation();
   
-  // 从Redux store获取用户角色
-  const reduxRoles = useSelector(selectUserRoles);
+  // 直接从localStorage读取user_info检查admin角色
+  let hasAdminRole = false;
   
-  // 从localStorage获取完整用户信息中的角色（优先使用完整信息）
-  const fullUserInfo = CookieService.getFullUserInfo();
-  const basicUserInfo = CookieService.getUserInfo();
-  const localStorageRoles = fullUserInfo?.roles || basicUserInfo?.roles || [];
-  
-  // 合并所有角色来源，去重
-  const allRoles = [...new Set([...reduxRoles, ...localStorageRoles])];
-  
-  // 检查是否有admin角色（不区分大小写）
-  const hasAdminRole = allRoles.some(role => {
-    if (typeof role === 'string') {
-      return role.toLowerCase().includes('admin');
+  try {
+    const userInfoStr = localStorage.getItem('user_info');
+    if (userInfoStr) {
+      const userInfo = JSON.parse(userInfoStr);
+      const roles = userInfo?.roles || [];
+      
+      // 检查是否有admin角色（不区分大小写）
+      hasAdminRole = roles.some(role => {
+        if (typeof role === 'string') {
+          return role.toLowerCase().includes('admin');
+        }
+        // 如果role是对象，检查name或code字段
+        if (typeof role === 'object' && role !== null) {
+          const roleName = role.name || role.code || role.role || role.id || '';
+          return String(roleName).toLowerCase().includes('admin');
+        }
+        return false;
+      });
     }
-    // 如果role是对象，检查name或code字段
-    if (typeof role === 'object' && role !== null) {
-      const roleName = role.name || role.code || role.role || role.id || '';
-      return String(roleName).toLowerCase().includes('admin');
-    }
-    return false;
-  });
-  
-  console.log('🔒 AdminRoute 检查:', {
-    reduxRoles,
-    localStorageRoles,
-    allRoles,
-    hasAdminRole,
-    currentPath: location.pathname
-  });
+  } catch (error) {
+    // 静默处理错误
+  }
   
   // 如果没有admin角色，重定向到默认页面
   if (!hasAdminRole) {
-    console.log('❌ 用户没有admin角色，重定向到默认页面');
     
     // 尝试从localStorage获取默认重定向路径
     const defaultRedirect = localStorage.getItem('mh_default_redirect') || '/en/kendo/category';

@@ -14,16 +14,13 @@ import {
   Typography
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useSelector } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useBrand } from '../hooks/useBrand';
 import { useDynamicMenus } from '../hooks/useDynamicMenus';
 import { useLanguage } from '../hooks/useLanguage';
-import { selectUserRoles } from '../store/slices/userSlice';
-import CookieService from '../utils/cookieService';
 
 // Styled Components
 const StyledTopBar = styled(Box)(() => ({
@@ -221,7 +218,6 @@ const NavBar = () => {
   const [activeItem, setActiveItem] = useState(''); // 使用API key格式
   const { t } = useTranslation();
 
-  console.log('📋 NavBar: 使用动态菜单:', debug);
 
   // 根据当前路径设置活动项
   useEffect(() => {
@@ -247,8 +243,7 @@ const NavBar = () => {
       return menuPage === currentPage;
     });
 
-    const activeKey = matchedMenuItem ? matchedMenuItem.key : (menuItems[0]?.key || 'home');
-    console.log("activeKey", activeKey);  
+    const activeKey = matchedMenuItem ? matchedMenuItem.key : (menuItems[0]?.key || 'home');  
     
     setActiveItem(activeKey);
   }, [location.pathname, menuItems]); // 添加menuItems依赖
@@ -329,31 +324,35 @@ const TopRow = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // 检查用户是否有admin角色
-  const reduxRoles = useSelector(selectUserRoles);
-  const fullUserInfo = CookieService.getFullUserInfo();
-  const basicUserInfo = CookieService.getUserInfo();
-  const localStorageRoles = fullUserInfo?.roles || basicUserInfo?.roles || [];
-  const allRoles = [...new Set([...reduxRoles, ...localStorageRoles])];
-  
-  const hasAdminRole = allRoles.some(role => {
-    if (typeof role === 'string') {
-      return role.toLowerCase().includes('admin');
+  // 直接从localStorage读取user_info检查admin角色（使用useMemo确保值稳定）
+  const hasAdminRole = useMemo(() => {
+    try {
+      // 尝试多个可能的key名称
+      const userInfoStr = localStorage.getItem('user_info') || localStorage.getItem('userInfo');
+      if (userInfoStr) {
+        const userInfo = JSON.parse(userInfoStr);
+        const roles = userInfo?.roles || [];
+        
+        // 检查是否有admin角色（不区分大小写）
+        const hasAdmin = roles.some(role => {
+          if (typeof role === 'string') {
+            return role.toLowerCase().includes('admin');
+          }
+          if (typeof role === 'object' && role !== null) {
+            const roleName = role.name || role.code || role.role || role.id || '';
+            return String(roleName).toLowerCase().includes('admin');
+          }
+          return false;
+        });
+        
+        return hasAdmin;
+      } else {
+        return false;
+      }
+    } catch (error) {
+      return false;
     }
-    if (typeof role === 'object' && role !== null) {
-      const roleName = role.name || role.code || role.role || role.id || '';
-      return String(roleName).toLowerCase().includes('admin');
-    }
-    return false;
-  });
-
-  // 调试信息
-  console.log('🖥️ TopBar - 语言数据:', {
-    supportedLanguages,
-    currentLanguage,
-    currentLanguageInfo,
-    languageCount: supportedLanguages?.length || 0,
-  });
+  }, [isAuthenticated, user]); // 当认证状态或用户变化时重新计算
 
   const handlePortalClick = (event) => {
     setPortalAnchorEl(event.currentTarget);
@@ -400,25 +399,9 @@ const TopRow = () => {
   };
 
   const handleLanguageSelect = (languageCode) => {
-    console.log("🎯 TopBar handleLanguageSelect:", languageCode);
-    
-    // 验证language数据结构
-    const currentSupportedLang = supportedLanguages.find(lang => lang.code === languageCode);
-    if (currentSupportedLang) {
-      console.log("📋 选中的语言信息:", {
-        code: currentSupportedLang.code,
-        name: currentSupportedLang.name,
-        nativeName: currentSupportedLang.nativeName,
-        isoCode: currentSupportedLang.isoCode || '未找到isoCode'
-      });
-    }
-    
     changeLanguage(languageCode);
     handleClose();
   };
-  
-
-  console.log("supportedLanguages", supportedLanguages);
 
   return (
     <StyledTopRow>
@@ -639,6 +622,41 @@ const TopRow = () => {
                   {translate('profile.privacyPolicy')}
                 </Typography>
               </MenuItem>
+
+              {/* Admin入口 - 只在有admin角色时显示 */}
+              {hasAdminRole && (
+                <MenuItem 
+                  onClick={() => {
+                    const pathSegments = location.pathname.split('/').filter(Boolean);
+                    const lang = pathSegments[0] || 'en_GB';
+                    const brand = pathSegments[1] || 'kendo';
+                    navigate(`/${lang}/${brand}/admin`);
+                    handleClose();
+                  }}
+                  sx={{ 
+                    padding: '0px 12px',
+                    height: '44px',
+                    borderRadius: '4px',
+                    margin: '4px',
+                    gap: '12px',
+                    '&:hover': {
+                      backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                    },
+                  }}
+                >
+                  <Typography sx={{
+                    color: '#000000',
+                    fontFamily: '"Roboto-Medium", sans-serif',
+                    fontSize: '14px',
+                    lineHeight: '20px',
+                    letterSpacing: '0.1px',
+                    fontWeight: 500,
+                    flex: 1,
+                  }}>
+                    Admin Management
+                  </Typography>
+                </MenuItem>
+              )}
 
               {/* Separator line before logout */}
               <Box sx={{ 
