@@ -6,7 +6,7 @@ import CookieService from '../utils/cookieService';
  */
 class TemplateApiService {
     constructor() {
-        this.baseURL = '/srv/v1/main/publication/templates';
+        this.baseURL = '/srv/v1.0/main/publication/templates';
     }
 
     /**
@@ -233,7 +233,6 @@ class TemplateApiService {
      * @param {string[]} metadata.usage - 使用方式数组，如 ["internal", "external"] 或 ["Internal", "External"]
      * @param {number} metadata.typeId - 类型ID（如 Catalog=1, Shelfcard=2, DataSheet=3, Flyer=4）
      * @param {number} metadata.templateTypeId - 模板类型ID（1=Specific, 2=Global）
-     * @param {string} metadata.templateId - 模板ID（可选，系统可自动生成）
      * @param {string} metadata.html - HTML内容
      * @param {string} metadata.css - CSS样式
      * @param {number} metadata.parentId - 父模板ID（用于复制模板）
@@ -257,11 +256,6 @@ class TemplateApiService {
             // 标准化 usage 数组
             const normalizedUsage = this.normalizeUsage(metadata.usage || []);
 
-            // 生成随机字符串作为templateId
-            const generateRandomId = () => {
-                return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-            };
-            
             // 构建完整的元数据
             const requestData = {
                 name: metadata.name,
@@ -269,7 +263,6 @@ class TemplateApiService {
                 usage: normalizedUsage,
                 typeId: metadata.typeId || null,
                 templateTypeId: metadata.templateTypeId,
-                templateId: metadata.templateId || generateRandomId(), // 默认使用随机字符串作为templateId
                 html: metadata.html || '',
                 css: metadata.css || '',
                 parentId: metadata.parentId || null,
@@ -349,14 +342,6 @@ class TemplateApiService {
                 updatedBy: metadata.updatedBy || currentUser,
             };
 
-            // 确保 templateId 是随机字符串（如果需要更新）
-            if (metadata.templateId === undefined && metadata.name !== undefined) {
-                const generateRandomId = () => {
-                    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-                };
-                requestData.templateId = generateRandomId();
-            }
-
             console.log('🔍 Updating template:', { id, data: requestData });
 
             const response = await fetch(url, {
@@ -411,6 +396,130 @@ class TemplateApiService {
     }
 
     /**
+     * 上传文件
+     * @param {File} file - 要上传的文件对象
+     * @param {string} uploadUrl - 上传接口URL
+     * @returns {Promise<Object>} 上传响应对象，通常包含文件ID等信息
+     */
+    async uploadFile(file, uploadUrl = '/srv/v1.0/main/files/upload') {
+        try {
+            if (!file) {
+                throw new Error('File is required');
+            }
+
+            if (!(file instanceof File)) {
+                throw new Error('Invalid file object. Expected File instance.');
+            }
+
+            // 创建 FormData
+            const formData = new FormData();
+            formData.append('file', file);
+
+            console.log('🔍 Uploading file:', { 
+                name: file.name, 
+                size: file.size, 
+                type: file.type,
+                url: uploadUrl 
+            });
+
+            // 获取请求头
+            const token = CookieService.getToken();
+            const headers = {
+                'accept': 'application/hal+json',
+                'Authorization': `Bearer ${token}`,
+            };
+
+            const response = await fetch(uploadUrl, {
+                method: 'POST',
+                headers: headers,
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw await this.handleError(response);
+            }
+
+            const data = await response.json();
+            console.log('✅ File uploaded successfully:', data);
+
+            return data;
+        } catch (error) {
+            console.error('❌ Error uploading file:', error);
+            console.error('❌ Error details:', {
+                message: error.message,
+                stack: error.stack
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * 更新文件
+     * @param {string} fileId - 文件ID
+     * @param {File} file - 要更新的文件对象
+     * @param {string} baseUrl - 文件服务基础URL
+     * @returns {Promise<Object>} 更新响应对象
+     */
+    async updateFile(fileId, file, baseUrl = '/srv/v1.0/main/files') {
+        try {
+            if (!fileId) {
+                throw new Error('File ID is required');
+            }
+
+            if (!file) {
+                throw new Error('File is required');
+            }
+
+            if (!(file instanceof File)) {
+                throw new Error('Invalid file object. Expected File instance.');
+            }
+
+            // 创建 FormData
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const url = `${baseUrl}/${fileId}`;
+
+            console.log('🔍 Updating file:', { 
+                fileId,
+                name: file.name, 
+                size: file.size, 
+                type: file.type,
+                url: url 
+            });
+
+            // 获取请求头
+            const token = CookieService.getToken();
+            const headers = {
+                'accept': 'application/hal+json',
+                'Authorization': `Bearer ${token}`,
+            };
+
+            const response = await fetch(url, {
+                method: 'PUT',
+                headers: headers,
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw await this.handleError(response);
+            }
+
+            const data = await response.json();
+            console.log('✅ File updated successfully:', data);
+
+            return data;
+        } catch (error) {
+            console.error('❌ Error updating file:', error);
+            console.error('❌ Error details:', {
+                message: error.message,
+                stack: error.stack
+            });
+            throw error;
+        }
+    }
+
+    /**
      * 复制模板（基于现有模板创建新模板）
      * @param {string|number} sourceId - 源模板ID
      * @param {Object} overrides - 要覆盖的字段（如新的名称、描述等）
@@ -430,7 +539,6 @@ class TemplateApiService {
                 usage: overrides.usage || sourceTemplate.usage || [],
                 typeId: overrides.typeId || sourceTemplate.typeId,
                 templateTypeId: overrides.templateTypeId || sourceTemplate.templateTypeId,
-                templateId: overrides.templateId || Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
                 html: overrides.html || sourceTemplate.html || '',
                 css: overrides.css || sourceTemplate.css || '',
                 parentId: sourceId, // 设置父模板ID
@@ -459,125 +567,185 @@ class TemplateApiService {
     }
 
     /**
-     * 下载模板资源
-     * @param {string|number} id - 模板ID
-     * @param {string} assetType - 资源类型 ('pdf-example', 'css', 'html', 'icon')
-     * @returns {Promise<Blob>} 文件 Blob 对象
+     * 获取模板类型列表
+     * @param {Object} options - 查询选项
+     * @param {string} options.tenant - 租户名称（可选，默认从 Cookie 获取）
+     * @param {string} options.theme - 主题（可选，默认从 URL 获取）
+     * @param {string} options.language - 语言（可选，默认 'en_GB'）
+     * @returns {Promise<Array>} templateType 数组
      */
-    // async downloadTemplateAsset(id, assetType) {
-    //     try {
-    //         if (!id) {
-    //             throw new Error('Template ID is required');
-    //         }
+    async getTemplateTypes(options = {}) {
+        try {
+            const tenant = options.tenant || this.getTenantName();
+            const theme = options.theme || this.getThemeFromUrl();
+            const language = options.language || 'en_GB';
+            
+            const params = new URLSearchParams();
+            if (tenant) params.append('tenant', tenant);
+            if (theme) params.append('theme', theme);
+            if (language) params.append('language', language);
 
-    //         const validAssetTypes = ['pdf-example', 'css', 'html', 'icon'];
-    //         if (!validAssetTypes.includes(assetType)) {
-    //             throw new Error(`Invalid asset type. Must be one of: ${validAssetTypes.join(', ')}`);
-    //         }
+            const url = `/srv/v1.0/main/publication/template-types?${params.toString()}`;
+            
+            console.log('🔍 Fetching template types with params:', { tenant, theme, language, url });
 
-    //         const url = `${this.baseURL}/${id}/assets/${assetType}`;
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: this.getHeaders(),
+            });
 
-    //         console.log('🔍 Downloading template asset:', { id, assetType });
+            if (!response.ok) {
+                throw await this.handleError(response);
+            }
 
-    //         const response = await fetch(url, {
-    //             method: 'GET',
-    //             headers: this.getHeaders(),
-    //         });
+            const data = await response.json();
+            console.log('✅ Template types fetched successfully:', data);
 
-    //         if (!response.ok) {
-    //             throw await this.handleError(response);
-    //         }
-
-    //         const blob = await response.blob();
-    //         console.log('✅ Asset downloaded successfully:', { assetType, size: blob.size });
-
-    //         return blob;
-    //     } catch (error) {
-    //         console.error('❌ Error downloading template asset:', error);
-    //         throw error;
-    //     }
-    // }
+            return Array.isArray(data) ? data : [];
+        } catch (error) {
+            console.error('❌ Error fetching template types:', error);
+            throw error;
+        }
+    }
 
     /**
-     * 下载模板资源并触发浏览器下载
-     * @param {string|number} id - 模板ID
-     * @param {string} assetType - 资源类型 ('pdf-example', 'css', 'html', 'icon')
-     * @param {string} filename - 保存的文件名 (可选，默认根据模板ID和资源类型生成)
+     * 根据名称获取 templateType ID
+     * @param {string} typeName - templateType 名称 ('Global' 或 'Specific')
+     * @param {Object} options - 查询选项（可选）
+     * @param {string} options.tenant - 租户名称（可选，默认从 Cookie 获取）
+     * @param {string} options.theme - 主题（可选，默认从 URL 获取）
+     * @param {string} options.language - 语言（可选，默认 'en_GB'）
+     * @returns {Promise<number|null>} templateType ID
      */
-    // async downloadTemplateAssetAsFile(id, assetType, filename = null) {
-    //     try {
-    //         const blob = await this.downloadTemplateAsset(id, assetType);
-            
-    //         // 生成默认文件名
-    //         if (!filename) {
-    //             const extensionMap = {
-    //                 'pdf-example': 'pdf',
-    //                 'css': 'css',
-    //                 'html': 'html',
-    //                 'icon': 'png'
-    //             };
-    //             const extension = extensionMap[assetType] || 'file';
-    //             filename = `template-${id}-${assetType}.${extension}`;
-    //         }
-
-    //         // 创建下载链接
-    //         const url = window.URL.createObjectURL(blob);
-    //         const link = document.createElement('a');
-    //         link.href = url;
-    //         link.download = filename;
-    //         link.style.display = 'none';
-    //         document.body.appendChild(link);
-    //         link.click();
-            
-    //         // 清理
-    //         setTimeout(() => {
-    //             document.body.removeChild(link);
-    //             window.URL.revokeObjectURL(url);
-    //         }, 100);
-
-    //         console.log('✅ File download triggered:', filename);
-    //     } catch (error) {
-    //         console.error('❌ Error triggering file download:', error);
-    //         throw error;
-    //     }
-    // }
+    async getTemplateTypeId(typeName, options = {}) {
+        try {
+            const templateTypes = await this.getTemplateTypes(options);
+            const type = templateTypes.find(t => 
+                t.name && t.name.toLowerCase() === typeName.toLowerCase()
+            );
+            return type ? type.id : null;
+        } catch (error) {
+            console.error('❌ Error getting template type ID:', error);
+            // 如果获取失败，返回默认值（向后兼容）
+            if (typeName.toLowerCase() === 'global') {
+                return 1; // 根据用户提供的数据，Global 的 id 是 1
+            } else if (typeName.toLowerCase() === 'specific') {
+                return 2; // 根据用户提供的数据，Specific 的 id 是 2
+            }
+            return null;
+        }
+    }
 
     /**
-     * 获取模板类型映射
-     * @returns {Object} 类型ID到名称的映射
+     * 获取类型列表
+     * @param {Object} options - 查询选项
+     * @param {string} options.tenant - 租户名称（可选，默认从 Cookie 获取）
+     * @param {string} options.theme - 主题（可选，默认从 URL 获取）
+     * @param {string} options.language - 语言（可选，默认 'en_GB'）
+     * @returns {Promise<Array>} 类型数组
      */
-    getTypeMap() {
-        return {
-            1: 'Catalog',
-            2: 'Shelfcard',
-            3: 'DataSheet',
-            4: 'Flyer',
-        };
+    async getTypes(options = {}) {
+        try {
+            const tenant = options.tenant || this.getTenantName();
+            const theme = options.theme || this.getThemeFromUrl();
+            const language = options.language || 'en_GB';
+            
+            const params = new URLSearchParams();
+            if (tenant) params.append('tenant', tenant);
+            if (theme) params.append('theme', theme);
+            if (language) params.append('language', language);
+
+            const url = `/srv/v1.0/main/publication/types?${params.toString()}`;
+
+            console.log('🔍 Fetching types with params:', { tenant, theme, language, url });
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: this.getHeaders(),
+            });
+
+            if (!response.ok) {
+                throw await this.handleError(response);
+            }
+
+            const data = await response.json();
+            
+            // 处理返回的数据：可能是数组或对象
+            const types = Array.isArray(data) ? data : (data._embedded?.types || data.content || []);
+            
+            console.log('✅ Types fetched successfully:', types.length);
+
+            return types;
+        } catch (error) {
+            console.error('❌ Error fetching types:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 获取模板类型映射（向后兼容，使用 API 数据）
+     * @returns {Promise<Object>} 类型ID到名称的映射
+     */
+    async getTypeMap() {
+        try {
+            const types = await this.getTypes();
+            const typeMap = {};
+            types.forEach(type => {
+                if (type.id && type.name) {
+                    typeMap[type.id] = type.name;
+                }
+            });
+            return typeMap;
+        } catch (error) {
+            console.error('❌ Error getting type map:', error);
+            return {
+                1: 'Catalog',
+                2: 'ShelfCard',
+                3: 'DataSheet',
+                4: 'Flyer',
+            };
+        }
     }
 
     /**
      * 获取模板类型名称
      * @param {number} typeId - 类型ID
-     * @returns {string} 类型名称
+     * @returns {Promise<string>} 类型名称
      */
-    getTypeName(typeId) {
-        const typeMap = this.getTypeMap();
-        return typeMap[typeId] || 'Unknown';
+    async getTypeName(typeId) {
+        try {
+            const typeMap = await this.getTypeMap();
+            return typeMap[typeId] || 'Unknown';
+        } catch (error) {
+            console.error('❌ Error getting type name:', error);
+            return 'Unknown';
+        }
     }
 
     /**
      * 获取模板类型ID
      * @param {string} typeName - 类型名称
-     * @returns {number|null} 类型ID
+     * @returns {Promise<number|null>} 类型ID
      */
-    getTypeId(typeName) {
-        const typeMap = this.getTypeMap();
-        for (const [id, name] of Object.entries(typeMap)) {
-            if (name.toLowerCase() === typeName.toLowerCase()) {
-                return parseInt(id, 10);
-            }
+    async getTypeId(typeName) {
+        try {
+            const types = await this.getTypes();
+            const type = types.find(t => 
+                t.name && t.name.toLowerCase() === typeName.toLowerCase()
+            );
+            return type ? type.id : null;
+        } catch (error) {
+            console.error('❌ Error getting type ID:', error);
+            const defaultMap = {
+                'Catalog': 1,
+                'Shelfcard': 2,
+                'ShelfCard': 2,
+                'DataSheet': 3,
+                'Flyer': 4,
+            };
+            const normalizedName = typeName.charAt(0).toUpperCase() + typeName.slice(1).toLowerCase();
+            return defaultMap[typeName] || defaultMap[normalizedName] || null;
         }
-        return null;
     }
 }
 

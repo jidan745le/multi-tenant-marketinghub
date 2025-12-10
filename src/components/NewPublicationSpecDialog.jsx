@@ -10,6 +10,7 @@ import {
   FormControl,
   Autocomplete,
   Chip,
+  CircularProgress,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import React, { useState, useRef, useEffect } from 'react';
@@ -18,6 +19,7 @@ import WarningIcon from '@mui/icons-material/Warning';
 import CloseIcon from '@mui/icons-material/Close';
 import CookieService from '../utils/cookieService';
 import { useBrand } from '../hooks/useBrand';
+import templateApi from '../services/templateApi';
 
 // 样式化组件
 const DialogContainer = styled(Box)(() => ({
@@ -391,6 +393,10 @@ function NewPublicationDialog({ open, onClose, onConfirm, initialData }) {
       setImageFile(null);
       setImagePreview(null);
       setPdfFile(null);
+      setIconFileId(null);
+      setPdfFileId(null);
+      setUploadingImage(false);
+      setUploadingPdf(false);
     }
   }, [open]);
 
@@ -402,6 +408,10 @@ function NewPublicationDialog({ open, onClose, onConfirm, initialData }) {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [pdfFile, setPdfFile] = useState(null);
+  const [iconFileId, setIconFileId] = useState(null);
+  const [pdfFileId, setPdfFileId] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
 
   const handleInputChange = (field) => (event) => {
     setFormData({
@@ -425,16 +435,36 @@ function NewPublicationDialog({ open, onClose, onConfirm, initialData }) {
     pdfInputRef.current?.click();
   };
 
-  const handleImageFileChange = (event) => {
+  const handleImageFileChange = async (event) => {
     const file = event.target.files?.[0];
     if (file) {
       setImageFile(file);
+      setUploadingImage(true);
+      
       // 创建图片预览URL
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result);
       };
       reader.readAsDataURL(file);
+      
+      try {
+        // 调用 uploadFile 接口上传文件
+        const uploadResult = await templateApi.uploadFile(file);
+        const fileId = uploadResult.fileId;
+        if (fileId) {
+          setIconFileId(fileId);
+          console.log('Image uploaded successfully, fileId:', fileId);
+        } else {
+          console.warn('Upload response does not contain fileId:', uploadResult);
+        }
+      } catch (error) {
+        console.error('Error uploading image:', error);
+        setImageFile(null);
+        setImagePreview(null);
+      } finally {
+        setUploadingImage(false);
+      }
     }
     // 这里可以再次选择同一个文件
     if (event.target) {
@@ -442,10 +472,27 @@ function NewPublicationDialog({ open, onClose, onConfirm, initialData }) {
     }
   };
 
-  const handlePdfFileChange = (event) => {
+  const handlePdfFileChange = async (event) => {
     const file = event.target.files?.[0];
     if (file) {
       setPdfFile(file);
+      setUploadingPdf(true);
+      
+      try {
+        const uploadResult = await templateApi.uploadFile(file);
+        const fileId = uploadResult.fileId;
+        if (fileId) {
+          setPdfFileId(fileId);
+          console.log('PDF uploaded successfully, fileId:', fileId);
+        } else {
+          console.warn('Upload response does not contain fileId:', uploadResult);
+        }
+      } catch (error) {
+        console.error('Error uploading PDF:', error);
+        setPdfFile(null);
+      } finally {
+        setUploadingPdf(false);
+      }
     }
     if (event.target) {
       event.target.value = '';
@@ -467,6 +514,10 @@ function NewPublicationDialog({ open, onClose, onConfirm, initialData }) {
     setImageFile(null);
     setImagePreview(null);
     setPdfFile(null);
+    setIconFileId(null);
+    setPdfFileId(null);
+    setUploadingImage(false);
+    setUploadingPdf(false);
     onClose();
   };
 
@@ -476,6 +527,8 @@ function NewPublicationDialog({ open, onClose, onConfirm, initialData }) {
         ...formData,
         imageFile,
         pdfFile,
+        iconFileId,
+        pdfFileId, 
       });
     }
     handleCancel();
@@ -702,7 +755,30 @@ function NewPublicationDialog({ open, onClose, onConfirm, initialData }) {
                       onChange={handleImageFileChange}
                       style={{ display: 'none' }}
                     />
-                    {imagePreview ? (
+                    {uploadingImage ? (
+                      <Box
+                        sx={{
+                          width: '100%',
+                          height: '100%',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '8px',
+                        }}
+                      >
+                        <CircularProgress size={30} />
+                        <Typography
+                          sx={{
+                            color: '#4d4d4d',
+                            fontFamily: '"Roboto-Regular", sans-serif',
+                            fontSize: '12px',
+                          }}
+                        >
+                          Uploading...
+                        </Typography>
+                      </Box>
+                    ) : imagePreview ? (
                       <Box
                         sx={{
                           width: '100%',
@@ -753,7 +829,30 @@ function NewPublicationDialog({ open, onClose, onConfirm, initialData }) {
                       onChange={handlePdfFileChange}
                       style={{ display: 'none' }}
                     />
-                    {pdfFile ? (
+                    {uploadingPdf ? (
+                      <Box
+                        sx={{
+                          width: '100%',
+                          height: '100%',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '8px',
+                        }}
+                      >
+                        <CircularProgress size={30} />
+                        <Typography
+                          sx={{
+                            color: '#4d4d4d',
+                            fontFamily: '"Roboto-Regular", sans-serif',
+                            fontSize: '12px',
+                          }}
+                        >
+                          Uploading...
+                        </Typography>
+                      </Box>
+                    ) : pdfFile ? (
                       <Box
                         sx={{
                           width: '100%',

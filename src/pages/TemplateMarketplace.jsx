@@ -285,7 +285,6 @@ function TemplateMarketplace() {
         // 只获取 Global 类型的模板
         const data = await templateApi.getTemplates();
         const globalTemplates = (data || []).filter(template => 
-          template.templateTypeId === 2 || 
           template.templateTypeName === 'Global' ||
           template.templateType === 'Global'
         );
@@ -335,7 +334,17 @@ function TemplateMarketplace() {
       }
 
       // 获取类型ID
-      const typeId = templateApi.getTypeId(formData.type);
+      const typeId = await templateApi.getTypeId(formData.type);
+      
+      if (!typeId) {
+        throw new Error(`Failed to get type ID for ${formData.type}`);
+      }
+      
+      const templateTypeId = await templateApi.getTemplateTypeId('Specific');
+      
+      if (!templateTypeId) {
+        throw new Error('Failed to get template type ID for Specific');
+      }
       
       // 构建模板元数据
       const metadata = {
@@ -344,19 +353,17 @@ function TemplateMarketplace() {
         usage: formData.usage || [],
         typeId: typeId,
         typeName: formData.type,
-        templateTypeId: 2, // 2 = Specific (Tenant Specific)
+        templateTypeId: templateTypeId,
         parentId: selectedTemplate.id, // 基于选中的 Global 模板创建
         html: selectedTemplate.html || '',
         css: selectedTemplate.css || '',
         pdfPerModel: selectedTemplate.pdfPerModel || false,
+        // 添加文件ID（如果已上传）
+        iconFileId: formData.iconFileId || null,
+        pdfFileId: formData.pdfFileId || null,
       };
 
-      // 创建新模板
-      await templateApi.createTemplate(
-        metadata,
-        formData.pdfFile || null,
-        formData.imageFile || null
-      );
+      await templateApi.createTemplate(metadata);
 
       setDialogOpen(false);
       setSelectedTemplate(null);

@@ -5,11 +5,13 @@ import {
   DialogContent,
   Typography,
   IconButton,
+  CircularProgress,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import React, { useState, useRef } from 'react';
 import HighlightOffIcon from '@mui/icons-material/HighlightOff';
 import UploadImageIcon from './icons/UploadImageIcon';
+import templateApi from '../services/templateApi';
 
 // 公共样式 
 const BaseContainer = styled(Box)(() => ({
@@ -439,24 +441,58 @@ const UploadDialog = ({ open, onClose, onNext, onCancel, uploadType = 'all' }) =
 
   const { acceptedTypes, acceptedMimeTypes, accept, description } = getAcceptedTypes();
 
-  const handleFileSelect = (selectedFiles) => {
-    const newFiles = Array.from(selectedFiles)
-      .filter((file) => {
-        const fileName = file.name.toLowerCase();
-        const fileType = file.type;
-        return (
-          acceptedTypes.some((ext) => fileName.endsWith(ext)) ||
-          acceptedMimeTypes.includes(fileType)
-        );
-      })
-      .map((file) => ({
-        id: Date.now() + Math.random(),
-        file,
-        name: file.name,
-        size: file.size,
-      }));
+  const handleFileSelect = async (selectedFiles) => {
+    const validFiles = Array.from(selectedFiles).filter((file) => {
+      const fileName = file.name.toLowerCase();
+      const fileType = file.type;
+      return (
+        acceptedTypes.some((ext) => fileName.endsWith(ext)) ||
+        acceptedMimeTypes.includes(fileType)
+      );
+    });
 
+    const newFiles = validFiles.map((file) => ({
+      id: Date.now() + Math.random(),
+      file,
+      name: file.name,
+      size: file.size,
+      fileId: null,
+      uploading: true,
+      error: null,
+    }));
+
+    // 显示上传状态
     setFiles((prev) => [...prev, ...newFiles]);
+
+    newFiles.forEach(async (fileItem) => {
+      try {
+        const uploadResult = await templateApi.uploadFile(fileItem.file);
+        const fileId = uploadResult.fileId;
+        
+        if (fileId) {
+          setFiles((prev) =>
+            prev.map((f) =>
+              f.id === fileItem.id
+                ? { ...f, fileId, uploading: false, error: null }
+                : f
+            )
+          );
+          console.log('File uploaded successfully, fileId:', fileId, 'fileName:', fileItem.name);
+        } else {
+          throw new Error('Upload response does not contain fileId');
+        }
+      } catch (error) {
+        console.error('Error uploading file:', error, 'fileName:', fileItem.name);
+        // 标记上传失败
+        setFiles((prev) =>
+          prev.map((f) =>
+            f.id === fileItem.id
+              ? { ...f, uploading: false, error: error.message || 'Upload failed' }
+              : f
+          )
+        );
+      }
+    });
   };
 
   const handleFileChange = (event) => {
@@ -502,10 +538,14 @@ const UploadDialog = ({ open, onClose, onNext, onCancel, uploadType = 'all' }) =
 
   const handleNext = () => {
     if (onNext && files.length > 0) {
-      onNext(files);
-      setFiles([]);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+      const validFiles = files.filter((f) => f.fileId && !f.error && !f.uploading);
+      
+      if (validFiles.length > 0) {
+        onNext(validFiles);
+        setFiles([]);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
       }
     }
   };
@@ -637,7 +677,14 @@ const UploadDialog = ({ open, onClose, onNext, onCancel, uploadType = 'all' }) =
               <CancelButton onClick={handleCancel}>CANCEL</CancelButton>
             </CancelButtonContainer>
             <NextButtonContainer>
-              <NextButton onClick={handleNext} disabled={files.length === 0}>
+              <NextButton 
+                onClick={handleNext} 
+                disabled={
+                  files.length === 0 || 
+                  files.some(f => f.uploading) || 
+                  !files.some(f => f.fileId && !f.error)
+                }
+              >
                 NEXT
               </NextButton>
             </NextButtonContainer>

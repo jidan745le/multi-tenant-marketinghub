@@ -12,12 +12,14 @@ import {
   FormControl,
   Autocomplete,
   Chip,
+  CircularProgress,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import React, { useState, useRef } from 'react';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import WarningIcon from '@mui/icons-material/Warning';
 import CloseIcon from '@mui/icons-material/Close';
+import templateApi from '../services/templateApi';
 
 // 样式化组件
 const DialogContainer = styled(Box)(() => ({
@@ -400,9 +402,27 @@ function NewPublicationDialog({ open, onClose, onConfirm }) {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [pdfFile, setPdfFile] = useState(null);
+  const [iconFileId, setIconFileId] = useState(null);
+  const [pdfFileId, setPdfFileId] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
 
   const handleTypeChange = (event) => {
-    setPublicationType(event.target.value);
+    const newType = event.target.value;
+    setPublicationType(newType);
+    // 同步更新 templateType
+    setFormData({
+      ...formData,
+      templateType: newType === 'global' ? 'Global' : 'Tenant Specific',
+    });
+  };
+
+  const handlePublicationTypeClick = (type) => {
+    setPublicationType(type);
+    setFormData({
+      ...formData,
+      templateType: type === 'global' ? 'Global' : 'Tenant Specific',
+    });
   };
 
   const handleInputChange = (field) => (event) => {
@@ -427,16 +447,36 @@ function NewPublicationDialog({ open, onClose, onConfirm }) {
     pdfInputRef.current?.click();
   };
 
-  const handleImageFileChange = (event) => {
+  const handleImageFileChange = async (event) => {
     const file = event.target.files?.[0];
     if (file) {
       setImageFile(file);
+      setUploadingImage(true);
+      
       // 创建图片预览URL
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result);
       };
       reader.readAsDataURL(file);
+      
+      try {
+        // 调用 uploadFile 接口上传文件
+        const uploadResult = await templateApi.uploadFile(file);
+        const fileId = uploadResult.fileId;
+        if (fileId) {
+          setIconFileId(fileId);
+          console.log('Image uploaded successfully, fileId:', fileId);
+        } else {
+          console.warn('Upload response does not contain fileId:', uploadResult);
+        }
+      } catch (error) {
+        console.error('Error uploading image:', error);
+        setImageFile(null);
+        setImagePreview(null);
+      } finally {
+        setUploadingImage(false);
+      }
     }
     // 这里可以再次选择同一个文件
     if (event.target) {
@@ -444,10 +484,27 @@ function NewPublicationDialog({ open, onClose, onConfirm }) {
     }
   };
 
-  const handlePdfFileChange = (event) => {
+  const handlePdfFileChange = async (event) => {
     const file = event.target.files?.[0];
     if (file) {
       setPdfFile(file);
+      setUploadingPdf(true);
+      
+      try {
+        const uploadResult = await templateApi.uploadFile(file);
+        const fileId = uploadResult.fileId;
+        if (fileId) {
+          setPdfFileId(fileId);
+          console.log('PDF uploaded successfully, fileId:', fileId);
+        } else {
+          console.warn('Upload response does not contain fileId:', uploadResult);
+        }
+      } catch (error) {
+        console.error('Error uploading PDF:', error);
+        setPdfFile(null);
+      } finally {
+        setUploadingPdf(false);
+      }
     }
     if (event.target) {
       event.target.value = '';
@@ -470,6 +527,10 @@ function NewPublicationDialog({ open, onClose, onConfirm }) {
     setImageFile(null);
     setImagePreview(null);
     setPdfFile(null);
+    setIconFileId(null);
+    setPdfFileId(null);
+    setUploadingImage(false);
+    setUploadingPdf(false);
     onClose();
   };
 
@@ -480,6 +541,8 @@ function NewPublicationDialog({ open, onClose, onConfirm }) {
         publicationType,
         imageFile,
         pdfFile,
+        iconFileId, 
+        pdfFileId, 
       });
     }
     handleCancel();
@@ -551,7 +614,7 @@ function NewPublicationDialog({ open, onClose, onConfirm }) {
                 </Box>
               }
               selected={publicationType === 'specific'}
-              onClick={() => setPublicationType('specific')}
+              onClick={() => handlePublicationTypeClick('specific')}
             />
             <RadioButton
               control={
@@ -579,7 +642,7 @@ function NewPublicationDialog({ open, onClose, onConfirm }) {
                 </Box>
               }
               selected={publicationType === 'global'}
-              onClick={() => setPublicationType('global')}
+              onClick={() => handlePublicationTypeClick('global')}
             />
           </RadioButtonGroup>
 
@@ -747,7 +810,30 @@ function NewPublicationDialog({ open, onClose, onConfirm }) {
                       onChange={handleImageFileChange}
                       style={{ display: 'none' }}
                     />
-                    {imagePreview ? (
+                    {uploadingImage ? (
+                      <Box
+                        sx={{
+                          width: '100%',
+                          height: '100%',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '8px',
+                        }}
+                      >
+                        <CircularProgress size={30} />
+                        <Typography
+                          sx={{
+                            color: '#4d4d4d',
+                            fontFamily: '"Roboto-Regular", sans-serif',
+                            fontSize: '12px',
+                          }}
+                        >
+                          Uploading...
+                        </Typography>
+                      </Box>
+                    ) : imagePreview ? (
                       <Box
                         sx={{
                           width: '100%',
@@ -798,7 +884,30 @@ function NewPublicationDialog({ open, onClose, onConfirm }) {
                       onChange={handlePdfFileChange}
                       style={{ display: 'none' }}
                     />
-                    {pdfFile ? (
+                    {uploadingPdf ? (
+                      <Box
+                        sx={{
+                          width: '100%',
+                          height: '100%',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '8px',
+                        }}
+                      >
+                        <CircularProgress size={30} />
+                        <Typography
+                          sx={{
+                            color: '#4d4d4d',
+                            fontFamily: '"Roboto-Regular", sans-serif',
+                            fontSize: '12px',
+                          }}
+                        >
+                          Uploading...
+                        </Typography>
+                      </Box>
+                    ) : pdfFile ? (
                       <Box
                         sx={{
                           width: '100%',
@@ -869,17 +978,24 @@ function NewPublicationDialog({ open, onClose, onConfirm }) {
 
               <FormField sx={{ top: '94px' }}>
                 <FieldTitle>Template Type</FieldTitle>
-                <FormControl fullWidth>
-                  <StyledSelect
-                    value={formData.templateType}
-                    onChange={handleInputChange('templateType')}
-                    displayEmpty
-                    MenuProps={menuProps}
-                  >
-                    <MenuItem value="Tenant Specific">Tenant Specific</MenuItem>
-                    <MenuItem value="Global">Global</MenuItem>
-                  </StyledSelect>
-                </FormControl>
+                <StyledTextField
+                  fullWidth
+                  disabled
+                  value={publicationType === 'global' ? 'Global' : 'Tenant Specific'}
+                  InputProps={{
+                    sx: {
+                      fontFamily: '"Roboto-Regular", sans-serif',
+                      fontSize: '14px',
+                      color: '#808080',
+                      backgroundColor: '#f5f5f5',
+                      '&.Mui-disabled': {
+                        backgroundColor: '#f5f5f5',
+                        color: '#808080',
+                        WebkitTextFillColor: '#808080',
+                      },
+                    },
+                  }}
+                />
               </FormField>
 
               <FormField sx={{ top: '188px' }}>

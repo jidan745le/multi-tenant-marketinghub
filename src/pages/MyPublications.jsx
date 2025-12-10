@@ -379,7 +379,7 @@ function MyPublications() {
 
   // 根据 usage 分类数据
   const getTemplatesByUsage = () => {
-    const mainTemplates = []; // usage 为空或没有 usage
+    const mainTemplates = []; // usage 为空、只有 internal、或只有 external（不同时拥有两者）
     const internalTemplates = []; // usage 包含 internal
     const externalTemplates = []; // usage 包含 external
 
@@ -392,12 +392,16 @@ function MyPublications() {
         typeof u === 'string' && u.toLowerCase() === 'external'
       );
 
-      if (!hasInternal && !hasExternal) {
+      if ((!hasInternal && !hasExternal) || 
+          (hasInternal && !hasExternal) || 
+          (!hasInternal && hasExternal)) {
         mainTemplates.push(template);
       }
+      
       if (hasInternal) {
         internalTemplates.push(template);
       }
+
       if (hasExternal) {
         externalTemplates.push(template);
       }
@@ -414,12 +418,18 @@ function MyPublications() {
       try {
         setLoading(true);
         const templates = await templateApi.getTemplates();
-        // 只保留 id、name、usage 字段
-        const simplifiedTemplates = templates.map(t => ({
-          id: t.id,
-          name: t.name,
-          usage: t.usage || []
-        }));
+        const simplifiedTemplates = templates
+          .filter(t => {
+            if (t.templateTypeName) {
+              return t.templateTypeName === 'Specific';
+            }
+            return t.tenant && t.tenant.toLowerCase() !== 'global';
+          })
+          .map(t => ({
+            id: t.id,
+            name: t.name,
+            usage: t.usage || []
+          }));
         setAllTemplates(simplifiedTemplates);
       } catch (error) {
         console.error('获取模板数据失败:', error);
@@ -553,9 +563,8 @@ function MyPublications() {
     const selectedIds = Array.from(selectedInInternal);
     const templatesToUpdate = allTemplates.filter(t => selectedIds.includes(t.id));
     
-    // 更新每个模板的 usage，移除 Internal
     const updatePromises = templatesToUpdate.map(template => {
-      const currentUsage = template.usage || [];
+      const currentUsage = template.usage || [];     
       const newUsage = currentUsage.filter(u => 
         typeof u === 'string' && u.toLowerCase() !== 'internal'
       );
@@ -576,7 +585,6 @@ function MyPublications() {
     const selectedIds = Array.from(selectedInExternal);
     const templatesToUpdate = allTemplates.filter(t => selectedIds.includes(t.id));
     
-    // 更新每个模板的 usage，移除 External
     const updatePromises = templatesToUpdate.map(template => {
       const currentUsage = template.usage || [];
       const newUsage = currentUsage.filter(u => 

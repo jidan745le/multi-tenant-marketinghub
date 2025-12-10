@@ -313,7 +313,7 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
     const [selectedTenant, setSelectedTenant] = useState('tenant1');
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [_error, setError] = useState(null);
     
     // Dialog 相关状态
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -436,6 +436,72 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
       );
     };
 
+    const handleSaveRowData = async (rowId) => {
+      try {
+        const rowData = data.find(row => row.id === rowId);
+        if (!rowData) {
+          console.error('Row data not found for ID:', rowId);
+          return;
+        }
+
+        const templateData = await templateApi.getTemplateById(rowId);
+
+        const typeId = await templateApi.getTypeId(rowData.type);
+        if (!typeId) {
+          throw new Error(`Failed to get type ID for ${rowData.type}`);
+        }
+
+        const updateData = {
+          name: rowData.name || templateData.name || '',
+          description: rowData.description || templateData.description || '',
+          typeId: typeId,
+          usage: rowData.usage && rowData.usage.length > 0 && rowData.usage[0] !== '-'
+            ? rowData.usage.map(u => u.toLowerCase())
+            : (Array.isArray(templateData.usage) ? templateData.usage : []),
+          tenant: templateData.tenant || '',
+          theme: templateData.theme || '',
+          html: templateData.html || '',
+          css: templateData.css || '',
+        };
+
+        if (templateData.pdfFileId) {
+          updateData.pdfFileId = templateData.pdfFileId;
+        }
+        if (templateData.iconFileId) {
+          updateData.iconFileId = templateData.iconFileId;
+        }
+
+        if (templateData.parentId !== null && templateData.parentId !== undefined) {
+          updateData.parentId = templateData.parentId;
+        }
+
+        await templateApi.updateTemplate(rowId, updateData);
+        
+        console.log('Row data saved successfully for ID:', rowId);
+
+        // 刷新数据列表
+        const apiData = await templateApi.getTemplates();
+        let transformedData = transformApiData(Array.isArray(apiData) ? apiData : (apiData._embedded?.templates || apiData.content || []));
+        
+        // 根据 selectedTenant 过滤数据
+        if (selectedTenant === 'global') {
+          transformedData = transformedData.filter(item => 
+            item.templateType === 'Global'
+          );
+        } else if (selectedTenant === 'tenant1' || selectedTenant === 'specific') {
+          transformedData = transformedData.filter(item => 
+            item.templateType === 'Specific'
+          );
+        }
+        
+        setData(transformedData);
+        setError(null); // 清除之前的错误
+      } catch (saveError) {
+        console.error('Failed to save row data:', saveError);
+        setError(`Failed to save: ${saveError.message}`);
+      }
+    };
+
     // 处理编辑图标点击
     const handleEditClick = async (templateId, type) => {
       setCurrentTemplateId(templateId);
@@ -534,7 +600,12 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
       }
 
       try {
-        const file = files[0].file;
+        const fileItem = files[0];
+        
+        if (!fileItem.fileId) {
+          throw new Error('File ID is missing. File may not have been uploaded successfully.');
+        }
+
         const templateData = await templateApi.getTemplateById(uploadingTemplateId);
 
         // 准备更新数据
@@ -547,12 +618,28 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
           theme: templateData.theme || '',
         };
 
-        // 根据上传类型决定传递哪个文件
-        const pdfExample = uploadType === 'pdfExample' ? file : null;
-        const icon = uploadType === 'icon' ? file : null;
+
+        const existingFileId = uploadType === 'pdfExample' 
+          ? templateData.pdfFileId 
+          : templateData.iconFileId;
+
+        if (existingFileId && existingFileId !== fileItem.fileId) {
+          await templateApi.updateFile(existingFileId, fileItem.file);
+          if (uploadType === 'pdfExample') {
+            updateData.pdfFileId = existingFileId;
+          } else if (uploadType === 'icon') {
+            updateData.iconFileId = existingFileId;
+          }
+        } else {
+          if (uploadType === 'pdfExample') {
+            updateData.pdfFileId = fileItem.fileId;
+          } else if (uploadType === 'icon') {
+            updateData.iconFileId = fileItem.fileId;
+          }
+        }
 
         // 更新模板
-        await templateApi.updateTemplate(uploadingTemplateId, updateData, pdfExample, icon);
+        await templateApi.updateTemplate(uploadingTemplateId, updateData);
 
         // 刷新数据
         const apiData = await templateApi.getTemplates();
@@ -585,16 +672,71 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
     };
 
     // 切换行编辑模式
-    const handleToggleRowEdit = (rowId) => {
+    const handleToggleRowEdit = async (rowId) => {
       setEditingRows(prev => {
         const newSet = new Set(prev);
         if (newSet.has(rowId)) {
           newSet.delete(rowId);
+          handleSaveRowData(rowId).catch(err => {
+            console.error('Failed to save row data on exit edit mode:', err);
+          });
         } else {
           newSet.add(rowId);
         }
         return newSet;
       });
+    };
+
+    // 删除
+    const handleDeleteClick = async (rowId) => {
+      if (!window.confirm('Are you sure you want to delete this record? This action cannot be undone.')) {
+        return;
+      }
+
+      try {
+        setData(prevData => prevData.filter(row => row.id !== rowId));
+        
+        await templateApi.deleteTemplate(rowId);
+        
+        console.log('Template deleted successfully:', rowId);
+
+        const apiData = await templateApi.getTemplates();
+        let transformedData = transformApiData(Array.isArray(apiData) ? apiData : (apiData._embedded?.templates || apiData.content || []));
+        
+        if (selectedTenant === 'global') {
+          transformedData = transformedData.filter(item => 
+            item.templateType === 'Global'
+          );
+        } else if (selectedTenant === 'tenant1' || selectedTenant === 'specific') {
+          transformedData = transformedData.filter(item => 
+            item.templateType === 'Specific'
+          );
+        }
+        
+        setData(transformedData);
+        setError(null);
+      } catch (error) {
+        console.error('Failed to delete template:', error);
+        try {
+          const apiData = await templateApi.getTemplates();
+          let transformedData = transformApiData(Array.isArray(apiData) ? apiData : (apiData._embedded?.templates || apiData.content || []));
+          
+          if (selectedTenant === 'global') {
+            transformedData = transformedData.filter(item => 
+              item.templateType === 'Global'
+            );
+          } else if (selectedTenant === 'tenant1' || selectedTenant === 'specific') {
+            transformedData = transformedData.filter(item => 
+              item.templateType === 'Specific'
+            );
+          }
+          
+          setData(transformedData);
+        } catch (refreshError) {
+          console.error('Failed to refresh data after delete error:', refreshError);
+        }
+        setError(`Failed to delete: ${error.message}`);
+      }
     };
 
     return (
@@ -643,13 +785,6 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
               </Button>
             </Box>
           </HeaderContainer>
-
-          {/* 错误提示 */}
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-              {error}
-            </Alert>
-          )}
 
           {/* 加载状态 */}
           {loading && (
@@ -1114,6 +1249,7 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
                               component="img"
                               src="/assets/delete.png"
                               alt="Delete"
+                              onClick={() => handleDeleteClick(row.id)}
                               sx={{
                                 width: 20,
                                 height: 20,
@@ -1220,11 +1356,19 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
                 throw new Error('Template name is required');
               }
 
-              // 根据 selectedTenant 决定模板类型
-              const templateTypeId = selectedTenant === 'global' ? 2 : 1; // 2 = Global, 1 = Specific
+              const templateTypeName = formData.publicationType === 'global' ? 'Global' : 'Specific';
+              const templateTypeId = await templateApi.getTemplateTypeId(templateTypeName);
+              
+              if (!templateTypeId) {
+                throw new Error(`Failed to get template type ID for ${templateTypeName}`);
+              }
               
               // 获取类型ID
-              const typeId = templateApi.getTypeId(formData.type);
+              const typeId = await templateApi.getTypeId(formData.type);
+              
+              if (!typeId) {
+                throw new Error(`Failed to get type ID for ${formData.type}`);
+              }
               
               // 构建模板元数据
               const metadata = {
@@ -1237,14 +1381,31 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
                 html: '',
                 css: '',
                 pdfPerModel: false,
+                iconFileId: formData.iconFileId || null,
+                pdfFileId: formData.pdfFileId || null,
               };
 
-              // 创建新模板
-              await templateApi.createTemplate(
-                metadata,
-                formData.pdfFile || null,
-                formData.imageFile || null
-              );
+              const createdTemplate = await templateApi.createTemplate(metadata);
+
+              if (templateTypeName === 'Global' && createdTemplate && createdTemplate.id) {
+                try {
+                  const templateData = await templateApi.getTemplateById(createdTemplate.id);
+                  
+                  const updateData = {
+                    name: templateData.name || '',
+                    type: templateData.type || templateData.typeName || '',
+                    description: templateData.description || '',
+                    usage: Array.isArray(templateData.usage) ? templateData.usage : [],
+                    tenant: templateData.tenant || '',
+                    theme: templateData.theme || '',
+                    parentId: createdTemplate.id, // 设置为自己的 id
+                  };
+                  
+                  await templateApi.updateTemplate(createdTemplate.id, updateData);
+                } catch (updateError) {
+                  console.error('Failed to update parentId:', updateError);
+                }
+              }
 
               // 刷新数据列表
               const apiData = await templateApi.getTemplates();

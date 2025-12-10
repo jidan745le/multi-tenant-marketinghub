@@ -30,6 +30,7 @@ import React, { useEffect, useState } from 'react';
 import NewPublicationSpecDialog from '../components/NewPublicationSpecDialog';
 import UploadDialog from '../components/UploadDialog';
 import templateApi from '../services/templateApi';
+import CookieService from '../utils/cookieService';
   
   // Styled components
   const HeaderContainer = styled(Box)(() => ({
@@ -274,8 +275,18 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
       const templateId = item.id || item.templateId || index + 1;
       
       // 判断是否有 icon 和 pdfExample
-      const hasIcon = item.iconFileId && item.iconFileId !== null;
-      const hasPdfExample = item.pdfFileId && item.pdfFileId !== null;
+      const hasIcon = item.iconFileId && item.iconFileId !== null && item.iconFileId !== undefined && item.iconFileId !== '';
+      const hasPdfExample = item.pdfFileId && item.pdfFileId !== null && item.pdfFileId !== undefined && item.pdfFileId !== '';
+      
+      if (item.iconFileId || item.pdfFileId) {
+        console.log(`模板 ${templateId} (${item.name}) 文件ID:`, {
+          iconFileId: item.iconFileId,
+          pdfFileId: item.pdfFileId,
+          hasIcon,
+          hasPdfExample,
+          imageUrl: hasIcon ? `/srv/v1/main/publication/templates/${templateId}/assets/icon` : null
+        });
+      }
       
       // 判断 templateType
       let templateType = 'Specific';
@@ -310,10 +321,55 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
     });
   };
 
+  // 带认证的图片组件
+  const AuthenticatedImage = ({ src, alt, templateId, onLoadImage, blobUrl, sx }) => {
+    const [imageSrc, setImageSrc] = useState(blobUrl || src);
+    const [loading, setLoading] = useState(!blobUrl);
+    const [error, setError] = useState(false);
+
+    useEffect(() => {
+      if (!blobUrl && src) {
+        setLoading(true);
+        onLoadImage(src, templateId).then(url => {
+          if (url) {
+            setImageSrc(url);
+          } else {
+            setError(true);
+          }
+          setLoading(false);
+        }).catch(() => {
+          setError(true);
+          setLoading(false);
+        });
+      }
+    }, [src, templateId, blobUrl, onLoadImage]);
+
+    if (error || loading) {
+      return <ImagePlaceholder />;
+    }
+
+    return (
+      <Box
+        component="img"
+        src={imageSrc}
+        alt={alt}
+        onError={() => {
+          console.error('图片加载失败:', src, 'templateId:', templateId);
+          setError(true);
+        }}
+        onLoad={() => {
+          console.log('图片加载成功:', src, 'templateId:', templateId);
+        }}
+        sx={sx}
+      />
+    );
+  };
+
   function TenantAdmin() {
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [_error, setError] = useState(null); // 错误状态用于 setError，显示已禁用
+    const [imageBlobUrls, setImageBlobUrls] = useState(new Map()); // 存储图片的blob URL
     
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editType, setEditType] = useState(null); // 'css' 或 'html'
@@ -332,6 +388,46 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
     
     // 行编辑模式状态
     const [editingRows, setEditingRows] = useState(new Set());
+
+    // 加载带认证的图片
+    const loadAuthenticatedImage = async (imageUrl, templateId) => {
+      // 如果已经有缓存的blob URL，直接返回
+      if (imageBlobUrls.has(templateId)) {
+        return imageBlobUrls.get(templateId);
+      }
+
+      try {
+        const token = CookieService.getToken();
+        const response = await fetch(imageUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to load image: ${response.status}`);
+        }
+
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        
+        // 缓存blob URL
+        setImageBlobUrls(prev => new Map(prev).set(templateId, blobUrl));
+        
+        return blobUrl;
+      } catch (error) {
+        console.error('Error loading authenticated image:', error);
+        return null;
+      }
+    };
+
+    // 清理blob URL
+    useEffect(() => {
+      return () => {
+        imageBlobUrls.forEach(url => URL.revokeObjectURL(url));
+      };
+    }, [imageBlobUrls]);
   
     useEffect(() => {
       const fetchTemplates = async () => {
@@ -362,6 +458,56 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
       fetchTemplates();
     }, []);
   
+    const handleSaveRowData = async (rowId) => {
+      try {
+        const rowData = data.find(row => row.id === rowId);
+        if (!rowData) {
+          console.error('Row data not found for ID:', rowId);
+          return;
+        }
+
+        const templateData = await templateApi.getTemplateById(rowId);
+
+        const typeId = await templateApi.getTypeId(rowData.type);
+        if (!typeId) {
+          throw new Error(`Failed to get type ID for ${rowData.type}`);
+        }
+
+        const updateData = {
+          name: rowData.name || templateData.name || '',
+          description: rowData.description || templateData.description || '',
+          typeId: typeId,
+          usage: rowData.usage && rowData.usage.length > 0 && rowData.usage[0] !== '-'
+            ? rowData.usage.map(u => u.toLowerCase())
+            : (Array.isArray(templateData.usage) ? templateData.usage : []),
+          tenant: templateData.tenant || '',
+          theme: templateData.theme || '',
+          html: templateData.html || '',
+          css: templateData.css || '',
+        };
+
+        if (templateData.pdfFileId) {
+          updateData.pdfFileId = templateData.pdfFileId;
+        }
+        if (templateData.iconFileId) {
+          updateData.iconFileId = templateData.iconFileId;
+        }
+
+        await templateApi.updateTemplate(rowId, updateData);
+        
+        console.log('Row data saved successfully for ID:', rowId);
+
+        const apiData = await templateApi.getTemplates();
+        let transformedData = transformApiData(Array.isArray(apiData) ? apiData : (apiData._embedded?.templates || apiData.content || []));
+        transformedData = transformedData.filter(item => item.templateType === 'Specific');
+        setData(transformedData);
+        setError(null);
+      } catch (saveError) {
+        console.error('Failed to save row data:', saveError);
+        setError(`Failed to save: ${saveError.message}`);
+      }
+    };
+
     const handleUsageChange = (rowId, newValue) => {
       // 将小写的值转换为首字母大写的格式用于显示
       const formattedUsage = Array.isArray(newValue) 
@@ -500,13 +646,14 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
       }
 
       try {
-        // 获取第一个文件（UploadDialog 支持多文件，但这里只取第一个）
-        const file = files[0].file;
+        const fileItem = files[0];
+        
+        if (!fileItem.fileId) {
+          throw new Error('File ID is missing. File may not have been uploaded successfully.');
+        }
 
-        // 获取当前模板的完整数据
         const templateData = await templateApi.getTemplateById(uploadingTemplateId);
 
-        // 准备更新数据
         const updateData = {
           name: templateData.name || '',
           type: templateData.type || templateData.typeName || '',
@@ -516,14 +663,27 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
           theme: templateData.theme || '',
         };
 
-        // 根据上传类型决定传递哪个文件
-        const pdfExample = uploadType === 'pdfExample' ? file : null;
-        const icon = uploadType === 'icon' ? file : null;
+        const existingFileId = uploadType === 'pdfExample' 
+          ? templateData.pdfFileId 
+          : templateData.iconFileId;
 
-        // 更新模板
-        await templateApi.updateTemplate(uploadingTemplateId, updateData, pdfExample, icon);
+        if (existingFileId && existingFileId !== fileItem.fileId) {
+          await templateApi.updateFile(existingFileId, fileItem.file);
+          if (uploadType === 'pdfExample') {
+            updateData.pdfFileId = existingFileId;
+          } else if (uploadType === 'icon') {
+            updateData.iconFileId = existingFileId;
+          }
+        } else {
+          if (uploadType === 'pdfExample') {
+            updateData.pdfFileId = fileItem.fileId;
+          } else if (uploadType === 'icon') {
+            updateData.iconFileId = fileItem.fileId;
+          }
+        }
 
-        // 刷新数据
+        await templateApi.updateTemplate(uploadingTemplateId, updateData);
+
         const apiData = await templateApi.getTemplates();
         let transformedData = transformApiData(Array.isArray(apiData) ? apiData : (apiData._embedded?.templates || apiData.content || []));
         
@@ -545,16 +705,51 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
     };
 
     // 切换行编辑模式
-    const handleToggleRowEdit = (rowId) => {
+    const handleToggleRowEdit = async (rowId) => {
       setEditingRows(prev => {
         const newSet = new Set(prev);
         if (newSet.has(rowId)) {
           newSet.delete(rowId);
+          handleSaveRowData(rowId).catch(err => {
+            console.error('Failed to save row data on exit edit mode:', err);
+          });
         } else {
           newSet.add(rowId);
         }
         return newSet;
       });
+    };
+
+    // 删除
+    const handleDeleteClick = async (rowId) => {
+      if (!window.confirm('Are you sure you want to delete this record? This action cannot be undone.')) {
+        return;
+      }
+
+      try {
+        setData(prevData => prevData.filter(row => row.id !== rowId));
+        
+        await templateApi.deleteTemplate(rowId);
+        
+        console.log('Template deleted successfully:', rowId);
+
+        const apiData = await templateApi.getTemplates();
+        let transformedData = transformApiData(Array.isArray(apiData) ? apiData : (apiData._embedded?.templates || apiData.content || []));
+        transformedData = transformedData.filter(item => item.templateType === 'Specific');
+        setData(transformedData);
+        setError(null);
+      } catch (error) {
+        console.error('Failed to delete template:', error);
+        try {
+          const apiData = await templateApi.getTemplates();
+          let transformedData = transformApiData(Array.isArray(apiData) ? apiData : (apiData._embedded?.templates || apiData.content || []));
+          transformedData = transformedData.filter(item => item.templateType === 'Specific');
+          setData(transformedData);
+        } catch (refreshError) {
+          console.error('Failed to refresh data after delete error:', refreshError);
+        }
+        setError(`Failed to delete: ${error.message}`);
+      }
     };
 
     return (
@@ -588,12 +783,12 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
             </Box>
           </HeaderContainer>
 
-          {/* 错误提示 */}
-          {error && (
+          {/* 错误提示 - 已禁用显示 */}
+          {/* {error && (
             <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
               {error}
             </Alert>
-          )}
+          )} */}
 
           {/* 加载状态 */}
           {loading && (
@@ -644,8 +839,8 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
                       <TableHeader sx={{ minWidth: 190, textAlign: 'center', fontWeight: 'bold'}}>Name</TableHeader>
                       <TableHeader sx={{ minWidth: 190, textAlign: 'center', fontWeight: 'bold' }}>Template Type</TableHeader>
                       <TableHeader sx={{ minWidth: 200, textAlign: 'center', fontWeight: 'bold' }}>Type</TableHeader>
-                      <TableHeader sx={{ minWidth: 500, fontWeight: 'bold' }}>Description</TableHeader>
-                      <TableHeader sx={{ minWidth: 260, textAlign: 'center', fontWeight: 'bold' }}>Usage</TableHeader>
+                      <TableHeader sx={{ minWidth: 400, textAlign: 'center', fontWeight: 'bold' }}>Description</TableHeader>
+                      <TableHeader sx={{ minWidth: 265, textAlign: 'center', fontWeight: 'bold' }}>Usage</TableHeader>
                       <TableHeader sx={{ minWidth: 150, textAlign: 'center', fontWeight: 'bold' }}>PDF per Product</TableHeader>
                       <TableHeader sx={{ minWidth: 200, textAlign: 'center', fontWeight: 'bold' }}>Created</TableHeader>
                       <TableHeader sx={{ minWidth: 180, textAlign: 'center', fontWeight: 'bold' }}>Created by</TableHeader>
@@ -653,7 +848,7 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
                       <TableHeader sx={{ minWidth: 180, textAlign: 'center', fontWeight: 'bold' }}>Last Updated by</TableHeader>
                       <TableHeader sx={{ minWidth: 220, textAlign: 'center', fontWeight: 'bold' }}>CSS</TableHeader>
                       <TableHeader sx={{ minWidth: 220, textAlign: 'center', fontWeight: 'bold' }}>HTML</TableHeader>
-                      <TableHeader sx={{ minWidth: 220, textAlign: 'center', fontWeight: 'bold' }}>PDF Example</TableHeader>
+                      <TableHeader sx={{ minWidth: 120, textAlign: 'center', fontWeight: 'bold' }}>PDF Example</TableHeader>
                       <StickyHeader sx={{ minWidth: 120, textAlign: 'center', fontWeight: 'bold' }}>Operation</StickyHeader>
                     </TableRow>
                   </TableHead>
@@ -672,10 +867,12 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
                         <TableCellStyled sx={{ textAlign: 'center' }}>
                           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 1 }}>
                             {row.image ? (
-                              <Box
-                                component="img"
+                              <AuthenticatedImage
                                 src={row.image}
                                 alt={row.name}
+                                templateId={row.id}
+                                onLoadImage={loadAuthenticatedImage}
+                                blobUrl={imageBlobUrls.get(row.id)}
                                 sx={{
                                   width: 40,
                                   height: 40,
@@ -708,7 +905,7 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
                         <TableCellStyled sx={{ textAlign: 'center' }}>
                           <Typography variant="body2">{row.id}</Typography>
                         </TableCellStyled>
-                        <TableCellStyled sx={{ textAlign: 'left' }}>
+                        <TableCellStyled sx={{ textAlign: 'left', width: '190px', minWidth: '190px', maxWidth: '190px' }}>
                           {editingRows.has(row.id) ? (
                             <TextField
                               value={row.name}
@@ -729,7 +926,18 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
                               }}
                             />
                           ) : (
-                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                            <Typography 
+                              variant="body2" 
+                              sx={{ 
+                                fontWeight: 500,
+                                width: '100%',
+                                maxWidth: '100%',
+                                wordBreak: 'break-word',
+                                wordWrap: 'break-word',
+                                overflowWrap: 'break-word',
+                                whiteSpace: 'normal'
+                              }}
+                            >
                               {row.name}
                             </Typography>
                           )}
@@ -1034,6 +1242,7 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
                               component="img"
                               src="/assets/delete.png"
                               alt="Delete"
+                              onClick={() => handleDeleteClick(row.id)}
                               sx={{
                                 width: 20,
                                 height: 20,
@@ -1141,7 +1350,18 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
               }
 
               // 获取类型ID
-              const typeId = templateApi.getTypeId(formData.type);
+              const typeId = await templateApi.getTypeId(formData.type);
+              
+              if (!typeId) {
+                throw new Error(`Failed to get type ID for ${formData.type}`);
+              }
+              
+              // 获取 templateTypeId (TenantAdmin 只创建 Specific 类型)
+              const templateTypeId = await templateApi.getTemplateTypeId('Specific');
+              
+              if (!templateTypeId) {
+                throw new Error('Failed to get template type ID for Specific');
+              }
               
               // 构建模板元数据
               const metadata = {
@@ -1150,18 +1370,17 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
                 usage: formData.usage || [],
                 typeId: typeId,
                 typeName: formData.type,
-                templateTypeId: 2, // 2 = Specific (Tenant Specific)
+                templateTypeId: templateTypeId,
                 html: '',
                 css: '',
                 pdfPerModel: false,
+                // 添加文件ID（如果已上传）
+                iconFileId: formData.iconFileId || null,
+                pdfFileId: formData.pdfFileId || null,
               };
 
-              // 创建新模板
-              await templateApi.createTemplate(
-                metadata,
-                formData.pdfFile || null,
-                formData.imageFile || null
-              );
+              // 创建新模板（不再传递文件，因为已经上传并获取了 fileId）
+              await templateApi.createTemplate(metadata);
 
               // 刷新数据列表
               const apiData = await templateApi.getTemplates();
