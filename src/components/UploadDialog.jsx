@@ -11,7 +11,7 @@ import { styled } from '@mui/material/styles';
 import React, { useState, useRef } from 'react';
 import HighlightOffIcon from '@mui/icons-material/HighlightOff';
 import UploadImageIcon from './icons/UploadImageIcon';
-import templateApi from '../services/templateApi';
+import fileApi from '../services/fileApi';
 
 // 公共样式 
 const BaseContainer = styled(Box)(() => ({
@@ -466,7 +466,7 @@ const UploadDialog = ({ open, onClose, onNext, onCancel, uploadType = 'all' }) =
 
     newFiles.forEach(async (fileItem) => {
       try {
-        const uploadResult = await templateApi.uploadFile(fileItem.file);
+        const uploadResult = await fileApi.uploadFile(fileItem.file);
         const fileId = uploadResult.fileId;
         
         if (fileId) {

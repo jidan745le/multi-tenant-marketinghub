@@ -3,6 +3,8 @@ import { styled } from '@mui/material/styles';
 import React, { useEffect, useRef, useState } from 'react';
 import NewPublicationSpecDialog from '../components/NewPublicationSpecDialog';
 import templateApi from '../services/templateApi';
+import fileApi from '../services/fileApi';
+import CookieService from '../utils/cookieService';
 
 // 样式化组件
 const PageContainer = styled(Box)(() => ({
@@ -260,8 +262,8 @@ const PreviewContent = styled(Box)(() => ({
   minWidth: '180px', 
   width: '100%',
   maxWidth: '320px',
-  minHeight: '450px', 
-  height: '450px',
+  minHeight: '440px', 
+  height: '440px',
   maxHeight: '450px',
   position: 'relative',
   overflow: 'hidden',
@@ -271,13 +273,60 @@ function TemplateMarketplace() {
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [templateImages] = useState({}); // 存储模板图片的 URL (下载逻辑已注释)
+  const [templateImages, setTemplateImages] = useState({}); 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
-  const imageUrlsRef = useRef([]); // 用于存储所有创建的图片 URL，以便清理
+  const imageUrlsRef = useRef([]); 
+  const imageBlobUrlsRef = useRef(new Map()); 
 
   // 获取模板列表
   useEffect(() => {
+    const imageUrls = imageUrlsRef.current;
+    const blobUrls = imageBlobUrlsRef.current;
+
+    const loadAuthenticatedImage = async (imageUrl, templateId) => {
+      try {
+        if (imageBlobUrlsRef.current.has(templateId)) {
+          const cachedUrl = imageBlobUrlsRef.current.get(templateId);
+          setTemplateImages(prev => ({ ...prev, [templateId]: cachedUrl }));
+          return cachedUrl;
+        }
+
+        const token = CookieService.getToken();
+        if (!token) {
+          console.error('No authentication token available');
+          return null;
+        }
+
+        const headers = fileApi.getHeaders(false);
+
+        const response = await fetch(imageUrl, {
+          method: 'GET',
+          headers: headers,
+        });
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            console.error('Unauthorized: Token may be expired or invalid');
+          }
+          throw new Error(`Failed to load image: ${response.status}`);
+        }
+
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        
+        // 缓存blob URL
+        imageBlobUrlsRef.current.set(templateId, blobUrl);
+        imageUrlsRef.current.push(blobUrl);
+        setTemplateImages(prev => ({ ...prev, [templateId]: blobUrl }));
+        
+        return blobUrl;
+      } catch (error) {
+        console.error('Error loading authenticated image:', error);
+        return null;
+      }
+    };
+
     const fetchTemplates = async () => {
       try {
         setLoading(true);
@@ -291,6 +340,14 @@ function TemplateMarketplace() {
         console.log('globalTemplates1111', globalTemplates);
         setTemplates(globalTemplates);
         
+        // 加载所有模板的图片
+        globalTemplates.forEach(template => {
+          if (template.iconFileId) {
+            const imageUrl = `/srv/v1.0/main/files/${template.iconFileId}`;
+            loadAuthenticatedImage(imageUrl, template.id);
+          }
+        });
+        
       } catch (err) {
         console.error('Failed to fetch templates:', err);
         setError(err.message || 'Failed to load templates');
@@ -303,23 +360,62 @@ function TemplateMarketplace() {
 
     // 清理函数：释放图片 URL
     return () => {
-      imageUrlsRef.current.forEach((url) => {
+      imageUrls.forEach((url) => {
         if (url) {
           URL.revokeObjectURL(url);
         }
       });
       imageUrlsRef.current = [];
+      
+      blobUrls.forEach(url => URL.revokeObjectURL(url));
+      blobUrls.clear();
     };
-  }, []);
+  }, []); // 空依赖数组，只在组件挂载时执行一次
 
   const handleAdd = (template) => {
     setSelectedTemplate(template);
     setDialogOpen(true);
   };
 
-  const handleViewPreview = (templateId) => {
-    console.log('View preview:', templateId);
-    // TODO: 实现预览逻辑
+  const handleViewPreview = async (templateId) => {
+    try {
+      // 获取模板详情以获取 pdfFileId
+      const templateData = await templateApi.getTemplateById(templateId);
+      
+      if (!templateData.pdfFileId) {
+        console.warn('No PDF file available for preview');
+        return;
+      }
+
+      const token = CookieService.getToken();
+      if (!token) {
+        console.error('No authentication token available');
+        return;
+      }
+
+      // 构建 PDF URL
+      const pdfUrl = `/srv/v1.0/main/files/${templateData.pdfFileId}`;
+      
+      const headers = fileApi.getHeaders(false);
+      const response = await fetch(pdfUrl, {
+        method: 'GET',
+        headers: headers,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to load PDF: ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      
+      // 在新标签页打开 PDF
+      window.open(blobUrl, '_blank');
+      
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    } catch (error) {
+      console.error('Failed to open PDF preview:', error);
+    }
   };
 
   const handleDialogClose = () => {

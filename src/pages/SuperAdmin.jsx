@@ -24,8 +24,10 @@ import {
   } from '@mui/material';
   import { styled } from '@mui/material/styles';
 import CloseIcon from '@mui/icons-material/Close';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
   import templateApi from '../services/templateApi';
+  import fileApi from '../services/fileApi';
+  import CookieService from '../utils/cookieService';
   import { CircularProgress, Alert } from '@mui/material';
   import NewPublicationDialog from '../components/NewPublicationDialog';
   import UploadDialog from '../components/UploadDialog';
@@ -271,9 +273,8 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
 
       const templateId = item.id || item.templateId || index + 1;
       
-      // 判断是否有 icon 和 pdfExample
-      const hasIcon = item.iconFileId && item.iconFileId !== null;
-      const hasPdfExample = item.pdfFileId && item.pdfFileId !== null;
+      // 判断是否有 icon（PDF Example 也使用相同的 icon）
+      const hasIcon = item.iconFileId && item.iconFileId !== null && item.iconFileId !== undefined && item.iconFileId !== '';
       
       // 判断 templateType：根据 templateTypeName 判断
       let templateType = 'Specific';
@@ -291,8 +292,8 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
         id: templateId,
         name: item.name || '-',
         description: item.description || '-',
-        image: hasIcon ? `/srv/v1/main/publication/templates/${templateId}/assets/icon` : null,
-        pdfExample: hasPdfExample ? `/srv/v1/main/publication/templates/${templateId}/assets/pdf-example` : null,
+        image: hasIcon ? `/srv/v1.0/main/files/${item.iconFileId}` : null,
+        pdfExample: hasIcon ? `/srv/v1.0/main/files/${item.iconFileId}` : null, // PDF Example 显示和 Image 相同的图片
         tenant: item.tenant || '-',
         theme: item.theme || '-',
         type: item.typeName || '-',
@@ -309,11 +310,69 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
     });
   };
 
+  // 带认证的图片组件
+  const AuthenticatedImage = ({ src, alt, templateId, onLoadImage, blobUrl, sx }) => {
+    const [imageSrc, setImageSrc] = useState(blobUrl || src);
+    const [loading, setLoading] = useState(!blobUrl);
+    const [error, setError] = useState(false);
+
+    // 当 blobUrl 变化时，更新 imageSrc
+    useEffect(() => {
+      if (blobUrl) {
+        setImageSrc(blobUrl);
+        setLoading(false);
+        setError(false);
+      } else if (src) {
+        setImageSrc(src);
+      }
+    }, [blobUrl, src]);
+
+    useEffect(() => {
+      if (!blobUrl && src) {
+        setLoading(true);
+        setError(false);
+        onLoadImage(src, templateId).then(url => {
+          if (url) {
+            setImageSrc(url);
+          } else {
+            setError(true);
+          }
+          setLoading(false);
+        }).catch(() => {
+          setError(true);
+          setLoading(false);
+        });
+      }
+    }, [src, templateId, blobUrl, onLoadImage]);
+
+    if (error || loading) {
+      return <ImagePlaceholder />;
+    }
+
+    return (
+      <Box
+        component="img"
+        src={imageSrc}
+        alt={alt}
+        onError={() => {
+          console.error('图片加载失败:', src, 'templateId:', templateId);
+          setError(true);
+        }}
+        onLoad={() => {
+          console.log('图片加载成功:', src, 'templateId:', templateId);
+        }}
+        sx={sx}
+      />
+    );
+  };
+
   function SuperAdmin() {
     const [selectedTenant, setSelectedTenant] = useState('tenant1');
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [_error, setError] = useState(null);
+    const [imageBlobUrls, setImageBlobUrls] = useState(new Map());
+    const imageBlobUrlsRef = useRef(new Map()); 
     
     // Dialog 相关状态
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -333,6 +392,52 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
     
     // 行编辑模式状态
     const [editingRows, setEditingRows] = useState(new Set());
+
+    const loadAuthenticatedImage = useCallback(async (imageUrl, templateId) => {
+      try {
+        const token = CookieService.getToken();
+        if (!token) {
+          console.error('No authentication token available');
+          return null;
+        }
+
+        if (imageBlobUrlsRef.current.has(templateId)) {
+          return imageBlobUrlsRef.current.get(templateId);
+        }
+
+        const headers = fileApi.getHeaders(false); 
+        const response = await fetch(imageUrl, {
+          method: 'GET',
+          headers: headers,
+        });
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            console.error('Unauthorized: Token may be expired or invalid');
+          }
+          throw new Error(`Failed to load image: ${response.status}`);
+        }
+
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        
+        imageBlobUrlsRef.current.set(templateId, blobUrl);
+        setImageBlobUrls(new Map(imageBlobUrlsRef.current));
+        
+        return blobUrl;
+      } catch (error) {
+        console.error('Error loading authenticated image:', error);
+        return null;
+      }
+    }, []);
+
+    useEffect(() => {
+      const ref = imageBlobUrlsRef.current;
+      return () => {
+        ref.forEach(url => URL.revokeObjectURL(url));
+        ref.clear();
+      };
+    }, []);
   
     // 从 API 获取模板数据
     useEffect(() => {
@@ -511,12 +616,12 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
       setLoadingContent(true);
       
       try {
-        // 获取当前模板的 CSS 或 HTML 内容
-        const blob = await templateApi.downloadTemplateAsset(templateId, type);
-        const text = await blob.text();
-        setEditContent(text);
+        // 从模板详情中获取 CSS 或 HTML 内容
+        const templateData = await templateApi.getTemplateById(templateId);
+        const content = templateData[type] || ''; // type 是 'css' 或 'html'
+        setEditContent(content);
       } catch (error) {
-        console.error(`failed to get ${type} content:`, error);
+        console.error(`Failed to get ${type.toUpperCase()} content:`, error);
         setEditContent(''); // 如果获取失败，显示空内容
       } finally {
         setLoadingContent(false);
@@ -624,7 +729,7 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
           : templateData.iconFileId;
 
         if (existingFileId && existingFileId !== fileItem.fileId) {
-          await templateApi.updateFile(existingFileId, fileItem.file);
+          await fileApi.updateFile(existingFileId, fileItem.file);
           if (uploadType === 'pdfExample') {
             updateData.pdfFileId = existingFileId;
           } else if (uploadType === 'icon') {
@@ -640,6 +745,16 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
 
         // 更新模板
         await templateApi.updateTemplate(uploadingTemplateId, updateData);
+
+        // 清除该模板的图片缓存，强制重新加载
+        if (uploadType === 'icon') {
+          const oldBlobUrl = imageBlobUrlsRef.current.get(uploadingTemplateId);
+          if (oldBlobUrl) {
+            URL.revokeObjectURL(oldBlobUrl);
+          }
+          imageBlobUrlsRef.current.delete(uploadingTemplateId);
+          setImageBlobUrls(new Map(imageBlobUrlsRef.current));
+        }
 
         // 刷新数据
         const apiData = await templateApi.getTemplates();
@@ -867,10 +982,12 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
                         <TableCellStyled sx={{ textAlign: 'center' }}>
                           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 1 }}>
                             {row.image ? (
-                              <Box
-                                component="img"
+                              <AuthenticatedImage
                                 src={row.image}
                                 alt={row.name}
+                                templateId={row.id}
+                                onLoadImage={loadAuthenticatedImage}
+                                blobUrl={imageBlobUrls.get(row.id)}
                                 sx={{
                                   width: 40,
                                   height: 40,
@@ -1194,14 +1311,17 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
                           <Box sx={{ display: 'flex', justifyContent: 'center' }}>
                             <PdfThumbnailContainer>
                               {row.pdfExample ? (
-                                <PdfThumbnail
-                                  component="img"
+                                <AuthenticatedImage
                                   src={row.pdfExample}
                                   alt="PDF Example"
+                                  templateId={row.id}
+                                  onLoadImage={loadAuthenticatedImage}
+                                  blobUrl={imageBlobUrls.get(row.id)}
                                   sx={{
                                     width: 35,
                                     height: 50,
                                     objectFit: 'cover',
+                                    borderRadius: 1,
                                   }}
                                 />
                               ) : (

@@ -19,7 +19,7 @@ import React, { useState, useRef } from 'react';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import WarningIcon from '@mui/icons-material/Warning';
 import CloseIcon from '@mui/icons-material/Close';
-import templateApi from '../services/templateApi';
+import fileApi from '../services/fileApi';
 
 // 样式化组件
 const DialogContainer = styled(Box)(() => ({
@@ -462,7 +462,7 @@ function NewPublicationDialog({ open, onClose, onConfirm }) {
       
       try {
         // 调用 uploadFile 接口上传文件
-        const uploadResult = await templateApi.uploadFile(file);
+        const uploadResult = await fileApi.uploadFile(file);
         const fileId = uploadResult.fileId;
         if (fileId) {
           setIconFileId(fileId);
@@ -491,7 +491,7 @@ function NewPublicationDialog({ open, onClose, onConfirm }) {
       setUploadingPdf(true);
       
       try {
-        const uploadResult = await templateApi.uploadFile(file);
+        const uploadResult = await fileApi.uploadFile(file);
         const fileId = uploadResult.fileId;
         if (fileId) {
           setPdfFileId(fileId);

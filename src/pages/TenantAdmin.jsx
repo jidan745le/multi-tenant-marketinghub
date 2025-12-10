@@ -26,10 +26,11 @@ import {
   Typography
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import NewPublicationSpecDialog from '../components/NewPublicationSpecDialog';
 import UploadDialog from '../components/UploadDialog';
 import templateApi from '../services/templateApi';
+import fileApi from '../services/fileApi';
 import CookieService from '../utils/cookieService';
   
   // Styled components
@@ -284,7 +285,7 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
           pdfFileId: item.pdfFileId,
           hasIcon,
           hasPdfExample,
-          imageUrl: hasIcon ? `/srv/v1/main/publication/templates/${templateId}/assets/icon` : null
+          imageUrl: hasIcon ? `/srv/v1.0/main/files/${item.iconFileId}` : null
         });
       }
       
@@ -304,8 +305,8 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
         id: templateId,
         name: item.name || '-',
         description: item.description || '-',
-        image: hasIcon ? `/srv/v1/main/publication/templates/${templateId}/assets/icon` : null,
-        pdfExample: hasPdfExample ? `/srv/v1/main/publication/templates/${templateId}/assets/pdf-example` : null,
+        image: hasIcon ? `/srv/v1.0/main/files/${item.iconFileId}` : null,
+        pdfExample: hasIcon ? `/srv/v1.0/main/files/${item.iconFileId}` : null, // PDF Example 显示和 Image 相同的图片
         tenant: item.tenant || '-',
         theme: item.theme || '-',
         type: item.typeName || '-',
@@ -328,8 +329,19 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
     const [error, setError] = useState(false);
 
     useEffect(() => {
+      if (blobUrl) {
+        setImageSrc(blobUrl);
+        setLoading(false);
+        setError(false);
+      } else if (src) {
+        setImageSrc(src);
+      }
+    }, [blobUrl, src]);
+
+    useEffect(() => {
       if (!blobUrl && src) {
         setLoading(true);
+        setError(false);
         onLoadImage(src, templateId).then(url => {
           if (url) {
             setImageSrc(url);
@@ -369,7 +381,8 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [_error, setError] = useState(null); // 错误状态用于 setError，显示已禁用
-    const [imageBlobUrls, setImageBlobUrls] = useState(new Map()); // 存储图片的blob URL
+    const [imageBlobUrls, setImageBlobUrls] = useState(new Map()); // 存储图片的blob URL（用于触发重新渲染）
+    const imageBlobUrlsRef = useRef(new Map()); // 使用 ref 存储实际的缓存，避免重复请求
     
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editType, setEditType] = useState(null); // 'css' 或 'html'
@@ -390,44 +403,53 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
     const [editingRows, setEditingRows] = useState(new Set());
 
     // 加载带认证的图片
-    const loadAuthenticatedImage = async (imageUrl, templateId) => {
-      // 如果已经有缓存的blob URL，直接返回
-      if (imageBlobUrls.has(templateId)) {
-        return imageBlobUrls.get(templateId);
-      }
-
+    const loadAuthenticatedImage = useCallback(async (imageUrl, templateId) => {
       try {
         const token = CookieService.getToken();
+        if (!token) {
+          console.error('No authentication token available');
+          return null;
+        }
+
+        // 避免重复请求
+        if (imageBlobUrlsRef.current.has(templateId)) {
+          return imageBlobUrlsRef.current.get(templateId);
+        }
+
+        const headers = fileApi.getHeaders(false); // false 表示不包含 Content-Type（用于文件下载）
+
         const response = await fetch(imageUrl, {
           method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
+          headers: headers,
         });
 
         if (!response.ok) {
+          if (response.status === 401) {
+            console.error('Unauthorized: Token may be expired or invalid');
+          }
           throw new Error(`Failed to load image: ${response.status}`);
         }
 
         const blob = await response.blob();
         const blobUrl = URL.createObjectURL(blob);
         
-        // 缓存blob URL
-        setImageBlobUrls(prev => new Map(prev).set(templateId, blobUrl));
+        imageBlobUrlsRef.current.set(templateId, blobUrl);
+        setImageBlobUrls(new Map(imageBlobUrlsRef.current));
         
         return blobUrl;
       } catch (error) {
         console.error('Error loading authenticated image:', error);
         return null;
       }
-    };
+    }, []);
 
-    // 清理blob URL
     useEffect(() => {
+      const ref = imageBlobUrlsRef.current;
       return () => {
-        imageBlobUrls.forEach(url => URL.revokeObjectURL(url));
+        ref.forEach(url => URL.revokeObjectURL(url));
+        ref.clear();
       };
-    }, [imageBlobUrls]);
+    }, []); 
   
     useEffect(() => {
       const fetchTemplates = async () => {
@@ -570,10 +592,9 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
       setLoadingContent(true);
       
       try {
-        // 获取CSS 或 HTML
-        const blob = await templateApi.downloadTemplateAsset(templateId, type);
-        const text = await blob.text();
-        setEditContent(text);
+        const templateData = await templateApi.getTemplateById(templateId);
+        const content = templateData[type] || ''; // type 是 'css' 或 'html'
+        setEditContent(content);
       } catch (error) {
         console.error(`Failed to get ${type.toUpperCase()} content:`, error);
         setEditContent(''); 
@@ -668,7 +689,7 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
           : templateData.iconFileId;
 
         if (existingFileId && existingFileId !== fileItem.fileId) {
-          await templateApi.updateFile(existingFileId, fileItem.file);
+          await fileApi.updateFile(existingFileId, fileItem.file);
           if (uploadType === 'pdfExample') {
             updateData.pdfFileId = existingFileId;
           } else if (uploadType === 'icon') {
@@ -683,6 +704,15 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
         }
 
         await templateApi.updateTemplate(uploadingTemplateId, updateData);
+
+        if (uploadType === 'icon') {
+          const oldBlobUrl = imageBlobUrlsRef.current.get(uploadingTemplateId);
+          if (oldBlobUrl) {
+            URL.revokeObjectURL(oldBlobUrl);
+          }
+          imageBlobUrlsRef.current.delete(uploadingTemplateId);
+          setImageBlobUrls(new Map(imageBlobUrlsRef.current));
+        }
 
         const apiData = await templateApi.getTemplates();
         let transformedData = transformApiData(Array.isArray(apiData) ? apiData : (apiData._embedded?.templates || apiData.content || []));
@@ -1187,14 +1217,17 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
                           <Box sx={{ display: 'flex', justifyContent: 'center' }}>
                             <PdfThumbnailContainer>
                               {row.pdfExample ? (
-                                <PdfThumbnail
-                                  component="img"
+                                <AuthenticatedImage
                                   src={row.pdfExample}
                                   alt="PDF Example"
+                                  templateId={row.id}
+                                  onLoadImage={loadAuthenticatedImage}
+                                  blobUrl={imageBlobUrls.get(row.id)}
                                   sx={{
                                     width: 35,
                                     height: 50,
                                     objectFit: 'cover',
+                                    borderRadius: 1,
                                   }}
                                 />
                               ) : (
