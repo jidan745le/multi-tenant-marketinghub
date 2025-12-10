@@ -48,20 +48,40 @@ export const {
 } = userSlice.actions;
 
 // Selectors
-export const selectUser = (state) => state.user.user;
-export const selectUserPermissions = (state) => state.user.permissions;
-export const selectUserRoles = (state) => state.user.roles;
-export const selectIsAuthenticated = (state) => state.user.isAuthenticated;
-export const selectUserLoading = (state) => state.user.loading;
-export const selectUserError = (state) => state.user.error;
+export const selectUser = (state) => {
+  if (!state || !state.user) return null;
+  return state.user.user || null;
+};
+export const selectUserPermissions = (state) => {
+  if (!state || !state.user) return [];
+  return state.user.permissions || [];
+};
+export const selectUserRoles = (state) => {
+  if (!state || !state.user) return [];
+  return state.user.roles || [];
+};
+export const selectIsAuthenticated = (state) => {
+  if (!state || !state.user) return false;
+  return state.user.isAuthenticated || false;
+};
+export const selectUserLoading = (state) => {
+  if (!state || !state.user) return false;
+  return state.user.loading || false;
+};
+export const selectUserError = (state) => {
+  if (!state || !state.user) return null;
+  return state.user.error || null;
+};
 
 // Permission checkers
 export const selectHasPermission = (state, permissionCode) => {
-    return state.user.permissions.includes(permissionCode);
+    const permissions = state?.user?.permissions || [];
+    return permissions.includes(permissionCode);
 };
 
 export const selectHasAnyPermission = (state, permissionCodes) => {
-    return permissionCodes.some(code => state.user.permissions.includes(code));
+    const permissions = state?.user?.permissions || [];
+    return permissionCodes.some(code => permissions.includes(code));
 };
 
 // Check for required permissions to access main app
