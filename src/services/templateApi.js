@@ -178,6 +178,42 @@ class TemplateApiService {
     }
 
     /**
+     * SuperAdmin 专用
+     * 获取所有租户和主题的模板，不进行过滤
+     * @returns {Promise<Array>} 所有模板数组
+     * @example
+     * await templateApi.getTemplateAll();
+     */
+    async getTemplateAll() {
+        try {
+            const url = `${this.baseURL}/all`;
+
+            console.log('🔍 Fetching all templates (SuperAdmin):', url);
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: this.getHeaders(),
+            });
+
+            if (!response.ok) {
+                throw await this.handleError(response);
+            }
+
+            const data = await response.json();
+            
+            // 处理返回的数据：可能是数组或对象
+            const templates = Array.isArray(data) ? data : (data._embedded?.templates || data.content || []);
+            
+            console.log('✅ All templates fetched successfully:', templates.length);
+
+            return templates;
+        } catch (error) {
+            console.error('❌ Error fetching all templates:', error);
+            throw error;
+        }
+    }
+
+    /**
      * 根据ID获取模板详情
      * @param {string|number} id - 模板ID
      * @returns {Promise<Object>} 模板详情对象

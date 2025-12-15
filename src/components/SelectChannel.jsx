@@ -5,10 +5,14 @@ import {
   DialogContent,
   Typography,
   IconButton,
+  CircularProgress,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import React from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import CloseIcon from '@mui/icons-material/Close';
+import setUpSheetApi from '../services/setUpSheetApi';
+import fileApi from '../services/fileApi';
+import CookieService from '../utils/cookieService';
 
 // Styled components
 const DialogContainer = styled(Box)(() => ({
@@ -182,74 +186,181 @@ const SelectButton = styled(Button)(({ theme }) => ({
   },
 }));
 
-// Mock data for channels
-const mockChannels = [
-  { 
-    id: "1", 
-    tenant: "Kendo", 
-    theme: "Kendo", 
-    name: "Amazon", 
-    iconId: "fc6e5675-8f5c-4e6d-8fbb-653a803ba478", 
-    description: "Some description updated",
-    logo: '/assets/kendo-logo-3.png' // 临时用于显示，实际应从 iconId 获取
+const ImagePlaceholder = styled(Box)(({ theme }) => ({
+  width: '69%',
+  maxWidth: '131px',
+  height: 'auto',
+  aspectRatio: '131 / 33',
+  backgroundColor: theme.palette.grey[100],
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  borderRadius: 4,
+  border: `1px dashed ${theme.palette.grey[400]}`,
+  margin: '50px auto 0',
+  position: 'relative',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    backgroundImage: `
+      linear-gradient(0deg, transparent 24%, ${theme.palette.grey[300]} 25%, ${theme.palette.grey[300]} 26%, transparent 27%, transparent 74%, ${theme.palette.grey[300]} 75%, ${theme.palette.grey[300]} 76%, transparent 77%, transparent),
+      linear-gradient(90deg, transparent 24%, ${theme.palette.grey[300]} 25%, ${theme.palette.grey[300]} 26%, transparent 27%, transparent 74%, ${theme.palette.grey[300]} 75%, ${theme.palette.grey[300]} 76%, transparent 77%, transparent)
+    `,
+    backgroundSize: '20px 20px',
+    opacity: 0.3,
   },
-  { 
-    id: "2", 
-    tenant: "Bosch", 
-    theme: "Bosch", 
-    name: "SAAME", 
-    iconId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890", 
-    description: "Bosch channel description",
-    logo: '/assets/kendo-logo-4.png'
-  },
-  { 
-    id: "3", 
-    tenant: "Kendo", 
-    theme: "kendo", 
-    name: "SAAME", 
-    iconId: "b2c3d4e5-f6a7-8901-bcde-f12345678901", 
-    description: "Kendo channel description",
-    logo: '/assets/kendo-logo-4.png'
-  },
-  { 
-    id: "4", 
-    tenant: "Kendo", 
-    theme: "Kendo", 
-    name: "KENDO", 
-    iconId: "c3d4e5f6-a7b8-9012-cdef-123456789012", 
-    description: "Kendo main channel",
-    logo: '/assets/kendo-logo-3.png'
-  },
-  { 
-    id: "5", 
-    tenant: "Bosch", 
-    theme: "Bosch", 
-    name: "SAAME", 
-    iconId: "d4e5f6a7-b8c9-0123-def0-234567890123", 
-    description: "Bosch SAAME channel",
-    logo: '/assets/kendo-logo-5.png'
-  },
-  { 
-    id: "6", 
-    tenant: "Bosch", 
-    theme: "Bosch", 
-    name: "SAAME", 
-    iconId: "e5f6a7b8-c9d0-1234-ef01-345678901234", 
-    description: "Another Bosch channel",
-    logo: '/assets/kendo-logo-4.png'
-  },
-  { 
-    id: "7", 
-    tenant: "Kendo", 
-    theme: "Kendo", 
-    name: "KENDO", 
-    iconId: "f6a7b8c9-d0e1-2345-f012-456789012345", 
-    description: "Kendo alternative channel",
-    logo: '/assets/kendo-logo-4.png'
-  },
-];
+}));
+
+// 带认证的图片组件
+const AuthenticatedImage = ({ src, alt, channelId, onLoadImage, blobUrl, sx }) => {
+  const [imageSrc, setImageSrc] = useState(blobUrl || src);
+  const [loading, setLoading] = useState(!blobUrl);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (blobUrl) {
+      setImageSrc(blobUrl);
+      setLoading(false);
+      setError(false);
+    } else if (src) {
+      setImageSrc(src);
+    }
+  }, [blobUrl, src]);
+
+  useEffect(() => {
+    if (!blobUrl && src) {
+      setLoading(true);
+      setError(false);
+      onLoadImage(src, channelId).then(url => {
+        if (url) {
+          setImageSrc(url);
+        } else {
+          setError(true);
+        }
+        setLoading(false);
+      }).catch(() => {
+        setError(true);
+        setLoading(false);
+      });
+    }
+  }, [src, channelId, blobUrl, onLoadImage]);
+
+  if (error || loading) {
+    return <ImagePlaceholder />;
+  }
+
+  return (
+    <Box
+      component="img"
+      src={imageSrc}
+      alt={alt}
+      onError={() => {
+        console.error('图片加载失败:', src, 'channelId:', channelId);
+        setError(true);
+      }}
+      onLoad={() => {
+        console.log('图片加载成功:', src, 'channelId:', channelId);
+      }}
+      sx={sx}
+    />
+  );
+};
 
 const SelectChannel = ({ open, onClose, onSelect }) => {
+  const [channels, setChannels] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [imageBlobUrls, setImageBlobUrls] = useState(new Map());
+  const imageBlobUrlsRef = useRef(new Map());
+
+  // 加载带认证的图片
+  const loadAuthenticatedImage = useCallback(async (imageUrl, channelId) => {
+    try {
+      const token = CookieService.getToken();
+      if (!token) {
+        console.error('No authentication token available');
+        return null;
+      }
+
+      // 避免重复请求
+      if (imageBlobUrlsRef.current.has(channelId)) {
+        return imageBlobUrlsRef.current.get(channelId);
+      }
+
+      const headers = fileApi.getHeaders(false);
+
+      const response = await fetch(imageUrl, {
+        method: 'GET',
+        headers: headers,
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          console.error('Unauthorized: Token may be expired or invalid');
+        }
+        throw new Error(`Failed to load image: ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      
+      imageBlobUrlsRef.current.set(channelId, blobUrl);
+      setImageBlobUrls(new Map(imageBlobUrlsRef.current));
+      
+      return blobUrl;
+    } catch (error) {
+      console.error('Error loading authenticated image:', error);
+      return null;
+    }
+  }, []);
+
+  // 清理 blob URLs
+  useEffect(() => {
+    const ref = imageBlobUrlsRef.current;
+    return () => {
+      ref.forEach(url => URL.revokeObjectURL(url));
+      ref.clear();
+    };
+  }, []);
+
+  // 从 API 获取数据
+  useEffect(() => {
+    const fetchChannels = async () => {
+      if (!open) return;
+      
+      try {
+        setLoading(true);
+        const apiData = await setUpSheetApi.getChannels();
+        
+        // 过滤只显示 templateType 为 "Global" 的渠道
+        const globalChannels = (Array.isArray(apiData) ? apiData : []).filter(
+          channel => channel.templateType === 'Global'
+        );
+        
+        // 转换数据格式
+        const transformedChannels = globalChannels.map((channel) => ({
+          id: channel.id,
+          tenant: channel.tenant || '-',
+          theme: channel.theme || '-',
+          name: channel.name || '-',
+          iconId: channel.iconId || null,
+          description: channel.description || '-',
+          icon: channel.iconId ? `/srv/v1.0/main/files/${channel.iconId}` : null,
+        }));
+        
+        setChannels(transformedChannels);
+      } catch (error) {
+        console.error('获取渠道数据失败:', error);
+        setChannels([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchChannels();
+  }, [open]);
+
   const handlePreview = (channel) => {
     // Handle preview action
     console.log('Preview channel:', channel);
@@ -296,25 +407,54 @@ const SelectChannel = ({ open, onClose, onSelect }) => {
           </HeaderContainer>
 
           {/* Channel Grid */}
-          <ChannelGrid>
-            {mockChannels.map((channel) => (
-              <ChannelCard key={channel.id}>
-                {channel.logo && (
-                  <ChannelLogo src={channel.logo} alt={channel.name} />
-                )}
-                <ChannelRegion>{channel.theme}</ChannelRegion>
-                <ChannelName>{channel.name}</ChannelName>
-                <ButtonContainer>
-                  <PreviewButton onClick={() => handlePreview(channel)}>
-                    PREVIEW
-                  </PreviewButton>
-                  <SelectButton onClick={() => handleSelect(channel)}>
-                    SELECT
-                  </SelectButton>
-                </ButtonContainer>
-              </ChannelCard>
-            ))}
-          </ChannelGrid>
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <ChannelGrid>
+              {channels.length === 0 ? (
+                <Box sx={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: '#666' }}>
+                  <Typography>No channels available</Typography>
+                </Box>
+              ) : (
+                channels.map((channel) => (
+                  <ChannelCard key={channel.id}>
+                    {channel.icon ? (
+                      <AuthenticatedImage
+                        src={channel.icon}
+                        alt={channel.name}
+                        channelId={channel.id}
+                        onLoadImage={loadAuthenticatedImage}
+                        blobUrl={imageBlobUrls.get(channel.id)}
+                        sx={{
+                          width: '69%',
+                          maxWidth: '131px',
+                          height: 'auto',
+                          aspectRatio: '131 / 33',
+                          objectFit: 'contain',
+                          margin: '50px auto 0',
+                          display: 'block',
+                        }}
+                      />
+                    ) : (
+                      <ImagePlaceholder />
+                    )}
+                    <ChannelRegion>{channel.theme}</ChannelRegion>
+                    <ChannelName>{channel.name}</ChannelName>
+                    <ButtonContainer>
+                      <PreviewButton onClick={() => handlePreview(channel)}>
+                        PREVIEW
+                      </PreviewButton>
+                      <SelectButton onClick={() => handleSelect(channel)}>
+                        SELECT
+                      </SelectButton>
+                    </ButtonContainer>
+                  </ChannelCard>
+                ))
+              )}
+            </ChannelGrid>
+          )}
         </DialogContainer>
       </DialogContent>
     </Dialog>

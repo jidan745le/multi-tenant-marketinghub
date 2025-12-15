@@ -12,6 +12,7 @@ import {
   IconButton,
   Snackbar,
   Alert,
+  CircularProgress,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import React, { useState, useRef, useEffect } from 'react';
@@ -22,6 +23,9 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DeleteIcon from '@mui/icons-material/Delete';
 import NumberInputField from './NumberInputField';
+import setUpSheetApi from '../services/setUpSheetApi';
+import fileApi from '../services/fileApi';
+import CookieService from '../utils/cookieService';
 
 // Styled components
 const DialogContainer = styled(Box)(() => ({
@@ -52,6 +56,8 @@ const Label = styled(Typography)(() => ({
   letterSpacing: '0.2px',
   fontWeight: 400,
   marginBottom: '10px',
+  position: 'relative',
+  display: 'inline-block',
 }));
 
 const LabelBold = styled(Typography)(() => ({
@@ -63,6 +69,17 @@ const LabelBold = styled(Typography)(() => ({
   letterSpacing: '0.2px',
   fontWeight: 700,
   marginBottom: '10px',
+  position: 'relative',
+  display: 'inline-block',
+}));
+
+const RequiredStar = styled('span')(() => ({
+  color: '#d32f2f',
+  fontSize: '14px',
+  fontWeight: 400,
+  marginLeft: '4px',
+  position: 'relative',
+  top: '-2px',
 }));
 
 
@@ -192,7 +209,7 @@ const ExcelUploadArea = styled(Box)(() => ({
   backgroundColor: '#fafafa',
 }));
 
-const CancelButton = styled(Button)(() => ({
+const CancelButton = styled(Button)(({ theme }) => ({
   borderRadius: '4px',
   borderStyle: 'solid',
   borderColor: '#e6e6e6',
@@ -208,10 +225,11 @@ const CancelButton = styled(Button)(() => ({
   boxShadow: '0px 1px 1px 0px rgba(0, 0, 0, 0.05)',
   '&:hover': {
     backgroundColor: 'rgba(0, 0, 0, 0.04)',
+    borderColor: theme.palette.primary.main || '#f16508',
   },
 }));
 
-const UploadButton = styled(Button)(() => ({
+const UploadButton = styled(Button)(({ theme }) => ({
   borderRadius: '4px',
   borderStyle: 'solid',
   borderColor: '#e6e6e6',
@@ -227,6 +245,7 @@ const UploadButton = styled(Button)(() => ({
   boxShadow: '0px 1px 1px 0px rgba(0, 0, 0, 0.05)',
   '&:hover': {
     backgroundColor: 'rgba(0, 0, 0, 0.04)',
+    borderColor: theme.palette.primary.main || '#f16508',
   },
 }));
 
@@ -412,7 +431,12 @@ const ButtonContainer = styled(Box)(() => ({
 const AddTemplateDialog = ({ open, onClose, onSave, channelId, editData, copyData, channels = [] }) => {
   const [templateLabel, setTemplateLabel] = useState('');
   const [channelName, setChannelName] = useState('');
-  const [theme, setTheme] = useState('KENDO');
+  // 从URL获取当前主题，转换为大写
+  const getCurrentTheme = () => {
+    const themeFromUrl = setUpSheetApi.getThemeFromUrl();
+    return themeFromUrl ? themeFromUrl.toUpperCase() : 'KENDO';
+  };
+  const [theme, setTheme] = useState(getCurrentTheme());
   const [templateType, setTemplateType] = useState('Line');
   const [sheets, setSheets] = useState([]);
   const [fileName, setFileName] = useState('');
@@ -420,6 +444,9 @@ const AddTemplateDialog = ({ open, onClose, onSave, channelId, editData, copyDat
   const fileInputRef = useRef(null);
   const [internalEditData, setInternalEditData] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'error' });
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadedFileId, setUploadedFileId] = useState(null);
 
   const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false });
@@ -431,9 +458,16 @@ const AddTemplateDialog = ({ open, onClose, onSave, channelId, editData, copyDat
       setInternalEditData(editData);
       setTemplateLabel(editData.name || editData.label || '');
       setChannelName(editData.channelName || editData.tenant || '');
-      setTheme(editData.theme || 'KENDO');
+      setTheme(editData.theme || getCurrentTheme());
       setTemplateType(editData.type || editData.templateType || 'Line');
       setFileName(editData.file || editData.fileName || '');
+      setUploadedFile(null);
+      // 如果有 fileId，设置 uploadedFileId（用于编辑模式）
+      if (editData.fileId) {
+        setUploadedFileId(editData.fileId);
+      } else {
+        setUploadedFileId(null);
+      }
       
       // 设置 templateDataDetails
       if (editData.templateDataDetails && Array.isArray(editData.templateDataDetails)) {
@@ -454,10 +488,12 @@ const AddTemplateDialog = ({ open, onClose, onSave, channelId, editData, copyDat
       setInternalEditData(null);
       setTemplateLabel(copyData.name ? `${copyData.name} (Copy)` : (copyData.label ? `${copyData.label} (Copy)` : ''));
       setChannelName(copyData.channelName || copyData.tenant || '');
-      setTheme(copyData.theme || 'KENDO');
+      setTheme(copyData.theme || getCurrentTheme());
       setTemplateType(copyData.type || copyData.templateType || 'Line');
       setFileName(copyData.file || copyData.fileName || '');
       setUploadedFile(null);
+      // 复制时保留原 template 的 fileId
+      setUploadedFileId(copyData.fileId || null);
       
       if (copyData.templateDataDetails && Array.isArray(copyData.templateDataDetails) && copyData.templateDataDetails.length > 0) {
         const initSheets = copyData.templateDataDetails.map((item, index) => ({
@@ -476,28 +512,29 @@ const AddTemplateDialog = ({ open, onClose, onSave, channelId, editData, copyDat
       // 根据 channelId 设置默认值
       setInternalEditData(null);
       setTemplateLabel('');
-      // 从 channelId 获取 channel 信息
       const channel = channels.find(c => c.id === channelId);
       if (channel) {
         setChannelName(channel.name || '');
-        setTheme(channel.theme || 'KENDO');
+        setTheme(channel.theme || getCurrentTheme());
       } else {
         setChannelName('');
-        setTheme('KENDO');
+        setTheme(getCurrentTheme());
       }
       setTemplateType('Line');
       setFileName('');
       setUploadedFile(null);
+      setUploadedFileId(null);
       setSheets([]);
     } else if (open && !editData && !copyData && !channelId) {
       // 完全新增模式
       setInternalEditData(null);
       setTemplateLabel('');
       setChannelName('');
-      setTheme('KENDO');
+      setTheme(getCurrentTheme());
       setTemplateType('Line');
       setFileName('');
       setUploadedFile(null);
+      setUploadedFileId(null);
       setSheets([]);
     }
   }, [open, editData, copyData, channelId, channels]);
@@ -513,6 +550,7 @@ const AddTemplateDialog = ({ open, onClose, onSave, channelId, editData, copyDat
         setTemplateType('Line');
         setFileName('');
         setUploadedFile(null);
+        setUploadedFileId(null);
         setSheets([]);
       }, 300);
       return () => clearTimeout(timer);
@@ -523,17 +561,18 @@ const AddTemplateDialog = ({ open, onClose, onSave, channelId, editData, copyDat
     // 重置表单
     setTemplateLabel('');
     setChannelName('');
-    setTheme('KENDO');
+    setTheme(getCurrentTheme());
     setTemplateType('Flat');
     setFileName('');
     setUploadedFile(null);
+    setUploadedFileId(null);
     setSheets([]);
     if (onClose) {
       onClose();
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // 验证必填字段
     if (!templateLabel || !templateLabel.trim()) {
       setSnackbar({
@@ -551,43 +590,204 @@ const AddTemplateDialog = ({ open, onClose, onSave, channelId, editData, copyDat
       });
       return;
     }
-    if (!uploadedFile && !fileName) {
+    if (!theme || !theme.trim()) {
       setSnackbar({
         open: true,
-        message: 'Excel file is mandatory',
+        message: 'Theme is mandatory',
         severity: 'error',
       });
       return;
     }
+    if (!templateType || !templateType.trim()) {
+      setSnackbar({
+        open: true,
+        message: 'Template type is mandatory',
+        severity: 'error',
+      });
+      return;
+    }
+    // 文件验证
+    if (!internalEditData || !internalEditData.id) {
+      if (!uploadedFile && !fileName) {
+        setSnackbar({
+          open: true,
+          message: 'Excel file is mandatory',
+          severity: 'error',
+        });
+        return;
+      }
+    } else {
+      if (!uploadedFile && !uploadedFileId && !fileName && !internalEditData.fileId) {
+        setSnackbar({
+          open: true,
+          message: 'Excel file is mandatory',
+          severity: 'error',
+        });
+        return;
+      }
+    }
 
-    if (onSave) {
-      onSave({
-        templateLabel: templateLabel.trim(),
-        channelName: channelName.trim(),
-        theme,
-        templateType,
+    try {
+      setSaving(true);
+
+      // 获取 channelId
+      let finalChannelId = channelId;
+      
+      if (internalEditData && internalEditData.channelId) {
+        finalChannelId = internalEditData.channelId;
+      }
+      
+      if (!finalChannelId && channelName) {
+        const channel = channels.find(c => c.name === channelName.trim());
+        if (channel) {
+          finalChannelId = channel.id;
+        } else {
+          throw new Error(`Channel "${channelName}" not found`);
+        }
+      }
+
+      if (!finalChannelId) {
+        throw new Error('Channel ID is required');
+      }
+
+      // 获取 fileId
+      let fileId = null;
+      if (uploadedFileId) {
+        fileId = uploadedFileId;
+      } else if (internalEditData?.fileId) {
+        fileId = internalEditData.fileId;
+      } else if (copyData?.fileId) {
+        fileId = copyData.fileId;
+      } else if (editData?.fileId) {
+        fileId = editData.fileId;
+      } else if (editData?.file && editData.file.startsWith('/srv/v1.0/main/files/')) {
+        const match = editData.file.match(/\/srv\/v1\.0\/main\/files\/([^/]+)/);
+        if (match && match[1]) {
+          fileId = match[1];
+        }
+      } else if (copyData?.file && copyData.file.startsWith('/srv/v1.0/main/files/')) {
+        // 复制模式：从 file URL 中提取 fileId
+        const match = copyData.file.match(/\/srv\/v1\.0\/main\/files\/([^/]+)/);
+        if (match && match[1]) {
+          fileId = match[1];
+        }
+      }
+      
+      if (!fileId && uploadedFile) {
+        setSnackbar({
+          open: true,
+          message: 'Please upload the Excel file first.',
+          severity: 'error',
+        });
+        setSaving(false);
+        return;
+      }
+
+      const userInfo = CookieService.getUserInfo();
+      const tenantName = userInfo?.tenant?.name || userInfo?.tenantName || 'Kendo';
+      
+      // 准备模板数据
+      const templateData = {
+        tenant: tenantName,
+        channelId: finalChannelId,
+        name: templateLabel.trim(),
+        description: '',
+        templateType: templateType || 'Flat',
+        theme: theme || 'KENDO', 
         templateDataDetails: sheets.map(sheet => ({
           worksheet: sheet.worksheet,
           firstDataColumn: sheet.firstDataColumn,
           firstDataRow: sheet.firstDataRow,
           lastDataColumn: sheet.lastDataColumn,
         })),
-        fileName: uploadedFile ? uploadedFile.name : fileName,
-        file: uploadedFile,
+      };
+
+      if (fileId) {
+        templateData.fileId = fileId;
+      }
+
+      if (internalEditData && internalEditData.id) {
+        templateData.id = internalEditData.id;
+        await setUpSheetApi.updateTemplate(templateData);
+        
+        setSnackbar({
+          open: true,
+          message: `Template "${templateLabel}" has been updated successfully.`,
+          severity: 'success',
+        });
+      } else {
+        await setUpSheetApi.createTemplate(templateData);
+        
+        setSnackbar({
+          open: true,
+          message: `Template "${templateLabel}" has been created successfully.`,
+          severity: 'success',
+        });
+      }
+
+      if (onSave) {
+        onSave(null);
+      }
+
+      setTimeout(() => {
+        handleCancel();
+      }, 500);
+    } catch (error) {
+      console.error('Failed to save template:', error);
+      setSnackbar({
+        open: true,
+        message: `Failed to save template: ${error.message}`,
+        severity: 'error',
       });
+    } finally {
+      setSaving(false);
     }
-    handleCancel();
   };
 
   const handleUploadExcel = () => {
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = (event) => {
+  const handleFileChange = async (event) => {
     const file = event.target.files?.[0];
     if (file) {
-      setUploadedFile(file);
-      setFileName(file.name);
+      try {
+        setUploading(true);
+        setUploadedFile(file);
+        setFileName(file.name);
+        
+        // 立即上传文件
+        const uploadResult = await fileApi.uploadFile(file);
+        const fileId = uploadResult?.id || uploadResult?.fileId || null;
+        
+        if (fileId) {
+          setUploadedFileId(fileId);
+          setSnackbar({
+            open: true,
+            message: `File "${file.name}" uploaded successfully.`,
+            severity: 'success',
+          });
+        } else {
+          throw new Error('Failed to get file ID from upload response');
+        }
+      } catch (error) {
+        console.error('Error uploading file:', error);
+        setSnackbar({
+          open: true,
+          message: `Failed to upload file: ${error.message}`,
+          severity: 'error',
+        });
+        // 上传失败时清除文件
+        setUploadedFile(null);
+        setFileName('');
+        setUploadedFileId(null);
+        // 重置文件输入
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      } finally {
+        setUploading(false);
+      }
     }
   };
 
@@ -674,7 +874,10 @@ const AddTemplateDialog = ({ open, onClose, onSave, channelId, editData, copyDat
           <FormRow>
             {/* Left Column */}
             <SectionContainer>
-              <Label>Template Label*</Label>
+              <Label>
+                Template Label
+                <RequiredStar>*</RequiredStar>
+              </Label>
               <StyledTextField
                 placeholder="Enter template label"
                 value={templateLabel}
@@ -682,13 +885,28 @@ const AddTemplateDialog = ({ open, onClose, onSave, channelId, editData, copyDat
                 variant="outlined"
               />
               <Box sx={{ marginTop: '20px', width: '100%' }}>
-                <LabelBold>Theme</LabelBold>
+                <LabelBold>
+                  Theme
+                  <RequiredStar>*</RequiredStar>
+                </LabelBold>
                 <FormControl fullWidth>
                   <StyledSelect
                     value={theme}
                     onChange={(e) => setTheme(e.target.value)}
                     IconComponent={ArrowDropDownIcon}
                     disabled={!!internalEditData}
+                    sx={internalEditData ? {
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#b3b3b3',
+                      },
+                      '&:hover .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#b3b3b3',
+                      },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#b3b3b3',
+                      },
+                      backgroundColor: '#f5f5f5',
+                    } : {}}
                   >
                     <MenuItem value="KENDO">KENDO</MenuItem>
                   </StyledSelect>
@@ -698,30 +916,38 @@ const AddTemplateDialog = ({ open, onClose, onSave, channelId, editData, copyDat
 
             {/* Right Column */}
             <SectionContainer>
-              <LabelBold>Channel Name*</LabelBold>
-              <FormControl fullWidth>
-                <StyledSelect
-                  value={channelName}
-                  onChange={(e) => {
-                    const selectedChannelName = e.target.value;
-                    setChannelName(selectedChannelName);
-                    // 根据选择的 channel 名称更新 theme
-                    const selectedChannel = channels.find(c => c.name === selectedChannelName);
-                    if (selectedChannel) {
-                      setTheme(selectedChannel.theme || theme);
-                    }
-                  }}
-                  IconComponent={ArrowDropDownIcon}
-                >
-                  {channels.map((channel) => (
-                    <MenuItem key={channel.id} value={channel.name}>
-                      {channel.name}
-                    </MenuItem>
-                  ))}
-                </StyledSelect>
-              </FormControl>
+              <LabelBold>
+                Channel Name
+                <RequiredStar>*</RequiredStar>
+              </LabelBold>
+              <StyledTextField
+                placeholder="Enter channel name"
+                value={channelName}
+                onChange={(e) => setChannelName(e.target.value)}
+                variant="outlined"
+                InputProps={{
+                  readOnly: true,
+                }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    backgroundColor: '#f5f5f5',
+                    '& fieldset': {
+                      borderColor: '#b3b3b3',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: '#b3b3b3',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: '#b3b3b3',
+                    },
+                  },
+                }}
+              />
               <Box sx={{ marginTop: '20px', width: '100%' }}>
-                <LabelBold>Template Type</LabelBold>
+                <LabelBold>
+                  Template Type
+                  <RequiredStar>*</RequiredStar>
+                </LabelBold>
                 <FormControl fullWidth>
                   <StyledSelect
                     value={templateType}
@@ -911,8 +1137,18 @@ const AddTemplateDialog = ({ open, onClose, onSave, channelId, editData, copyDat
           {/* Buttons */}
           <Box sx={{ marginTop: '20px', paddingTop: '20px' }}>
             <ButtonContainer>
-              <UploadButton onClick={handleUploadExcel}>
-                Upload Excel File*
+              <UploadButton onClick={handleUploadExcel} disabled={uploading}>
+                {uploading ? (
+                  <>
+                    <CircularProgress size={16} sx={{ color: '#666666', mr: 1 }} />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    Upload Excel File
+                    <RequiredStar>*</RequiredStar>
+                  </>
+                )}
               </UploadButton>
               <input
                 ref={fileInputRef}
@@ -925,8 +1161,8 @@ const AddTemplateDialog = ({ open, onClose, onSave, channelId, editData, copyDat
               <CancelButton onClick={handleCancel}>
                 CANCEL
               </CancelButton>
-              <SaveButton onClick={handleSave}>
-                SAVE
+              <SaveButton onClick={handleSave} disabled={saving}>
+                {saving ? <CircularProgress size={16} sx={{ color: '#ffffff' }} /> : 'SAVE'}
               </SaveButton>
             </ButtonContainer>
             {(fileName || uploadedFile) && (

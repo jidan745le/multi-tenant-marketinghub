@@ -14,9 +14,13 @@ import {
   Alert,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import AddTemplateDialog from '../components/AddTemplateDialog';
 import AddChannelDialog from '../components/AddChannelDialog';
+import setUpSheetApi from '../services/setUpSheetApi';
+import fileApi from '../services/fileApi';
+import CookieService from '../utils/cookieService';
+import { CircularProgress } from '@mui/material';
 
 // Styled components
 const HeaderContainer = styled(Box)(() => ({
@@ -261,60 +265,134 @@ const StyledIconButton = styled(IconButton)(() => ({
   },
 }));
 
+const ImagePlaceholder = styled(Box)(({ theme }) => ({
+  width: '38.4px',
+  height: '38.4px',
+  backgroundColor: theme.palette.grey[100],
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  borderRadius: 4,
+  border: `1px dashed ${theme.palette.grey[400]}`,
+  position: 'relative',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    backgroundImage: `
+      linear-gradient(0deg, transparent 24%, ${theme.palette.grey[300]} 25%, ${theme.palette.grey[300]} 26%, transparent 27%, transparent 74%, ${theme.palette.grey[300]} 75%, ${theme.palette.grey[300]} 76%, transparent 77%, transparent),
+      linear-gradient(90deg, transparent 24%, ${theme.palette.grey[300]} 25%, ${theme.palette.grey[300]} 26%, transparent 27%, transparent 74%, ${theme.palette.grey[300]} 75%, ${theme.palette.grey[300]} 76%, transparent 77%, transparent)
+    `,
+    backgroundSize: '20px 20px',
+    opacity: 0.3,
+  },
+}));
 
-// Mock data
-const mockData = [
-  {
-    id: 1,
-    isChannel: true,
-    name: 'Syndication Connection',
-    icon: '/assets/ego-logo-10.png',
-    theme: 'KENDO',
-    type: 'Channel',
-    tenant: '-',
-    mappings: '-',
-    description: '-',
-    expanded: true, // 默认展开
-    templates: [
-      { id: 11, name: 'SetubsheetEMEA', theme: 'KENDO', type: 'Line', tenant: 'SAAME', mappings: '2 mappings', file: 'SetupSheetEMEA.xlsx', description: '-' },
-      { id: 12, name: 'Set EMEA', theme: 'KENDO', type: 'Line', tenant: 'SAAME', mappings: '1 mappings', file: 'SetupSheetEMEA.xlsx', description: '-' },
-      { id: 13, name: 'Set EMEA', theme: 'KENDO', type: 'Line', tenant: 'SAAME', mappings: '1 mappings', file: 'SetupSheetEMEA.xlsx', description: '-' },
-      { id: 14, name: 'Set EMEA', theme: 'KENDO', type: 'Line', tenant: 'SAAME', mappings: '1 mappings', file: 'SetupSheetEMEA.xlsx', description: '-' },
-      { id: 15, name: 'Set EMEA', theme: 'KENDO', type: 'Line', tenant: 'SAAME', mappings: '1 mappings', file: 'SetupSheetEMEA.xlsx', description: '-' },
-    ],
-  },
-  {
-    id: 2,
-    isChannel: true,
-    name: 'General Sheet SAMME',
-    icon: '/assets/group-2-70.png',
-    theme: 'KENDO',
-    type: 'Channel',
-    tenant: '-',
-    mappings: '-',
-    description: '-',
-    expanded: true, // 默认展开
-    templates: [
-      { id: 21, name: 'Setupsheet SAMME V2', theme: 'KENDO', type: 'Line', tenant: 'SAAME', mappings: '2 mappings', file: 'SetupsheetEMEA_V2_Updated.xdsx', description: '-' },
-    ],
-  },
-  {
-    id: 3,
-    isChannel: true,
-    name: 'Amazon',
-    icon: '/assets/oip-c-10.png',
-    theme: 'KENDO',
-    type: 'Channel',
-    tenant: '-',
-    mappings: '-',
-    description: '-',
-    expanded: false, // 默认折叠
-    templates: [],
-  },
-];
+
+// 转换 API 数据为组件需要的格式
+const transformApiData = (apiData) => {
+  if (!apiData || !Array.isArray(apiData)) {
+    return [];
+  }
+
+  return apiData.map((channel) => {
+    // 转换 templates
+    const templates = (channel.templates || []).map((template) => {
+      const mappingsCount = template.templateDataDetails?.length || 0;
+      return {
+        id: template.id,
+        name: template.name || '-',
+        theme: template.theme || '-',
+        type: template.templateType || 'Line',
+        tenant: template.tenant || '-',
+        mappings: mappingsCount > 0 ? `${mappingsCount} mapping${mappingsCount > 1 ? 's' : ''}` : '0 mappings',
+        file: template.fileId ? `/srv/v1.0/main/files/${template.fileId}` : '-',
+        fileName: template.fileId ? `Template_${template.id}` : '-',
+        description: template.description || '-',
+        templateDataDetails: template.templateDataDetails || [],
+        fileId: template.fileId || null,
+      };
+    });
+
+    return {
+      id: channel.id,
+      isChannel: true,
+      name: channel.name || '-',
+      icon: channel.iconId ? `/srv/v1.0/main/files/${channel.iconId}` : null,
+      iconId: channel.iconId || null,
+      theme: channel.theme || '-',
+      type: 'Channel',
+      tenant: channel.tenant || '-',
+      mappings: '-',
+      description: channel.description || '-',
+      expanded: false, // 默认折叠
+      templates: templates,
+      channelTypeId: channel.channelTypeId,
+      usage: channel.usage,
+      templateType: channel.templateType,
+    };
+  });
+};
+
+// 带认证的图片组件
+const AuthenticatedImage = ({ src, alt, channelId, onLoadImage, blobUrl, sx }) => {
+  const [imageSrc, setImageSrc] = useState(blobUrl || src);
+  const [loading, setLoading] = useState(!blobUrl);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (blobUrl) {
+      setImageSrc(blobUrl);
+      setLoading(false);
+      setError(false);
+    } else if (src) {
+      setImageSrc(src);
+    }
+  }, [blobUrl, src]);
+
+  useEffect(() => {
+    if (!blobUrl && src) {
+      setLoading(true);
+      setError(false);
+      onLoadImage(src, channelId).then(url => {
+        if (url) {
+          setImageSrc(url);
+        } else {
+          setError(true);
+        }
+        setLoading(false);
+      }).catch(() => {
+        setError(true);
+        setLoading(false);
+      });
+    }
+  }, [src, channelId, blobUrl, onLoadImage]);
+
+  if (error || loading) {
+    return <ImagePlaceholder />;
+  }
+
+  return (
+    <Box
+      component="img"
+      src={imageSrc}
+      alt={alt}
+      onError={() => {
+        console.error('图片加载失败:', src, 'channelId:', channelId);
+        setError(true);
+      }}
+      onLoad={() => {
+        console.log('图片加载成功:', src, 'channelId:', channelId);
+      }}
+      sx={sx}
+    />
+  );
+};
 
 function ChannelManagement() {
-  const [data, setData] = useState(mockData);
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [addTemplateDialogOpen, setAddTemplateDialogOpen] = useState(false);
   const [addChannelDialogOpen, setAddChannelDialogOpen] = useState(false);
   const [currentChannelId, setCurrentChannelId] = useState(null);
@@ -323,6 +401,81 @@ function ChannelManagement() {
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [copyingTemplate, setCopyingTemplate] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'error' });
+  const [imageBlobUrls, setImageBlobUrls] = useState(new Map());
+  const imageBlobUrlsRef = useRef(new Map());
+
+  // 加载带认证的图片
+  const loadAuthenticatedImage = useCallback(async (imageUrl, channelId) => {
+    try {
+      const token = CookieService.getToken();
+      if (!token) {
+        console.error('No authentication token available');
+        return null;
+      }
+
+      // 避免重复请求
+      if (imageBlobUrlsRef.current.has(channelId)) {
+        return imageBlobUrlsRef.current.get(channelId);
+      }
+
+      const headers = fileApi.getHeaders(false); // false 表示不包含 Content-Type（这个是用于文件下载的）
+
+      const response = await fetch(imageUrl, {
+        method: 'GET',
+        headers: headers,
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          console.error('Unauthorized: Token may be expired or invalid');
+        }
+        throw new Error(`Failed to load image: ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      
+      imageBlobUrlsRef.current.set(channelId, blobUrl);
+      setImageBlobUrls(new Map(imageBlobUrlsRef.current));
+      
+      return blobUrl;
+    } catch (error) {
+      console.error('Error loading authenticated image:', error);
+      return null;
+    }
+  }, []);
+
+  // 清掉 blob URLs
+  useEffect(() => {
+    const ref = imageBlobUrlsRef.current;
+    return () => {
+      ref.forEach(url => URL.revokeObjectURL(url));
+      ref.clear();
+    };
+  }, []);
+
+  useEffect(() => {
+    const fetchChannels = async () => {
+      try {
+        setLoading(true);
+        const apiData = await setUpSheetApi.getChannels();
+        const transformedData = transformApiData(apiData);
+        setData(transformedData);
+      } catch (error) {
+        console.error('Failed to get channel data:', error);
+        setSnackbar({
+          open: true,
+          message: `Failed to get data: ${error.message}`,
+          severity: 'error',
+        });
+        setData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchChannels();
+  }, []);
 
   const handleToggleExpand = (id) => {
     setData(prevData =>
@@ -344,43 +497,84 @@ function ChannelManagement() {
     setCopyingChannel(null);
   };
 
-  const handleSaveChannel = (formData) => {
-    if (editingChannel) {
-      // 编辑模式：更新现有 channel
-      setData(prevData =>
-        prevData.map(item =>
-          item.id === editingChannel.id
-            ? {
-                ...item,
-                name: formData.name,
-                description: formData.description || '-',
-                icon: formData.icon || item.icon,
-                type: formData.type === 'Channel' ? 'Channel' : 'Custom',
-                // 如果 type 是 Channel，保持 theme，否则可能需要从 description 中提取
-                theme: formData.type === 'Channel' ? (item.theme || 'KENDO') : (item.theme || 'KENDO'),
-              }
-            : item
-        )
-      );
-    } else {
-      // 新增模式：添加新 channel
-      const newId = Math.max(...data.map(item => item.id), 0) + 1;
-      const newChannel = {
-        id: newId,
-        isChannel: true,
-        name: formData.name,
-        icon: formData.icon || null,
-        theme: 'KENDO', // 默认主题，可以根据需要调整
-        type: formData.type === 'Channel' ? 'Channel' : 'Custom',
-        tenant: '-',
-        mappings: '-',
-        description: formData.description || '-',
-        expanded: false, // 默认折叠
-        templates: [],
-      };
-      setData(prevData => [...prevData, newChannel]);
+  const handleSaveChannel = async (formData) => {
+    try {
+      if (formData === null) {
+        // 刷新数据
+        const apiData = await setUpSheetApi.getChannels();
+        const transformedData = transformApiData(apiData);
+        setData(transformedData);
+        return;
+      }
+
+      if (editingChannel) {
+        // 编辑的话调用 updateChannel API
+        const channelUsage = editingChannel.usage || [];
+        const channelUsageString = Array.isArray(channelUsage) 
+          ? channelUsage.join(',') 
+          : (typeof channelUsage === 'string' ? channelUsage : '');
+        
+        const newIconId = formData.iconId || editingChannel.iconId;
+        const iconChanged = newIconId !== editingChannel.iconId;
+        
+        await setUpSheetApi.updateChannel({
+          id: editingChannel.id,
+          name: formData.name,
+          description: formData.description || '',
+          iconId: newIconId,
+          channelUsage: channelUsageString,
+          templateType: editingChannel.templateType || 'Global',
+        });
+        
+        // 如果图标改变了，清除图片缓存
+        if (iconChanged) {
+          const oldBlobUrl = imageBlobUrlsRef.current.get(editingChannel.id);
+          if (oldBlobUrl) {
+            URL.revokeObjectURL(oldBlobUrl);
+          }
+          imageBlobUrlsRef.current.delete(editingChannel.id);
+          setImageBlobUrls(new Map(imageBlobUrlsRef.current));
+        }
+        
+        setSnackbar({
+          open: true,
+          message: `Channel "${formData.name}" has been updated successfully.`,
+          severity: 'success',
+        });
+      } else {
+        // 根据 channelType 设置 templateType：Custom 对应 Global，Channel 对应 Specific
+        const templateType = formData.type === 'Channel' ? 'Specific' : 'Global';
+        const usage = formData.usage || [];
+        
+        await setUpSheetApi.createChannel({
+          name: formData.name,
+          description: formData.description || '',
+          iconId: formData.iconId || null,
+          usage: usage.length > 0 ? usage : ['internal', 'external'], // 默认值
+          templateType: templateType,
+        });
+        
+        setSnackbar({
+          open: true,
+          message: `Channel "${formData.name}" has been created successfully.`,
+          severity: 'success',
+        });
+      }
+      
+      // 刷新数据
+      const apiData = await setUpSheetApi.getChannels();
+      const transformedData = transformApiData(apiData);
+      setData(transformedData);
+      
+      handleCloseAddChannelDialog();
+    } catch (error) {
+      console.error('Failed to save channel:', error);
+      setSnackbar({
+        open: true,
+        message: `Failed to save: ${error.message}`,
+        severity: 'error',
+      });
     }
-    handleCloseAddChannelDialog();
   };
 
   const handleAddTemplate = (channelId) => {
@@ -397,89 +591,83 @@ function ChannelManagement() {
     setCopyingTemplate(null);
   };
 
-  const handleSaveTemplate = (formData) => {
-    if (editingTemplate) {
-      // 编辑模式：更新现有 template
-      setData(prevData =>
-        prevData.map(channel => {
-          if (channel.templates && channel.templates.some(t => t.id === editingTemplate.id)) {
-            return {
-              ...channel,
-              templates: channel.templates.map(template =>
-                template.id === editingTemplate.id
-                  ? {
-                      ...template,
-                      name: formData.templateLabel,
-                      label: formData.templateLabel, // 同时更新 label 字段
-                      theme: formData.theme,
-                      type: formData.templateType,
-                      templateType: formData.templateType, // 同时更新 templateType 字段
-                      tenant: formData.channelName || template.tenant,
-                      mappings: formData.templateDataDetails?.length 
-                        ? `${formData.templateDataDetails.length} mappings` 
-                        : (template.mappings || '0 mappings'),
-                      file: formData.fileName || template.file || '-',
-                      fileName: formData.fileName || template.fileName || '-',
-                      description: formData.description || template.description || '-',
-                      templateDataDetails: formData.templateDataDetails || [],
-                    }
-                  : template
-              ),
-            };
-          }
-          return channel;
-        })
-      );
-      setSnackbar({
-        open: true,
-        message: `Template "${formData.templateLabel}" has been updated successfully.`,
-        severity: 'success',
-      });
-    } else {
-      // 新增模式：添加新 template
-      const channel = data.find(item => item.id === currentChannelId);
-      if (channel) {
-        const newTemplateId = Math.max(
-          ...channel.templates?.map(t => t.id) || [0],
-          ...data.flatMap(c => c.templates?.map(t => t.id) || [0]),
-          0
-        ) + 1;
+  const handleSaveTemplate = async (formData) => {
+    try {
+      const expandedChannelIds = data
+        .filter(item => item.isChannel && item.expanded)
+        .map(item => item.id);
+      
+      if (formData === null) {
+        // 刷新数据
+        const apiData = await setUpSheetApi.getChannels();
+        const transformedData = transformApiData(apiData);
         
-        const newTemplate = {
-          id: newTemplateId,
-          name: formData.templateLabel,
-          label: formData.templateLabel,
-          theme: formData.theme,
-          type: formData.templateType,
-          templateType: formData.templateType,
-          tenant: formData.channelName || '-',
-          mappings: formData.templateDataDetails?.length 
-            ? `${formData.templateDataDetails.length} mappings` 
-            : '0 mappings',
-          file: formData.fileName || '-',
-          fileName: formData.fileName || '-',
-          description: formData.description || '-',
-          templateDataDetails: formData.templateDataDetails || [],
-        };
+        // 恢复之前展开的channel状态
+        const dataWithExpandedState = transformedData.map(item => {
+          if (item.isChannel && expandedChannelIds.includes(item.id)) {
+            return { ...item, expanded: true };
+          }
+          return item;
+        });
+        
+        setData(dataWithExpandedState);
+        return;
+      }
 
-        setData(prevData =>
-          prevData.map(item =>
-            item.id === currentChannelId
-              ? {
-                  ...item,
-                  templates: [...(item.templates || []), newTemplate],
-                }
-              : item
-          )
-        );
+      if (editingTemplate) {
+        await setUpSheetApi.updateTemplate({
+          id: editingTemplate.id,
+          channelId: currentChannelId,
+          name: formData.templateLabel,
+          description: formData.description || '',
+          templateType: formData.templateType || 'Line',
+          templateDataDetails: formData.templateDataDetails || [],
+          fileId: formData.fileId || editingTemplate.fileId || null,
+        });
+        
+        setSnackbar({
+          open: true,
+          message: `Template "${formData.templateLabel}" has been updated successfully.`,
+          severity: 'success',
+        });
+      } else {
+        await setUpSheetApi.createTemplate({
+          channelId: currentChannelId,
+          name: formData.templateLabel,
+          description: formData.description || '',
+          templateType: formData.templateType || 'Flat',
+          templateDataDetails: formData.templateDataDetails || [],
+          fileId: formData.fileId || null,
+        });
+        
         setSnackbar({
           open: true,
           message: `Template "${formData.templateLabel}" has been created successfully.`,
           severity: 'success',
         });
       }
+      
+      // 刷新数据
+      const apiData = await setUpSheetApi.getChannels();
+      const transformedData = transformApiData(apiData);
+      const dataWithExpandedState = transformedData.map(item => {
+        if (item.isChannel && expandedChannelIds.includes(item.id)) {
+          return { ...item, expanded: true };
+        }
+        return item;
+      });
+      
+      setData(dataWithExpandedState);
+      
+      handleCloseAddTemplateDialog();
+    } catch (error) {
+      console.error('保存模板失败:', error);
+      setSnackbar({
+        open: true,
+        message: `保存失败: ${error.message}`,
+        severity: 'error',
+      });
     }
-    handleCloseAddTemplateDialog();
   };
 
   const handleEdit = (id) => {
@@ -530,6 +718,9 @@ function ChannelManagement() {
             channelName: channelItem.name,
             // 确保 templateDataDetails 被包含在复制数据中
             templateDataDetails: template.templateDataDetails || [],
+            // 确保 fileId 被包含在复制数据中
+            fileId: template.fileId || null,
+            file: template.file || null,
           });
           setEditingTemplate(null);
           setCurrentChannelId(channelItem.id);
@@ -540,54 +731,79 @@ function ChannelManagement() {
     }
   };
 
-  const handleDelete = (id) => {
-    // 先查找是否是 channel
-    const channel = data.find(item => item.id === id && item.isChannel);
-    if (channel) {
-      // 检查是否有 templates
-      if (channel.templates && channel.templates.length > 0) {
-        // 有 templates，显示错误提示
-        setSnackbar({
-          open: true,
-          message: `Channel "${channel.name}" is being used and cannot be deleted.`,
-          severity: 'error',
-        });
-      } else {
-        // 没有 templates，可以删除
-        setData(prevData => prevData.filter(item => item.id !== id));
-        setSnackbar({
-          open: true,
-          message: `Channel "${channel.name}" has been deleted successfully.`,
-          severity: 'success',
-        });
-      }
-      return;
-    }
-    
-    // 如果不是 channel，查找是否是 template
-    for (const channelItem of data) {
-      if (channelItem.templates) {
-        const template = channelItem.templates.find(t => t.id === id);
-        if (template) {
-          // 删除 template
-          setData(prevData =>
-            prevData.map(item =>
-              item.id === channelItem.id
-                ? {
-                    ...item,
-                    templates: item.templates.filter(t => t.id !== id),
-                  }
-                : item
-            )
-          );
+  const handleDelete = async (id) => {
+    try {
+      const channel = data.find(item => item.id === id && item.isChannel);
+      if (channel) {
+        if (channel.templates && channel.templates.length > 0) {
           setSnackbar({
             open: true,
-            message: `Template "${template.name}" has been deleted successfully.`,
-            severity: 'success',
+            message: `Channel "${channel.name}" is being used and cannot be deleted.`,
+            severity: 'error',
           });
           return;
+        } else {
+          await setUpSheetApi.deleteChannel(id);
+          
+          // 清除图片缓存
+          const oldBlobUrl = imageBlobUrlsRef.current.get(id);
+          if (oldBlobUrl) {
+            URL.revokeObjectURL(oldBlobUrl);
+          }
+          imageBlobUrlsRef.current.delete(id);
+          setImageBlobUrls(new Map(imageBlobUrlsRef.current));
+          
+          // 刷新数据
+          const apiData = await setUpSheetApi.getChannels();
+          const transformedData = transformApiData(apiData);
+          setData(transformedData);
+          
+          setSnackbar({
+            open: true,
+            message: `Channel "${channel.name}" has been deleted successfully.`,
+            severity: 'success',
+          });
+        }
+      } else {
+        for (const channelItem of data) {
+          if (channelItem.templates) {
+            const template = channelItem.templates.find(t => t.id === id);
+            if (template) {
+              const expandedChannelIds = data
+                .filter(item => item.isChannel && item.expanded)
+                .map(item => item.id);
+              
+              await setUpSheetApi.deleteTemplate(id);
+              
+              const apiData = await setUpSheetApi.getChannels();
+              const transformedData = transformApiData(apiData);
+              
+              const dataWithExpandedState = transformedData.map(item => {
+                if (item.isChannel && expandedChannelIds.includes(item.id)) {
+                  return { ...item, expanded: true };
+                }
+                return item;
+              });
+              
+              setData(dataWithExpandedState);
+              
+              setSnackbar({
+                open: true,
+                message: `Template "${template.name}" has been deleted successfully.`,
+                severity: 'success',
+              });
+              return;
+            }
+          }
         }
       }
+    } catch (error) {
+      console.error('Failed to delete:', error);
+      setSnackbar({
+        open: true,
+        message: `Failed to delete: ${error.message}`,
+        severity: 'error',
+      });
     }
   };
 
@@ -643,7 +859,12 @@ function ChannelManagement() {
           </AddChannelButton>
         </HeaderContainer>
 
-        <TableWrapper>
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <TableWrapper>
           <MainTableContainer component={Paper}>
             <Table stickyHeader>
               <TableHead>
@@ -689,10 +910,23 @@ function ChannelManagement() {
                             <ExpandIcon onClick={() => handleToggleExpand(row.id)}>
                               {row.expanded ? '-' : '+'}
                             </ExpandIcon>
-                            {row.icon && (
+                            {row.icon ? (
                               <IconContainer>
-                                <img src={row.icon} alt={row.name} />
+                                <AuthenticatedImage
+                                  src={row.icon}
+                                  alt={row.name}
+                                  channelId={row.id}
+                                  onLoadImage={loadAuthenticatedImage}
+                                  blobUrl={imageBlobUrls.get(row.id)}
+                                  sx={{
+                                    maxWidth: '100%',
+                                    maxHeight: '100%',
+                                    objectFit: 'contain',
+                                  }}
+                                />
                               </IconContainer>
+                            ) : (
+                              <ImagePlaceholder />
                             )}
                             <ChannelNameText>{row.name}</ChannelNameText>
                           </ChannelNameContainer>
@@ -863,6 +1097,7 @@ function ChannelManagement() {
             </Table>
           </MainTableContainer>
         </TableWrapper>
+        )}
       </Paper>
 
       {/* Add Template Dialog */}

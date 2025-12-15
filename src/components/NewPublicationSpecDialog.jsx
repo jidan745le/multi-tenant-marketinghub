@@ -91,6 +91,15 @@ const FieldTitle = styled(Typography)(() => ({
   letterSpacing: '0.2px',
   fontWeight: 600,
   marginBottom: '4px',
+  position: 'relative',
+  display: 'inline-block',
+}));
+
+const RequiredAsterisk = styled('span')(() => ({
+  color: '#d32f2f',
+  marginLeft: '2px',
+  fontSize: '14px',
+  fontWeight: 600,
 }));
 
 const UploadSection = styled(Box)(() => ({
@@ -233,6 +242,11 @@ const ConfirmButton = styled(Button)(({ theme }) => ({
   width: 'auto',
   '&:hover': {
     backgroundColor: theme.palette.primary.dark || '#d5570a',
+  },
+  '&:disabled': {
+    backgroundColor: '#e0e0e0',
+    color: '#9e9e9e',
+    cursor: 'not-allowed',
   },
 }));
 
@@ -413,11 +427,62 @@ function NewPublicationDialog({ open, onClose, onConfirm, initialData }) {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingPdf, setUploadingPdf] = useState(false);
 
+  // 必填字段
+  const [focusedRequiredField, setFocusedRequiredField] = useState(null);
+
+  const isFieldEmpty = (fieldName) => {
+    switch (fieldName) {
+      case 'name':
+        return !formData.name || formData.name.trim() === '';
+      case 'tenant':
+        return !formData.tenant || formData.tenant.trim() === '';
+      case 'theme':
+        return !formData.theme || formData.theme.trim() === '';
+      case 'templateType':
+        return !formData.templateType || formData.templateType.trim() === '';
+      case 'usage':
+        return !formData.usage || formData.usage.length === 0;
+      case 'type':
+        return !formData.type || formData.type.trim() === '';
+      default:
+        return false;
+    }
+  };
+
+  const areAllRequiredFieldsFilled = () => {
+    return (
+      !isFieldEmpty('name') &&
+      !isFieldEmpty('tenant') &&
+      !isFieldEmpty('theme') &&
+      !isFieldEmpty('templateType') &&
+      !isFieldEmpty('usage') &&
+      !isFieldEmpty('type')
+    );
+  };
+
+  // 检查字段是否应该被禁用
+  const isFieldDisabled = (fieldName) => {
+    if (!focusedRequiredField) {
+      return false;
+    }
+    if (focusedRequiredField === fieldName) {
+      return false;
+    }
+    if (!isFieldEmpty(focusedRequiredField)) {
+      return false;
+    }
+    // 其他情况禁用
+    return true;
+  };
+
   const handleInputChange = (field) => (event) => {
     setFormData({
       ...formData,
       [field]: event.target.value,
     });
+    if (focusedRequiredField === field && event.target.value.trim() !== '') {
+      setFocusedRequiredField(null);
+    }
   };
 
   const handleUsageChange = (event, newValue) => {
@@ -425,6 +490,21 @@ function NewPublicationDialog({ open, onClose, onConfirm, initialData }) {
       ...formData,
       usage: newValue,
     });
+    if (focusedRequiredField === 'usage' && newValue.length > 0) {
+      setFocusedRequiredField(null);
+    }
+  };
+
+  const handleFieldFocus = (fieldName) => {
+    if (isFieldEmpty(fieldName)) {
+      setFocusedRequiredField(fieldName);
+    }
+  };
+
+  const handleFieldBlur = (fieldName) => {
+    if (!isFieldEmpty(fieldName)) {
+      setFocusedRequiredField(null);
+    }
   };
 
   const handleImageUpload = () => {
@@ -518,6 +598,8 @@ function NewPublicationDialog({ open, onClose, onConfirm, initialData }) {
     setPdfFileId(null);
     setUploadingImage(false);
     setUploadingPdf(false);
+    // 重置聚焦状态
+    setFocusedRequiredField(null);
     onClose();
   };
 
@@ -577,12 +659,15 @@ function NewPublicationDialog({ open, onClose, onConfirm, initialData }) {
             {/* 左侧表单 */}
             <FormColumn>
               <FormField sx={{ top: '0px' }}>
-                <FieldTitle>Name</FieldTitle>
+                <FieldTitle>Name<RequiredAsterisk>*</RequiredAsterisk></FieldTitle>
                 <StyledTextField
                   fullWidth
                   placeholder="Please enter the template's name"
                   value={formData.name}
                   onChange={handleInputChange('name')}
+                  onFocus={() => handleFieldFocus('name')}
+                  onBlur={() => handleFieldBlur('name')}
+                  disabled={isFieldDisabled('name')}
                   InputProps={{
                     sx: {
                       fontFamily: '"Roboto-Regular", sans-serif',
@@ -594,7 +679,7 @@ function NewPublicationDialog({ open, onClose, onConfirm, initialData }) {
               </FormField>
 
               <FormField sx={{ top: '94px' }}>
-                <FieldTitle>Theme</FieldTitle>
+                <FieldTitle>Theme<RequiredAsterisk>*</RequiredAsterisk></FieldTitle>
                 <StyledTextField
                   fullWidth
                   value={currentTheme}
@@ -627,14 +712,17 @@ function NewPublicationDialog({ open, onClose, onConfirm, initialData }) {
               </FormField>
 
               <FormField sx={{ top: '188px' }}>
-                <FieldTitle>Usage</FieldTitle>
+                <FieldTitle>Usage<RequiredAsterisk>*</RequiredAsterisk></FieldTitle>
                 <StyledAutocomplete
                   fullWidth
                   multiple
                   disableClearable
+                  disabled={isFieldDisabled('usage')}
                   options={usageOptions}
                   value={formData.usage}
                   onChange={handleUsageChange}
+                  onFocus={() => handleFieldFocus('usage')}
+                  onBlur={() => handleFieldBlur('usage')}
                   renderInput={(params) => (
                     <TextField
                       {...params}
@@ -908,7 +996,7 @@ function NewPublicationDialog({ open, onClose, onConfirm, initialData }) {
             {/* 右侧表单 */}
             <FormColumn>
               <FormField sx={{ top: '0px' }}>
-                <FieldTitle>Tenant</FieldTitle>
+                <FieldTitle>Tenant<RequiredAsterisk>*</RequiredAsterisk></FieldTitle>
                 <StyledTextField
                   fullWidth
                   value={tenantName}
@@ -941,7 +1029,7 @@ function NewPublicationDialog({ open, onClose, onConfirm, initialData }) {
               </FormField>
 
               <FormField sx={{ top: '94px' }}>
-                <FieldTitle>Template Type</FieldTitle>
+                <FieldTitle>Template Type<RequiredAsterisk>*</RequiredAsterisk></FieldTitle>
                 <StyledTextField
                   fullWidth
                   value="Tenant Specific"
@@ -974,11 +1062,14 @@ function NewPublicationDialog({ open, onClose, onConfirm, initialData }) {
               </FormField>
 
               <FormField sx={{ top: '188px' }}>
-                <FieldTitle>Type</FieldTitle>
+                <FieldTitle>Type<RequiredAsterisk>*</RequiredAsterisk></FieldTitle>
                 <FormControl fullWidth>
                   <StyledSelect
                     value={formData.type}
                     onChange={handleInputChange('type')}
+                    onFocus={() => handleFieldFocus('type')}
+                    onBlur={() => handleFieldBlur('type')}
+                    disabled={isFieldDisabled('type')}
                     displayEmpty
                     MenuProps={menuProps}
                     renderValue={(selected) => {
@@ -1027,7 +1118,7 @@ function NewPublicationDialog({ open, onClose, onConfirm, initialData }) {
           {/* 底部按钮 */}
           <ButtonContainer>
             <CancelButton onClick={handleCancel}>CANCEL</CancelButton>
-            <ConfirmButton onClick={handleConfirm}>CONFIRM</ConfirmButton>
+            <ConfirmButton onClick={handleConfirm} disabled={!areAllRequiredFieldsFilled()}>CONFIRM</ConfirmButton>
           </ButtonContainer>
         </DialogContainer>
       </DialogContent>

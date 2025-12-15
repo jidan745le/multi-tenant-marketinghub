@@ -8,12 +8,17 @@ import {
   IconButton,
   Radio,
   FormControlLabel,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import CloseIcon from '@mui/icons-material/Close';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import SelectChannel from './SelectChannel';
+import fileApi from '../services/fileApi';
+import CookieService from '../utils/cookieService';
+import setUpSheetApi from '../services/setUpSheetApi';
 
 // Styled components
 const DialogContainer = styled(Box)(() => ({
@@ -120,6 +125,17 @@ const IconLabel = styled(Typography)(() => ({
   fontSize: '14px',
   fontWeight: 400,
   marginBottom: '8px',
+  position: 'relative',
+  display: 'inline-block',
+}));
+
+const RequiredStar = styled('span')(() => ({
+  color: '#d32f2f',
+  fontSize: '14px',
+  fontWeight: 400,
+  marginLeft: '4px',
+  position: 'relative',
+  top: '-2px',
 }));
 
 const IconUploadContainer = styled(Box)(() => ({
@@ -207,6 +223,8 @@ const FieldLabel = styled(Typography)(() => ({
   fontFamily: '"OpenSans-Regular", sans-serif',
   fontSize: '14px',
   fontWeight: 400,
+  position: 'relative',
+  display: 'inline-block',
 }));
 
 const StyledTextField = styled(TextField)(() => ({
@@ -285,50 +303,151 @@ const AddChannelDialog = ({ open, onClose, onSave, editData, copyData }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [iconPreview, setIconPreview] = useState(null);
+  const [iconFileId, setIconFileId] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
   const [selectChannelOpen, setSelectChannelOpen] = useState(false);
   const fileInputRef = useRef(null);
   const [internalEditData, setInternalEditData] = useState(null);
+  const [iconBlobUrl, setIconBlobUrl] = useState(null);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'error' });
 
-  useEffect(() => {
-    if (open && editData) {
-      // 编辑模式
-      setInternalEditData(editData);
-      setName(editData.name || '');
-      setDescription(editData.description || '');
-      setIconPreview(editData.icon || null);
-      setChannelType('Custom');
-    } else if (open && copyData) {
-      // 复制模式
-      setInternalEditData(null);
-      setName(copyData.name ? `${copyData.name} (copy)` : '');
-      setDescription(copyData.description || '');
-      setIconPreview(copyData.icon || null);
-      if (copyData.type === 'Channel') {
-        setChannelType('Channel');
-      } else {
-        setChannelType('Custom');
+  // 加载带认证的图片
+  const loadAuthenticatedImage = useCallback(async (imageUrl) => {
+    try {
+      const token = CookieService.getToken();
+      if (!token) {
+        console.error('No authentication token available');
+        return null;
       }
-    } else if (open && !editData && !copyData) {
-      setInternalEditData(null);
-      setChannelType('Custom');
-      setName('');
-      setDescription('');
-      setIconPreview(null);
+
+      const headers = fileApi.getHeaders(false);
+
+      const response = await fetch(imageUrl, {
+        method: 'GET',
+        headers: headers,
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          console.error('Unauthorized: Token may be expired or invalid');
+        }
+        throw new Error(`Failed to load image: ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      
+      return blobUrl;
+    } catch (error) {
+      console.error('Error loading authenticated image:', error);
+      return null;
     }
-  }, [open, editData, copyData]);
+  }, []);
+
+  // 清理 blob URL
+  useEffect(() => {
+    return () => {
+      if (iconBlobUrl) {
+        URL.revokeObjectURL(iconBlobUrl);
+      }
+    };
+  }, [iconBlobUrl]);
 
   useEffect(() => {
-    if (!open) {
-      const timer = setTimeout(() => {
+    const loadEditIcon = async () => {
+      if (open && editData) {
+        // 编辑模式
+        setInternalEditData(editData);
+        setName(editData.name || '');
+        setDescription(editData.description || '');
+        setIconFileId(editData.iconId || null);
+        setSelectedFile(null);
+        setChannelType('Custom');
+        
+        // 加载图标预览（如果需要认证）
+        if (editData.icon) {
+          if (editData.icon.startsWith('/srv/v1.0/main/files/')) {
+            // 需要认证的URL
+            const blobUrl = await loadAuthenticatedImage(editData.icon);
+            if (blobUrl) {
+              setIconBlobUrl(blobUrl);
+              setIconPreview(blobUrl);
+            } else {
+              setIconPreview(null);
+            }
+          } else {
+            // 不需要认证的URL（如blob URL）
+            setIconPreview(editData.icon);
+          }
+        } else {
+          setIconPreview(null);
+        }
+      } else if (open && copyData) {
+        // 复制模式
+        setInternalEditData(null);
+        setName(copyData.name ? `${copyData.name} (copy)` : '');
+        setDescription(copyData.description || '');
+        setIconFileId(copyData.iconId || null);
+        setSelectedFile(null);
+        if (copyData.type === 'Channel') {
+          setChannelType('Channel');
+        } else {
+          setChannelType('Custom');
+        }
+        
+        // 加载图标预览（如果需要认证）
+        if (copyData.icon) {
+          if (copyData.icon.startsWith('/srv/v1.0/main/files/')) {
+            // 需要认证的URL
+            const blobUrl = await loadAuthenticatedImage(copyData.icon);
+            if (blobUrl) {
+              setIconBlobUrl(blobUrl);
+              setIconPreview(blobUrl);
+            } else {
+              setIconPreview(null);
+            }
+          } else {
+            // 不需要认证的URL（如blob URL）
+            setIconPreview(copyData.icon);
+          }
+        } else {
+          setIconPreview(null);
+        }
+      } else if (open && !editData && !copyData) {
         setInternalEditData(null);
         setChannelType('Custom');
         setName('');
         setDescription('');
         setIconPreview(null);
+        setIconFileId(null);
+        setSelectedFile(null);
+        setIconBlobUrl(null);
+      }
+    };
+    
+    loadEditIcon();
+  }, [open, editData, copyData, loadAuthenticatedImage]);
+
+  useEffect(() => {
+    if (!open) {
+      const timer = setTimeout(() => {
+        // 清理blob URL
+        if (iconBlobUrl) {
+          URL.revokeObjectURL(iconBlobUrl);
+          setIconBlobUrl(null);
+        }
+        setInternalEditData(null);
+        setChannelType('Custom');
+        setName('');
+        setDescription('');
+        setIconPreview(null);
+        setIconFileId(null);
+        setSelectedFile(null);
       }, 300); //防止关闭时提前置空
       return () => clearTimeout(timer);
     }
-  }, [open]);
+  }, [open, iconBlobUrl]);
 
   const handleTypeChange = (event) => {
     setChannelType(event.target.value);
@@ -338,7 +457,7 @@ const AddChannelDialog = ({ open, onClose, onSave, editData, copyData }) => {
     setSelectChannelOpen(true);
   };
 
-  const handleChannelSelect = (channel) => {
+  const handleChannelSelect = async (channel) => {
     if (channel.name) {
       setName(channel.name);
     }
@@ -347,35 +466,165 @@ const AddChannelDialog = ({ open, onClose, onSave, editData, copyData }) => {
     } else if (channel.theme) {
       setDescription(`${channel.theme} - ${channel.name}`);
     }
-    if (channel.logo) {
-      setIconPreview(channel.logo);
-    } else if (channel.iconId) {
+    
+    // 设置iconFileId以便后续保存时使用
+    if (channel.iconId) {
+      setIconFileId(channel.iconId);
+      
+      // 如果有icon URL，使用带认证的方式加载图片
+      const imageUrl = channel.icon || `/srv/v1.0/main/files/${channel.iconId}`;
+      if (imageUrl && imageUrl.startsWith('/srv/v1.0/main/files/')) {
+        // 需要认证的URL，使用带认证的方式加载
+        const blobUrl = await loadAuthenticatedImage(imageUrl);
+        if (blobUrl) {
+          setIconBlobUrl(blobUrl);
+          setIconPreview(blobUrl);
+        } else {
+          setIconPreview(null);
+        }
+      } else {
+        // 不需要认证的URL（如blob URL或data URL）
+        setIconPreview(imageUrl);
+      }
+    } else {
       setIconPreview(null);
     }
+    
     setSelectChannelOpen(false);
   };
 
   const handleCancel = () => {
+    // 清理blob URL
+    if (iconBlobUrl) {
+      URL.revokeObjectURL(iconBlobUrl);
+      setIconBlobUrl(null);
+    }
     // 重置表单
     setChannelType('Custom');
     setName('');
     setDescription('');
     setIconPreview(null);
+    setIconFileId(null);
+    setSelectedFile(null);
     if (onClose) {
       onClose();
     }
   };
 
-  const handleConfirm = () => {
-    if (onSave) {
-      onSave({
-        type: channelType,
-        name,
-        description,
-        icon: iconPreview,
+  const handleConfirm = async () => {
+    if (!name.trim()) {
+      setSnackbar({
+        open: true,
+        message: 'Channel name is required',
+        severity: 'error',
       });
+      return;
     }
-    handleCancel();
+
+    // 检查Icon是否已填写
+    const isIconFilled = iconPreview || iconFileId;
+    if (!isIconFilled) {
+      setSnackbar({
+        open: true,
+        message: 'Channel icon is required',
+        severity: 'error',
+      });
+      return;
+    }
+
+    try {
+      setUploading(true);
+      let finalIconId = iconFileId;
+
+      // 如果有新选择的文件，先上传
+      if (selectedFile) {
+        const uploadResult = await fileApi.uploadFile(selectedFile);
+        if (uploadResult && uploadResult.id) {
+          finalIconId = uploadResult.id;
+        } else if (uploadResult && uploadResult.fileId) {
+          finalIconId = uploadResult.fileId;
+        }
+      }
+
+      // 复制模式这块换id的逻辑
+      if (!finalIconId && copyData && copyData.iconId) {
+        finalIconId = copyData.iconId;
+      }
+
+      if (internalEditData && internalEditData.id) {
+        // 编辑的话调用 updateChannel API
+        const channelUsage = internalEditData.usage || [];
+        const channelUsageString = Array.isArray(channelUsage) 
+          ? channelUsage.join(',') 
+          : (typeof channelUsage === 'string' ? channelUsage : '');
+        
+        const newIconId = finalIconId || internalEditData.iconId;
+        
+        await setUpSheetApi.updateChannel({
+          id: internalEditData.id,
+          name: name.trim(),
+          description: description || '',
+          iconId: newIconId,
+          channelUsage: channelUsageString,
+          templateType: internalEditData.templateType || 'Global',
+        });
+        
+        setSnackbar({
+          open: true,
+          message: `Channel "${name}" has been updated successfully.`,
+          severity: 'success',
+        });
+      } else {
+        // 新增模式或复制模式：调用 createChannel API
+        // 根据 channelType 设置 templateType：Custom 对应 Global，Channel 对应 Specific
+        const templateType = channelType === 'Channel' ? 'Specific' : 'Global';
+        
+        // 复制模式：使用 copyData 中的 usage，如果没有则为空数组
+        let usage = [];
+        if (copyData && copyData.usage) {
+          // 如果 copyData 有 usage，使用它
+          usage = Array.isArray(copyData.usage) ? copyData.usage : [];
+        }
+        
+        await setUpSheetApi.createChannel({
+          name: name.trim(),
+          description: description || '',
+          iconId: finalIconId || null,
+          usage: usage,
+          templateType: templateType,
+        });
+        
+        setSnackbar({
+          open: true,
+          message: `Channel "${name}" has been created successfully.`,
+          severity: 'success',
+        });
+      }
+
+      // 如果提供了 onSave 回调，只用于刷新父组件数据，不传递 formData（避免重复创建）
+      // 传递 null 或空对象，让父组件知道只需要刷新数据
+      if (onSave) {
+        await onSave(null);
+      }
+
+      // 延迟关闭对话框，让用户看到成功消息
+      setTimeout(() => {
+        handleCancel();
+      }, 500);
+    } catch (error) {
+      console.error('保存渠道失败:', error);
+      setSnackbar({
+        open: true,
+        message: `Failed to save channel: ${error.message}`,
+        severity: 'error',
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
   };
 
   const handleUploadIcon = () => {
@@ -385,6 +634,7 @@ const AddChannelDialog = ({ open, onClose, onSave, editData, copyData }) => {
   const handleFileChange = (event) => {
     const file = event.target.files?.[0];
     if (file) {
+      setSelectedFile(file);
       // 创建预览
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -522,11 +772,23 @@ const AddChannelDialog = ({ open, onClose, onSave, editData, copyData }) => {
           <FormContainer>
             {/* Icon Upload Section */}
             <IconUploadSection>
-              <IconLabel>Icon</IconLabel>
+              <IconLabel>
+                Icon
+                <RequiredStar>*</RequiredStar>
+              </IconLabel>
               <IconUploadContainer>
                 <IconPreviewBox onClick={handleUploadIcon}>
                   {iconPreview ? (
-                    <img src={iconPreview} alt="Icon preview" />
+                    <img 
+                      src={iconPreview} 
+                      alt="Icon preview"
+                      onError={() => {
+                        console.error('icon preview error:', iconPreview);
+                        // 如果加载失败，清除预览
+                        setIconPreview(null);
+                        setIconBlobUrl(null);
+                      }}
+                    />
                   ) : (
                     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                     <CloudUploadIcon sx={{ width: '50px', height: '50px', color: '#bdbdbd', marginBottom: '8px' }} />
@@ -548,7 +810,10 @@ const AddChannelDialog = ({ open, onClose, onSave, editData, copyData }) => {
 
             {/* Name Field */}
             <FormField>
-              <FieldLabel>Name</FieldLabel>
+              <FieldLabel>
+                Name
+                <RequiredStar>*</RequiredStar>
+              </FieldLabel>
               <StyledTextField
                 placeholder="Enter name"
                 value={name}
@@ -587,8 +852,11 @@ const AddChannelDialog = ({ open, onClose, onSave, editData, copyData }) => {
             <CancelButton onClick={handleCancel}>
               CANCEL
             </CancelButton>
-            <ConfirmButton onClick={handleConfirm}>
-              CONFIRM
+            <ConfirmButton 
+              onClick={handleConfirm} 
+              disabled={uploading || !name.trim() || (!iconPreview && !iconFileId)}
+            >
+              {uploading ? 'UPLOADING...' : 'CONFIRM'}
             </ConfirmButton>
           </ButtonContainer>
         </DialogContainer>
@@ -600,6 +868,33 @@ const AddChannelDialog = ({ open, onClose, onSave, editData, copyData }) => {
         onClose={() => setSelectChannelOpen(false)}
         onSelect={handleChannelSelect}
       />
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={(theme) => ({
+            backgroundColor: snackbar.severity === 'success' 
+              ? theme.palette.primary.main 
+              : undefined,
+            '&.MuiAlert-filledSuccess': {
+              backgroundColor: theme.palette.primary.main,
+            },
+            '&.MuiAlert-filledError': {
+              backgroundColor: theme.palette.error.main,
+            }
+          })}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Dialog>
   );
 };

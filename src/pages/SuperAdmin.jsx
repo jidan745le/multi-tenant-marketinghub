@@ -447,7 +447,7 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
           setError(null);
           
           console.log('开始获取模板数据...');
-          const apiData = await templateApi.getTemplates();
+          const apiData = await templateApi.getTemplateAll();
           
           console.log('成功获取模板数据:', apiData);
           
@@ -585,7 +585,7 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
         console.log('Row data saved successfully for ID:', rowId);
 
         // 刷新数据列表
-        const apiData = await templateApi.getTemplates();
+        const apiData = await templateApi.getTemplateAll();
         let transformedData = transformApiData(Array.isArray(apiData) ? apiData : (apiData._embedded?.templates || apiData.content || []));
         
         // 根据 selectedTenant 过滤数据
@@ -665,7 +665,7 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
         await templateApi.updateTemplate(currentTemplateId, updateData);
         
         // 刷新数据
-        const apiData = await templateApi.getTemplates();
+        const apiData = await templateApi.getTemplateAll();
         let transformedData = transformApiData(Array.isArray(apiData) ? apiData : (apiData._embedded?.templates || apiData.content || []));
         
         if (selectedTenant === 'global') {
@@ -757,7 +757,7 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
         }
 
         // 刷新数据
-        const apiData = await templateApi.getTemplates();
+        const apiData = await templateApi.getTemplateAll();
         let transformedData = transformApiData(Array.isArray(apiData) ? apiData : (apiData._embedded?.templates || apiData.content || []));
         
         if (selectedTenant === 'global') {
@@ -815,7 +815,7 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
         
         console.log('Template deleted successfully:', rowId);
 
-        const apiData = await templateApi.getTemplates();
+        const apiData = await templateApi.getTemplateAll();
         let transformedData = transformApiData(Array.isArray(apiData) ? apiData : (apiData._embedded?.templates || apiData.content || []));
         
         if (selectedTenant === 'global') {
@@ -833,7 +833,7 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
       } catch (error) {
         console.error('Failed to delete template:', error);
         try {
-          const apiData = await templateApi.getTemplates();
+          const apiData = await templateApi.getTemplateAll();
           let transformedData = transformApiData(Array.isArray(apiData) ? apiData : (apiData._embedded?.templates || apiData.content || []));
           
           if (selectedTenant === 'global') {
@@ -1151,12 +1151,14 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
                                 />
                               )}
                               renderTags={(value, getTagProps) =>
-                                value.map((option, index) => (
-                                  <Chip
-                                    key={index}
-                                    label={option.charAt(0).toUpperCase() + option.slice(1)}
-                                    {...getTagProps({ index })}
-                                    deleteIcon={<CloseIcon />}
+                                value.map((option, index) => {
+                                  const { key, ...tagProps } = getTagProps({ index });
+                                  return (
+                                    <Chip
+                                      key={key}
+                                      label={option.charAt(0).toUpperCase() + option.slice(1)}
+                                      {...tagProps}
+                                      deleteIcon={<CloseIcon />}
                                     sx={(theme) => ({
                                       height: '24px',
                                       fontSize: '12px',
@@ -1175,8 +1177,9 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
                                         },
                                       },
                                     })}
-                                  />
-                                ))
+                                    />
+                                  );
+                                })
                               }
                               renderOption={(props, option) => (
                                 <Box component="li" {...props}>
@@ -1528,7 +1531,7 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
               }
 
               // 刷新数据列表
-              const apiData = await templateApi.getTemplates();
+              const apiData = await templateApi.getTemplateAll();
               let transformedData = transformApiData(Array.isArray(apiData) ? apiData : (apiData._embedded?.templates || apiData.content || []));
               
               if (selectedTenant === 'global') {
