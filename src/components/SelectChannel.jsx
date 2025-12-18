@@ -161,6 +161,10 @@ const PreviewButton = styled(Button)(({ theme }) => ({
     backgroundColor: theme.palette.primary.main + '14',
     borderColor: theme.palette.primary.main,
   },
+  '&:disabled': {
+    opacity: 0.6,
+    cursor: 'not-allowed',
+  },
 }));
 
 const SelectButton = styled(Button)(({ theme }) => ({
@@ -271,6 +275,7 @@ const AuthenticatedImage = ({ src, alt, channelId, onLoadImage, blobUrl, sx }) =
 const SelectChannel = ({ open, onClose, onSelect }) => {
   const [channels, setChannels] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [downloadingChannelId, setDownloadingChannelId] = useState(null);
   const [imageBlobUrls, setImageBlobUrls] = useState(new Map());
   const imageBlobUrlsRef = useRef(new Map());
 
@@ -331,9 +336,8 @@ const SelectChannel = ({ open, onClose, onSelect }) => {
       
       try {
         setLoading(true);
-        const apiData = await setUpSheetApi.getChannels();
-        
-        // 过滤只显示 templateType 为 "Global" 的渠道
+        const apiData = await setUpSheetApi.getAllChannel();
+      
         const globalChannels = (Array.isArray(apiData) ? apiData : []).filter(
           channel => channel.templateType === 'Global'
         );
@@ -347,11 +351,12 @@ const SelectChannel = ({ open, onClose, onSelect }) => {
           iconId: channel.iconId || null,
           description: channel.description || '-',
           icon: channel.iconId ? `/srv/v1.0/main/files/${channel.iconId}` : null,
+          templates: channel.templates || [], // 保存 templates 信息
         }));
         
         setChannels(transformedChannels);
       } catch (error) {
-        console.error('获取渠道数据失败:', error);
+        console.error('failed to get channels', error);
         setChannels([]);
       } finally {
         setLoading(false);
@@ -361,9 +366,61 @@ const SelectChannel = ({ open, onClose, onSelect }) => {
     fetchChannels();
   }, [open]);
 
-  const handlePreview = (channel) => {
-    // Handle preview action
-    console.log('Preview channel:', channel);
+  const handlePreview = async (channel) => {
+    try {
+      // 设置下载状态
+      setDownloadingChannelId(channel.id);
+      
+      // 获取该 channel 的第一个 template
+      const templates = channel.templates || [];
+      
+      if (templates.length === 0) {
+        console.warn(`Channel "${channel.name}" has no templates`);
+        setDownloadingChannelId(null);
+        return;
+      }
+      
+      const firstTemplate = templates[0];
+      const fileId = firstTemplate.fileId;
+      
+      if (!fileId) {
+        console.warn(`Template "${firstTemplate.name}" has no fileId`);
+        setDownloadingChannelId(null);
+        return;
+      }
+      
+      console.log('Downloading template file:', { 
+        channelName: channel.name, 
+        templateName: firstTemplate.name, 
+        fileId 
+      });
+      
+      // 下载文件
+      const blob = await fileApi.downloadFile(fileId);
+      
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      
+      const fileName = firstTemplate.name 
+        ? `${firstTemplate.name}.xlsx` 
+        : `template_${fileId}.xlsx`;
+      link.download = fileName;
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // 清理 blob URL
+      URL.revokeObjectURL(blobUrl);
+      
+      console.log('Template file downloaded successfully');
+    } catch (error) {
+      console.error('Error downloading template file:', error);
+    } finally {
+      // 清除下载状态
+      setDownloadingChannelId(null);
+    }
   };
 
   const handleSelect = (channel) => {
@@ -440,11 +497,17 @@ const SelectChannel = ({ open, onClose, onSelect }) => {
                     ) : (
                       <ImagePlaceholder />
                     )}
-                    <ChannelRegion>{channel.theme}</ChannelRegion>
                     <ChannelName>{channel.name}</ChannelName>
                     <ButtonContainer>
-                      <PreviewButton onClick={() => handlePreview(channel)}>
-                        PREVIEW
+                      <PreviewButton 
+                        onClick={() => handlePreview(channel)}
+                        disabled={downloadingChannelId === channel.id}
+                      >
+                        {downloadingChannelId === channel.id ? (
+                          <CircularProgress size={14} sx={{ color: 'inherit' }} />
+                        ) : (
+                          'PREVIEW'
+                        )}
                       </PreviewButton>
                       <SelectButton onClick={() => handleSelect(channel)}>
                         SELECT

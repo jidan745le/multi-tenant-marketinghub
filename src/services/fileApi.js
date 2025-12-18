@@ -294,6 +294,49 @@ class FileApiService {
             throw error;
         }
     }
+
+    /**
+     * 下载文件
+     * @param {string} fileId - 文件ID
+     * @param {string} baseUrl - 文件服务基础URL
+     * @returns {Promise<Blob>} 文件 Blob 对象
+     */
+    async downloadFile(fileId, baseUrl = '/srv/v1.0/main/files') {
+        try {
+            if (!fileId) {
+                throw new Error('File ID is required');
+            }
+
+            const url = `${baseUrl}/${fileId}`;
+
+            console.log('🔍 Downloading file:', { fileId, url });
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: this.getHeaders(false), // 不包含 Content-Type
+            });
+
+            if (!response.ok) {
+                throw await this.handleError(response);
+            }
+
+            const blob = await response.blob();
+            console.log('✅ File downloaded successfully:', { 
+                fileId, 
+                size: blob.size, 
+                type: blob.type 
+            });
+
+            return blob;
+        } catch (error) {
+            console.error('❌ Error downloading file:', error);
+            console.error('❌ Error details:', {
+                message: error.message,
+                stack: error.stack
+            });
+            throw error;
+        }
+    }
 }
 
 export default new FileApiService();

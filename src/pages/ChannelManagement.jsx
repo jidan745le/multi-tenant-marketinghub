@@ -459,7 +459,10 @@ function ChannelManagement() {
       try {
         setLoading(true);
         const apiData = await setUpSheetApi.getChannels();
-        const transformedData = transformApiData(apiData);
+        const filteredData = Array.isArray(apiData) 
+          ? apiData.filter(channel => channel.templateType === 'Specific')
+          : [];
+        const transformedData = transformApiData(filteredData);
         setData(transformedData);
       } catch (error) {
         console.error('Failed to get channel data:', error);
@@ -502,7 +505,10 @@ function ChannelManagement() {
       if (formData === null) {
         // 刷新数据
         const apiData = await setUpSheetApi.getChannels();
-        const transformedData = transformApiData(apiData);
+        const filteredData = Array.isArray(apiData) 
+          ? apiData.filter(channel => channel.templateType === 'Specific')
+          : [];
+        const transformedData = transformApiData(filteredData);
         setData(transformedData);
         return;
       }
@@ -563,15 +569,57 @@ function ChannelManagement() {
       
       // 刷新数据
       const apiData = await setUpSheetApi.getChannels();
-      const transformedData = transformApiData(apiData);
+      // 过滤只显示 templateType 为 "Specific" 的渠道
+      const filteredData = Array.isArray(apiData) 
+        ? apiData.filter(channel => channel.templateType === 'Specific')
+        : [];
+      const transformedData = transformApiData(filteredData);
       setData(transformedData);
       
       handleCloseAddChannelDialog();
     } catch (error) {
       console.error('Failed to save channel:', error);
+      
+      let errorMessage = error.message || 'Failed to save channel';
+      
+      try {
+        if (errorMessage.includes('{') && errorMessage.includes('errorMessage')) {
+          const startIndex = errorMessage.indexOf('{');
+          const lastIndex = errorMessage.lastIndexOf('}');
+          if (startIndex !== -1 && lastIndex !== -1 && lastIndex > startIndex) {
+            const jsonStr = errorMessage.substring(startIndex, lastIndex + 1);
+            const errorObj = JSON.parse(jsonStr);
+            if (errorObj.errorMessage) {
+              let coreMessage = errorObj.errorMessage;
+              const prefixes = [
+                'Error saving Channel entity: ',
+                'Error saving Template entity: ',
+                'Error: ',
+              ];
+              for (const prefix of prefixes) {
+                if (coreMessage.startsWith(prefix)) {
+                  coreMessage = coreMessage.substring(prefix.length);
+                  break;
+                }
+              }
+              if (coreMessage.includes(':') && !coreMessage.startsWith('Channel with name')) {
+                const colonIndex = coreMessage.indexOf(':');
+                if (colonIndex > 0 && colonIndex < 50) {
+                  coreMessage = coreMessage.substring(colonIndex + 1).trim();
+                }
+              }
+              errorMessage = coreMessage;
+            }
+          }
+        }
+      } catch (parseError) {
+        // 如果解析失败，使用原始错误消息
+        console.error('Error parsing error message:', parseError);
+      }
+      
       setSnackbar({
         open: true,
-        message: `Failed to save: ${error.message}`,
+        message: errorMessage,
         severity: 'error',
       });
     }
@@ -600,7 +648,10 @@ function ChannelManagement() {
       if (formData === null) {
         // 刷新数据
         const apiData = await setUpSheetApi.getChannels();
-        const transformedData = transformApiData(apiData);
+        const filteredData = Array.isArray(apiData) 
+          ? apiData.filter(channel => channel.templateType === 'Specific')
+          : [];
+        const transformedData = transformApiData(filteredData);
         
         // 恢复之前展开的channel状态
         const dataWithExpandedState = transformedData.map(item => {
@@ -649,7 +700,11 @@ function ChannelManagement() {
       
       // 刷新数据
       const apiData = await setUpSheetApi.getChannels();
-      const transformedData = transformApiData(apiData);
+      // 过滤只显示 templateType 为 "Specific" 的渠道
+      const filteredData = Array.isArray(apiData) 
+        ? apiData.filter(channel => channel.templateType === 'Specific')
+        : [];
+      const transformedData = transformApiData(filteredData);
       const dataWithExpandedState = transformedData.map(item => {
         if (item.isChannel && expandedChannelIds.includes(item.id)) {
           return { ...item, expanded: true };
@@ -755,7 +810,10 @@ function ChannelManagement() {
           
           // 刷新数据
           const apiData = await setUpSheetApi.getChannels();
-          const transformedData = transformApiData(apiData);
+          const filteredData = Array.isArray(apiData) 
+            ? apiData.filter(channel => channel.templateType === 'Specific')
+            : [];
+          const transformedData = transformApiData(filteredData);
           setData(transformedData);
           
           setSnackbar({
@@ -776,7 +834,11 @@ function ChannelManagement() {
               await setUpSheetApi.deleteTemplate(id);
               
               const apiData = await setUpSheetApi.getChannels();
-              const transformedData = transformApiData(apiData);
+              // 过滤只显示 templateType 为 "Specific" 的渠道
+              const filteredData = Array.isArray(apiData) 
+                ? apiData.filter(channel => channel.templateType === 'Specific')
+                : [];
+              const transformedData = transformApiData(filteredData);
               
               const dataWithExpandedState = transformedData.map(item => {
                 if (item.isChannel && expandedChannelIds.includes(item.id)) {

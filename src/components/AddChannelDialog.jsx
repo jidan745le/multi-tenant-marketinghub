@@ -576,8 +576,8 @@ const AddChannelDialog = ({ open, onClose, onSave, editData, copyData }) => {
         });
       } else {
         // 新增模式或复制模式：调用 createChannel API
-        // 根据 channelType 设置 templateType：Custom 对应 Global，Channel 对应 Specific
-        const templateType = channelType === 'Channel' ? 'Specific' : 'Global';
+        // 根据 channelType 设置 templateType：Custom 对应 Specific，Channel 对应 Global
+        const templateType = channelType === 'Custom' ? 'Specific' : 'Global';
         
         // 复制模式：使用 copyData 中的 usage，如果没有则为空数组
         let usage = [];
@@ -601,21 +601,56 @@ const AddChannelDialog = ({ open, onClose, onSave, editData, copyData }) => {
         });
       }
 
-      // 如果提供了 onSave 回调，只用于刷新父组件数据，不传递 formData（避免重复创建）
-      // 传递 null 或空对象，让父组件知道只需要刷新数据
       if (onSave) {
         await onSave(null);
       }
 
-      // 延迟关闭对话框，让用户看到成功消息
       setTimeout(() => {
         handleCancel();
       }, 500);
     } catch (error) {
-      console.error('保存渠道失败:', error);
+      console.error('failed to save channel', error);
+      
+      // 提取需要显示的错误消息
+      let errorMessage = error.message || 'Failed to save channel';
+      
+      try {
+        if (errorMessage.includes('{') && errorMessage.includes('errorMessage')) {
+          const startIndex = errorMessage.indexOf('{');
+          const lastIndex = errorMessage.lastIndexOf('}');
+          if (startIndex !== -1 && lastIndex !== -1 && lastIndex > startIndex) {
+            const jsonStr = errorMessage.substring(startIndex, lastIndex + 1);
+            const errorObj = JSON.parse(jsonStr);
+            if (errorObj.errorMessage) {
+              let coreMessage = errorObj.errorMessage;
+              const prefixes = [
+                'Error saving Channel entity: ',
+                'Error saving Template entity: ',
+                'Error: ',
+              ];
+              for (const prefix of prefixes) {
+                if (coreMessage.startsWith(prefix)) {
+                  coreMessage = coreMessage.substring(prefix.length);
+                  break;
+                }
+              }
+              if (coreMessage.includes(':') && !coreMessage.startsWith('Channel with name')) {
+                const colonIndex = coreMessage.indexOf(':');
+                if (colonIndex > 0 && colonIndex < 50) {
+                  coreMessage = coreMessage.substring(colonIndex + 1).trim();
+                }
+              }
+              errorMessage = coreMessage;
+            }
+          }
+        }
+      } catch (parseError) {
+        console.error('Error parsing error message:', parseError);
+      }
+      
       setSnackbar({
         open: true,
-        message: `Failed to save channel: ${error.message}`,
+        message: errorMessage,
         severity: 'error',
       });
     } finally {

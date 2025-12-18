@@ -99,6 +99,9 @@ const ProductMassDownloadDialog = ({
     { id: 2, name: 'All Images' }
   ]);
 
+  // Quantity/Quality selection
+  const [outputQuality, setOutputQuality] = useState('web'); // 'web' | 'print'
+
   // Download options
   const [downloadOption, setDownloadOption] = useState('email'); // 'email' | 'direct' | 'other'
   const [emails, setEmails] = useState([]);
@@ -119,6 +122,7 @@ const ProductMassDownloadDialog = ({
     setCurrentStep('formats');
     setSelectedLanguages(currentLanguage ? [currentLanguage] : []);
     setShowAllLanguages(false);
+    setOutputQuality('web');
     setSelectedFormats({
       catalog: false,
       datasheet: false,
@@ -147,10 +151,16 @@ const ProductMassDownloadDialog = ({
   };
 
   const handleFormatToggle = (format) => {
-    setSelectedFormats(prev => ({
-      ...prev,
-      [format]: !prev[format]
-    }));
+    setSelectedFormats(prev => {
+      const newValue = !prev[format];
+      if (format === 'massMediaDownload' && !newValue) {
+        setSelectedDerivates([]);
+      }
+      return {
+        ...prev,
+        [format]: newValue
+      };
+    });
   };
 
   const handleRegionToggle = (regionId) => {
@@ -175,11 +185,17 @@ const ProductMassDownloadDialog = ({
 
   const handleDerivateToggle = (derivateId) => {
     setSelectedDerivates(prev => {
-      if (prev.includes(derivateId)) {
-        return prev.filter(id => id !== derivateId);
+      const newDerivates = prev.includes(derivateId)
+        ? prev.filter(id => id !== derivateId)
+        : [...prev, derivateId];
+      
+      if (newDerivates.length === 0) {
+        setSelectedFormats(prevFormats => ({ ...prevFormats, massMediaDownload: false }));
       } else {
-        return [...prev, derivateId];
+        setSelectedFormats(prevFormats => ({ ...prevFormats, massMediaDownload: true }));
       }
+      
+      return newDerivates;
     });
   };
 
@@ -264,7 +280,7 @@ const ProductMassDownloadDialog = ({
         async: downloadOption !== 'direct', // direct = false (sync), email/other = true (async)
         ccemail: '',
         tomail: downloadOption === 'other' ? emails.join(',') : (downloadOption === 'email' ? userEmail : ''),
-        outputquality: 'web',
+        outputquality: outputQuality,
         language: languageNames
       };
 
@@ -291,7 +307,8 @@ const ProductMassDownloadDialog = ({
   // Validation
   const hasSelectedLanguage = selectedLanguages.length > 0;
   const hasSelectedFormat = Object.values(selectedFormats).some(v => v);
-  const canProceed = hasSelectedLanguage && hasSelectedFormat;
+  const massMediaValid = !selectedFormats.massMediaDownload || selectedDerivates.length > 0;
+  const canProceed = hasSelectedLanguage && hasSelectedFormat && massMediaValid;
   const canFinalDownload = downloadOption !== 'other' || emails.length > 0;
 
   // Main format selection dialog
@@ -303,7 +320,13 @@ const ProductMassDownloadDialog = ({
             <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#333' }}>
               download
             </span>
-            <Typography sx={{ fontSize: '21px', fontWeight: 600, fontFamily: 'OpenSans-SemiBold' }}>
+            <Typography
+              sx={{
+                fontSize: '21px',
+                fontWeight: 500,
+                fontFamily: '"Roboto-Medium", sans-serif'
+              }}
+            >
               Download
             </Typography>
           </Box>
@@ -324,7 +347,15 @@ const ProductMassDownloadDialog = ({
 
       <DialogContent sx={{ padding: '0 24px 24px 24px' }}>
         {/* Language Selection */}
-        <Typography sx={{ fontSize: '16px', fontWeight: 600, mb: 2, color: '#333', fontFamily: 'OpenSans-SemiBold' }}>
+        <Typography
+          sx={{
+            fontSize: '16px',
+            fontWeight: 500,
+            mb: 2,
+            color: '#333',
+            fontFamily: '"Roboto-Medium", sans-serif'
+          }}
+        >
           Select Language
         </Typography>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
@@ -338,7 +369,7 @@ const ProductMassDownloadDialog = ({
                   onChange={() => handleLanguageToggle(language.code)}
                   sx={{
                     '&.Mui-checked': {
-                      color: '#F16508'
+                      color: theme.palette.primary.main
                     }
                   }}
                 />
@@ -352,7 +383,7 @@ const ProductMassDownloadDialog = ({
           onClick={() => setShowAllLanguages(!showAllLanguages)}
           sx={{
             fontSize: '12px',
-            color: '#F16508',
+            color: theme.palette.primary.main,
             cursor: 'pointer',
             mb: 2,
             '&:hover': { textDecoration: 'underline' }
@@ -363,13 +394,77 @@ const ProductMassDownloadDialog = ({
 
         <Divider sx={{ my: 2, backgroundColor: '#E6E6E6' }} />
 
+        {/* Quantity Selection */}
+        <Typography
+          sx={{
+            fontSize: '16px',
+            fontWeight: 500,
+            mb: 2,
+            color: '#333',
+            fontFamily: '"Roboto-Medium", sans-serif'
+          }}
+        >
+          Quality
+        </Typography>
+        <RadioGroup
+          value={outputQuality}
+          onChange={(e) => setOutputQuality(e.target.value)}
+          row
+          sx={{ 
+            mb: 2,
+            gap: 5, 
+            '& .MuiFormControlLabel-root': {
+              marginRight: 0 // 移除默认的右边距
+            }
+          }}
+        >
+          <FormControlLabel
+            value="web"
+            control={
+              <Radio
+                sx={{
+                  color: '#cccccc',
+                  '&.Mui-checked': {
+                    color: theme.palette.primary.main
+                  }
+                }}
+              />
+            }
+            label={<Typography sx={{ fontSize: '14px', color: '#4d4d4d' }}>Web PDF</Typography>}
+          />
+          <FormControlLabel
+            value="print"
+            control={
+              <Radio
+                sx={{
+                  color: '#cccccc',
+                  '&.Mui-checked': {
+                    color: theme.palette.primary.main
+                  }
+                }}
+              />
+            }
+            label={<Typography sx={{ fontSize: '14px', color: '#4d4d4d' }}>HighRes Print</Typography>}
+          />
+        </RadioGroup>
+
+        <Divider sx={{ my: 2, backgroundColor: '#E6E6E6' }} />
+
         {/* File Format Selection */}
-        <Typography sx={{ fontSize: '16px', fontWeight: 600, mb: 2, color: '#333', fontFamily: 'OpenSans-SemiBold' }}>
+        <Typography
+          sx={{
+            fontSize: '16px',
+            fontWeight: 500,
+            mb: 2,
+            color: '#333',
+            fontFamily: '"Roboto-Medium", sans-serif'
+          }}
+        >
           Select File Format
         </Typography>
 
         {/* Publications */}
-        <Typography sx={{ fontSize: '14px', fontWeight: 600, mb: 1, color: '#4d4d4d', fontFamily: 'OpenSans-SemiBold' }}>
+        <Typography sx={{ fontSize: '14px', fontWeight: 600, mb: 1, color: '#4d4d4d' }}>
           Publications
         </Typography>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2, ml: 2 }}>
@@ -382,7 +477,7 @@ const ProductMassDownloadDialog = ({
                     size="small"
                     checked={selectedFormats.catalog}
                     onChange={() => handleFormatToggle('catalog')}
-                    sx={{ '&.Mui-checked': { color: '#F16508' } }}
+                    sx={{ '&.Mui-checked': { color: theme.palette.primary.main } }}
                   />
                 }
                 label={<Typography sx={{ fontSize: '14px', color: '#4f4f4f' }}>Catalog</Typography>}
@@ -395,7 +490,7 @@ const ProductMassDownloadDialog = ({
                     size="small"
                     checked={selectedFormats.datasheet}
                     onChange={() => handleFormatToggle('datasheet')}
-                    sx={{ '&.Mui-checked': { color: '#F16508' } }}
+                    sx={{ '&.Mui-checked': { color: theme.palette.primary.main } }}
                   />
                 }
                 label={<Typography sx={{ fontSize: '14px', color: '#4f4f4f' }}>Datasheet</Typography>}
@@ -406,14 +501,14 @@ const ProductMassDownloadDialog = ({
           {/* 第二行：Shelf Card (1on1) 和 Shelf Card (Multiple) */}
           <Box sx={{ display: 'flex', gap: 2, width: '100%' }}>
             {/* Shelf Card (1on1) */}
-            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.25 }}>
               <FormControlLabel
                 control={
                   <Checkbox
                     size="small"
                     checked={selectedFormats.shelfCard1on1}
                     onChange={() => handleFormatToggle('shelfCard1on1')}
-                    sx={{ '&.Mui-checked': { color: '#F16508' } }}
+                    sx={{ '&.Mui-checked': { color: theme.palette.primary.main } }}
                   />
                 }
                 label={<Typography sx={{ fontSize: '14px', color: '#4f4f4f' }}>Shelf Card (1 on 1)</Typography>}
@@ -432,12 +527,12 @@ const ProductMassDownloadDialog = ({
                           checked={selectedRegions.includes(region.id)}
                           onChange={() => handleRegionToggle(region.id)}
                           sx={{ 
-                            '&.Mui-checked': { color: '#F16508' },
+                            '&.Mui-checked': { color: theme.palette.primary.main },
                             py: 0
                           }}
                         />
                       }
-                      label={<Typography sx={{ fontSize: '13px', color: '#4d4d4d' }}>{region.name}</Typography>}
+                      label={<Typography sx={{ fontSize: '14px', color: '#4d4d4d' }}>{region.name}</Typography>}
                       sx={{ my: 0 }}
                     />
                   ))}
@@ -446,14 +541,14 @@ const ProductMassDownloadDialog = ({
             </Box>
 
             {/* Shelf Card (Multiple) */}
-            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.25 }}>
               <FormControlLabel
                 control={
                   <Checkbox
                     size="small"
                     checked={selectedFormats.shelfCardMultiple}
                     onChange={() => handleFormatToggle('shelfCardMultiple')}
-                    sx={{ '&.Mui-checked': { color: '#F16508' } }}
+                    sx={{ '&.Mui-checked': { color: theme.palette.primary.main } }}
                   />
                 }
                 label={<Typography sx={{ fontSize: '14px', color: '#4f4f4f' }}>Shelf Card (Multiple)</Typography>}
@@ -472,12 +567,12 @@ const ProductMassDownloadDialog = ({
                           checked={selectedRegions.includes(region.id)}
                           onChange={() => handleRegionToggle(region.id)}
                           sx={{ 
-                            '&.Mui-checked': { color: '#F16508' },
+                            '&.Mui-checked': { color: theme.palette.primary.main },
                             py: 0
                           }}
                         />
                       }
-                      label={<Typography sx={{ fontSize: '13px', color: '#4d4d4d' }}>{region.name}</Typography>}
+                      label={<Typography sx={{ fontSize: '14px', color: '#4d4d4d' }}>{region.name}</Typography>}
                       sx={{ my: 0 }}
                     />
                   ))}
@@ -488,66 +583,84 @@ const ProductMassDownloadDialog = ({
         </Box>
 
         {/* Setup Sheets (Excel) */}
-        <Typography sx={{ fontSize: '14px', fontWeight: 600, mb: 1, color: '#4d4d4d', fontFamily: 'OpenSans-SemiBold' }}>
+        <Typography sx={{ fontSize: '14px', fontWeight: 600, mb: 1, color: '#4d4d4d' }}>
           Setup Sheets (Excel)
         </Typography>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2, ml: 2 }}>
+          <Box sx={{ display: 'flex', gap: 2, width: '100%' }}>
+            <Box sx={{ flex: 1 }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    size="small"
+                    checked={selectedFormats.setupSheetGeneral}
+                    onChange={() => handleFormatToggle('setupSheetGeneral')}
+                    sx={{ '&.Mui-checked': { color: theme.palette.primary.main } }}
+                  />
+                }
+                label={<Typography sx={{ fontSize: '14px', color: '#4f4f4f' }}>Setup Sheet (General)</Typography>}
+              />
+            </Box>
+            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    size="small"
+                    checked={selectedFormats.setupSheetChannel}
+                    onChange={() => handleFormatToggle('setupSheetChannel')}
+                    sx={{ '&.Mui-checked': { color: theme.palette.primary.main } }}
+                  />
+                }
+                label={<Typography sx={{ fontSize: '14px', color: '#4f4f4f' }}>Setup Sheet (Channel)</Typography>}
+              />
+              {selectedFormats.setupSheetChannel && (
+                <Box sx={{ ml: 4, mt: 0.25 }}>
+                  <Typography sx={{ fontSize: '12px', color: '#808080' }}>
+                    Select the Channels{' '}
+                    <span
+                      onClick={handleOpenChannelSelection}
+                      style={{ color: theme.palette.primary.main, fontWeight: 'bold', cursor: 'pointer', textDecoration: 'underline' }}
+                    >
+                      HERE
+                    </span>
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          </Box>
+        </Box>
+
+        {/* Mass Downloads (Media) */}
+        <Typography sx={{ fontSize: '14px', fontWeight: 600, mb: 1, color: '#4d4d4d' }}>
+          Mass Downloads (Media)
+        </Typography>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, ml: 2 }}>
           <FormControlLabel
             control={
               <Checkbox
                 size="small"
-                checked={selectedFormats.setupSheetGeneral}
-                onChange={() => handleFormatToggle('setupSheetGeneral')}
-                sx={{ '&.Mui-checked': { color: '#F16508' } }}
+                checked={selectedFormats.massMediaDownload}
+                onChange={() => handleFormatToggle('massMediaDownload')}
+                sx={{ '&.Mui-checked': { color: theme.palette.primary.main } }}
               />
             }
-            label={<Typography sx={{ fontSize: '14px', color: '#4f4f4f' }}>Setup Sheet (General)</Typography>}
+            label={<Typography sx={{ fontSize: '14px', color: '#4f4f4f' }}>Mass Media Download</Typography>}
           />
-        </Box>
 
-        {/* Mass Downloads (Media) */}
-        <Typography sx={{ fontSize: '14px', fontWeight: 600, mb: 1, color: '#4d4d4d', fontFamily: 'OpenSans-SemiBold' }}>
-          Mass Downloads (Media)
-        </Typography>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, ml: 2 }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  size="small"
-                  checked={selectedFormats.massMediaDownload}
-                  onChange={() => handleFormatToggle('massMediaDownload')}
-                  sx={{ '&.Mui-checked': { color: '#F16508' } }}
-                />
-              }
-              label={<Typography sx={{ fontSize: '14px', color: '#4f4f4f' }}>All Core Images</Typography>}
-            />
-            {selectedFormats.massMediaDownload && (
-              <Box sx={{ ml: 4, p: 1, backgroundColor: '#F5F5F5', borderRadius: '3px', mt: 1 }}>
-                <Typography sx={{ fontSize: '12px', color: '#808080', mb: 0.5 }}>
-                  Select the Derivates{' '}
-                  <span
-                    onClick={handleOpenDerivateSelection}
-                    style={{ color: '#F16508', fontWeight: 'bold', cursor: 'pointer', textDecoration: 'underline' }}
-                  >
-                    HERE
-                  </span>
-                </Typography>
-                {selectedDerivates.length > 0 && (
-                  <Box sx={{ mt: 1 }}>
-                    <Typography sx={{ fontSize: '9.6px', color: '#F16508' }}>
-                      {selectedDerivates.length} selected
-                    </Typography>
-                    <ul style={{ margin: '4px 0', paddingLeft: '16px', fontSize: '9.6px', color: '#4d4d4d' }}>
-                      {selectedDerivates.map(id => (
-                        <li key={id}>{availableDerivates.find(d => d.id === id)?.name}</li>
-                      ))}
-                    </ul>
-                  </Box>
-                )}
-              </Box>
-            )}
-          </Box>
+          {/* 与 Setup Sheet (Channel) 一致：仅在勾选后显示链接，颜色使用主题色 */}
+          {selectedFormats.massMediaDownload && (
+            <Box sx={{ ml: 4, mt: 0.25 }}>
+              <Typography sx={{ fontSize: '12px', color: '#808080' }}>
+                Select the Derivates{' '}
+                <span
+                  onClick={handleOpenDerivateSelection}
+                  style={{ color: theme.palette.primary.main, fontWeight: 'bold', cursor: 'pointer', textDecoration: 'underline' }}
+                >
+                  HERE
+                </span>
+              </Typography>
+            </Box>
+          )}
         </Box>
       </DialogContent>
 
@@ -564,11 +677,11 @@ const ProductMassDownloadDialog = ({
           onClick={handleProceedToDownload}
           disabled={!canProceed || loading}
           sx={{
-            backgroundColor: canProceed ? '#F16508' : '#cccccc',
+            backgroundColor: canProceed ? theme.palette.primary.main : '#cccccc',
             color: '#fff',
             textTransform: 'uppercase',
             '&:hover': {
-              backgroundColor: canProceed ? '#d5570a' : '#cccccc'
+              backgroundColor: canProceed ? theme.palette.primary.dark : '#cccccc'
             }
           }}
         >
@@ -603,7 +716,7 @@ const ProductMassDownloadDialog = ({
                   size="small"
                   checked={selectedRegions.includes(region.id)}
                   onChange={() => handleRegionToggle(region.id)}
-                  sx={{ '&.Mui-checked': { color: '#F16508' } }}
+                  sx={{ '&.Mui-checked': { color: theme.palette.primary.main } }}
                 />
               }
               label={<Typography sx={{ fontSize: '14px', color: '#333' }}>{region.name}</Typography>}
@@ -622,7 +735,7 @@ const ProductMassDownloadDialog = ({
         <Button
           variant="contained"
           onClick={handleBackFromSubDialog}
-          sx={{ backgroundColor: '#F16508', color: '#fff', textTransform: 'uppercase' }}
+          sx={{ backgroundColor: theme.palette.primary.main, color: '#fff', textTransform: 'uppercase' }}
         >
           Confirm
         </Button>
@@ -655,7 +768,7 @@ const ProductMassDownloadDialog = ({
                   size="small"
                   checked={selectedChannels.includes(channel.id)}
                   onChange={() => handleChannelToggle(channel.id)}
-                  sx={{ '&.Mui-checked': { color: '#F16508' } }}
+                  sx={{ '&.Mui-checked': { color: theme.palette.primary.main } }}
                 />
               }
               label={<Typography sx={{ fontSize: '14px', color: '#333' }}>{channel.name}</Typography>}
@@ -674,7 +787,7 @@ const ProductMassDownloadDialog = ({
         <Button
           variant="contained"
           onClick={handleBackFromSubDialog}
-          sx={{ backgroundColor: '#F16508', color: '#fff', textTransform: 'uppercase' }}
+          sx={{ backgroundColor: theme.palette.primary.main, color: '#fff', textTransform: 'uppercase' }}
         >
           Confirm
         </Button>
@@ -707,7 +820,7 @@ const ProductMassDownloadDialog = ({
                   size="small"
                   checked={selectedDerivates.includes(derivate.id)}
                   onChange={() => handleDerivateToggle(derivate.id)}
-                  sx={{ '&.Mui-checked': { color: '#F16508' } }}
+                  sx={{ '&.Mui-checked': { color: theme.palette.primary.main } }}
                 />
               }
               label={<Typography sx={{ fontSize: '14px', color: '#333' }}>{derivate.name}</Typography>}
@@ -726,7 +839,7 @@ const ProductMassDownloadDialog = ({
         <Button
           variant="contained"
           onClick={handleBackFromSubDialog}
-          sx={{ backgroundColor: '#F16508', color: '#fff', textTransform: 'uppercase' }}
+          sx={{ backgroundColor: theme.palette.primary.main, color: '#fff', textTransform: 'uppercase' }}
         >
           Confirm
         </Button>
@@ -742,7 +855,13 @@ const ProductMassDownloadDialog = ({
           <span className="material-symbols-outlined" style={{ fontSize: '24px', color: '#333' }}>
             download
           </span>
-          <Typography sx={{ fontSize: '21px', fontWeight: 600, fontFamily: 'OpenSans-SemiBold' }}>
+          <Typography
+            sx={{
+              fontSize: '21px',
+              fontWeight: 500,
+              fontFamily: '"Roboto-Medium", sans-serif'
+            }}
+          >
             Download
           </Typography>
         </Box>
@@ -760,7 +879,7 @@ const ProductMassDownloadDialog = ({
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Radio
             value="direct"
-            sx={{ color: '#cccccc', '&.Mui-checked': { color: '#F16508' } }}
+            sx={{ color: '#cccccc', '&.Mui-checked': { color: theme.palette.primary.main } }}
           />
           <Box>
             <Typography sx={{ fontSize: '14px', fontWeight: 600, color: '#212121' }}>
@@ -776,7 +895,7 @@ const ProductMassDownloadDialog = ({
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Radio
             value="email"
-            sx={{ color: '#cccccc', '&.Mui-checked': { color: '#F16508' } }}
+            sx={{ color: '#cccccc', '&.Mui-checked': { color: theme.palette.primary.main } }}
           />
           <Box>
             <Typography sx={{ fontSize: '14px', fontWeight: 600, color: '#212121' }}>
@@ -793,7 +912,7 @@ const ProductMassDownloadDialog = ({
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Radio
               value="other"
-              sx={{ color: '#cccccc', '&.Mui-checked': { color: '#F16508' } }}
+              sx={{ color: '#cccccc', '&.Mui-checked': { color: theme.palette.primary.main } }}
             />
             <Box>
               <Typography sx={{ fontSize: '14px', fontWeight: 600, color: '#212121' }}>
@@ -840,11 +959,11 @@ const ProductMassDownloadDialog = ({
           onClick={handleFinalDownload}
           disabled={!canFinalDownload || loading}
           sx={{
-            backgroundColor: canFinalDownload ? '#F16508' : '#cccccc',
+            backgroundColor: canFinalDownload ? theme.palette.primary.main : '#cccccc',
             color: '#fff',
             textTransform: 'uppercase',
             '&:hover': {
-              backgroundColor: canFinalDownload ? '#d5570a' : '#cccccc'
+              backgroundColor: canFinalDownload ? theme.palette.primary.dark : '#cccccc'
             }
           }}
         >
@@ -860,7 +979,7 @@ const ProductMassDownloadDialog = ({
       return '530px';
     }
     if (currentStep === 'formats') {
-      return '652px';
+      return '720px'; // Increased to accommodate Quantity section
     }
     return '400px';
   };

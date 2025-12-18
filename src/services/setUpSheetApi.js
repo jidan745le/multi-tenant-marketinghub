@@ -332,6 +332,41 @@ class SetUpSheetApiService {
     }
 
     /**
+     * 获取所有渠道
+     * @returns {Promise<Array>} 渠道数组
+     * @example
+     * await setUpSheetApi.getAllChannel();
+     */
+    async getAllChannel() {
+        try {
+            const url = `${this.baseURL}/channel/all`;
+
+            console.log('🔍 Fetching all channels:', url);
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: this.getHeaders(),
+            });
+
+            if (!response.ok) {
+                throw await this.handleError(response);
+            }
+
+            const data = await response.json();
+            
+            // 处理返回的数据：可能是数组或对象
+            const channels = Array.isArray(data) ? data : (data._embedded?.channels || data.content || []);
+            
+            console.log('✅ All channels fetched successfully:', channels.length);
+
+            return channels;
+        } catch (error) {
+            console.error('❌ Error fetching all channels:', error);
+            throw error;
+        }
+    }
+
+    /**
      * 获取渠道类型列表
      * @param {Object} options - 查询选项
      * @param {string} options.tenant - 租户名称（可选，默认从 Cookie 获取）
