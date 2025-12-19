@@ -595,9 +595,7 @@ const ComparePage = () => {
   
   // API 数据状态
   const [compareData, setCompareData] = useState(EMPTY_COMPARE_DATA);
-  // eslint-disable-next-line no-unused-vars
   const [loading, setLoading] = useState(false);
-  // eslint-disable-next-line no-unused-vars
   const [error, setError] = useState(null);
   
   // UI
@@ -1224,6 +1222,7 @@ const ComparePage = () => {
       backfaceVisibility: 'hidden',
       perspective: '1000px',
       overflow: 'auto',
+      position: 'relative',
       '& *': {
         transform: 'translateZ(0)',
         backfaceVisibility: 'hidden'
@@ -1237,6 +1236,29 @@ const ComparePage = () => {
       msOverflowStyle: 'none',
       scrollbarWidth: 'none'
     }}>
+      {/* 全页面 Loading 遮罩层 */}
+      {loading && selectedProducts.length >= 2 && (
+        <Box sx={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'white',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 9999
+        }}>
+          <CircularProgress 
+            size={60} 
+            sx={{ 
+              color: primaryColor 
+            }} 
+          />
+        </Box>
+      )}
+
       <Box sx={{ 
         backgroundColor: 'white',
         p: 3,
@@ -1296,12 +1318,28 @@ const ComparePage = () => {
         transform: 'translateZ(0)',
         willChange: 'auto'
       }}>
+        {/* 错误状态 */}
+        {error && selectedProducts.length >= 2 && !loading ? (
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center',
+            minHeight: '400px',
+            width: '100%'
+          }}>
+            <Alert severity="error" sx={{ maxWidth: '600px' }}>
+              {error}
+            </Alert>
+          </Box>
+        ) : !loading && (
+          <>
+            {/* Basic Data */}
+            {renderBasicSpecs()}
 
-        {/* Basic Data */}
-        {renderBasicSpecs()}
-
-        {/* Marketing Features, Specifications */}
-        {renderFeatureGroups()}
+            {/* Marketing Features, Specifications */}
+            {renderFeatureGroups()}
+          </>
+        )}
       </Box>
 
       {/* 搜索产品弹窗 */}

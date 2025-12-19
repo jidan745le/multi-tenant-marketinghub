@@ -1022,7 +1022,7 @@ const ProductMassDownloadDialog = ({
         </Box>
 
         {/* Send to Others */}
-        <Box sx={{ display: 'flex', gap: 1, flexDirection: 'column' }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Radio
               value="other"
@@ -1039,7 +1039,7 @@ const ProductMassDownloadDialog = ({
           </Box>
 
           {downloadOption === 'other' && (
-            <Box sx={{ ml: 4, mt: 1 }}>
+            <Box sx={{ ml: 4, mt: 0.25 }}>
               <Typography sx={{ fontSize: '14px', color: '#4f4f4f', mb: 1 }}>
                 Send to:
               </Typography>

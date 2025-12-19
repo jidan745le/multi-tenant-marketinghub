@@ -682,11 +682,12 @@ const MediaDownloadDialog = ({
         backgroundColor: '#ffffff',
         borderRadius: '2px',
         padding: '24px',
-        height: 'auto',
-        minHeight: downloadOption === 'other' ? '520px' : '420px', // Increased base height for better spacing
+        minHeight: 'auto',
         position: 'relative',
         width: '100%',
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        display: 'flex',
+        flexDirection: 'column'
       }}>
         {/* Dialog Header */}
         <Box className="dialog-header" sx={{ 
@@ -696,9 +697,7 @@ const MediaDownloadDialog = ({
           alignItems: 'center',
           justifyContent: 'flex-start',
           width: '100%',
-          position: 'absolute',
-          left: '18px',
-          top: '22px'
+          mb: 2
         }}>
           <span className="material-symbols-outlined" style={{ fontSize: '24px', color: '#333' }}>
             download
@@ -723,10 +722,8 @@ const MediaDownloadDialog = ({
           fontSize: '16px',
           lineHeight: '140%',
           fontWeight: 400,
-          position: 'absolute',
-          left: '35px',
-          top: '76px',
-          width: 'calc(100% - 70px)'
+          width: '100%',
+          mb: 2
         }}>
           {canOnlySendEmail ? (
             <>
@@ -753,10 +750,9 @@ const MediaDownloadDialog = ({
         gap: '16px',
         alignItems: 'flex-start',
         justifyContent: 'flex-start',
-        width: 'calc(100% - 70px)',
-        position: 'absolute',
-        left: '35px',
-        top: '185px' // Increased from 159px to 185px for better spacing
+        width: '100%',
+        mt: 8, // 为标题和描述留出空间
+        mb: 2
       }}>
         <RadioGroup
           value={downloadOption}
@@ -878,95 +874,101 @@ const MediaDownloadDialog = ({
           </Box>
 
           {/* Send to Others Option */}
-          <Box className="download-option-item" sx={{
+          <Box sx={{
             display: 'flex',
-            flexDirection: 'row',
-            gap: '7px',
-            alignItems: 'center',
-            justifyContent: 'flex-start',
+            flexDirection: 'column',
             width: '100%',
             mb: 2
           }}>
-            <Radio 
-              value="other"
-              sx={{
-                color: '#cccccc',
-                width: '25px',
-                height: '24px',
-                '&.Mui-checked': {
-                  color: '#f16508'
-                }
-              }}
-            />
-            <Box className="option-content" sx={{
+            <Box className="download-option-item" sx={{
               display: 'flex',
-              flexDirection: 'column',
-              gap: '0px',
-              alignItems: 'flex-start',
+              flexDirection: 'row',
+              gap: '7px',
+              alignItems: 'center',
               justifyContent: 'flex-start',
-              width: '336px'
+              width: '100%'
             }}>
-              <Typography className="option-title" sx={{
-                color: '#212121',
-                textAlign: 'left',
-                fontFamily: 'OpenSans-SemiBold, sans-serif',
-                fontSize: '14px',
-                lineHeight: '140%',
-                fontWeight: 600,
-                width: '100%'
+              <Radio 
+                value="other"
+                sx={{
+                  color: '#cccccc',
+                  width: '25px',
+                  height: '24px',
+                  '&.Mui-checked': {
+                    color: '#f16508'
+                  }
+                }}
+              />
+              <Box className="option-content" sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0px',
+                alignItems: 'flex-start',
+                justifyContent: 'flex-start',
+                width: '336px'
               }}>
-                Send to Others
-              </Typography>
-              <Typography className="option-description" sx={{
-                color: '#4f4f4f',
-                textAlign: 'left',
-                fontFamily: 'OpenSans-Regular, sans-serif',
-                fontSize: '12px',
-                lineHeight: '140%',
-                fontWeight: 400,
-                width: '100%'
-              }}>
-                Send download link to other users and CC you Email to
-              </Typography>
+                <Typography className="option-title" sx={{
+                  color: '#212121',
+                  textAlign: 'left',
+                  fontFamily: 'OpenSans-SemiBold, sans-serif',
+                  fontSize: '14px',
+                  lineHeight: '140%',
+                  fontWeight: 600,
+                  width: '100%'
+                }}>
+                  Send to Others
+                </Typography>
+                <Typography className="option-description" sx={{
+                  color: '#4f4f4f',
+                  textAlign: 'left',
+                  fontFamily: 'OpenSans-Regular, sans-serif',
+                  fontSize: '12px',
+                  lineHeight: '140%',
+                  fontWeight: 400,
+                  width: '100%'
+                }}>
+                  Send download link to other users and CC you Email to
+                </Typography>
+              </Box>
             </Box>
+
+            {/* Email Input for Send to Others */}
+            {downloadOption === 'other' && (
+              <Box className="email-input-section" sx={{ 
+                mt: 0.5, 
+                pl: 4, 
+                width: '100%',
+                mb: -2,
+                position: 'relative',
+                zIndex: 1
+              }}>
+                <Typography sx={{ 
+                  mb: 1,
+                  color: '#4f4f4f',
+                  fontFamily: 'OpenSans-Regular, sans-serif',
+                  fontSize: '14px'
+                }}>
+                  Send to:
+                </Typography>
+                <MultiEmailInput
+                  emails={emails}
+                  onChange={setEmails}
+                  placeholder="Enter email addresses and press Enter..."
+                  onFocus={() => setFocused(true)}
+                  onBlur={() => setFocused(false)}
+                  style={{
+                    border: `1px solid ${focused ? '#f16508' : '#E5E5E5'}`,
+                    borderRadius: '4px',
+                    padding: '12px',
+                    transition: 'border-color 0.2s ease',
+                    width: '100%',
+                    minHeight: '60px'
+                  }}
+                />
+              </Box>
+            )}
           </Box>
         </RadioGroup>
-
-        {/* Email Input for Send to Others */}
-        {downloadOption === 'other' && (
-          <Box className="email-input-section" sx={{ 
-            mt: 2, 
-            pl: 4, 
-            width: '100%',
-            mb: 12, // Increase bottom margin to prevent overlap with buttons
-            position: 'relative',
-            zIndex: 1
-          }}>
-            <Typography sx={{ 
-              mb: 1,
-              color: '#4f4f4f',
-              fontFamily: 'OpenSans-Regular, sans-serif',
-              fontSize: '14px'
-            }}>
-              Send to:
-            </Typography>
-            <MultiEmailInput
-              emails={emails}
-              onChange={setEmails}
-              placeholder="Enter email addresses and press Enter..."
-              onFocus={() => setFocused(true)}
-              onBlur={() => setFocused(false)}
-              style={{
-                border: `1px solid ${focused ? '#f16508' : '#E5E5E5'}`,
-                borderRadius: '4px',
-                padding: '12px', // Increase padding for better height
-                transition: 'border-color 0.2s ease',
-                width: '100%',
-                minHeight: '60px' // Increase minimum height
-              }}
-            />
-          </Box>
-        )}
       </Box>
 
       {/* Dialog Actions */}
@@ -976,9 +978,8 @@ const MediaDownloadDialog = ({
         gap: '16px',
         alignItems: 'center',
         justifyContent: 'flex-end',
-        position: 'absolute',
-        right: '19px',
-        bottom: downloadOption === 'other' ? '20px' : '16px' // Provide more space when email input is shown
+        mt: 2,
+        width: '100%'
       }}>
         <Button
           className="cancel-button"
@@ -1041,10 +1042,9 @@ const MediaDownloadDialog = ({
       sx={{
         '& .MuiDialog-paper': {
           width: '520px',
-          minHeight: currentStep === 'options' 
-            ? (downloadOption === 'other' ? '560px' : '460px')
-            : '400px',
-          overflow: 'hidden'
+          height: 'auto',
+          maxHeight: '90vh',
+          overflow: 'auto'
         }
       }}
     >
