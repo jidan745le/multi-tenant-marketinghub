@@ -116,7 +116,8 @@ const themesSlice = createSlice({
                     // 添加新的配置字段
                     communication: theme.communication,
                     legal: theme.legal,
-                    socialprofile: theme.socialprofile
+                    socialprofile: theme.socialprofile,
+                    feedback_address: theme.feedback_address // 添加 feedback_address 字段映射
                 };
             });
 

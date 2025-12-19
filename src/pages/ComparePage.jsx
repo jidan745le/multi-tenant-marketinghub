@@ -774,14 +774,14 @@ const ComparePage = () => {
   const visibleHeaderProducts = React.useMemo(() => {
     const all = Array.isArray(compareData?.headerData) ? compareData.headerData : [];
     if (!Array.isArray(selectedProducts) || selectedProducts.length === 0) {
-      console.log('visibleHeaderProducts: selectedProducts 为空', { selectedProducts, all });
+      console.log('visibleHeaderProducts: selectedProducts is empty', { selectedProducts, all });
       return [];
     }
 
 
     const filtered = all.slice(0, Math.min(selectedProducts.length, all.length));
     
-    console.log('visibleHeaderProducts 过滤结果:', {
+    console.log('visibleHeaderProducts filtered result:', {
       selectedProducts,
       allHeaderData: all,
       filtered,

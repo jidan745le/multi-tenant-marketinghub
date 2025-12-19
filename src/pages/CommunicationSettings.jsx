@@ -90,9 +90,14 @@ function CommunicationSettings() {
 
   // 从 Redux 加载 Feedback Address (feedback_address from Strapi theme)
   useEffect(() => {
-    if (currentBrand?.feedback_address) {
-      setFeedbackAddress(currentBrand.feedback_address);
-      console.log('✅ 从 Redux 加载 Feedback Address:', currentBrand.feedback_address);
+    const address = currentBrand?.feedback_address || currentBrand?.strapiData?.feedback_address;
+    if (address) {
+      setFeedbackAddress(address);
+      console.log('Feedback Address loaded from Redux:', address);
+    } else {
+      // 如果都没有，清空输入框
+      setFeedbackAddress('');
+      console.log('No Feedback Address data found');
     }
   }, [currentBrand]);
 

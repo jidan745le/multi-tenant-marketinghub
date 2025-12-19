@@ -1,6 +1,7 @@
 import { Box, Button } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import React from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useSelectedAssets } from '../context/SelectedAssetsContext';
 
 // Styled components based on the provided CSS
@@ -62,6 +63,9 @@ const AssetViewActionBarComponent = ({
   selectAll,
   isAllSelected = false
 }) => {
+  const navigate = useNavigate();
+  const { lang, brand } = useParams();
+  
   // 兼容性处理：如果没有传入选中状态相关props，则使用全局context
   const globalSelectedAssets = useSelectedAssets();
   const finalSelectedAssets = selectedAssets || globalSelectedAssets.selectedAssets;
@@ -94,11 +98,35 @@ const AssetViewActionBarComponent = ({
     onDownloadSelection?.(finalSelectedAssets);
   };
 
+  const productIds = finalSelectedAssets
+    .map(asset => asset.customerFacingProductCode)
+    .filter(Boolean);
+
+  // 判断是否显示 COMPARE 按钮：至少选中2个产品
+  const showCompareButton = productIds.length >= 2;
+
+  const handleCompare = () => {
+    if (productIds.length < 2) {
+      alert('Please select at least 2 products to compare');
+      return;
+    }
+    
+    // 构建比较页面URL: /:lang/:brand/compare?id=id1,id2,id3，这个url现在的ids参数应该为customerFacingProductCode
+    const compareUrl = `/${lang || 'en_GB'}/${brand || 'kendo'}/compare?id=${productIds.join(',')}`;
+    navigate(compareUrl);
+  };
+
   return (
     <AssetViewActionBar>
       <ActionButton onClick={handleSelectAll}>
         {isAllSelected ? 'UNSELECT ALL' : 'SELECT ALL'}
       </ActionButton>
+      
+      {showCompareButton && (
+        <ActionButton onClick={handleCompare}>
+          Compare
+        </ActionButton>
+      )}
       
       <ActionButton onClick={handleMassTagging}>
         Mass Tagging

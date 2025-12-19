@@ -3,6 +3,7 @@ import {
   Box,
   Button,
   Checkbox,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -21,6 +22,8 @@ import { useTranslation } from 'react-i18next';
 import { useBrand } from '../hooks/useBrand';
 import { useLanguage } from '../hooks/useLanguage';
 import downloadApi from '../services/downloadApi';
+import setUpSheetApi from '../services/setUpSheetApi';
+import templateApi from '../services/templateApi';
 import CookieService from '../utils/cookieService';
 import MultiEmailInput from './MultiEmailInput';
 
@@ -51,6 +54,9 @@ const ProductMassDownloadDialog = ({
   const { currentBrand, currentBrandCode } = useBrand();
   const { supportedLanguages, currentLanguage, getCurrentLanguageInfo } = useLanguage();
 
+  // 暂时隐藏 Setup Sheet (Channel) 选项
+  const SHOW_SETUP_SHEET_CHANNEL = true;
+
   // Dialog states
   const [currentStep, setCurrentStep] = useState('formats'); // 'formats' | 'regions' | 'channels' | 'derivates' | 'options'
   const [loading, setLoading] = useState(false);
@@ -62,12 +68,8 @@ const ProductMassDownloadDialog = ({
   // Available languages from Redux - 默认显示前5个，点击展开显示全部
   const displayedLanguages = showAllLanguages ? supportedLanguages : supportedLanguages.slice(0, 5);
 
-  // File format selection
+  // File format选择（非 publication 类格式的开关：Setup Sheet / Mass Media）
   const [selectedFormats, setSelectedFormats] = useState({
-    catalog: false,
-    datasheet: false,
-    shelfCard1on1: false,
-    shelfCardMultiple: false,
     setupSheetGeneral: false,
     setupSheetChannel: false,
     massMediaDownload: false
@@ -79,11 +81,8 @@ const ProductMassDownloadDialog = ({
   const [selectedDerivates, setSelectedDerivates] = useState([]); // For Mass Media Download
 
   // Channel data (fetched from API)
-  const [availableChannels, setAvailableChannels] = useState([
-    { id: 1, name: 'Standard PNG RGB WEB' },
-    { id: 2, name: 'Standard TIFF RGB' },
-    { id: 3, name: 'Standard PNG RGB HIGH RES' }
-  ]);
+  const [availableChannels, setAvailableChannels] = useState([]);
+  const [channelsLoading, setChannelsLoading] = useState(false);
 
   // Region data
   const [availableRegions, setAvailableRegions] = useState([
@@ -95,8 +94,6 @@ const ProductMassDownloadDialog = ({
 
   // Derivate data (for media downloads)
   const [availableDerivates, setAvailableDerivates] = useState([
-    { id: 1, name: 'All Core Images' },
-    { id: 2, name: 'All Images' }
   ]);
 
   // Quantity/Quality selection
@@ -105,6 +102,10 @@ const ProductMassDownloadDialog = ({
   // Download options
   const [downloadOption, setDownloadOption] = useState('email'); // 'email' | 'direct' | 'other'
   const [emails, setEmails] = useState([]);
+
+  const [publicationTemplates, setPublicationTemplates] = useState([]);
+
+  const [selectedTemplateIds, setSelectedTemplateIds] = useState([]);
 
   // Track which step opened a sub-dialog
   const [returnToStep, setReturnToStep] = useState('formats');
@@ -117,6 +118,59 @@ const ProductMassDownloadDialog = ({
     }
   }, [open, currentLanguage]);
 
+  useEffect(() => {
+    if (!open) return;
+
+    const fetchPublicationTemplates = async () => {
+      try {
+        const templates = await templateApi.getTemplates();
+
+        const specificTemplates = (templates || []).filter(
+          (t) => (t.templateTypeName || '').toLowerCase() === 'specific'
+        );
+
+        const allTemplates = [];
+
+        specificTemplates.forEach((t) => {
+          const name = (t?.name || '').trim();
+          if (!name) return;
+
+          const lowerName = name.toLowerCase();
+          const typeName = (t.typeName || '').toLowerCase();
+
+          let type = 'normal';
+          if (
+            typeName === 'shelfcard' ||
+            lowerName.includes('shelf card') ||
+            lowerName.includes('shelfcard') ||
+            lowerName === 'shelf'
+          ) {
+            type = 'shelfCard';
+          }
+
+          allTemplates.push({ id: t.id, name, type });
+        });
+
+        const seen = new Set();
+        const uniqueTemplates = allTemplates.filter((t) => {
+          if (!t.name) return false;
+          const key = `${t.type}:${t.name}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+
+        setPublicationTemplates(uniqueTemplates);
+      } catch (e) {
+        console.error('Failed to fetch publication templates:', e);
+        // 避免闪烁
+        setPublicationTemplates((prev) => prev);
+      }
+    };
+
+    fetchPublicationTemplates();
+  }, [open]);
+
   const handleClose = () => {
     // Reset all states
     setCurrentStep('formats');
@@ -124,10 +178,6 @@ const ProductMassDownloadDialog = ({
     setShowAllLanguages(false);
     setOutputQuality('web');
     setSelectedFormats({
-      catalog: false,
-      datasheet: false,
-      shelfCard1on1: false,
-      shelfCardMultiple: false,
       setupSheetGeneral: false,
       setupSheetChannel: false,
       massMediaDownload: false
@@ -173,6 +223,15 @@ const ProductMassDownloadDialog = ({
     });
   };
 
+  // 切换 publication 模板的选中状态
+  const toggleTemplateSelection = (templateId) => {
+    setSelectedTemplateIds((prev) =>
+      prev.includes(templateId)
+        ? prev.filter((id) => id !== templateId)
+        : [...prev, templateId]
+    );
+  };
+
   const handleChannelToggle = (channelId) => {
     setSelectedChannels(prev => {
       if (prev.includes(channelId)) {
@@ -204,9 +263,54 @@ const ProductMassDownloadDialog = ({
     setCurrentStep('regions');
   };
 
+  const fetchChannelsForSelection = async () => {
+    try {
+      setChannelsLoading(true);
+
+      const allChannels = await setUpSheetApi.getChannels();
+
+      const channels = (allChannels || []).filter(
+        (ch) => (ch.templateType || '').toLowerCase() === 'specific'
+      );
+
+      const channelsWithTemplates = await Promise.all(
+        channels.map(async (ch) => {
+          const channelId = ch.id ?? ch.channelId;
+          const channelName = ch.name ?? ch.channelName ?? '';
+
+          let templates = [];
+          try {
+            const rawTemplates = Array.isArray(ch.templates) ? ch.templates : [];
+            templates = rawTemplates
+              .map((t) => t.name)
+              .filter(Boolean);
+          } catch (e) {
+            console.error('Failed to extract templates for channel', channelId, e);
+          }
+
+          return {
+            id: channelId,
+            name: channelName,
+            templates
+          };
+        })
+      );
+
+      setAvailableChannels(
+        channelsWithTemplates.filter((ch) => Array.isArray(ch.templates) && ch.templates.length > 0)
+      );
+    } catch (error) {
+      console.error('Failed to fetch channels for selection dialog:', error);
+    } finally {
+      setChannelsLoading(false);
+    }
+  };
+
   const handleOpenChannelSelection = () => {
     setReturnToStep('formats');
+    setSelectedChannels([]);
     setCurrentStep('channels');
+    fetchChannelsForSelection();
   };
 
   const handleOpenDerivateSelection = () => {
@@ -226,23 +330,7 @@ const ProductMassDownloadDialog = ({
     try {
       setLoading(true);
 
-      // 格式映射关系
-      const formatMapping = {
-        catalog: 'CatalogGlobal',
-        datasheet: 'DatasheetGlobalSingle',
-        shelfCard1on1: 'ShelfCard',
-        shelfCardMultiple: 'ShelfCard',
-        setupSheetGeneral: 'SetupSheet',
-        setupSheetChannel: 'SetupSheet',
-        massMediaDownload: 'ProductMediaAssets'
-      };
-
-      // 构建 templateid（选中的格式）
-      const selectedTemplateIds = Object.keys(selectedFormats)
-        .filter(key => selectedFormats[key])
-        .map(key => formatMapping[key])
-        .filter(Boolean)
-        .join(',');
+      const templateIdString = (selectedTemplateIds || []).join(',');
 
       // 获取用户信息
       const userInfo = CookieService.getUserInfo();
@@ -274,7 +362,7 @@ const ProductMassDownloadDialog = ({
       const params = {
         modelnumber: modelNumbers,
         brand: currentBrandCode || 'kendo',
-        templateid: selectedTemplateIds,
+        templateid: templateIdString,
         region: regionCodes,
         derivateList: derivateNames,
         async: downloadOption !== 'direct', // direct = false (sync), email/other = true (async)
@@ -306,13 +394,31 @@ const ProductMassDownloadDialog = ({
 
   // Validation
   const hasSelectedLanguage = selectedLanguages.length > 0;
-  const hasSelectedFormat = Object.values(selectedFormats).some(v => v);
+
+  const hasSelectedPublicationTemplate = selectedTemplateIds.length > 0;
+  const hasOtherFormats =
+    selectedFormats.setupSheetGeneral ||
+    selectedFormats.setupSheetChannel ||
+    selectedFormats.massMediaDownload;
+  const hasSelectedFormat = hasSelectedPublicationTemplate || hasOtherFormats;
   const massMediaValid = !selectedFormats.massMediaDownload || selectedDerivates.length > 0;
   const canProceed = hasSelectedLanguage && hasSelectedFormat && massMediaValid;
   const canFinalDownload = downloadOption !== 'other' || emails.length > 0;
 
   // Main format selection dialog
-  const formatSelectionContent = () => (
+  const formatSelectionContent = () => {
+    const getPublicationRank = (tpl) => {
+      const name = (tpl.name || '').toLowerCase();
+      if (name.includes('datasheet')) return 0;
+      if (name.includes('catalog')) return 1;
+      if (name.includes('shelf card') || name.includes('shelfcard') || name === 'shelf') return 2;
+      return 3;
+    };
+    const orderedPublicationTemplates = [...publicationTemplates].sort(
+      (a, b) => getPublicationRank(a) - getPublicationRank(b)
+    );
+
+    return (
     <>
       <DialogTitle>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 2, mb: 2 }}>
@@ -345,7 +451,7 @@ const ProductMassDownloadDialog = ({
         </Box>
       </DialogTitle>
 
-      <DialogContent sx={{ padding: '0 24px 24px 24px' }}>
+      <DialogContent sx={{ padding: '0 24px 14px 24px' }}>
         {/* Language Selection */}
         <Typography
           sx={{
@@ -468,52 +574,35 @@ const ProductMassDownloadDialog = ({
           Publications
         </Typography>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2, ml: 2 }}>
-          {/* 第一行：Catalog 和 Datasheet */}
-          <Box sx={{ display: 'flex', gap: 2, width: '100%' }}>
-            <Box sx={{ flex: 1 }}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    size="small"
-                    checked={selectedFormats.catalog}
-                    onChange={() => handleFormatToggle('catalog')}
-                    sx={{ '&.Mui-checked': { color: theme.palette.primary.main } }}
-                  />
-                }
-                label={<Typography sx={{ fontSize: '14px', color: '#4f4f4f' }}>Catalog</Typography>}
-              />
-            </Box>
-            <Box sx={{ flex: 1 }}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    size="small"
-                    checked={selectedFormats.datasheet}
-                    onChange={() => handleFormatToggle('datasheet')}
-                    sx={{ '&.Mui-checked': { color: theme.palette.primary.main } }}
-                  />
-                }
-                label={<Typography sx={{ fontSize: '14px', color: '#4f4f4f' }}>Datasheet</Typography>}
-              />
-            </Box>
-          </Box>
+          {/* Publications 模板统一渲染；ShelfCard 类型额外显示 Regions 子区域 */}
+          <Box sx={{ display: 'flex', gap: 2, rowGap: 0.5, width: '100%', flexWrap: 'wrap' }}>
+            {orderedPublicationTemplates.map((tpl, idx) => {
+              const checked = selectedTemplateIds.includes(tpl.id);
+              const isShelfCard = tpl.type === 'shelfCard';
 
-          {/* 第二行：Shelf Card (1on1) 和 Shelf Card (Multiple) */}
-          <Box sx={{ display: 'flex', gap: 2, width: '100%' }}>
-            {/* Shelf Card (1on1) */}
-            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+              return (
+                <Box
+                  key={`pub-${tpl.id}-${idx}`}
+                  sx={{ flex: '1 1 45%', display: 'flex', flexDirection: 'column', gap: 0.25 }}
+                >
               <FormControlLabel
                 control={
                   <Checkbox
                     size="small"
-                    checked={selectedFormats.shelfCard1on1}
-                    onChange={() => handleFormatToggle('shelfCard1on1')}
+                        checked={checked}
+                        onChange={() => toggleTemplateSelection(tpl.id)}
                     sx={{ '&.Mui-checked': { color: theme.palette.primary.main } }}
                   />
                 }
-                label={<Typography sx={{ fontSize: '14px', color: '#4f4f4f' }}>Shelf Card (1 on 1)</Typography>}
-              />
-              {selectedFormats.shelfCard1on1 && (
+                    label={
+                      <Typography sx={{ fontSize: '14px', color: '#4f4f4f' }}>
+                        {tpl.name}
+                  </Typography>
+                    }
+                  />
+
+                  {/* 只有 ShelfCard 类型在选中时展示 Regions 子区域 */}
+                  {isShelfCard && checked && (
                 <Box sx={{ ml: 4, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                   <Typography sx={{ fontSize: '12px', color: '#808080', mb: 0.5 }}>
                     Select the Regions
@@ -539,46 +628,8 @@ const ProductMassDownloadDialog = ({
                 </Box>
               )}
             </Box>
-
-            {/* Shelf Card (Multiple) */}
-            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.25 }}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    size="small"
-                    checked={selectedFormats.shelfCardMultiple}
-                    onChange={() => handleFormatToggle('shelfCardMultiple')}
-                    sx={{ '&.Mui-checked': { color: theme.palette.primary.main } }}
-                  />
-                }
-                label={<Typography sx={{ fontSize: '14px', color: '#4f4f4f' }}>Shelf Card (Multiple)</Typography>}
-              />
-              {selectedFormats.shelfCardMultiple && (
-                <Box sx={{ ml: 4, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                  <Typography sx={{ fontSize: '12px', color: '#808080', mb: 0.5 }}>
-                    Select the Regions
-                  </Typography>
-                  {availableRegions.map((region) => (
-                    <FormControlLabel
-                      key={region.id}
-                      control={
-                        <Checkbox
-                          size="small"
-                          checked={selectedRegions.includes(region.id)}
-                          onChange={() => handleRegionToggle(region.id)}
-                          sx={{ 
-                            '&.Mui-checked': { color: theme.palette.primary.main },
-                            py: 0
-                          }}
-                        />
-                      }
-                      label={<Typography sx={{ fontSize: '14px', color: '#4d4d4d' }}>{region.name}</Typography>}
-                      sx={{ my: 0 }}
-                    />
-                  ))}
-                </Box>
-              )}
-            </Box>
+              );
+            })}
           </Box>
         </Box>
 
@@ -601,32 +652,34 @@ const ProductMassDownloadDialog = ({
                 label={<Typography sx={{ fontSize: '14px', color: '#4f4f4f' }}>Setup Sheet (General)</Typography>}
               />
             </Box>
-            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    size="small"
-                    checked={selectedFormats.setupSheetChannel}
-                    onChange={() => handleFormatToggle('setupSheetChannel')}
-                    sx={{ '&.Mui-checked': { color: theme.palette.primary.main } }}
-                  />
-                }
-                label={<Typography sx={{ fontSize: '14px', color: '#4f4f4f' }}>Setup Sheet (Channel)</Typography>}
-              />
-              {selectedFormats.setupSheetChannel && (
-                <Box sx={{ ml: 4, mt: 0.25 }}>
-                  <Typography sx={{ fontSize: '12px', color: '#808080' }}>
-                    Select the Channels{' '}
-                    <span
-                      onClick={handleOpenChannelSelection}
-                      style={{ color: theme.palette.primary.main, fontWeight: 'bold', cursor: 'pointer', textDecoration: 'underline' }}
-                    >
-                      HERE
-                    </span>
-                  </Typography>
-                </Box>
-              )}
-            </Box>
+            {SHOW_SETUP_SHEET_CHANNEL && (
+              <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      size="small"
+                      checked={selectedFormats.setupSheetChannel}
+                      onChange={() => handleFormatToggle('setupSheetChannel')}
+                      sx={{ '&.Mui-checked': { color: theme.palette.primary.main } }}
+                    />
+                  }
+                  label={<Typography sx={{ fontSize: '14px', color: '#4f4f4f' }}>Setup Sheet (Channel)</Typography>}
+                />
+                {selectedFormats.setupSheetChannel && (
+                  <Box sx={{ ml: 4, mt: 0.25 }}>
+                    <Typography sx={{ fontSize: '12px', color: '#808080' }}>
+                      Select the Channels{' '}
+                      <span
+                        onClick={handleOpenChannelSelection}
+                        style={{ color: theme.palette.primary.main, fontWeight: 'bold', cursor: 'pointer', textDecoration: 'underline' }}
+                      >
+                        HERE
+                      </span>
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            )}
           </Box>
         </Box>
 
@@ -634,7 +687,7 @@ const ProductMassDownloadDialog = ({
         <Typography sx={{ fontSize: '14px', fontWeight: 600, mb: 1, color: '#4d4d4d' }}>
           Mass Downloads (Media)
         </Typography>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, ml: 2 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', ml: 2, mb: 0 }}>
           <FormControlLabel
             control={
               <Checkbox
@@ -690,6 +743,7 @@ const ProductMassDownloadDialog = ({
       </DialogActions>
     </>
   );
+  };
 
   // Region selection sub-dialog
   const regionSelectionContent = () => (
@@ -735,7 +789,17 @@ const ProductMassDownloadDialog = ({
         <Button
           variant="contained"
           onClick={handleBackFromSubDialog}
-          sx={{ backgroundColor: theme.palette.primary.main, color: '#fff', textTransform: 'uppercase' }}
+          disabled={selectedChannels.length === 0}
+          sx={{
+            backgroundColor:
+              selectedChannels.length === 0 ? '#cccccc' : theme.palette.primary.main,
+            color: '#fff',
+            textTransform: 'uppercase',
+            '&:hover': {
+              backgroundColor:
+                selectedChannels.length === 0 ? '#cccccc' : theme.palette.primary.dark
+            }
+          }}
         >
           Confirm
         </Button>
@@ -747,7 +811,15 @@ const ProductMassDownloadDialog = ({
   const channelSelectionContent = () => (
     <>
       <DialogTitle>
-        <Typography sx={{ fontSize: '21px', fontWeight: 600, mt: 2, mb: 2 }}>
+        <Typography
+          sx={{
+            fontSize: '21px',
+            fontWeight: 500,
+            mt: 2,
+            mb: 2,
+            fontFamily: '"Roboto-Medium", sans-serif'
+          }}
+        >
           Select Channels
         </Typography>
         <IconButton
@@ -759,22 +831,63 @@ const ProductMassDownloadDialog = ({
         </IconButton>
       </DialogTitle>
       <DialogContent sx={{ padding: '0 24px 24px 24px' }}>
-        <List>
-          {availableChannels.map((channel) => (
-            <FormControlLabel
+        {channelsLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+            <CircularProgress size={32} sx={{ color: theme.palette.primary.main }} />
+          </Box>
+        ) : (
+          <List sx={{ paddingTop: 0 }}>
+            {availableChannels.map((channel) => {
+              const checked = selectedChannels.includes(channel.id);
+              return (
+                <Box
               key={channel.id}
-              control={
+                  sx={{ display: 'flex', flexDirection: 'column', mb: 1.5 }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 <Checkbox
                   size="small"
-                  checked={selectedChannels.includes(channel.id)}
+                      checked={checked}
                   onChange={() => handleChannelToggle(channel.id)}
                   sx={{ '&.Mui-checked': { color: theme.palette.primary.main } }}
                 />
-              }
-              label={<Typography sx={{ fontSize: '14px', color: '#333' }}>{channel.name}</Typography>}
-            />
-          ))}
+                    <Typography
+                      sx={{ fontSize: '14px', color: '#333', ml: 0.5, cursor: 'pointer' }}
+                      onClick={() => handleChannelToggle(channel.id)}
+                    >
+                      {channel.name}
+                    </Typography>
+                  </Box>
+                  {Array.isArray(channel.templates) && channel.templates.length > 0 && (
+                    <Typography
+                      sx={{
+                        fontSize: '12px',
+                        color: '#808080',
+                        ml: 4.5,
+                        mt: 0.1,
+                        pointerEvents: 'none'
+                      }}
+                    >
+                      {channel.templates.length} template(s):
+                      {' '}
+                      {channel.templates.map((tpl, idx) => (
+                        <Box
+                          // 每个 template 名称单独一个 span，使用 nowrap 保证名称不会被折断
+                          key={tpl}
+                          component="span"
+                          sx={{ whiteSpace: 'nowrap' }}
+                        >
+                          {tpl}
+                          {idx < channel.templates.length - 1 && ', '}
+                        </Box>
+                      ))}
+                    </Typography>
+                  )}
+                </Box>
+              );
+            })}
         </List>
+        )}
       </DialogContent>
       <DialogActions sx={{ padding: '12px 24px', gap: 1 }}>
         <Button
@@ -787,7 +900,17 @@ const ProductMassDownloadDialog = ({
         <Button
           variant="contained"
           onClick={handleBackFromSubDialog}
-          sx={{ backgroundColor: theme.palette.primary.main, color: '#fff', textTransform: 'uppercase' }}
+          disabled={selectedChannels.length === 0}
+          sx={{
+            backgroundColor:
+              selectedChannels.length === 0 ? '#cccccc' : theme.palette.primary.main,
+            color: '#fff',
+            textTransform: 'uppercase',
+            '&:hover': {
+              backgroundColor:
+                selectedChannels.length === 0 ? '#cccccc' : theme.palette.primary.dark
+            }
+          }}
         >
           Confirm
         </Button>
@@ -799,7 +922,15 @@ const ProductMassDownloadDialog = ({
   const derivateSelectionContent = () => (
     <>
       <DialogTitle>
-        <Typography sx={{ fontSize: '21px', fontWeight: 600, mt: 2, mb: 2 }}>
+        <Typography
+          sx={{
+            fontSize: '21px',
+            fontWeight: 500,
+            mt: 2,
+            mb: 2,
+            fontFamily: '"Roboto-Medium", sans-serif'
+          }}
+        >
           Select Derivates
         </Typography>
         <IconButton
@@ -810,24 +941,7 @@ const ProductMassDownloadDialog = ({
           <CloseIcon />
         </IconButton>
       </DialogTitle>
-      <DialogContent sx={{ padding: '0 24px 24px 24px' }}>
-        <List>
-          {availableDerivates.map((derivate) => (
-            <FormControlLabel
-              key={derivate.id}
-              control={
-                <Checkbox
-                  size="small"
-                  checked={selectedDerivates.includes(derivate.id)}
-                  onChange={() => handleDerivateToggle(derivate.id)}
-                  sx={{ '&.Mui-checked': { color: theme.palette.primary.main } }}
-                />
-              }
-              label={<Typography sx={{ fontSize: '14px', color: '#333' }}>{derivate.name}</Typography>}
-            />
-          ))}
-        </List>
-      </DialogContent>
+      <DialogContent sx={{ padding: '0 24px 24px 24px' }} />
       <DialogActions sx={{ padding: '12px 24px', gap: 1 }}>
         <Button
           variant="outlined"

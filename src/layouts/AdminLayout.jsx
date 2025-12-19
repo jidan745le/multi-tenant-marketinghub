@@ -265,7 +265,7 @@ function AdminLayout() {
       {/* Admin Sidebar */}
       <AdminSidebar>
         <NavigationList component="nav">
-          {adminMenuItems.map(item => {
+          {adminMenuItems.filter(item => item.id !== 'data-sheet-config').map(item => {
             const isActive = activeMenuItem === item.id;
             const isExpanded = expandedMenus[item.id] || false;
             const hasSubMenu = item.hasSubMenu && item.subMenu;

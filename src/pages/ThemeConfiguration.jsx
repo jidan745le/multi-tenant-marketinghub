@@ -1,4 +1,5 @@
 import {
+  Alert,
   Box,
   Button,
   Checkbox,
@@ -6,12 +7,18 @@ import {
   FormControlLabel,
   MenuItem,
   Select,
+  Snackbar,
   TextField,
   Typography
 } from '@mui/material';
 import { styled, useTheme } from '@mui/material/styles';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { SectionCard, SectionTitle, SubTitle } from '../components/SettingsComponents';
+import { useBrand } from '../hooks/useBrand';
+import { selectCurrentLanguage } from '../store/slices/themesSlice';
+import { createNotification, updateThemeWithLocale, validateBrandData } from '../utils/themeUpdateUtils';
+import templateApi from '../services/templateApi';
 
 // Styled Components
 const SaveButton = styled(Button)(({ theme }) => ({
@@ -41,9 +48,13 @@ const TwoColumnLayout = styled(Box)(() => ({
 
 function ThemeConfiguration() {
   const theme = useTheme();
+  const { currentBrand } = useBrand();
+  const dispatch = useDispatch();
+  const currentLanguage = useSelector(selectCurrentLanguage);
   
   // State for demo purposes
   const [saving, setSaving] = useState(false);
+  const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
   const [activeFunctionality, setActiveFunctionality] = useState({
     brandBook: true,
     derivateManagement: true,
@@ -55,9 +66,59 @@ function ThemeConfiguration() {
     feature6: false,
   });
 
-  const [dataSheet, setDataSheet] = useState('Data_Sheet_01');
+  const [dataSheet, setDataSheet] = useState('');
   const [pimConnector, setPimConnector] = useState('Informatica');
   const [serverUrl, setServerUrl] = useState('');
+  const [dataSheetTemplates, setDataSheetTemplates] = useState([]);
+  const [loadingDataSheets, setLoadingDataSheets] = useState(false);
+
+  // 获取 DataSheet 类型的模板列表
+  useEffect(() => {
+    const fetchDataSheetTemplates = async () => {
+      try {
+        setLoadingDataSheets(true);
+        const dataSheetTypeId = await templateApi.getTypeId('DataSheet');
+        
+        if (!dataSheetTypeId) {
+          console.warn('Cannot get DataSheet typeId');
+        }
+
+        // 获取所有模板
+        const allTemplates = await templateApi.getTemplates();
+        
+        const filteredTemplates = allTemplates.filter(
+          template => template.typeId === (dataSheetTypeId || 3)
+        );
+
+        console.log('DataSheet templates fetched successfully:', filteredTemplates);
+        setDataSheetTemplates(filteredTemplates);
+      } catch (error) {
+        console.error('Error fetching DataSheet templates:', error);
+        setDataSheetTemplates([]);
+      } finally {
+        setLoadingDataSheets(false);
+      }
+    };
+
+    fetchDataSheetTemplates();
+  }, []);
+
+  // 从当前品牌数据中加载 dataSheet 配置
+  useEffect(() => {
+    if (currentBrand && dataSheetTemplates.length > 0 && !dataSheet) {
+      const defaultDataSheetValue = 
+        currentBrand.strapiData?.defaultDataSheet || 
+        currentBrand.defaultDataSheet;
+      
+      if (defaultDataSheetValue && dataSheetTemplates.some(t => t.name === defaultDataSheetValue)) {
+        setDataSheet(defaultDataSheetValue);
+      } else {
+        setDataSheet(dataSheetTemplates[0].name);
+      }
+    } else if (dataSheetTemplates.length > 0 && !dataSheet && !currentBrand) {
+      setDataSheet(dataSheetTemplates[0].name);
+    }
+  }, [currentBrand, dataSheetTemplates, dataSheet]);
 
   // Handlers
   const handleFunctionalityChange = (key) => {
@@ -67,18 +128,47 @@ function ThemeConfiguration() {
     }));
   };
 
+  const handleDataSheetChange = (newValue) => {
+    setDataSheet(newValue);
+  };
+
+  // 关闭通知
+  const handleCloseNotification = () => {
+    setNotification({ ...notification, open: false });
+  };
+
   const handleSave = async () => {
-    setSaving(true);
-    // Simulate save operation
-    setTimeout(() => {
-      setSaving(false);
-      console.log('Configuration saved:', {
-        activeFunctionality,
-        dataSheet,
-        pimConnector,
-        serverUrl
+    try {
+      setSaving(true);
+      
+      // 验证品牌数据
+      const validation = validateBrandData(currentBrand);
+      if (!validation.isValid) {
+        throw new Error(validation.error);
+      }
+
+      console.log('Saving Theme Configuration configuration...');
+
+      const updateData = {
+        defaultDataSheet: dataSheet || ''
+      };
+
+      // 使用通用更新函数 - 支持locale和Redux刷新
+      await updateThemeWithLocale({
+        documentId: currentBrand.strapiData.documentId,
+        updateData,
+        currentLanguage,
+        dispatch,
+        description: 'Theme Configuration配置'
       });
-    }, 1000);
+
+      setNotification(createNotification(true, 'Theme Configuration saved successfully!'));
+    } catch (error) {
+      console.error('Error saving Theme Configuration:', error);
+      setNotification(createNotification(false, `Save failed: ${error.message}`));
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -241,14 +331,28 @@ function ThemeConfiguration() {
           <Select
             fullWidth
             value={dataSheet}
-            onChange={(e) => setDataSheet(e.target.value)}
+            onChange={(e) => handleDataSheetChange(e.target.value)}
             variant="outlined"
             size="medium"
             sx={{ mt: 1 }}
+            disabled={loadingDataSheets}
           >
-            <MenuItem value="Data_Sheet_01">Data_Sheet_01</MenuItem>
-            <MenuItem value="Data_Sheet_02">Data_Sheet_02</MenuItem>
-            <MenuItem value="Data_Sheet_03">Data_Sheet_03</MenuItem>
+            {loadingDataSheets ? (
+              <MenuItem value="" disabled>
+                <CircularProgress size={16} sx={{ mr: 1 }} />
+                Loading...
+              </MenuItem>
+            ) : dataSheetTemplates.length === 0 ? (
+              <MenuItem value="" disabled>
+                No DataSheet templates
+              </MenuItem>
+            ) : (
+              dataSheetTemplates.map((template) => (
+                <MenuItem key={template.id} value={template.name}>
+                  {template.name}
+                </MenuItem>
+              ))
+            )}
           </Select>
         </Box>
       </SectionCard>
@@ -323,6 +427,22 @@ function ThemeConfiguration() {
           Save Configuration
         </SaveButton>
       </Box>
+
+      {/* 通知消息 */}
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={6000}
+        onClose={handleCloseNotification}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={handleCloseNotification} 
+          severity={notification.severity}
+          variant="filled"
+        >
+          {notification.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }
