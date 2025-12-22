@@ -83,11 +83,6 @@ const AssetViewActionBarComponent = ({
     }
   };
 
-  const handleMassTagging = () => {
-    // TODO: Implement mass tagging functionality
-    console.log('Mass Tagging clicked');
-  };
-
   const handleDownloadSelection = () => {
     if (finalSelectedCount === 0) {
       alert('Please select assets to download');
@@ -99,6 +94,7 @@ const AssetViewActionBarComponent = ({
   };
 
   const productIds = finalSelectedAssets
+    // .map(asset => asset.customerFacingProductCode)
     .map(asset => asset.customerFacingProductCode)
     .filter(Boolean);
 
@@ -127,10 +123,6 @@ const AssetViewActionBarComponent = ({
           Compare
         </ActionButton>
       )}
-      
-      <ActionButton onClick={handleMassTagging}>
-        Mass Tagging
-      </ActionButton>
       
       <ActionButton 
         onClick={handleDownloadSelection}

@@ -369,7 +369,7 @@ const createDocumentFilterConfigs = (documentTypeOptions) => {
             type: 'array',
             defaultValue: [], // UI默认不勾选
             enum: documentTypeOptions,
-            defaultCollapseCount: 12
+            defaultCollapseCount: 6
         },
         {
             order: 52,
