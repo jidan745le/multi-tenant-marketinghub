@@ -1372,10 +1372,13 @@ class ProductDetailApiService {
   }
 
   formatFileSize(bytes) {
-    if (!bytes) return '';
-    const mb = bytes / (1024 * 1024);
+    if (bytes == null || bytes === 0) return '';
+    const mb = bytes / 1_000_000; // 十进制：1 MB = 1,000,000 bytes
+    // console.log('formatFileSize', bytes, mb.toFixed(2));
+
     return `${mb.toFixed(2)} MB`;
   }
+
 
   formatQuantityValue(quantityValue) {
     if (!quantityValue || !quantityValue.value) return '';
