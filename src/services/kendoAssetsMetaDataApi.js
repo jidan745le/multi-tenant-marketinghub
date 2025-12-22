@@ -47,9 +47,14 @@ const buildAssetsQuery = (filters = {}, first = 20, offset = 0) => {
     const metadataFilters = [];
 
     // Media Category metadata filter (支持多选)
+    // 对于视频筛选，使用 "Video Type" 作为 metadata 名称；否则使用 "Media Type"
     if (filters['media-category'] && Array.isArray(filters['media-category']) && filters['media-category'].length > 0) {
+        // 检查是否是视频筛选
+        const isVideoFilter = filters['media-type'] && Array.isArray(filters['media-type']) && filters['media-type'].includes('Videos');
+        const metadataName = isVideoFilter ? "Video Type" : "Media Type";
+        
         metadataFilters.push({
-            name: "Media Type",
+            name: metadataName,
             values: filters['media-category'],
             operator: "IN"
         });
