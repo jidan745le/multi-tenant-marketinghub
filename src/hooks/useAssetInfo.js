@@ -104,15 +104,13 @@ const parseApprovalStatus = (metadata) => {
  * @param {number} bytes - File size in bytes
  * @returns {string} Formatted file size
  */
-const formatFileSize = (bytes) => {
-    if (!bytes || bytes === 0) return '0 Bytes';
+const  formatFileSize =(bytes)=> {
+    if (bytes == null || bytes === 0) return '';
+    const mb = bytes / 1_000_000; // 十进制：1 MB = 1,000,000 bytes
+    // console.log('formatFileSize', bytes, mb.toFixed(2));
 
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-};
+    return `${mb.toFixed(2)} MB`;
+  }
 
 /**
  * Format date to MM/DD/YYYY HH:mm:ss
