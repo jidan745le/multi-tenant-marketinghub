@@ -400,7 +400,7 @@ const AssetDetailDialog = ({
       dimensions: assetInfo.width && assetInfo.height ? `${assetInfo.width} X ${assetInfo.height}` : '--',
       size: assetInfo.fileSize || '--',
       creationDate: assetInfo.creationDate || '--',
-      lastModified: assetInfo.creationDate || '--',
+      lastModified: assetInfo.changedOn || '--',
       
       // 标签
       customerKeywords: assetInfo.tags ? assetInfo.tags.join(', ') : '--',
@@ -593,7 +593,7 @@ const AssetDetailDialog = ({
 
   const setMediaUrlFromAssetInfo = useCallback(() => {
     if (!assetInfo) return;
-    
+    console.log('assetInfo111', assetInfo);
     setMediaError(false);
     
     try {
