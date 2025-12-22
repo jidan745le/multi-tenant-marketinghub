@@ -380,7 +380,7 @@ const ConfigurableFilterSidebar = ({
             ))}
           </FormGroup>
         </FormControl>
-        {item.enum && item.enum.length > 7 && (
+        {item.enum && item.enum.length > (item.defaultCollapseCount || 7) && (
           <ShowMoreButton onClick={() => toggleCollapse(item.key)}>
             {isCollapsed ? 'Show More' : 'Show Less'}
           </ShowMoreButton>
@@ -413,7 +413,7 @@ const ConfigurableFilterSidebar = ({
             ))}
           </RadioGroup>
         </FormControl>
-        {item.enum && item.enum.length > 7 && (
+        {item.enum && item.enum.length > (item.defaultCollapseCount || 7) && (
           <ShowMoreButton onClick={() => toggleCollapse(item.key)}>
             {isCollapsed ? 'Show More' : 'Show Less'}
           </ShowMoreButton>

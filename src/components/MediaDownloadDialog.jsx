@@ -24,6 +24,7 @@ import IconButton from '@mui/material/IconButton';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useBrand } from '../hooks/useBrand';
+import { useTheme } from '../hooks/useTheme';
 import derivateManagementApi from '../services/derivateManagementApi';
 import downloadApi from '../services/downloadApi';
 import { fetchKendoAssets } from '../services/kendoAssetsApi';
@@ -49,7 +50,7 @@ const MediaDownloadDialog = ({
   selectedMediaIds = [], // Array of media IDs (numbers or strings)
 }) => {
   const { t } = useTranslation();
-  // const theme = useTheme();
+  const { primaryColor } = useTheme();
   const { currentBrandCode } = useBrand();
   
   // Dialog states
@@ -642,7 +643,13 @@ const MediaDownloadDialog = ({
         <Button
           variant="outlined"
           onClick={handleClose}
-          sx={{ color: '#333', border: 'solid 1px #E5E5E5' }}
+          sx={{ 
+            color: '#333', 
+            border: 'solid 1px #E5E5E5',
+            '&:hover': {
+              borderColor: primaryColor
+            }
+          }}
           disabled={loading}
         >
           Cancel
@@ -994,7 +1001,10 @@ const MediaDownloadDialog = ({
             fontSize: '14px',
             lineHeight: '16px',
             fontWeight: 400,
-            textTransform: 'uppercase'
+            textTransform: 'uppercase',
+            '&:hover': {
+              borderColor: primaryColor
+            }
           }}
         >
           {cameFromDerivateSelection ? 'BACK' : 'CANCEL'}
