@@ -2519,7 +2519,7 @@ const ProductDetailPage = () => {
             // 标签映射
             infoLabels={{
               basic: [
-                { key: 'modelNumber', label: 'common.modelNumber' },
+                // { key: 'modelNumber', label: 'common.modelNumber' },
                 { key: 'mediaType', label: 'common.mediaType' },
                 { key: 'usage', label: 'common.usage' },
                 { key: 'language', label: 'common.language' },
@@ -2574,7 +2574,7 @@ const ProductDetailPage = () => {
              // 标签映射
              infoLabels={{
               basic: [
-                { key: 'modelNumber', label: 'common.modelNumber' },
+                // { key: 'modelNumber', label: 'common.modelNumber' },
                 { key: 'mediaType', label: 'common.mediaType' },
                 { key: 'usage', label: 'common.usage' },
                 { key: 'language', label: 'common.language' },
@@ -2663,7 +2663,7 @@ const ProductDetailPage = () => {
             // 标签映射
             infoLabels={{
               basic: [
-                { key: 'modelNumber', label: 'common.modelNumber' },
+                // { key: 'modelNumber', label: 'common.modelNumber' },
                 { key: 'mediaType', label: 'common.mediaType' },
                 { key: 'usage', label: 'common.usage' },
                 { key: 'language', label: 'common.language' },

@@ -1249,7 +1249,7 @@ class ProductDetailApiService {
         keywords: this.extractKeywords(image.metadata), // 新增keywords字段
         // Basic Info - 参考 useAssetInfo.js 的字段映射
         basicInfo: {
-          modelNumber: this.extractMetadataValue(image.metadata, 'Model Number'),
+          // modelNumber: this.extractMetadataValue(image.metadata, 'Model Number'),
           mediaType: this.extractMetadataValue(image.metadata, 'Media Type'),
           usage: this.extractMetadataValue(image.metadata, 'Media Usage') || 'Internal',
           language: this.extractMetadataValue(image.metadata, 'Media Language'),
