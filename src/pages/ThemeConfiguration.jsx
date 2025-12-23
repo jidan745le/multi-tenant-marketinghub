@@ -16,9 +16,9 @@ import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { SectionCard, SectionTitle, SubTitle } from '../components/SettingsComponents';
 import { useBrand } from '../hooks/useBrand';
+import templateApi from '../services/templateApi';
 import { selectCurrentLanguage } from '../store/slices/themesSlice';
 import { createNotification, updateThemeWithLocale, validateBrandData } from '../utils/themeUpdateUtils';
-import templateApi from '../services/templateApi';
 
 // Styled Components
 const SaveButton = styled(Button)(({ theme }) => ({
@@ -66,7 +66,7 @@ function ThemeConfiguration() {
     feature6: false,
   });
 
-  const [dataSheet, setDataSheet] = useState('');
+  const [selectedDataSheet, setSelectedDataSheet] = useState(null); // 存储选中的模板对象 {id, name}
   const [pimConnector, setPimConnector] = useState('Informatica');
   const [serverUrl, setServerUrl] = useState('');
   const [dataSheetTemplates, setDataSheetTemplates] = useState([]);
@@ -83,7 +83,7 @@ function ThemeConfiguration() {
           console.warn('Cannot get DataSheet typeId');
         }
 
-        // 获取所有模板
+        // 获取所有模板（从 /main/publication/templates?tenant=Kendo&theme=kendo 接口）
         const allTemplates = await templateApi.getTemplates();
         
         const filteredTemplates = allTemplates.filter(
@@ -103,22 +103,38 @@ function ThemeConfiguration() {
     fetchDataSheetTemplates();
   }, []);
 
-  // 从当前品牌数据中加载 dataSheet 配置
+  // 从当前品牌数据中加载 mainDataSheet 配置
   useEffect(() => {
-    if (currentBrand && dataSheetTemplates.length > 0 && !dataSheet) {
-      const defaultDataSheetValue = 
-        currentBrand.strapiData?.defaultDataSheet || 
-        currentBrand.defaultDataSheet;
+    if (currentBrand && dataSheetTemplates.length > 0 && !selectedDataSheet) {
+      // 从 mainDataSheet component 字段读取
+      const mainDataSheet = currentBrand.strapiData?.mainDataSheet;
       
-      if (defaultDataSheetValue && dataSheetTemplates.some(t => t.name === defaultDataSheetValue)) {
-        setDataSheet(defaultDataSheetValue);
+      if (mainDataSheet?.dataSheetId && mainDataSheet?.dataSheetName) {
+        // 查找匹配的模板
+        const matchedTemplate = dataSheetTemplates.find(
+          t => t.id === mainDataSheet.dataSheetId && t.name === mainDataSheet.dataSheetName
+        );
+        
+        if (matchedTemplate) {
+          setSelectedDataSheet({ id: matchedTemplate.id, name: matchedTemplate.name });
+        } else {
+          // 如果找不到完全匹配的，尝试只匹配 id 或 name
+          const templateById = dataSheetTemplates.find(t => t.id === mainDataSheet.dataSheetId);
+          const templateByName = dataSheetTemplates.find(t => t.name === mainDataSheet.dataSheetName);
+          const fallbackTemplate = templateById || templateByName || dataSheetTemplates[0];
+          setSelectedDataSheet({ id: fallbackTemplate.id, name: fallbackTemplate.name });
+        }
       } else {
-        setDataSheet(dataSheetTemplates[0].name);
+        // 如果没有 mainDataSheet，使用第一个模板作为默认值
+        if (dataSheetTemplates.length > 0) {
+          setSelectedDataSheet({ id: dataSheetTemplates[0].id, name: dataSheetTemplates[0].name });
+        }
       }
-    } else if (dataSheetTemplates.length > 0 && !dataSheet && !currentBrand) {
-      setDataSheet(dataSheetTemplates[0].name);
+    } else if (dataSheetTemplates.length > 0 && !selectedDataSheet && !currentBrand) {
+      // 如果没有品牌数据，使用第一个模板作为默认值
+      setSelectedDataSheet({ id: dataSheetTemplates[0].id, name: dataSheetTemplates[0].name });
     }
-  }, [currentBrand, dataSheetTemplates, dataSheet]);
+  }, [currentBrand, dataSheetTemplates, selectedDataSheet]);
 
   // Handlers
   const handleFunctionalityChange = (key) => {
@@ -128,8 +144,11 @@ function ThemeConfiguration() {
     }));
   };
 
-  const handleDataSheetChange = (newValue) => {
-    setDataSheet(newValue);
+  const handleDataSheetChange = (templateId) => {
+    const selectedTemplate = dataSheetTemplates.find(t => t.id === parseInt(templateId));
+    if (selectedTemplate) {
+      setSelectedDataSheet({ id: selectedTemplate.id, name: selectedTemplate.name });
+    }
   };
 
   // 关闭通知
@@ -149,8 +168,19 @@ function ThemeConfiguration() {
 
       console.log('Saving Theme Configuration configuration...');
 
+      if (!selectedDataSheet) {
+        throw new Error('Please select a DataSheet template');
+      }
+
+      // 构建 mainDataSheet component 字段数据
+      // 只包含 dataSheetId 和 dataSheetName，不包含 id
+      const mainDataSheetData = {
+        dataSheetId: selectedDataSheet.id,
+        dataSheetName: selectedDataSheet.name
+      };
+
       const updateData = {
-        defaultDataSheet: dataSheet || ''
+        mainDataSheet: mainDataSheetData
       };
 
       // 使用通用更新函数 - 支持locale和Redux刷新
@@ -330,7 +360,7 @@ function ThemeConfiguration() {
           <SubTitle>SELECT MAIN DATA SHEET</SubTitle>
           <Select
             fullWidth
-            value={dataSheet}
+            value={selectedDataSheet?.id || ''}
             onChange={(e) => handleDataSheetChange(e.target.value)}
             variant="outlined"
             size="medium"
@@ -348,7 +378,7 @@ function ThemeConfiguration() {
               </MenuItem>
             ) : (
               dataSheetTemplates.map((template) => (
-                <MenuItem key={template.id} value={template.name}>
+                <MenuItem key={template.id} value={template.id}>
                   {template.name}
                 </MenuItem>
               ))
