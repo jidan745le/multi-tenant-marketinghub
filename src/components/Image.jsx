@@ -21,7 +21,6 @@ const Image = ({
   // 可配置的字段标签映射（用于替换硬编码）
   infoLabels = {
     basic: [
-      { key: 'modelNumber', label: 'Model Number' },
       { key: 'imageType', label: 'Image Type' },
       { key: 'usageRights', label: 'Usage rights' },
       { key: 'approvalStatus', label: 'Approval Status' }
@@ -143,9 +142,13 @@ const Image = ({
           position: 'absolute',
           left: '356px',
           top: '32.23px',
-          width: '412.44px'
+          right: '100px',
+          maxWidth: 'calc(100% - 456px)',
+          wordBreak: 'normal',
+          overflowWrap: 'normal',
+          whiteSpace: 'normal'
         }}>
-          {displayedMainImage?.fileName || imageInfo.fileName || 'Image File Name'}
+          {displayedMainImage?.fileName || imageInfo.fileName || ''}
         </Typography>
 
         {/* 标签行 */}

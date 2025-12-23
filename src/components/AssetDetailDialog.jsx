@@ -109,7 +109,9 @@ const TitleText = styled(Typography)({
   fontWeight: 'bold',
   lineHeight: '24px',
   marginBottom: '8px',
-  wordBreak: 'break-all'
+  wordBreak: 'normal',
+  overflowWrap: 'normal',
+  whiteSpace: 'normal'
 });
 
 const TagsContainer = styled(Box)({
@@ -248,7 +250,7 @@ const AssetDetailDialog = ({
     {
       title: 'common.basicInfo',
       fields: [
-        { key: 'customerModelNumber', label: 'common.modelNumber', fallback: '--', altKeys: ['modelNumber'] },
+        // { key: 'customerModelNumber', label: 'common.modelNumber', fallback: '--', altKeys: ['modelNumber'] },
         { key: 'customerImageType', label: 'common.mediaType', fallback: '--' },
         { key: 'customerUsageRights', label: 'common.usage', fallback: '--'},
         { key: 'language', label: 'common.language', fallback: '--' },
@@ -350,7 +352,7 @@ const AssetDetailDialog = ({
         type: '--',
         
         // Basic Info
-        customerModelNumber: '--',
+        // customerModelNumber: '--',
         customerImageType: '--',
         customerUsageRights: '--',
         language: '--',
@@ -388,11 +390,11 @@ const AssetDetailDialog = ({
       type: assetInfo.type || '--',
       
       // Basic Info
-      customerModelNumber: assetInfo.id || '--',
+      // customerModelNumber: assetInfo.id || '--',
       customerImageType: assetInfo.mediaType || assetInfo.type || '--',
       customerUsageRights: assetInfo.usage || '--',
       language: assetInfo.language || '--',
-      productIds: assetInfo.productIds || assetInfo.modelNumber || '--',
+      productIds: assetInfo.productIds || '--',
       customerApprovalStatus: '• Published', // 默认值
       
       // Technical
