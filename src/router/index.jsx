@@ -214,20 +214,29 @@ const router = [
         element: <ChannelManagement />
       },
       {
-        path: 'super-admin',
-        element: <SuperAdmin />
-      },
-      {
-        path: 'tenant-admin',
-        element: <TenantAdmin />
-      },
-      {
-        path: 'my-publications',
-        element: <MyPublications />
-      },
-      {
-        path: 'template-marketplace',
-        element: <TemplateMarketplace />
+        path: 'publications',
+        children: [
+          {
+            index: true,
+            element: <Navigate to="template-marketplace" replace />
+          },
+          {
+            path: 'template-marketplace',
+            element: <TemplateMarketplace />
+          },
+          {
+            path: 'my-publications',
+            element: <MyPublications />
+          },
+          {
+            path: 'tenant-admin',
+            element: <TenantAdmin />
+          },
+          {
+            path: 'super-admin',
+            element: <SuperAdmin />
+          }
+        ]
       },
       {
         path: 'under-construction',

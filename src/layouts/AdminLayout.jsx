@@ -1,17 +1,17 @@
 import {
-  Box,
-  CircularProgress,
-  Collapse,
-  List,
-  ListItem,
-  ListItemText
+    Box,
+    CircularProgress,
+    Collapse,
+    List,
+    ListItem,
+    ListItemText
 } from '@mui/material';
 import { alpha, styled, useTheme } from '@mui/material/styles';
 import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { selectThemesLoading } from '../store/slices/themesSlice';
 import SmallTriangleIcon from '../components/SmallTriangleIcon';
+import { selectThemesLoading } from '../store/slices/themesSlice';
 
 // Styled Components
 const AdminSidebar = styled(Box)(({ theme }) => ({
@@ -201,6 +201,7 @@ function AdminLayout() {
   useEffect(() => {
     const pathSegments = location.pathname.split('/');
     const lastSegment = pathSegments[pathSegments.length - 1];
+    const secondLastSegment = pathSegments[pathSegments.length - 2];
     
     // 只在以下情况更新 activeMenuItem：
     // 1. 路径匹配已知菜单项（直接访问URL）
@@ -213,14 +214,22 @@ function AdminLayout() {
       if (foundItem) {
         setActiveMenuItem(lastSegment);
       } else {
-        // 检查是否是子菜单项
+        // 检查是否是子菜单项（可能在 publications 路径下）
         for (const item of adminMenuItems) {
           if (item.subMenu) {
             const foundSubItem = item.subMenu.find(subItem => subItem.id === lastSegment);
             if (foundSubItem) {
-              setActiveMenuItem(lastSegment);
-              setExpandedMenus(prev => ({ ...prev, [item.id]: true }));
-              break;
+              // 如果路径是 publications/xxx 格式，或者直接是子菜单项
+              if (secondLastSegment === item.id || secondLastSegment === 'publications') {
+                setActiveMenuItem(lastSegment);
+                setExpandedMenus(prev => ({ ...prev, [item.id]: true }));
+                break;
+              } else if (lastSegment === foundSubItem.id) {
+                // 兼容旧路径格式（直接访问子菜单项）
+                setActiveMenuItem(lastSegment);
+                setExpandedMenus(prev => ({ ...prev, [item.id]: true }));
+                break;
+              }
             }
           }
         }
@@ -246,9 +255,13 @@ function AdminLayout() {
   };
 
   // 处理子菜单项点击
-  const handleSubMenuItemClick = (subMenuId) => {
+  const handleSubMenuItemClick = (subMenuId, parentMenuId) => {
     setActiveMenuItem(subMenuId);
-    navigate(subMenuId, { replace: true });
+    // 如果是 publications 的子菜单，需要加上 publications 前缀
+    const targetPath = parentMenuId === 'publications' 
+      ? `publications/${subMenuId}` 
+      : subMenuId;
+    navigate(targetPath, { replace: true });
   };
 
   // 如果正在加载，显示加载状态
@@ -333,7 +346,7 @@ function AdminLayout() {
                         return (
                           <SubMenuItem
                             key={subItem.id}
-                            onClick={() => handleSubMenuItemClick(subItem.id)}
+                            onClick={() => handleSubMenuItemClick(subItem.id, item.id)}
                             disablePadding
                           >
                             <SubMenuItemLabel 
