@@ -1524,12 +1524,14 @@ const ProductDetailPage = () => {
             onClose={basicMenu.closeMenu}
             {...getMenuProps(basicMenu.anchorEl)}
           >
-          <MenuItem 
-            selected={basicTab === 'internalPDPBasic'}
-            onClick={() => { basicMenu.closeMenu(); updateBasicTabAndUrl('internalPDPBasic'); }}
-          >
-            {t('pdp.marketing')}
-          </MenuItem>
+          {normalizedLayoutFromUrl === 'internalPDPBasic' && (
+            <MenuItem 
+              selected={basicTab === 'internalPDPBasic'}
+              onClick={() => { basicMenu.closeMenu(); updateBasicTabAndUrl('internalPDPBasic'); }}
+            >
+              {t('pdp.marketing')}
+            </MenuItem>
+          )}
           <MenuItem 
             selected={basicTab === 'externalPDPBasic'}
             onClick={() => { basicMenu.closeMenu(); updateBasicTabAndUrl('externalPDPBasic'); }}

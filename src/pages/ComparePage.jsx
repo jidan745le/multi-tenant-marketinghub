@@ -34,6 +34,7 @@ import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
 import compareApi from '../services/compareApi';
 import { fetchProductList } from '../services/productListApi';
 import { useLanguage } from '../hooks/useLanguage';
+import { useLayoutType } from '../hooks/useLayoutType';
 
 // 空数据结构
 const EMPTY_COMPARE_DATA = {
@@ -568,6 +569,8 @@ const ComparePage = () => {
   // 获取当前品牌
   // const { currentBrand } = useBrand();
   
+  const getLayoutType = useLayoutType(currentBrand);
+  
   const getIsoCode = (languageCode) => {
     if (!languageCode) return 'en';
 
@@ -581,23 +584,6 @@ const ComparePage = () => {
     }
     
     return languageCode.split('_')[0] || 'en';
-  };
-  
-  // 从 ISO 639 代码获取对应的完整语言代码
-  const getLanguageCodeFromIso = (isoCode) => {
-    if (!isoCode) return null;
-    
-    const lang = supportedLanguages.find(l => l.isoCode === isoCode);
-    if (lang) {
-      return lang.code;
-    }
-
-    const directMatch = supportedLanguages.find(l => l.code === isoCode);
-    if (directMatch) {
-      return directMatch.code;
-    }
-    
-    return null;
   };
   
   const getInitialLanguage = () => {
@@ -777,9 +763,9 @@ const ComparePage = () => {
     if (!productId) return;
     
     // 构建 PDP 页面 URL: /:lang/:brand/product-detail/:id
-    const pdpUrl = `/${currentLang}/${currentBrand}/product-detail/${productId}?layout=internalPDPBasic`;
+    const pdpUrl = `/${currentLang}/${currentBrand}/product-detail/${productId}?layout=${getLayoutType}`;
     navigate(pdpUrl);
-  }, [currentLang, currentBrand, navigate]);
+  }, [currentLang, currentBrand, navigate, getLayoutType]);
 
   // 直接使用API返回的featureData
   const filteredFeatureData = React.useMemo(() => {

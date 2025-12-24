@@ -1,16 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import ProductCatalogue from '../../components/ProductCatalogue';
 import ProductMassDownloadDialog from '../../components/ProductMassDownloadDialog';
 import { createProductCatalogueConfig } from '../../config/kendoProductConfig';
 import { SelectedAssetsProvider } from '../../context/SelectedAssetsContext';
 import { useBrand } from '../../hooks/useBrand';
+import { useLayoutType } from '../../hooks/useLayoutType';
 import { fetchSKUProducts } from '../../services/skuProductsApi';
 
 function ProductCataloguePage() {
   // 获取当前品牌和路由参数
   const { currentBrandCode } = useBrand();
-  const navigate = useNavigate();
   const { lang, brand } = useParams();
   
   // 产品详情状态
@@ -31,6 +31,9 @@ function ProductCataloguePage() {
     const newConfig = createProductCatalogueConfig(currentBrandCode);
     return newConfig;
   }, [currentBrandCode]);
+
+
+  const getLayoutType = useLayoutType(currentBrandCode);
 
   // 处理产品点击 - 特殊逻辑：查找SKU产品并导航到第一个SKU的详情页
   const handleProductClick = async (product) => {
@@ -63,7 +66,8 @@ function ProductCataloguePage() {
       const firstSkuId = firstSku.CustomerFacingProductCode;
       
       // 构建产品详情页面URL: /en_GB/kendo/product-detail/${id}
-      const detailUrl = `/${lang || 'en_GB'}/${brand || currentBrandCode}/product-detail/${firstSkuId}?layout=internalPDPBasic`;
+      // 根据 pages 的 name 动态设置 layout 参数
+      const detailUrl = `/${lang || 'en_GB'}/${brand || currentBrandCode}/product-detail/${firstSkuId}?layout=${getLayoutType}`;
       
       window.open(detailUrl, '_blank');
       // 导航到产品详情页面
@@ -109,6 +113,7 @@ function ProductCataloguePage() {
   }, []);
 
   // 处理批量搜索
+  // eslint-disable-next-line no-unused-vars
   const handleMassSearch = (item, childItem, filterValues) => {
     // 处理批量搜索逻辑
   };
