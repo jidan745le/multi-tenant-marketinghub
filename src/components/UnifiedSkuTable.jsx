@@ -14,6 +14,9 @@ const UnifiedSkuTable = ({
     size: 'Size/ MainParameter',
     material: 'Main Material',
     finish: 'Surface Finish',
+    unitPackingItem: 'Unit Packing',
+    innerBoxQuantity: 'Inner Box Qty',
+    masterCartonQuantity: 'Master Carton Qty',
     standard: 'Applicable Standard'
   }
 }) => {
@@ -128,8 +131,9 @@ const UnifiedSkuTable = ({
   } : {
     productNumber: '145px',
     size: '189.91px',
-    material: '220px',
-    finish: '300px',
+    innerBoxQuantity: '150px',
+    masterCartonQuantity: '180px',
+    unitPackingItem: '200px',
     standard: '200px'
   };
 
@@ -182,16 +186,38 @@ const UnifiedSkuTable = ({
             {columnLabels.size}
           </Typography>
         </Box>
-        <Box sx={{ ...cellStyles, width: columnWidths.material }}>
-          <Typography sx={headerTextStyles}>
-            {columnLabels.material}
-          </Typography>
-        </Box>
-        <Box sx={{ ...cellStyles, width: columnWidths.finish, justifyContent: 'flex-end' }}>
-          <Typography sx={headerTextStyles}>
-            {columnLabels.finish}
-          </Typography>
-        </Box>
+        {isDropdown ? (
+          <>
+            <Box sx={{ ...cellStyles, width: columnWidths.material }}>
+              <Typography sx={headerTextStyles}>
+                {columnLabels.material}
+              </Typography>
+            </Box>
+            <Box sx={{ ...cellStyles, width: columnWidths.finish, justifyContent: 'flex-end' }}>
+              <Typography sx={headerTextStyles}>
+                {columnLabels.finish}
+              </Typography>
+            </Box>
+          </>
+        ) : (
+          <>
+           <Box sx={{ ...cellStyles, width: columnWidths.unitPackingItem }}>
+              <Typography sx={headerTextStyles}>
+                {columnLabels.unitPackingItem}
+              </Typography>
+            </Box>
+            <Box sx={{ ...cellStyles, width: columnWidths.innerBoxQuantity }}>
+              <Typography sx={headerTextStyles}>
+                {columnLabels.innerBoxQuantity}
+              </Typography>
+            </Box>
+            <Box sx={{ ...cellStyles, width: columnWidths.masterCartonQuantity }}>
+              <Typography sx={headerTextStyles}>
+                {columnLabels.masterCartonQuantity}
+              </Typography>
+            </Box>
+          </>
+        )}
         {showStandard && (
           <Box sx={{ ...cellStyles, width: columnWidths.standard }}>
             <Typography sx={headerTextStyles}>
@@ -253,16 +279,38 @@ const UnifiedSkuTable = ({
                 {sku.size}
               </Typography>
             </Box>
-            <Box sx={{ ...cellStyles, width: columnWidths.material }}>
-              <Typography sx={cellTextStyles}>
-                {sku.material}
-              </Typography>
-            </Box>
-            <Box sx={{ ...cellStyles, width: columnWidths.finish }}>
-              <Typography sx={cellTextStyles}>
-                {sku.finish}
-              </Typography>
-            </Box>
+            {isDropdown ? (
+              <>
+                <Box sx={{ ...cellStyles, width: columnWidths.material }}>
+                  <Typography sx={cellTextStyles}>
+                    {sku.material}
+                  </Typography>
+                </Box>
+                <Box sx={{ ...cellStyles, width: columnWidths.finish }}>
+                  <Typography sx={cellTextStyles}>
+                    {sku.finish}
+                  </Typography>
+                </Box>
+              </>
+            ) : (
+              <>
+              <Box sx={{ ...cellStyles, width: columnWidths.unitPackingItem }}>
+                  <Typography sx={cellTextStyles}>
+                    {sku.unitPackingItem || '-'}
+                  </Typography>
+                </Box>
+                <Box sx={{ ...cellStyles, width: columnWidths.innerBoxQuantity }}>
+                  <Typography sx={cellTextStyles}>
+                    {sku.innerBoxQuantity || '-'}
+                  </Typography>
+                </Box>
+                <Box sx={{ ...cellStyles, width: columnWidths.masterCartonQuantity }}>
+                  <Typography sx={cellTextStyles}>
+                    {sku.masterCartonQuantity || '-'}
+                  </Typography>
+                </Box>   
+              </>
+            )}
             {showStandard && (
               <Box sx={{ ...cellStyles, width: columnWidths.standard }}>
                 <Typography sx={cellTextStyles}>
@@ -282,8 +330,11 @@ UnifiedSkuTable.propTypes = {
     PropTypes.shape({
       productNumber: PropTypes.string.isRequired,
       size: PropTypes.string.isRequired,
-      material: PropTypes.string.isRequired,
-      finish: PropTypes.string.isRequired,
+      material: PropTypes.string,
+      finish: PropTypes.string,
+      innerBoxQuantity: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+      masterCartonQuantity: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+      unitPackingItem: PropTypes.string,
       standard: PropTypes.string
     })
   ),

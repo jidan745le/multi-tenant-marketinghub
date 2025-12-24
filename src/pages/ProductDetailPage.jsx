@@ -436,6 +436,9 @@ const ProductDetailPage = () => {
       size: findLabel('size'),
       material: findLabel('mainMaterial'),
       finish: findLabel('surfaceFinish'),
+      unitPackingItem: findLabel('unitPackingItem'),
+      innerBoxQuantity: findLabel('innerBoxQuantity'),
+      masterCartonQuantity: findLabel('masterCartonQuantity'),
       standard: findLabel('applicableStandard')
     };
   }, [tableData]);
@@ -620,11 +623,7 @@ const ProductDetailPage = () => {
       enrichmentStatus: '--',
       finalReleaseDate: '--'
     },
-    skus: [
-      { size: '160mm/6"', material: 'A01010501', finish: 'Nickel Iron Plated', standard: '' },
-      { size: '180mm/6"', material: 'A01010502', finish: 'Nickel Iron Plated', standard: '' },
-      { size: '200mm/6"', material: 'A01010503', finish: 'Nickel Iron Plated', standard: '' }
-    ],
+    skus: [],
     basicData: {
       brand: currentBrand || 'Kendo',
       productNumber: '--',
@@ -667,7 +666,6 @@ const ProductDetailPage = () => {
   // 数据检查函数 - 判断各个部分是否有数据
   const hasData = React.useMemo(() => {
     const data = productData;
-    console.log('data123', data?.packagingSpec && (data.packagingSpec.technicalSpecs));
     return {
       // References & Relationships
       bundles: data?.referenceRelationship?.bundles && data.referenceRelationship.bundles.length > 0,
@@ -1744,6 +1742,9 @@ const ProductDetailPage = () => {
             material: sku.mainMaterial||'',
             finish: sku.surfaceFinish || '',
             standard: sku.applicableStandard || '',
+            unitPackingItem: sku.unitPackingItem || '',
+            innerBoxQuantity: sku.innerBoxQuantity || '',
+            masterCartonQuantity: sku.masterCartonQuantity || '',
             imageUrl: sku.imageUrl || (index === 0 && productCardInfo?.imageUrl) || ''
           })) || []
         });
@@ -1938,6 +1939,7 @@ const ProductDetailPage = () => {
               const translationKey = statusLabelMap[enrichmentStatus] || 'status.inDevelopment';
               return t(translationKey);
             })()}
+          productIdNumber={productData.productCardInfo?.productIdNumber}
           modelNumber={routeProductId}
           title={productData.productCardInfo?.productName || productData.name || "Product Title"}
           strapiData={productCardData}

@@ -21,15 +21,12 @@ const ProductCard = ({
   infoPairs, // 统一使用infoPairs，移除单独的状态props
   infoLabelMinWidth = '155px',
   infoValueMinWidth = '118px',
-  skuData = [
-    { size: '160mm/6"', material: '90257', finish: 'Nickel Iron Plated', imageUrl: '/assets/productcard_image.png' },
-    { size: '180mm/6"', material: '90258', finish: 'Nickel Iron Plated', imageUrl: '' },
-    { size: '200mm/6"', material: '90259', finish: 'Nickel Iron Plated', imageUrl: '' }
-  ],
+  skuData = [],
   skuColumnLabels,
   onDownloadClick,
   onSkuNavigate,
   productImage,
+  productIdNumber = '',
 }) => {
   const { primaryColor } = useTheme();
   const [skuAnchorEl, setSkuAnchorEl] = useState(null);
@@ -388,7 +385,7 @@ const ProductCard = ({
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.97, alignItems: 'flex-start', justifyContent: 'flex-start', alignSelf: 'stretch', flexShrink: 0, position: 'relative' }}>
           <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1.5, alignItems: 'center', justifyContent: 'flex-start', flexShrink: 0, width: 481.29, position: 'relative' }}>
             <Typography sx={{ color: primaryColor, fontFamily: '"Open Sans", sans-serif', fontSize: 22, lineHeight: '19.33px', letterSpacing: '0.1px', fontWeight: 500, position: 'relative',ml:3, mt:-1.5, width: 368.22, display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
-              {currentModelNumber}
+              {productIdNumber ? ` ${productIdNumber} - ${currentModelNumber}` : currentModelNumber}
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1.5, alignItems: 'center', justifyContent: 'center', flexShrink: 0, width: 550, position: 'relative' }}>
@@ -556,6 +553,7 @@ ProductCard.propTypes = {
   onDownloadClick: PropTypes.func,
   onSkuNavigate: PropTypes.func,
   productImage: PropTypes.string,
+  productIdNumber: PropTypes.string,
 };
 
 const MemoizedProductCard = memo(ProductCard);

@@ -368,7 +368,7 @@ function LookAndFeel() {
         description: 'Look & Feel配置'
       });
 
-      setNotification(createNotification(true, 'Look & Feel配置保存成功！'));
+      setNotification(createNotification(true, 'Look & Feel configuration saved successfully!'));
 
       // 清空已上传的图片ID记录
       setUploadedImageIds({
@@ -380,8 +380,8 @@ function LookAndFeel() {
       });
 
     } catch (error) {
-      console.error('❌ 保存配置失败:', error);
-      setNotification(createNotification(false, `保存失败: ${error.message}`));
+      console.error('Strapi is restarting. Please try again later:', error);
+      setNotification(createNotification(false, `Strapi is restarting. Please try again later`));
     } finally {
       setSaving(false);
     }

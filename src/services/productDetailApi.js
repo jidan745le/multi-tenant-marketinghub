@@ -720,6 +720,9 @@ class ProductDetailApiService {
                 Size
                 MainMaterial
                 SurfaceFinish
+                UnitPackingItem
+                InnerBoxQuantity
+                MCQuantity
                 ApplicableStandard              
               }
             }
@@ -774,6 +777,7 @@ class ProductDetailApiService {
   // 产品卡片信息转换
   transformProductCardInfo(product) {
     return {
+      productIdNumber: product.VirtualProductID ||  '',
       productNumber: product.CustomerFacingProductCode || product.id || '',
       productName: product.ProductName || '',
       developmentStatus: this.getDevelopmentStatus(product.EnrichmentStatus, product.LifecycleStatus),
@@ -876,9 +880,11 @@ class ProductDetailApiService {
         const match = key.match(/WebsiteLink_[a-z]{2}_([A-Z]{2})/);
         const field = match ? match[1] : key.replace('WebsiteLink_', '').split('_').pop();
         const linkValue = product[key];
+        const languageCode = key.replace('WebsiteLink_', '');
+        const name = `Website Link (${languageCode})`;
         if (linkValue) {
           qrCodes.push({
-            name: 'Website Link',
+            name: name,
             link: linkValue,
             field: field
           });
@@ -1465,6 +1471,9 @@ class ProductDetailApiService {
       size: child.Size || '',
       mainMaterial: child.MainMaterial || '',
       surfaceFinish: child.SurfaceFinish || '',
+      unitPackingItem: child.UnitPackingItem || '',
+      innerBoxQuantity: child.InnerBoxQuantity || '',
+      masterCartonQuantity: child.MCQuantity || '',
       applicableStandard: child.ApplicableStandard || ''
     }));
   }

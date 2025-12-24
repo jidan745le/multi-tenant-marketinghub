@@ -33,15 +33,7 @@ import { useTheme } from '../hooks/useTheme';
 import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
 import compareApi from '../services/compareApi';
 import { fetchProductList } from '../services/productListApi';
-
-const MOCK_LANGUAGES = [
-  { key: 'en', label: 'English', value: 'en' },
-  { key: 'zh', label: '中文', value: 'zh' },
-  { key: 'ja', label: '日本語', value: 'ja' },
-  { key: 'de', label: 'Deutsch', value: 'de' },
-  { key: 'fr', label: 'Français', value: 'fr' },
-  { key: 'es', label: 'Español', value: 'es' }
-];
+import { useLanguage } from '../hooks/useLanguage';
 
 // 空数据结构
 const EMPTY_COMPARE_DATA = {
@@ -546,6 +538,7 @@ const TableRow = ({ fieldName, values, isLastRow, primaryColor, mixWithWhite }) 
 // Compare 页面
 const ComparePage = () => {
   const { primaryColor } = useTheme();
+  const { supportedLanguages } = useLanguage();
   const mixWithWhite = useCallback((hexColor, amount = 0.15) => {
     try {
       const hex = (hexColor || '#000000').replace('#', '');
@@ -575,10 +568,51 @@ const ComparePage = () => {
   // 获取当前品牌
   // const { currentBrand } = useBrand();
   
-  // 从 URL 读取初始值
+  const getIsoCode = (languageCode) => {
+    if (!languageCode) return 'en';
+
+    if (languageCode.length <= 2) {
+      return languageCode;
+    }
+    
+    const lang = supportedLanguages.find(l => l.code === languageCode);
+    if (lang?.isoCode) {
+      return lang.isoCode;
+    }
+    
+    return languageCode.split('_')[0] || 'en';
+  };
+  
+  // 从 ISO 639 代码获取对应的完整语言代码
+  const getLanguageCodeFromIso = (isoCode) => {
+    if (!isoCode) return null;
+    
+    const lang = supportedLanguages.find(l => l.isoCode === isoCode);
+    if (lang) {
+      return lang.code;
+    }
+
+    const directMatch = supportedLanguages.find(l => l.code === isoCode);
+    if (directMatch) {
+      return directMatch.code;
+    }
+    
+    return null;
+  };
+  
   const getInitialLanguage = () => {
     const urlLanguage = searchParams.get('language');
-    return urlLanguage || 'en';
+    if (urlLanguage) {
+
+      return getIsoCode(urlLanguage);
+    }
+    
+    if (supportedLanguages.length > 0) {
+      const currentLangData = supportedLanguages.find(l => l.code === currentLang);
+      return currentLangData?.isoCode || getIsoCode(currentLang) || 'en';
+    }
+    
+    return 'en';
   };
   
   const getInitialProducts = () => {
@@ -642,9 +676,27 @@ const ComparePage = () => {
     );
   };
 
-  const handleLanguageChange = (language) => {
-    setCurrentLanguage(language);
+  const handleLanguageChange = (isoCode) => {
+
+    setCurrentLanguage(isoCode);
   };
+
+  useEffect(() => {
+    if (supportedLanguages.length > 0 && currentLanguage) {
+
+      const currentLangExists = supportedLanguages.some(lang => {
+        const isoCode = lang.isoCode || lang.code.split('_')[0] || 'en';
+        return isoCode === currentLanguage;
+      });
+      
+      if (!currentLangExists) {
+        const currentLangData = supportedLanguages.find(l => l.code === currentLang);
+        if (currentLangData?.isoCode) {
+          setCurrentLanguage(currentLangData.isoCode);
+        }
+      }
+    }
+  }, [supportedLanguages, currentLang]);
 
   // 更新 URL 参数
   useEffect(() => {
@@ -1281,6 +1333,16 @@ const ComparePage = () => {
               value={currentLanguage}
               onChange={(e) => handleLanguageChange(e.target.value)}
               startAdornment={<LanguageIcon sx={{ mr: 1 }} />}
+              renderValue={(value) => {
+                if (supportedLanguages.length > 0) {
+                  const selectedLang = supportedLanguages.find(lang => {
+                    const isoCode = lang.isoCode || lang.code.split('_')[0] || 'en';
+                    return isoCode === value;
+                  });
+                  return selectedLang ? (selectedLang.nativeName || selectedLang.name || selectedLang.code) : value;
+                }
+                return value;
+              }}
               sx={{ 
                 '& .MuiSelect-select': {
                   display: 'flex',
@@ -1288,11 +1350,19 @@ const ComparePage = () => {
                 }
               }}
             >
-              {MOCK_LANGUAGES.map(lang => (
-                <MenuItem key={lang.key} value={lang.key}>
-                  {lang.label}
-                </MenuItem>
-              ))}
+              {supportedLanguages.length > 0 ? (
+                supportedLanguages.map(lang => {
+                  const isoCode = lang.isoCode || lang.code.split('_')[0] || 'en';
+                  return (
+                    <MenuItem key={lang.code} value={isoCode}>
+                      {lang.nativeName || lang.name || lang.code}
+                    </MenuItem>
+                  );
+                })
+              ) : (
+                // 如果没有支持的语言，显示默认选项
+                <MenuItem value="en">English</MenuItem>
+              )}
             </Select>
           </FormControl>
         </Box>
