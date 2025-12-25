@@ -194,39 +194,61 @@ class DownloadApiService {
     /**
      * Product Mass Download API
      * @param {Object} params - Download parameters
-     * @param {string} params.modelnumber - Model number(s), comma-separated
-     * @param {string} params.brand - Brand name
-     * @param {string} params.templateid - Template IDs, comma-separated
-     * @param {string} params.region - Region codes, comma-separated
-     * @param {Array<string>} params.derivateList - List of derivate names
-     * @param {boolean} params.async - Whether to send via email
-     * @param {string} params.ccemail - CC email address
+     * @param {string|string[]} params.modelNumber - Model number(s), can be string (comma-separated) or array
+     * @param {string} params.tenant - Tenant name (defaults to user's tenant)
+     * @param {string} params.theme - Theme name (defaults to current theme)
+     * @param {string|string[]|number[]} params.publicationTemplates - Publication template IDs, can be string (comma-separated) or array
+     * @param {string|string[]|number[]} params.setupsheetTemplates - Setup sheet template IDs, can be string (comma-separated) or array
+     * @param {string|string[]|number[]} params.derivateList - Derivate IDs, can be string (comma-separated) or array
+     * @param {string} params.language - Language name (e.g., "English UK")
+     * @param {string} params.outputQuality - Output quality (web, print, etc.)
      * @param {string} params.tomail - Recipient email address
-     * @param {string} params.outputquality - Output quality (web, print, etc.)
-     * @param {string} params.language - Languages, comma-separated
+     * @param {string} params.ccemail - CC email address
+     * @param {boolean} params.async - Whether to send via email (true) or download directly (false)
      * @returns {Promise<Object>} Download result
      */
     async productMassDownload(params) {
         try {
             const userInfo = CookieService.getUserInfo();
-            const tenant = userInfo?.tenant?.name;
+            const tenant = params.tenant || userInfo?.tenant?.name || 'Kendo';
+            
+            // Get theme from current path or params
+            let theme = params.theme;
+            if (!theme) {
+                const currentPath = window.location.pathname;
+                const pathSegments = currentPath.split('/').filter(Boolean);
+                if (pathSegments.length >= 2) {
+                    theme = pathSegments[1] || 'Kendo';
+                } else {
+                    theme = 'Kendo';
+                }
+            }
+
+            // Helper function to convert array or string to comma-separated string
+            const toCommaSeparated = (value) => {
+                if (Array.isArray(value)) {
+                    return value.join(',');
+                }
+                return String(value || '');
+            };
+
             const requestPayload = {
                 tenant: tenant,
-                modelnumber: params.modelnumber || '',
-                brand: params.brand || 'kendo',
-                templateid: params.templateid || '',
-                region: params.region || '',
-                "derivate-list": params.derivateList || [],
-                async: params.async || false,
-                ccemail: params.ccemail || '',
+                theme: theme,
+                modelNumber: toCommaSeparated(params.modelNumber),
+                publicationTemplates: toCommaSeparated(params.publicationTemplates),
+                setupsheetTemplates: toCommaSeparated(params.setupsheetTemplates),
+                derivateList: toCommaSeparated(params.derivateList),
+                language: params.language || '',
+                outputQuality: params.outputQuality || 'web',
                 tomail: params.tomail || '',
-                outputquality: params.outputquality || 'web',
-                language: params.language || ''
+                ccemail: params.ccemail || '',
+                async: params.async || false
             };
 
             console.log('📦 Product Mass Download Request:', requestPayload);
 
-            const response = await fetch('/srv/v1/main/mass-download/product', {
+            const response = await fetch('/srv/v1.0/main/mass-download/product', {
                 method: 'POST',
                 headers: this.getHeaders(),
                 body: JSON.stringify(requestPayload),

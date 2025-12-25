@@ -12,6 +12,8 @@ import { styled } from '@mui/material/styles';
 import React, { useState } from 'react';
 import { useSelectedAssets } from '../context/SelectedAssetsContext';
 import useTheme from '../hooks/useTheme';
+import { useBrand } from '../hooks/useBrand';
+import fileApi from '../services/fileApi';
 
 const ProductCardContainer = styled(Box)(() => ({
     background: '#ffffff',
@@ -208,6 +210,7 @@ const ProductGridCard = ({
 }) => {
     const { fallbackImage } = useTheme();
     const { toggleAsset, isAssetSelected } = useSelectedAssets();
+    const { currentBrand } = useBrand();
     
     const [imageError, setImageError] = useState(false);
     const [aspectRatio, setAspectRatio] = useState(1);
@@ -227,6 +230,36 @@ const ProductGridCard = ({
 
     const handleDownloadClick = () => {
         onDownload?.(product);
+    };
+
+    const handlePdfClick = async () => {
+        try {
+            // 获取产品编号
+            const productNumber = product.modelNumber || product.VirtualProductID || product.id;
+            
+            if (!productNumber) {
+                console.error('Product number not available');
+                return;
+            }
+
+            const dataSheetId = currentBrand?.strapiData?.mainDataSheet?.dataSheetId;
+            
+            if (!dataSheetId) {
+                console.error('DataSheet ID not available in strapiData');
+                return;
+            }
+
+            console.log('Creating PDF:', { productNumber, dataSheetId });
+
+            const result = await fileApi.createPdfFile({
+                productNumber: productNumber,
+                templateId: dataSheetId.toString()
+            });
+
+            console.log('PDF created successfully:', result);
+        } catch (error) {
+            console.error('Error creating PDF:', error);
+        }
     };
 
     const getImageSrc = () => {
@@ -289,7 +322,7 @@ const ProductGridCard = ({
                         </ActionButton>
                     )}
                     {cardActionsConfig.show_open_pdf && (
-                        <ActionButton onClick={handleProductClick}>
+                        <ActionButton onClick={handlePdfClick}>
                             <Icon type="picture_as_pdf" />
                         </ActionButton>
                     )}

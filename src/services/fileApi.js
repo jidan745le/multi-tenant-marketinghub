@@ -337,6 +337,105 @@ class FileApiService {
             throw error;
         }
     }
+
+    /**
+     * 创建PDF文件
+     * @param {Object} options - PDF创建选项
+     * @param {string|string[]} options.productNumber - 产品编号，可以是单个字符串或字符串数组（多个用逗号分隔）
+     * @param {string} options.templateId - 模板ID（必需）
+     * @param {string} [options.brand] - 品牌
+     * @param {string} [options.language] - 语言
+     * @param {string} [options.region] - 区域
+     * @param {string} [options.outputQuality] - 输出质量
+     * @param {string} [options.email] - 邮箱
+     * @param {boolean} [options.debug] - 是否启用调试模式
+     * @param {string} [baseUrl] - PDF服务基础URL，默认为 '/srv/v1.0/pdf'
+     * @returns {Promise<Object>} PDF创建响应对象
+     */
+    async createPdfFile(options = {}, baseUrl = '/srv/v1.0/pdf') {
+        try {
+            const { 
+                productNumber, 
+                templateId, 
+                brand, 
+                language, 
+                region, 
+                outputQuality, 
+                email, 
+                debug 
+            } = options;
+
+            if (!productNumber) {
+                throw new Error('Product number is required');
+            }
+
+            if (!templateId) {
+                throw new Error('Template ID is required');
+            }
+
+            // 构建查询参数
+            const params = new URLSearchParams();
+            
+            // 处理产品编号：如果是数组，用逗号连接；如果是字符串，直接使用
+            const productNumbers = Array.isArray(productNumber) 
+                ? productNumber.join(',') 
+                : productNumber;
+            params.append('productNumber', productNumbers);
+            
+            params.append('template-id', templateId);
+            
+            if (brand) {
+                params.append('brand', brand);
+            }
+            if (language) {
+                params.append('language', language);
+            }
+            if (region) {
+                params.append('region', region);
+            }
+            if (outputQuality) {
+                params.append('output-quality', outputQuality);
+            }
+            if (email) {
+                params.append('email', email);
+            }
+            if (debug) {
+                params.append('debug', debug);
+            }
+
+            const url = `${baseUrl}/create?${params.toString()}`;
+
+            console.log('🔍 Creating PDF file:', { 
+                productNumber: productNumbers,
+                templateId,
+                brand,
+                language,
+                region,
+                url 
+            });
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: this.getHeaders(),
+            });
+
+            if (!response.ok) {
+                throw await this.handleError(response);
+            }
+
+            const data = await response.json();
+            console.log('✅ PDF file created successfully:', data);
+
+            return data;
+        } catch (error) {
+            console.error('❌ Error creating PDF file:', error);
+            console.error('❌ Error details:', {
+                message: error.message,
+                stack: error.stack
+            });
+            throw error;
+        }
+    }
 }
 
 export default new FileApiService();

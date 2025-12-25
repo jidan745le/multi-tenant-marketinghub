@@ -24,6 +24,7 @@ import { useLanguage } from '../hooks/useLanguage';
 import downloadApi from '../services/downloadApi';
 import setUpSheetApi from '../services/setUpSheetApi';
 import templateApi from '../services/templateApi';
+import derivateManagementApi from '../services/derivateManagementApi';
 import CookieService from '../utils/cookieService';
 import MultiEmailInput from './MultiEmailInput';
 
@@ -55,7 +56,7 @@ const ProductMassDownloadDialog = ({
   const { supportedLanguages, currentLanguage, getCurrentLanguageInfo } = useLanguage();
 
   // 暂时隐藏 Setup Sheet (Channel) 选项
-  const SHOW_SETUP_SHEET_CHANNEL = true;
+  const SHOW_SETUP_SHEET_CHANNEL = false;
 
   // Dialog states
   const [currentStep, setCurrentStep] = useState('formats'); // 'formats' | 'regions' | 'channels' | 'derivates' | 'options'
@@ -83,6 +84,9 @@ const ProductMassDownloadDialog = ({
   // Channel data (fetched from API)
   const [availableChannels, setAvailableChannels] = useState([]);
   const [channelsLoading, setChannelsLoading] = useState(false);
+
+  // Derivate loading state
+  const [derivatesLoading, setDerivatesLoading] = useState(false);
 
   // Region data
   const [availableRegions, setAvailableRegions] = useState([
@@ -200,9 +204,10 @@ const ProductMassDownloadDialog = ({
     });
   };
 
-  const handleFormatToggle = (format) => {
+  const handleFormatToggle = async (format) => {
     setSelectedFormats(prev => {
       const newValue = !prev[format];
+      
       if (format === 'massMediaDownload' && !newValue) {
         setSelectedDerivates([]);
       }
@@ -281,9 +286,13 @@ const ProductMassDownloadDialog = ({
           let templates = [];
           try {
             const rawTemplates = Array.isArray(ch.templates) ? ch.templates : [];
+            // 保存模板的完整信息（包括 id 和 name）
             templates = rawTemplates
-              .map((t) => t.name)
-              .filter(Boolean);
+              .map((t) => ({
+                id: t.id,
+                name: t.name || ''
+              }))
+              .filter(t => t.name);
           } catch (e) {
             console.error('Failed to extract templates for channel', channelId, e);
           }
@@ -313,9 +322,33 @@ const ProductMassDownloadDialog = ({
     fetchChannelsForSelection();
   };
 
+  const fetchDerivatesForSelection = async () => {
+    try {
+      setDerivatesLoading(true);
+      
+      // 获取 tenant 和 theme
+      const tenantName = setUpSheetApi.getTenantName();
+      const theme = setUpSheetApi.getThemeFromUrl();
+      
+      console.log('Fetching derivates with params:', { tenant: tenantName, theme });
+      
+      // 调用 derivatelist?tenant 接口
+      const response = await derivateManagementApi.getDerivates(0, 100, '', tenantName, theme);
+      
+      // 设置可用的 derivates
+      setAvailableDerivates(response.derivates || []);
+    } catch (error) {
+      console.error('Failed to fetch derivates for selection:', error);
+      setAvailableDerivates([]);
+    } finally {
+      setDerivatesLoading(false);
+    }
+  };
+
   const handleOpenDerivateSelection = () => {
     setReturnToStep('formats');
     setCurrentStep('derivates');
+    fetchDerivatesForSelection();
   };
 
   const handleProceedToDownload = () => {
@@ -330,46 +363,66 @@ const ProductMassDownloadDialog = ({
     try {
       setLoading(true);
 
-      const templateIdString = (selectedTemplateIds || []).join(',');
-
       // 获取用户信息
       const userInfo = CookieService.getUserInfo();
       const userEmail = userInfo?.email || '';
 
-      // 构建 regions（将 region IDs 转换为 region codes）
-      const regionCodes = selectedRegions
-        .map(id => availableRegions.find(r => r.id === id)?.name)
+      const publicationTemplateIds = (selectedTemplateIds || []).join(',');
+
+      let setupsheetTemplateIds = '';
+      const templateIds = [];
+      
+      // 选中了 Setup Sheet (General)，直接传 6
+      if (selectedFormats.setupSheetGeneral) {
+        templateIds.push('6');
+      }
+      
+      if (selectedFormats.setupSheetChannel) {
+        const setupSheetTemplateIds = selectedChannels
+          .map(channelId => {
+            const channel = availableChannels.find(ch => ch.id === channelId);
+            if (channel && Array.isArray(channel.templates)) {
+              // 提取所有模板的 ID
+              return channel.templates
+                .map(tpl => typeof tpl === 'object' && tpl.id ? tpl.id : null)
+                .filter(Boolean);
+            }
+            return [];
+          })
+          .flat()
+          .filter((id, index, self) => self.indexOf(id) === index); // 去重
+        
+        templateIds.push(...setupSheetTemplateIds.map(id => id.toString()));
+      }
+      
+      if (templateIds.length > 0) {
+        setupsheetTemplateIds = [...new Set(templateIds)].join(',');
+      }
+
+      const derivateIds = selectedDerivates
+        .map(id => id.toString())
         .filter(Boolean)
         .join(',');
 
-      // 构建 derivate-list（从 availableDerivates 中获取名称）
-      const derivateNames = selectedDerivates
-        .map(id => availableDerivates.find(d => d.id === id)?.name)
-        .filter(Boolean);
-
-      // 构建 languages（从 supportedLanguages 中获取名称）
-      const languageNames = selectedLanguages
-        .map(code => supportedLanguages.find(lang => lang.code === code)?.name)
-        .filter(Boolean)
-        .join(',');
+      const languageName = selectedLanguages.length > 0
+        ? supportedLanguages.find(lang => lang.code === selectedLanguages[0])?.name || ''
+        : '';
 
       // 使用传入的产品 IDs
       const modelNumbers = selectedProductIds
         .filter(Boolean)
         .join(',');
 
-      // 构建 API 请求参数
       const params = {
-        modelnumber: modelNumbers,
-        brand: currentBrandCode || 'kendo',
-        templateid: templateIdString,
-        region: regionCodes,
-        derivateList: derivateNames,
-        async: downloadOption !== 'direct', // direct = false (sync), email/other = true (async)
-        ccemail: '',
+        modelNumber: modelNumbers,
+        publicationTemplates: publicationTemplateIds,
+        setupsheetTemplates: setupsheetTemplateIds,
+        derivateList: derivateIds,
+        language: languageName,
+        outputQuality: outputQuality,
         tomail: downloadOption === 'other' ? emails.join(',') : (downloadOption === 'email' ? userEmail : ''),
-        outputquality: outputQuality,
-        language: languageNames
+        ccemail: downloadOption === 'other' ? userEmail : '',
+        async: downloadOption !== 'direct' // direct = false (sync), email/other = true (async)
       };
 
       console.log('📦 Calling Product Mass Download API with params:', params);
@@ -574,11 +627,10 @@ const ProductMassDownloadDialog = ({
           Publications
         </Typography>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2, ml: 2 }}>
-          {/* Publications 模板统一渲染；ShelfCard 类型额外显示 Regions 子区域 */}
+          {/* Publications 模板 */}
           <Box sx={{ display: 'flex', gap: 2, rowGap: 0.5, width: '100%', flexWrap: 'wrap' }}>
             {orderedPublicationTemplates.map((tpl, idx) => {
               const checked = selectedTemplateIds.includes(tpl.id);
-              const isShelfCard = tpl.type === 'shelfCard';
 
               return (
                 <Box
@@ -600,33 +652,6 @@ const ProductMassDownloadDialog = ({
                   </Typography>
                     }
                   />
-
-                  {/* 只有 ShelfCard 类型在选中时展示 Regions 子区域 */}
-                  {isShelfCard && checked && (
-                <Box sx={{ ml: 4, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                  <Typography sx={{ fontSize: '12px', color: '#808080', mb: 0.5 }}>
-                    Select the Regions
-                  </Typography>
-                  {availableRegions.map((region) => (
-                    <FormControlLabel
-                      key={region.id}
-                      control={
-                        <Checkbox
-                          size="small"
-                          checked={selectedRegions.includes(region.id)}
-                          onChange={() => handleRegionToggle(region.id)}
-                          sx={{ 
-                            '&.Mui-checked': { color: theme.palette.primary.main },
-                            py: 0
-                          }}
-                        />
-                      }
-                      label={<Typography sx={{ fontSize: '14px', color: '#4d4d4d' }}>{region.name}</Typography>}
-                      sx={{ my: 0 }}
-                    />
-                  ))}
-                </Box>
-              )}
             </Box>
               );
             })}
@@ -873,11 +898,11 @@ const ProductMassDownloadDialog = ({
                       {channel.templates.map((tpl, idx) => (
                         <Box
                           // 每个 template 名称单独一个 span，使用 nowrap 保证名称不会被折断
-                          key={tpl}
+                          key={tpl.id || tpl.name || idx}
                           component="span"
                           sx={{ whiteSpace: 'nowrap' }}
                         >
-                          {tpl}
+                          {typeof tpl === 'string' ? tpl : tpl.name}
                           {idx < channel.templates.length - 1 && ', '}
                         </Box>
                       ))}
@@ -941,7 +966,41 @@ const ProductMassDownloadDialog = ({
           <CloseIcon />
         </IconButton>
       </DialogTitle>
-      <DialogContent sx={{ padding: '0 24px 24px 24px' }} />
+      <DialogContent sx={{ padding: '0 24px 24px 24px' }}>
+        {derivatesLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+            <CircularProgress size={32} sx={{ color: theme.palette.primary.main }} />
+          </Box>
+        ) : (
+          <List sx={{ paddingTop: 0 }}>
+            {availableDerivates.map((derivate) => {
+              const derivateId = derivate.id || derivate.identifier;
+              const checked = selectedDerivates.includes(derivateId);
+              return (
+                <Box
+                  key={derivateId}
+                  sx={{ display: 'flex', flexDirection: 'column', mb: -0.5 }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Checkbox
+                      size="small"
+                      checked={checked}
+                      onChange={() => handleDerivateToggle(derivateId)}
+                      sx={{ '&.Mui-checked': { color: theme.palette.primary.main } }}
+                    />
+                    <Typography
+                      sx={{ fontSize: '14px', color: '#333', ml: 0.5, cursor: 'pointer' }}
+                      onClick={() => handleDerivateToggle(derivateId)}
+                    >
+                      {derivate.label || derivateId}
+                    </Typography>
+                  </Box>
+                </Box>
+              );
+            })}
+          </List>
+        )}
+      </DialogContent>
       <DialogActions sx={{ padding: '12px 24px', gap: 1 }}>
         <Button
           variant="outlined"
@@ -953,7 +1012,17 @@ const ProductMassDownloadDialog = ({
         <Button
           variant="contained"
           onClick={handleBackFromSubDialog}
-          sx={{ backgroundColor: theme.palette.primary.main, color: '#fff', textTransform: 'uppercase' }}
+          disabled={selectedDerivates.length === 0}
+          sx={{
+            backgroundColor:
+              selectedDerivates.length === 0 ? '#cccccc' : theme.palette.primary.main,
+            color: '#fff',
+            textTransform: 'uppercase',
+            '&:hover': {
+              backgroundColor:
+                selectedDerivates.length === 0 ? '#cccccc' : theme.palette.primary.dark
+            }
+          }}
         >
           Confirm
         </Button>

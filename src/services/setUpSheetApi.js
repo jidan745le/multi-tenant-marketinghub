@@ -356,12 +356,53 @@ class SetUpSheetApiService {
             
             // 处理返回的数据：可能是数组或对象
             const channels = Array.isArray(data) ? data : (data._embedded?.channels || data.content || []);
-            
+
             console.log('✅ All channels fetched successfully:', channels.length);
 
             return channels;
         } catch (error) {
             console.error('❌ Error fetching all channels:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 根据ID获取单个渠道
+     * @param {number|string} id - 渠道ID（必需）
+     * @returns {Promise<Object>} 渠道对象
+     * @example
+     * await setUpSheetApi.getChannelById(3);
+     */
+    async getChannelById(id) {
+        try {
+            if (id === undefined || id === null) {
+                throw new Error('Channel ID is required');
+            }
+
+            const url = `${this.baseURL}/channel/${id}`;
+
+            console.log('🔍 Fetching channel by ID:', { id, url });
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: this.getHeaders(),
+            });
+
+            if (!response.ok) {
+                throw await this.handleError(response);
+            }
+
+            const data = await response.json();
+            
+            console.log('✅ Channel fetched successfully:', data);
+
+            return data;
+        } catch (error) {
+            console.error('❌ Error fetching channel by ID:', error);
+            console.error('❌ Error details:', {
+                message: error.message,
+                stack: error.stack
+            });
             throw error;
         }
     }
