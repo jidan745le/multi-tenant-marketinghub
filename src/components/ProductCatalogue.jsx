@@ -26,6 +26,7 @@ const ProductCatalogue = ({
   onProductDownload,
   onDownloadSelection,
   onMassSearch,
+  useNewMassSearch = true, // 默认使用新的 MassSearch 组件
   ...props 
 }) => {
   const [filterValues, setFilterValues] = useState({});
@@ -110,6 +111,7 @@ const ProductCatalogue = ({
                 config={config.filterConfig}
                 onChange={handleFilterChange}
                 onMassSearch={handleMassSearchClick}
+                useNewMassSearch={useNewMassSearch}
               />
             </Box>
           </Paper>

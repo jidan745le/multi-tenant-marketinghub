@@ -54,6 +54,7 @@ import { usePdpPage } from '../hooks/usePdpPage';
 import { usePdpDataMapping } from '../utils/pdpDataMapper';
 import { useTranslationLoader } from '../hooks/useTranslationLoader';
 import ProductDetailApiService from '../services/productDetailApi';
+import fileApi from '../services/fileApi';
 
 import image1 from '../assets/image/image1.png';
 // import qrImage1 from '../assets/image/imageQR1.png';
@@ -69,8 +70,8 @@ import SmallTriangleIcon from '../components/SmallTriangleIcon';
 
 const ProductDetailPage = () => {
   // 获取数据
-  const { primaryColor, currentBrand } = useTheme();
-  const { currentBrandCode } = useBrand();
+  const { primaryColor } = useTheme();
+  const { currentBrand, currentBrandCode } = useBrand();
   const { currentLanguage, getCurrentLanguageInfo } = useLanguage();
   const currentLanguageInfo = getCurrentLanguageInfo();
   const navigate = useNavigate();
@@ -160,6 +161,22 @@ const ProductDetailPage = () => {
       });
     }, 120);
   }, [searchParams, setSearchParams, encodeLayoutForUrl]);
+
+  // 检查可用的页面选项
+  const availablePages = React.useMemo(() => {
+    const pages = Array.isArray(pdpPageData?.pages) ? pdpPageData.pages : [];
+    const normalizeName = (tpl) => (
+      (tpl?.name || tpl?.title || '').toString().toLowerCase()
+    );
+    
+    const hasMarketing = pages.some(tpl => normalizeName(tpl) === 'marketing');
+    const hasMarketingPartner = pages.some(tpl => normalizeName(tpl) === 'marketing (partner)');
+    
+    return {
+      hasMarketing,
+      hasMarketingPartner
+    };
+  }, [pdpPageData?.pages]);
 
   // 简化的数据提取函数
     const getPdpPageData = React.useMemo(() => {
@@ -625,7 +642,7 @@ const ProductDetailPage = () => {
     },
     skus: [],
     basicData: {
-      brand: currentBrand || 'Kendo',
+      brand: currentBrandCode || 'Kendo',
       productNumber: '--',
       region: '-- ',
       productType: '--',
@@ -1362,9 +1379,44 @@ const ProductDetailPage = () => {
     }
   }, [t]);
   
-  const handleExport = React.useCallback(() => { 
-    console.log('export clicked'); 
-  }, []);
+  const handleExport = React.useCallback(async () => { 
+    try {
+      // 获取产品编号
+      const productNumber = productData?.productCardInfo?.productIdNumber
+      
+      if (!productNumber) {
+        console.error('Product number not available');
+        return;
+      }
+
+      console.log('product111', productData);
+
+      console.log('productNumber111', productNumber);
+
+      console.log('currentBrand111', currentBrand);
+      console.log('currentBrand?.strapiData111', currentBrand?.strapiData);
+
+      // 获取dataSheetId
+      const dataSheetId = currentBrand?.strapiData?.mainDataSheet?.dataSheetId || 
+                         productCardData?.mainDataSheet?.dataSheetId;
+      
+      if (!dataSheetId) {
+        console.error('DataSheet ID not available in strapiData');
+        return;
+      }
+
+      console.log('Creating PDF:', { productNumber, dataSheetId });
+
+      const result = await fileApi.createPdfFile({
+        productNumber: productNumber,
+        templateId: dataSheetId.toString()
+      });
+
+      console.log('PDF created successfully:', result);
+    } catch (error) {
+      console.error('Error creating PDF:', error);
+    }
+  }, [productData, currentBrand, productCardData]);
   
 
   // 图片点击处理
@@ -1524,20 +1576,91 @@ const ProductDetailPage = () => {
             onClose={basicMenu.closeMenu}
             {...getMenuProps(basicMenu.anchorEl)}
           >
-          {normalizedLayoutFromUrl === 'internalPDPBasic' && (
-            <MenuItem 
-              selected={basicTab === 'internalPDPBasic'}
-              onClick={() => { basicMenu.closeMenu(); updateBasicTabAndUrl('internalPDPBasic'); }}
-            >
-              {t('pdp.marketing')}
-            </MenuItem>
-          )}
-          <MenuItem 
-            selected={basicTab === 'externalPDPBasic'}
-            onClick={() => { basicMenu.closeMenu(); updateBasicTabAndUrl('externalPDPBasic'); }}
-          >
-            {t('pdp.marketingPartner')}
-          </MenuItem>
+          {/* 根据 URL layout 和 Strapi 数据动态显示菜单项 */}
+          {(() => {
+            const isInternal = normalizedLayoutFromUrl === 'internalPDPBasic';
+            const isExternal = normalizedLayoutFromUrl === 'externalPDPBasic';
+            
+            if (isInternal && availablePages.hasMarketing && availablePages.hasMarketingPartner) {
+              return (
+                <>
+                  <MenuItem 
+                    selected={basicTab === 'internalPDPBasic'}
+                    onClick={() => { basicMenu.closeMenu(); updateBasicTabAndUrl('internalPDPBasic'); }}
+                  >
+                    {t('pdp.marketing')}
+                  </MenuItem>
+                  <MenuItem 
+                    selected={basicTab === 'externalPDPBasic'}
+                    onClick={() => { basicMenu.closeMenu(); updateBasicTabAndUrl('externalPDPBasic'); }}
+                  >
+                    {t('pdp.marketingPartner')}
+                  </MenuItem>
+                </>
+              );
+            }
+            
+            if (isExternal && !availablePages.hasMarketing && availablePages.hasMarketingPartner) {
+              return (
+                <MenuItem 
+                  selected={basicTab === 'externalPDPBasic'}
+                  onClick={() => { basicMenu.closeMenu(); updateBasicTabAndUrl('externalPDPBasic'); }}
+                >
+                  {t('pdp.marketingPartner')}
+                </MenuItem>
+              );
+            }
+            
+            if (isExternal && availablePages.hasMarketing && availablePages.hasMarketingPartner) {
+              return (
+                <>
+                  <MenuItem 
+                    selected={basicTab === 'internalPDPBasic'}
+                    onClick={() => { basicMenu.closeMenu(); updateBasicTabAndUrl('internalPDPBasic'); }}
+                  >
+                    {t('pdp.marketing')}
+                  </MenuItem>
+                  <MenuItem 
+                    selected={basicTab === 'externalPDPBasic'}
+                    onClick={() => { basicMenu.closeMenu(); updateBasicTabAndUrl('externalPDPBasic'); }}
+                  >
+                    {t('pdp.marketingPartner')}
+                  </MenuItem>
+                </>
+              );
+            }
+            
+            if (availablePages.hasMarketing && !availablePages.hasMarketingPartner) {
+              return (
+                <MenuItem 
+                  selected={basicTab === 'internalPDPBasic'}
+                  onClick={() => { basicMenu.closeMenu(); updateBasicTabAndUrl('internalPDPBasic'); }}
+                >
+                  {t('pdp.marketing')}
+                </MenuItem>
+              );
+            }
+            
+            if (!availablePages.hasMarketing && availablePages.hasMarketingPartner) {
+              return (
+                <MenuItem 
+                  selected={basicTab === 'externalPDPBasic'}
+                  onClick={() => { basicMenu.closeMenu(); updateBasicTabAndUrl('externalPDPBasic'); }}
+                >
+                  {t('pdp.marketingPartner')}
+                </MenuItem>
+              );
+            }
+            
+            return (
+              <MenuItem 
+                selected={basicTab === 'internalPDPBasic'}
+                onClick={() => { basicMenu.closeMenu(); updateBasicTabAndUrl('internalPDPBasic'); }}
+              >
+                {t('pdp.marketing')}
+              </MenuItem>
+            );
+          })()}
           </Menu>
 
           <Button
@@ -2860,7 +2983,7 @@ const ProductDetailPage = () => {
         expandedSections={expandedSections}
         onSectionToggle={handleSectionToggle}
         onNavigate={handleNavigate}
-        brandName={currentBrand?.toUpperCase() || "KENDO"}
+        brandName={currentBrandCode?.toUpperCase() || "KENDO"}
       />
 
       {/* 右侧内容 */}

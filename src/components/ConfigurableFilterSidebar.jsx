@@ -20,6 +20,7 @@ import {
 import { styled, useTheme } from '@mui/material/styles';
 import React, { useEffect, useState } from 'react';
 import { ScrollBarWrapperBox } from './ScrollBarThemeWrapper';
+import MassSearch from './MassSearch';
 
 // Styled Components
 const FilterContainer = styled(ScrollBarWrapperBox)(() => ({
@@ -177,7 +178,8 @@ const initFieldValueType = (type) => {
 const ConfigurableFilterSidebar = ({ 
   config, 
   onChange, 
-  onMassSearch 
+  onMassSearch,
+  useNewMassSearch = true // 默认使用新的 MassSearch 组件
 }) => {
   const theme = useTheme();
   const [internalValues, setInternalValues] = useState({});
@@ -723,54 +725,74 @@ const ConfigurableFilterSidebar = ({
         ))}
       </FilterContainer>
 
-      {/* 批量搜索对话框 */}
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
-        <div style={{ width: '480px', height: '616px', padding: '12px' }}>
-          <DialogContent>
-            <DialogContentText sx={{ fontSize: '24px', fontWeight: 'bold', color: '#333' }}>
-              Mass Search
-            </DialogContentText>
-            <DialogContentText sx={{ margin: '16px 0' }}>
-              {currentChildItem?.desc || 'Enter search terms separated by semicolons'}
-            </DialogContentText>
-            <TextareaAutosize
-              style={{
-                width: '100%',
-                height: '418px',
-                padding: '8px',
-                borderRadius: '4px',
-                overflow: 'auto',
-                resize: 'none',
-                border: '1px solid #BDBDBD',
-                outline: 'none',
-                transition: 'border-color 0.2s ease-in-out',
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = theme.palette.primary.main;
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = '#BDBDBD';
-              }}
-              value={dialogContent}
-              onChange={(e) => setDialogContent(e.target.value)}
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button 
-              onClick={() => setDialogOpen(false)}
-              sx={{ color: '#333', border: '1px solid #E5E5E5' }}
-            >
-              CANCEL
-            </Button>
-            <Button 
-              onClick={handleDialogConfirm}
-              sx={{ background: theme.palette.primary.main, color: '#fff' }}
-            >
-              SEARCH
-            </Button>
-          </DialogActions>
-        </div>
-      </Dialog>
+      {/* 旧的批量搜索对话框 - 用于 productAssets 页面 */}
+      {!useNewMassSearch && (
+        <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
+          <div style={{ width: '480px', height: '616px', padding: '12px' }}>
+            <DialogContent>
+              <DialogContentText sx={{ fontSize: '24px', fontWeight: 'bold', color: '#333' }}>
+                Mass Search
+              </DialogContentText>
+              <DialogContentText sx={{ margin: '16px 0' }}>
+                {currentChildItem?.desc || 'Enter search terms separated by semicolons'}
+              </DialogContentText>
+              <TextareaAutosize
+                style={{
+                  width: '100%',
+                  height: '418px',
+                  padding: '8px',
+                  borderRadius: '4px',
+                  overflow: 'auto',
+                  resize: 'none',
+                  border: '1px solid #BDBDBD',
+                  outline: 'none',
+                  transition: 'border-color 0.2s ease-in-out',
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = theme.palette.primary.main;
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#BDBDBD';
+                }}
+                value={dialogContent}
+                onChange={(e) => setDialogContent(e.target.value)}
+              />
+            </DialogContent>
+            <DialogActions>
+              <Button 
+                onClick={() => setDialogOpen(false)}
+                sx={{ color: '#333', border: '1px solid #E5E5E5' }}
+              >
+                CANCEL
+              </Button>
+              <Button 
+                onClick={handleDialogConfirm}
+                sx={{ background: theme.palette.primary.main, color: '#fff' }}
+              >
+                SEARCH
+              </Button>
+            </DialogActions>
+          </div>
+        </Dialog>
+      )}
+
+      {/* 新的 MassSearch 组件 - 用于 product library 和 new releases 页面 */}
+      {useNewMassSearch && (
+        <MassSearch
+          open={dialogOpen}
+          onClose={() => setDialogOpen(false)}
+          initialValue={dialogContent}
+          description={currentChildItem?.desc || 'Please paste multiple value for Model No & Model Name below.'}
+          onConfirm={(value) => {
+            setDialogContent(value);
+            if (currentItem) {
+              handleValueChange(currentItem.key, value);
+            }
+            setDialogOpen(false);
+            onMassSearch?.(currentItem, currentChildItem);
+          }}
+        />
+      )}
     </>
   );
 };
