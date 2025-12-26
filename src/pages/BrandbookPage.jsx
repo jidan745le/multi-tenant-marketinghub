@@ -1,20 +1,17 @@
 import {
-    Box,
-    CircularProgress,
-    Typography,
-    Paper,
-    List
+  Box,
+  CircularProgress,
+  Paper
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import React, { useCallback, useMemo, useState, useEffect } from 'react';
-import { Navigate, useParams } from 'react-router-dom';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
+import { Navigate, useParams } from 'react-router-dom';
+import BrandbookContent from '../components/BrandbookContent';
+import Toc from '../components/Toc';
+import { SelectedAssetsProvider } from '../context/SelectedAssetsContext';
 import { useBrand } from '../hooks/useBrand';
 import { selectBrandBookPagesByBrand } from '../store/slices/themesSlice';
-import Toc from '../components/Toc';
-import BrandbookContent from '../components/BrandbookContent';
-import { fetchAllBrandbookAssets } from '../services/brandbookAssetsApi';
-import { SelectedAssetsProvider } from '../context/SelectedAssetsContext';
 
 
 const MainContainer = styled(Box)(({ theme }) => ({
@@ -31,42 +28,7 @@ const BrandbookPage = () => {
   const isLoading = useSelector(state => state.themes.loading);
 
   const [activeSection, setActiveSection] = useState('');
-
-  const [assetsData, setAssetsData] = useState({
-    logos: [],
-    icons: [],
-    videos: [],
-    lifeStyles: [],
-    catelogs: []
-  });
-  const [assetsLoading, setAssetsLoading] = useState(false);
   const isBosch = ((brand || currentBrandCode) || '').toLowerCase() === 'bosch';
-
-  // 从PIM获取
-  useEffect(() => {
-    const fetchAssets = async () => {
-      if (!currentBrandCode || isBosch) return;
-
-      setAssetsLoading(true);
-      try {
-        console.log(`Fetching brandbook assets for brand: ${currentBrandCode}`);
-        const assets = await fetchAllBrandbookAssets({ 
-          brand: currentBrandCode,
-          limit: 100 
-        });
-        
-        setAssetsData(assets);
-        console.log('Brandbook assets loaded:', assets);
-      } catch (error) {
-        console.error('Error loading brandbook assets:', error);
-        // 保持空数据，不影响页面显示
-      } finally {
-        setAssetsLoading(false);
-      }
-    };
-
-    fetchAssets();
-  }, [currentBrandCode, isBosch]);
 
 
   const getBrandbookData = () => {
@@ -162,33 +124,23 @@ const BrandbookPage = () => {
     
     externalMedias.push(...processedExternalMedias);
 
-    // 使用PIM
-    console.log('Using PIM assets data:', assetsData);
-
     return {
       bookInfo,
       colors,
       fonts,
       externalMedias,
       sectionTitles,
-      sectionSubTitles,
-      logos: assetsData.logos || [],
-      icons: assetsData.icons || [],
-      lifeStyles: assetsData.lifeStyles || [],
-      videos: assetsData.videos || [],
-      catelogs: assetsData.catelogs || []
+      sectionSubTitles
     };
   };
-  const { bookInfo, colors, fonts, externalMedias, sectionTitles, sectionSubTitles, logos, icons, lifeStyles, videos, catelogs } = getBrandbookData();
+  const { bookInfo, colors, fonts, externalMedias, sectionTitles, sectionSubTitles } = getBrandbookData();
 
   console.log('Brandbook Debug:', {
     currentBrand,
     currentBrandCode,
     brandbookPages,
     isLoading,
-    assetsLoading,
-    extractedData: { bookInfo, colors, fonts, logos, icons, lifeStyles, videos, catelogs },
-    assetsFromPIM: assetsData
+    extractedData: { bookInfo, colors, fonts, externalMedias }
   });
 
   // 提取的数据
@@ -198,13 +150,8 @@ const BrandbookPage = () => {
     fonts,
     externalMedias,
     sectionTitles,
-    sectionSubTitles,
-    logos,
-    icons,
-    lifeStyles,
-    videos,
-    catelogs
-  }), [bookInfo, colors, fonts, externalMedias, sectionTitles, sectionSubTitles, logos, icons, lifeStyles, videos, catelogs]);
+    sectionSubTitles
+  }), [bookInfo, colors, fonts, externalMedias, sectionTitles, sectionSubTitles]);
 
   const handleTocClick = useCallback((sectionId, anchor) => {
     console.log('TOC navigation clicked:', sectionId, anchor);
@@ -221,7 +168,7 @@ const BrandbookPage = () => {
   }
 
   // 加载状态
-  if (isLoading || assetsLoading) {
+  if (isLoading) {
     return (
       <MainContainer>
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">

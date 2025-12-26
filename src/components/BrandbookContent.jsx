@@ -1,30 +1,20 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Download, Visibility } from '@mui/icons-material';
 import {
   Box,
-  Typography,
+  Button,
   Card,
-  CardMedia,
-  CardContent,
   Grid,
   Paper,
-  Chip,
-  Button,
-  styled
+  styled,
+  Typography
 } from '@mui/material';
-import { Download, Visibility, Search } from '@mui/icons-material';
-import { ScrollBarWrapperBox } from './ScrollBarThemeWrapper';
-import ProductCard from './DigitalAssetCard';
-import AssetPagination from './AssetPagination';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useBrand } from '../hooks/useBrand';
+import { fetchCatalogAssets, fetchIconographyAssets } from '../services/brandbookAssetsApi';
 import AssetDetailDialog from './AssetDetailDialog';
+import AssetPagination from './AssetPagination';
 import MediaDownloadDialog from './MediaDownloadDialog';
-import {
-  TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Box as MuiBox
-} from '@mui/material';
+import { ScrollBarWrapperBox } from './ScrollBarThemeWrapper';
 
 // 内容区域
 const ContentSection = styled(Box)(({ theme }) => ({
@@ -48,6 +38,7 @@ const MediaCard = styled(Card)(({ theme }) => ({
 
 
 const BrandbookContent = ({ data, onSectionInView }) => {
+  const { currentBrandCode } = useBrand();
   const [activeSection, setActiveSection] = useState('');
   // const [selectedItems, setSelectedItems] = useState(new Set());
   // const [searchTerms, setSearchTerms] = useState({});
@@ -529,15 +520,13 @@ const BrandbookContent = ({ data, onSectionInView }) => {
   };
 
   // 渲染媒体资源
-  const renderMediaSection = (items, title, sectionId, list) => {
+  const renderMediaSection = (title, sectionId, fetchFunction, fetchParams) => {
     console.log(`renderMediaSection called:`, {
       sectionId,
       title,
-      itemsCount: items?.length || 0,
-      items: items,
-      list: list
+      fetchFunction: !!fetchFunction,
+      fetchParams
     });
-    if (!items || items.length === 0) return null;
 
     // 处理单个项目点击
     const handleItemClick = (item) => {
@@ -557,33 +546,17 @@ const BrandbookContent = ({ data, onSectionInView }) => {
       }
     };
 
-    // 单个下载
-    const handleItemDownload = (item) => {
-      console.log('Item download requested:', item);
-    };
-
-    // 批量下载
-    const handleDownloadAll = (allItems) => {
-      console.log('Download all items:', allItems);
-
-      allItems.forEach(item => {
-        handleItemDownload(item);
-      });
-    };
-
     return (
       <ContentSection 
         id={sectionId} 
         ref={(el) => registerSectionRef(sectionId, el)}
       >
         <AssetPagination
-          title={title}
-          items={items}
-          loading={false}
+          title={title || sectionId}
+          fetchFunction={fetchFunction}
+          fetchParams={fetchParams}
           pageSize={24}
           onItemClick={handleItemClick}
-          onItemDownload={handleItemDownload}
-          onDownloadAll={handleDownloadAll}
           searchPlaceholder="Search file name"
         />
       </ContentSection>
@@ -605,11 +578,21 @@ const BrandbookContent = ({ data, onSectionInView }) => {
       
       {renderFonts()}
 
-      {renderMediaSection(data?.icons, data?.externalMedias?.[0]?.title, data?.externalMedias?.[0]?.mediaType,data?.externalMedias?.[0])}
-      
-      {renderMediaSection(data?.logos, data?.externalMedias?.[1]?.title, data?.externalMedias?.[1]?.mediaType,data?.externalMedias?.[1])}
+      {/* Iconography section - Icons + Logos */}
+      {renderMediaSection(
+        data?.externalMedias?.[0]?.title || 'Iconography',
+        data?.externalMedias?.[0]?.mediaType || 'iconography',
+        fetchIconographyAssets,
+        { brand: currentBrandCode }
+      )}
 
-      {renderMediaSection(data?.catelogs, data?.externalMedias?.[2]?.title, data?.externalMedias?.[2]?.mediaType,data?.externalMedias?.[2])}
+      {/* Catalogs section */}
+      {renderMediaSection(
+        data?.externalMedias?.[2]?.title || 'Catalogs',
+        data?.externalMedias?.[2]?.mediaType || 'catalogs',
+        fetchCatalogAssets,
+        { brand: currentBrandCode }
+      )}
       
       {/* 资产详情弹窗 */}
       <AssetDetailDialog
