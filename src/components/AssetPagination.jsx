@@ -1,18 +1,18 @@
 import { Search } from '@mui/icons-material';
 import {
-    Box,
-    Button,
-    CircularProgress,
-    FormControl,
-    InputLabel,
-    MenuItem,
-    Pagination,
-    Select,
-    styled,
-    TextField,
-    Typography
+  Box,
+  Button,
+  CircularProgress,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Pagination,
+  Select,
+  styled,
+  TextField,
+  Typography
 } from '@mui/material';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 // 使用本地状态管理
 // import AssetViewActionBar from './AssetViewActionBar';
 import DigitalAssetCard from './DigitalAssetCard';
@@ -21,7 +21,7 @@ import MediaDownloadDialog from './MediaDownloadDialog';
 
 const PaginationContainer = styled(Box)(() => ({
   display: 'flex',
-  justifyContent: 'center',
+  justifyContent: 'flex-end',
   padding: '16px 24px',
   marginTop: '24px',
   flexShrink: 0
@@ -33,14 +33,17 @@ const PaginationContainer = styled(Box)(() => ({
  * - 支持分页显示
  * - 支持批量下载
  * - 支持单个下载
+ * - 支持外部 API 调用（通过 fetchFunction prop）
  */
 const AssetPagination = ({
   title = 'Iconography',
   items = [],
-  loading = false,
+  loading: externalLoading = false,
   pageSize = 24,
   onItemClick,
-  searchPlaceholder = 'Search file name'
+  searchPlaceholder = 'Search file name',
+  fetchFunction = null, // 外部 API 调用函数
+  fetchParams = {} // 传递给 fetchFunction 的额外参数（如 brand）
 }) => {
   // 状态管理
   const [currentPage, setCurrentPage] = useState(1);
@@ -49,9 +52,19 @@ const AssetPagination = ({
   const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
   const [selectedMediaIds, setSelectedMediaIds] = useState([]); // Store media IDs instead of full objects
 
+  // API 数据状态（当使用 fetchFunction 时）
+  const [apiItems, setApiItems] = useState([]);
+  const [apiLoading, setApiLoading] = useState(false);
+  const [apiTotalSize, setApiTotalSize] = useState(0);
+  const [apiTotalPages, setApiTotalPages] = useState(0);
+
   // 本地选中状态管理
   const [selectedAssets, setSelectedAssets] = useState([]);
   const selectedCount = selectedAssets.length;
+  
+  // 防抖定时器
+  const debounceTimerRef = useRef(null);
+  const lastSearchParamsRef = useRef('');
   
   const addAsset = useCallback((asset) => {
     setSelectedAssets(prev => {
@@ -86,8 +99,110 @@ const AssetPagination = ({
     return selectedAssets.some(item => item.id === assetId);
   }, [selectedAssets]);
 
-  // 搜索和分页逻辑
+  // 将日期选择转换为日期范围
+  const getDateRange = useCallback((dateValue) => {
+    if (!dateValue) return { dateFrom: null, dateTo: null };
+    
+    const now = new Date();
+    let dateFrom = null;
+    let dateTo = now.toISOString().split('T')[0]; // YYYY-MM-DD
+    
+    switch (dateValue) {
+      case 'last_1_week':
+        dateFrom = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        break;
+      case 'last_1_month':
+        dateFrom = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        break;
+      case 'last_3_months':
+        dateFrom = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        break;
+      case 'last_6_months':
+        dateFrom = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        break;
+      case 'this_year':
+        dateFrom = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
+        break;
+      default:
+        return { dateFrom: null, dateTo: null };
+    }
+    
+    return { dateFrom, dateTo };
+  }, []);
+
+  // 当使用外部 API 时，调用 fetchFunction
+  useEffect(() => {
+    if (!fetchFunction) return;
+
+    // 清除之前的定时器
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // 构建搜索参数
+    const { dateFrom, dateTo } = getDateRange(selectedDate);
+    const searchParams = {
+      ...fetchParams,
+      limit: pageSize,
+      offset: (currentPage - 1) * pageSize,
+      filename: searchTerm.trim() || undefined,
+      'creation-date-from': dateFrom || undefined,
+      'creation-date-to': dateTo || undefined
+    };
+
+    // 检查参数是否变化
+    const paramsString = JSON.stringify(searchParams);
+    if (lastSearchParamsRef.current === paramsString) {
+      return;
+    }
+
+    // 防抖处理搜索
+    const delay = searchTerm.trim() ? 300 : 0;
+    
+    debounceTimerRef.current = setTimeout(async () => {
+      setApiLoading(true);
+      try {
+        const result = await fetchFunction(searchParams);
+        
+        if (result && result.list) {
+          setApiItems(result.list);
+          setApiTotalSize(result.totalSize || 0);
+          setApiTotalPages(Math.ceil((result.totalSize || 0) / pageSize));
+        } else {
+          setApiItems([]);
+          setApiTotalSize(0);
+          setApiTotalPages(0);
+        }
+        lastSearchParamsRef.current = paramsString;
+      } catch (error) {
+        console.error('Error fetching assets:', error);
+        setApiItems([]);
+        setApiTotalSize(0);
+        setApiTotalPages(0);
+      } finally {
+        setApiLoading(false);
+      }
+    }, delay);
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [fetchFunction, fetchParams, currentPage, pageSize, searchTerm, selectedDate, getDateRange]);
+
+  // 决定使用哪个数据源
+  const isUsingAPI = !!fetchFunction;
+  const displayItems = isUsingAPI ? apiItems : items;
+  const displayLoading = isUsingAPI ? apiLoading : externalLoading;
+
+  // 本地过滤逻辑（仅当不使用 API 时）
   const filteredItems = useMemo(() => {
+    if (isUsingAPI) {
+      // API 模式下，过滤已在服务端完成
+      return displayItems;
+    }
+
     let filtered = items;
     
     // 搜索过滤
@@ -100,41 +215,24 @@ const AssetPagination = ({
     
     // 日期过滤
     if (selectedDate) {
-      const now = new Date();
-      let cutoffDate;
-      
-      switch (selectedDate) {
-        case 'last_1_week':
-          cutoffDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          break;
-        case 'last_1_month':
-          cutoffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-          break;
-        case 'last_3_months':
-          cutoffDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-          break;
-        case 'last_6_months':
-          cutoffDate = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
-          break;
-        case 'this_year':
-          cutoffDate = new Date(now.getFullYear(), 0, 1);
-          break;
-        default:
-          cutoffDate = new Date(0);
+      const { dateFrom } = getDateRange(selectedDate);
+      if (dateFrom) {
+        const cutoffDate = new Date(dateFrom);
+        filtered = filtered.filter(item => {
+          const itemDate = new Date(item.createOn || item.createdDate || 0);
+          return !isNaN(itemDate.getTime()) && itemDate >= cutoffDate;
+        });
       }
-      
-      filtered = filtered.filter(item => {
-        const itemDate = new Date(item.createOn || item.createdDate || 0);
-        return !isNaN(itemDate.getTime()) && itemDate >= cutoffDate;
-      });
     }
     
     return filtered;
-  }, [items, searchTerm, selectedDate]);
+  }, [items, searchTerm, selectedDate, isUsingAPI, displayItems, getDateRange]);
 
-  const totalPages = Math.ceil(filteredItems.length / pageSize);
-  const startIndex = (currentPage - 1) * pageSize;
-  const paginatedItems = filteredItems.slice(startIndex, startIndex + pageSize);
+  // 分页逻辑
+  const totalPages = isUsingAPI ? apiTotalPages : Math.ceil(filteredItems.length / pageSize);
+  const paginatedItems = isUsingAPI 
+    ? displayItems 
+    : filteredItems.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   // 计算是否全部选中
   // const isAllSelected = useMemo(() => {
@@ -373,7 +471,7 @@ const AssetPagination = ({
         rowGap: 3,
         justifyContent: 'start'
       }}>
-        {loading ? (
+        {displayLoading ? (
           <Box 
             sx={{ 
               display: 'flex', 
@@ -407,7 +505,7 @@ const AssetPagination = ({
               />
             ))}
 
-            {paginatedItems.length === 0 && !loading && (
+            {paginatedItems.length === 0 && !displayLoading && (
               <Box 
                 sx={{ 
                   display: 'flex', 

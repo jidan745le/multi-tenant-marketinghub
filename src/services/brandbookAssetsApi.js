@@ -96,7 +96,188 @@ export const fetchBrandbookAssets = async (params = {}) => {
 };
 
 /**
+ * Fetch Iconography assets (Icons + Logos) with pagination
+ * @param {Object} params - Query parameters
+ * @param {string} params.brand - Brand code
+ * @param {number} params.limit - Number of items per page
+ * @param {number} params.offset - Offset for pagination
+ * @param {string} params.filename - Filter by filename (partial match)
+ * @param {string} params['creation-date-from'] - Filter by creation date from (YYYY-MM-DD)
+ * @param {string} params['creation-date-to'] - Filter by creation date to (YYYY-MM-DD)
+ * @returns {Promise<Object>} Assets data with pagination info
+ */
+export const fetchIconographyAssets = async (params = {}) => {
+    try {
+        const { brand, limit = 24, offset = 0, filename, 'creation-date-from': dateFrom, 'creation-date-to': dateTo } = params;
+        
+        console.log(`🎨 Fetching Iconography assets (Icons + Logos) for brand ${brand || 'kendo'}`, {
+            limit,
+            offset,
+            filename,
+            dateFrom,
+            dateTo
+        });
+
+        const apiParams = {
+            brand,
+            'media-category': ['Icons', 'Logos'],
+            limit,
+            offset
+        };
+
+        // 添加文件名过滤
+        if (filename) {
+            apiParams.filename = filename;
+        }
+
+        // 添加日期过滤
+        if (dateFrom) {
+            apiParams['creation-date-from'] = dateFrom;
+        }
+        if (dateTo) {
+            apiParams['creation-date-to'] = dateTo;
+        }
+
+        const graphqlResponse = await fetchKendoAssets(apiParams);
+
+        // 检查API错误
+        if (graphqlResponse.errors) {
+            throw new Error(graphqlResponse.errors[0].message);
+        }
+
+        // 使用Adapter转换数据
+        const result = adaptGraphQLAssetsResponse(graphqlResponse);
+
+        // 添加 brandbook 特定字段
+        const enhancedAssets = result.list.map(asset => ({
+            ...asset,
+            identifier: asset.id,
+            alt: asset.filename,
+            img: asset.image,
+            language: extractLanguageFromPath(asset.fullpath),
+            createOn: asset.createdDate,
+            _originalData: asset._graphqlData
+        }));
+
+        console.log(`✅ Iconography assets received:`, {
+            count: enhancedAssets.length,
+            totalSize: result.totalSize,
+            currentPage: Math.floor(offset / limit) + 1,
+            totalPages: Math.ceil(result.totalSize / limit)
+        });
+
+        return {
+            list: enhancedAssets,
+            totalSize: result.totalSize,
+            startIndex: offset,
+            pageSize: limit
+        };
+
+    } catch (error) {
+        console.error(`❌ Error fetching Iconography assets:`, error);
+        return {
+            list: [],
+            totalSize: 0,
+            startIndex: 0,
+            pageSize: 0,
+            error: error.message
+        };
+    }
+};
+
+/**
+ * Fetch Catalog assets with pagination
+ * @param {Object} params - Query parameters
+ * @param {string} params.brand - Brand code
+ * @param {number} params.limit - Number of items per page
+ * @param {number} params.offset - Offset for pagination
+ * @param {string} params.filename - Filter by filename (partial match)
+ * @param {string} params['creation-date-from'] - Filter by creation date from (YYYY-MM-DD)
+ * @param {string} params['creation-date-to'] - Filter by creation date to (YYYY-MM-DD)
+ * @returns {Promise<Object>} Assets data with pagination info
+ */
+export const fetchCatalogAssets = async (params = {}) => {
+    try {
+        const { brand, limit = 24, offset = 0, filename, 'creation-date-from': dateFrom, 'creation-date-to': dateTo } = params;
+        
+        console.log(`📚 Fetching Catalog assets for brand ${brand || 'kendo'}`, {
+            limit,
+            offset,
+            filename,
+            dateFrom,
+            dateTo
+        });
+
+        const apiParams = {
+            brand,
+            'document-type': ['Catalog'],
+            limit,
+            offset
+        };
+
+        // 添加文件名过滤
+        if (filename) {
+            apiParams.filename = filename;
+        }
+
+        // 添加日期过滤
+        if (dateFrom) {
+            apiParams['creation-date-from'] = dateFrom;
+        }
+        if (dateTo) {
+            apiParams['creation-date-to'] = dateTo;
+        }
+
+        const graphqlResponse = await fetchKendoAssets(apiParams);
+
+        // 检查API错误
+        if (graphqlResponse.errors) {
+            throw new Error(graphqlResponse.errors[0].message);
+        }
+
+        // 使用Adapter转换数据
+        const result = adaptGraphQLAssetsResponse(graphqlResponse);
+
+        // 添加 brandbook 特定字段
+        const enhancedAssets = result.list.map(asset => ({
+            ...asset,
+            identifier: asset.id,
+            alt: asset.filename,
+            img: asset.image,
+            language: extractLanguageFromPath(asset.fullpath),
+            createOn: asset.createdDate,
+            _originalData: asset._graphqlData
+        }));
+
+        console.log(`✅ Catalog assets received:`, {
+            count: enhancedAssets.length,
+            totalSize: result.totalSize,
+            currentPage: Math.floor(offset / limit) + 1,
+            totalPages: Math.ceil(result.totalSize / limit)
+        });
+
+        return {
+            list: enhancedAssets,
+            totalSize: result.totalSize,
+            startIndex: offset,
+            pageSize: limit
+        };
+
+    } catch (error) {
+        console.error(`❌ Error fetching Catalog assets:`, error);
+        return {
+            list: [],
+            totalSize: 0,
+            startIndex: 0,
+            pageSize: 0,
+            error: error.message
+        };
+    }
+};
+
+/**
  * Fetch all types of Brandbook assets (使用与 product assets 相同的接口)
+ * @deprecated This function is deprecated. Use fetchIconographyAssets and fetchCatalogAssets instead.
  * @param {Object} params - Query parameters
  * @returns {Promise<Object>} All assets data
  */

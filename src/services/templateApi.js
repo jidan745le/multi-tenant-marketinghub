@@ -6,7 +6,7 @@ import CookieService from '../utils/cookieService';
  */
 class TemplateApiService {
     constructor() {
-        this.baseURL = '/srv/v1.0/main/publication/templates';
+        this.baseURL = '/srv/v1/main/publication/templates';
     }
 
     /**
@@ -498,7 +498,7 @@ class TemplateApiService {
             if (theme) params.append('theme', theme);
             if (language) params.append('language', language);
 
-            const url = `/srv/v1.0/main/publication/template-types?${params.toString()}`;
+            const url = `/srv/v1/main/publication/template-types?${params.toString()}`;
             
             console.log('🔍 Fetching template types with params:', { tenant, theme, language, url });
 
@@ -568,7 +568,7 @@ class TemplateApiService {
             if (theme) params.append('theme', theme);
             if (language) params.append('language', language);
 
-            const url = `/srv/v1.0/main/publication/types?${params.toString()}`;
+            const url = `/srv/v1/main/publication/types?${params.toString()}`;
 
             console.log('🔍 Fetching types with params:', { tenant, theme, language, url });
 
