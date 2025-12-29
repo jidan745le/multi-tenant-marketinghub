@@ -123,7 +123,18 @@ const buildAssetsQuery = (filters = {}, first = 20, offset = 0) => {
         mongoFilters.push({ fullpath: { "$like": `%${filters['folder-path']}%` } });
     }
 
-    // Filter by product model number (through path matching)
+    // Filter by SKU code (through path matching)
+    if (filters['sku-code']) {
+        const skuCodes = filters['sku-code'].split(';').map(s => s.trim()).filter(Boolean);
+        if (skuCodes.length > 0) {
+            const skuConditions = skuCodes.map(skuCode => ({
+                fullpath: { "$like": `%${skuCode}%` }
+            }));
+            mongoFilters.push({ "$or": skuConditions });
+        }
+    }
+    
+    // Filter by product model number (through path matching) - backward compatibility
     if (filters['model-number']) {
         mongoFilters.push({ fullpath: { "$like": `%${filters['model-number']}%` } });
     }

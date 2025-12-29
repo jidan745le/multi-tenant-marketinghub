@@ -19,8 +19,9 @@ import {
 } from '@mui/material';
 import { styled, useTheme } from '@mui/material/styles';
 import React, { useEffect, useState } from 'react';
-import { ScrollBarWrapperBox } from './ScrollBarThemeWrapper';
 import MassSearch from './MassSearch';
+import MassSearchSimple from './MassSearchSimple';
+import { ScrollBarWrapperBox } from './ScrollBarThemeWrapper';
 
 // Styled Components
 const FilterContainer = styled(ScrollBarWrapperBox)(() => ({
@@ -778,20 +779,66 @@ const ConfigurableFilterSidebar = ({
 
       {/* 新的 MassSearch 组件 - 用于 product library 和 new releases 页面 */}
       {useNewMassSearch && (
-        <MassSearch
-          open={dialogOpen}
-          onClose={() => setDialogOpen(false)}
-          initialValue={dialogContent}
-          description={currentChildItem?.desc || 'Please paste multiple value for Model No & Model Name below.'}
-          onConfirm={(value) => {
-            setDialogContent(value);
-            if (currentItem) {
-              handleValueChange(currentItem.key, value);
-            }
-            setDialogOpen(false);
-            onMassSearch?.(currentItem, currentChildItem);
-          }}
-        />
+        <>
+          {/* 
+            SKU Code 的处理逻辑：
+            - 如果是 product library/category 页面（通过检查 config 中是否有 product-category 字段判断），使用 MassSearch（带 validate）
+            - 如果是 assets 页面（Media, Videos, After Sales, Internal Documents, Certifications），使用 MassSearchSimple（无 validate）
+          */}
+          {currentItem?.key === 'sku-code' ? (
+            // 检查是否是 product library/category 页面
+            // 通过检查 config.filters 中是否有 'product-category' 字段来判断
+            (config?.filters?.some(filter => filter.key === 'product-category')) ? (
+              // Product library/category 页面：使用 MassSearch（带 validate）
+              <MassSearch
+                open={dialogOpen}
+                onClose={() => setDialogOpen(false)}
+                initialValue={dialogContent}
+                description={currentChildItem?.desc || 'Please paste multiple SKU codes separated by semicolons.'}
+                onConfirm={(value) => {
+                  setDialogContent(value);
+                  if (currentItem) {
+                    handleValueChange(currentItem.key, value);
+                  }
+                  setDialogOpen(false);
+                  onMassSearch?.(currentItem, currentChildItem);
+                }}
+              />
+            ) : (
+              // Assets 页面（Media, Videos, After Sales, Internal Documents, Certifications）：使用 MassSearchSimple（无 validate）
+              <MassSearchSimple
+                open={dialogOpen}
+                onClose={() => setDialogOpen(false)}
+                initialValue={dialogContent}
+                description={currentChildItem?.desc || 'Please paste multiple SKU codes separated by semicolons.'}
+                onConfirm={(value) => {
+                  setDialogContent(value);
+                  if (currentItem) {
+                    handleValueChange(currentItem.key, value);
+                  }
+                  setDialogOpen(false);
+                  onMassSearch?.(currentItem, currentChildItem);
+                }}
+              />
+            )
+          ) : (
+            // 非 SKU Code 的其他字段，使用 MassSearch（带 validate）
+            <MassSearch
+              open={dialogOpen}
+              onClose={() => setDialogOpen(false)}
+              initialValue={dialogContent}
+              description={currentChildItem?.desc || 'Please paste multiple value for Model No & Model Name below.'}
+              onConfirm={(value) => {
+                setDialogContent(value);
+                if (currentItem) {
+                  handleValueChange(currentItem.key, value);
+                }
+                setDialogOpen(false);
+                onMassSearch?.(currentItem, currentChildItem);
+              }}
+            />
+          )}
+        </>
       )}
     </>
   );

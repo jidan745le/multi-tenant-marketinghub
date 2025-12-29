@@ -1,14 +1,14 @@
 import {
-  OutlinedFlag as OutlinedFlagIcon,
+    OutlinedFlag as OutlinedFlagIcon,
 } from '@mui/icons-material';
 import {
-  Box,
-  Button,
-  Grid,
-  IconButton,
-  Menu,
-  MenuItem,
-  Typography
+    Box,
+    Button,
+    Grid,
+    IconButton,
+    Menu,
+    MenuItem,
+    Typography
 } from '@mui/material';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -35,26 +35,25 @@ import DigitalAssetCard from '../components/DigitalAssetCard';
 import Form from '../components/Form';
 import Image from '../components/Image';
 import MainSection from '../components/MainSection.jsx';
-import SectionHeader from '../components/SectionHeader.jsx';
-import UnifiedInfoTable from '../components/UnifiedInfoTable';
-import UnifiedSkuTable from '../components/UnifiedSkuTable';
-import PackagingTable from '../components/PackagingTable.jsx';
-import SpecificationTable from '../components/SpecificationTable.jsx';
-import MediaListTable from '../components/MediaListTable.jsx';
-import ReportDataIssueDialog from '../components/ReportDataIssueDialog.jsx';
-import ProductCardGrid from '../components/ProductCardGrid.jsx';
 import MediaDownloadDialog from '../components/MediaDownloadDialog';
+import MediaListTable from '../components/MediaListTable.jsx';
+import PackagingTable from '../components/PackagingTable.jsx';
+import ProductCard from '../components/ProductCard';
+import ProductCardGrid from '../components/ProductCardGrid.jsx';
 import ProductMassDownloadDialog from '../components/ProductMassDownloadDialog';
 import ProductSidebar from '../components/ProductSidebar';
-import ProductCard from '../components/ProductCard';
-import { useTheme } from '../hooks/useTheme';
+import ReportDataIssueDialog from '../components/ReportDataIssueDialog.jsx';
+import SectionHeader from '../components/SectionHeader.jsx';
+import SpecificationTable from '../components/SpecificationTable.jsx';
+import UnifiedInfoTable from '../components/UnifiedInfoTable';
+import UnifiedSkuTable from '../components/UnifiedSkuTable';
 import { useBrand } from '../hooks/useBrand';
 import { useLanguage } from '../hooks/useLanguage';
 import { usePdpPage } from '../hooks/usePdpPage';
-import { usePdpDataMapping } from '../utils/pdpDataMapper';
+import { useTheme } from '../hooks/useTheme';
 import { useTranslationLoader } from '../hooks/useTranslationLoader';
 import ProductDetailApiService from '../services/productDetailApi';
-import fileApi from '../services/fileApi';
+import { usePdpDataMapping } from '../utils/pdpDataMapper';
 
 import image1 from '../assets/image/image1.png';
 // import qrImage1 from '../assets/image/imageQR1.png';
@@ -1379,43 +1378,38 @@ const ProductDetailPage = () => {
     }
   }, [t]);
   
-  const handleExport = React.useCallback(async () => { 
-    try {
-      // 获取产品编号
-      const productNumber = productData?.productCardInfo?.productIdNumber
-      
-      if (!productNumber) {
-        console.error('Product number not available');
-        return;
-      }
-
-      console.log('product111', productData);
-
-      console.log('productNumber111', productNumber);
-
-      console.log('currentBrand111', currentBrand);
-      console.log('currentBrand?.strapiData111', currentBrand?.strapiData);
-
-      // 获取dataSheetId
-      const dataSheetId = currentBrand?.strapiData?.mainDataSheet?.dataSheetId || 
-                         productCardData?.mainDataSheet?.dataSheetId;
-      
-      if (!dataSheetId) {
-        console.error('DataSheet ID not available in strapiData');
-        return;
-      }
-
-      console.log('Creating PDF:', { productNumber, dataSheetId });
-
-      const result = await fileApi.createPdfFile({
-        productNumber: productNumber,
-        templateId: dataSheetId.toString()
-      });
-
-      console.log('PDF created successfully:', result);
-    } catch (error) {
-      console.error('Error creating PDF:', error);
+  const handleExport = React.useCallback(() => { 
+    // 获取产品编号
+    const productNumber = productData?.productCardInfo?.productIdNumber;
+    
+    if (!productNumber) {
+      console.error('Product number not available');
+      return;
     }
+
+    // 获取dataSheetId
+    const dataSheetId = currentBrand?.strapiData?.mainDataSheet?.dataSheetId || 
+                       productCardData?.mainDataSheet?.dataSheetId;
+    
+    if (!dataSheetId) {
+      console.error('DataSheet ID not available in strapiData');
+      return;
+    }
+
+    // 构建查询参数 - 只传递 productNumber 和 template-id
+    const queryParams = new URLSearchParams();
+    queryParams.append('productNumber', productNumber);
+    queryParams.append('template-id', dataSheetId.toString());
+    // queryParams.append('brand', brandName); // 注释掉
+    // queryParams.append('language', language); // 注释掉
+    // queryParams.append('region', 'EU'); // 注释掉
+    // queryParams.append('output-quality', 'web'); // 注释掉
+
+    // 构建 PDF 创建 URL - 使用 v1 而不是 v1.0
+    const pdfUrl = `/srv/v1/pdf/create?${queryParams.toString()}`;
+    
+    // 在新标签页打开 PDF 创建 URL
+    window.open(pdfUrl, '_blank', 'noopener,noreferrer');
   }, [productData, currentBrand, productCardData]);
   
 

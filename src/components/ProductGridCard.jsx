@@ -10,10 +10,11 @@ import {
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import React, { useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { useSelectedAssets } from '../context/SelectedAssetsContext';
-import useTheme from '../hooks/useTheme';
 import { useBrand } from '../hooks/useBrand';
-import fileApi from '../services/fileApi';
+import { useLanguage } from '../hooks/useLanguage';
+import useTheme from '../hooks/useTheme';
 
 const ProductCardContainer = styled(Box)(() => ({
     background: '#ffffff',
@@ -210,7 +211,9 @@ const ProductGridCard = ({
 }) => {
     const { fallbackImage } = useTheme();
     const { toggleAsset, isAssetSelected } = useSelectedAssets();
-    const { currentBrand } = useBrand();
+    const { currentBrand, currentBrandCode } = useBrand();
+    const { currentLanguage, getCurrentLanguageInfo } = useLanguage();
+    const params = useParams();
     
     const [imageError, setImageError] = useState(false);
     const [aspectRatio, setAspectRatio] = useState(1);
@@ -232,34 +235,36 @@ const ProductGridCard = ({
         onDownload?.(product);
     };
 
-    const handlePdfClick = async () => {
-        try {
-            // 获取产品编号
-            const productNumber = product.modelNumber || product.VirtualProductID || product.id;
-            
-            if (!productNumber) {
-                console.error('Product number not available');
-                return;
-            }
-
-            const dataSheetId = currentBrand?.strapiData?.mainDataSheet?.dataSheetId;
-            
-            if (!dataSheetId) {
-                console.error('DataSheet ID not available in strapiData');
-                return;
-            }
-
-            console.log('Creating PDF:', { productNumber, dataSheetId });
-
-            const result = await fileApi.createPdfFile({
-                productNumber: productNumber,
-                templateId: dataSheetId.toString()
-            });
-
-            console.log('PDF created successfully:', result);
-        } catch (error) {
-            console.error('Error creating PDF:', error);
+    const handlePdfClick = () => {
+        // 获取产品编号
+        const productNumber = product.modelNumber || product.VirtualProductID || product.id;
+        
+        if (!productNumber) {
+            console.error('Product number not available');
+            return;
         }
+
+        const dataSheetId = currentBrand?.strapiData?.mainDataSheet?.dataSheetId;
+        
+        if (!dataSheetId) {
+            console.error('DataSheet ID not available in strapiData');
+            return;
+        }
+
+        // 构建查询参数 - 只传递 productNumber 和 template-id
+        const queryParams = new URLSearchParams();
+        queryParams.append('productNumber', productNumber);
+        queryParams.append('template-id', dataSheetId.toString());
+        // queryParams.append('brand', brandName); // 注释掉
+        // queryParams.append('language', language); // 注释掉
+        // queryParams.append('region', 'EU'); // 注释掉
+        // queryParams.append('output-quality', 'web'); // 注释掉
+
+        // 构建 PDF 创建 URL - 使用 v1 而不是 v1.0
+        const pdfUrl = `/srv/v1/pdf/create?${queryParams.toString()}`;
+        
+        // 在新标签页打开 PDF 创建 URL
+        window.open(pdfUrl, '_blank', 'noopener,noreferrer');
     };
 
     const getImageSrc = () => {

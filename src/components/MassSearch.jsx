@@ -1,3 +1,4 @@
+import CloseIcon from '@mui/icons-material/Close';
 import {
   Alert,
   Box,
@@ -8,9 +9,8 @@ import {
   Typography,
   useTheme
 } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
-import { useState, useEffect, useRef } from 'react';
 import { styled } from '@mui/material/styles';
+import { useEffect, useRef, useState } from 'react';
 
 const MassSearchContainer = styled(Box)(() => ({
   background: '#ffffff',

@@ -206,7 +206,7 @@ export const createProductCatalogueConfig = (brand = 'kendo') => {
                 show_file_type: true,
                 show_eyebrow: true,
                 show_open_pdf: true,
-                show_open_product_page: true,
+                show_open_product_page: false, // 在 category 页面隐藏扳手图标
                 show_preview_media: true,
             },
             // 网格标题

@@ -31,7 +31,18 @@ const buildVideosQuery = (filters = {}, first = 20, after = 0) => {
         allConditions.push({ fullpath: { "$like": `%${filters['folder-path']}%` } });
     }
 
-    // Filter by product model number (through path matching)
+    // Filter by SKU code (through path matching)
+    if (filters['sku-code']) {
+        const skuCodes = filters['sku-code'].split(';').map(s => s.trim()).filter(Boolean);
+        if (skuCodes.length > 0) {
+            const skuConditions = skuCodes.map(skuCode => ({
+                fullpath: { "$like": `%${skuCode}%` }
+            }));
+            allConditions.push({ "$or": skuConditions });
+        }
+    }
+    
+    // Backward compatibility: also support model-number
     if (filters['model-number']) {
         allConditions.push({ fullpath: { "$like": `%${filters['model-number']}%` } });
     }

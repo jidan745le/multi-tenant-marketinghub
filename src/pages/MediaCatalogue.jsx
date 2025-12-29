@@ -137,7 +137,7 @@ const MediaCatalogue = () => {
         onProductDownload={handleMediaDownload}
         onDownloadSelection={handleDownloadSelection}
         onMassSearch={handleMassSearch}
-        useNewMassSearch={false} // productAssets 页面使用旧的对话框
+        useNewMassSearch={true} // productAssets 页面使用新的 MassSearchSimple 组件
       />
       
       {/* 媒体下载弹窗 */}

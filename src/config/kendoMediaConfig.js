@@ -125,16 +125,16 @@ export const createMediaFilterConfigs = (selectedMediaTypes = []) => {
         },
         {
             order: 11,
-            label: 'Model Number',
+            label: 'SKU Code',
             component: 'textarea',
-            key: 'model-number',
+            key: 'sku-code',
             type: 'string',
             defaultValue: '',
-            placeholder: 'Search for model number',
+            placeholder: 'Search for SKU code',
             children: [
                 {
                     label: 'Mass Search',
-                    desc: 'Enter multiple Model Numbers separated by semicolons',
+                    desc: 'Enter multiple SKU codes separated by semicolons',
                     clickMethod: 'onMassSearch',
                     component: 'input',
                     key: 'mass_download',
@@ -355,12 +355,22 @@ const createDocumentFilterConfigs = (documentTypeOptions) => {
         },
         {
             order: 11,
-            label: 'Model Number',
-            component: 'input',
-            key: 'model-number',
+            label: 'SKU Code',
+            component: 'textarea',
+            key: 'sku-code',
             type: 'string',
             defaultValue: '',
-            placeholder: 'Search for model number'
+            placeholder: 'Search for SKU code',
+            children: [
+                {
+                    label: 'Mass Search',
+                    desc: 'Enter multiple SKU codes separated by semicolons',
+                    clickMethod: 'onMassSearch',
+                    component: 'input',
+                    key: 'mass_download',
+                    type: 'button',
+                }
+            ]
         },
         {
             order: 21,

@@ -178,7 +178,10 @@ export const newProductCatalogueConfig = {
             show_download: true,
             show_cart: false,
             show_view: true,
-            show_favorite: false
+            show_favorite: false,
+            show_open_pdf: true,
+            show_open_product_page: false, // 在 New Release 页面隐藏扳手图标
+            show_preview_media: true
         }
     }
 }; 

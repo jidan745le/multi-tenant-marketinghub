@@ -29,16 +29,16 @@ export const videoListConfigs = [
     },
     {
         order: 11,
-        label: 'Model Number',
+        label: 'SKU Code',
         component: 'textarea',
-        key: 'model-number',
+        key: 'sku-code',
         type: 'string',
         defaultValue: '',
-        placeholder: 'Search for model number',
+        placeholder: 'Search for SKU code',
         children: [
             {
                 label: 'Mass Search',
-                desc: 'Enter multiple model numbers separated by semicolons',
+                desc: 'Enter multiple SKU codes separated by semicolons',
                 clickMethod: 'onMassSearch',
                 component: 'input',
                 key: 'mass_download',

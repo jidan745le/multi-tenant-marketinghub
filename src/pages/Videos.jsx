@@ -4,9 +4,9 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { createVideoCatalogueConfig } from '../config/videosConfig';
 
 // 导入组件
-import ProductCatalogue from '../components/ProductCatalogue';
 import AssetDetailDialog from '../components/AssetDetailDialog';
 import MediaDownloadDialog from '../components/MediaDownloadDialog';
+import ProductCatalogue from '../components/ProductCatalogue';
 
 // 导入钩子 (基于reference代码)
 import { useBrand } from '../hooks/useBrand';
@@ -114,7 +114,7 @@ const Videos = () => {
         onProductClick={handleVideoClick}
         onProductDownload={handleVideoDownload}
         onMassSearch={handleMassSearch}
-        useNewMassSearch={false}
+        useNewMassSearch={true} // Video 页面使用新的 MassSearchSimple 组件
       />
       
       {/* Asset Detail Dialog */}
