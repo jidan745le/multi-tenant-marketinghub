@@ -114,6 +114,7 @@ const Videos = () => {
         onProductClick={handleVideoClick}
         onProductDownload={handleVideoDownload}
         onMassSearch={handleMassSearch}
+        useNewMassSearch={false}
       />
       
       {/* Asset Detail Dialog */}

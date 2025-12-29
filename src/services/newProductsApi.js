@@ -46,6 +46,17 @@ const buildNewProductsQuery = (filters = {}, first = 100, after = 0, brand = 'ke
     });
   }
 
+  // SKU代码筛选（CustomerFacingProductCode）
+  if (filters['sku-code']) {
+    const skuCodes = filters['sku-code'].split(';').map(s => s.trim()).filter(Boolean);
+    const skuConditions = skuCodes.map(skuCode => ({
+      "CustomerFacingProductCode": { "$like": `%${skuCode}%` }
+    }));
+    if (skuConditions.length > 0) {
+      filterConditions.push({ "$or": skuConditions });
+    }
+  }
+
   // 虚拟产品ID筛选（相当于model number）
   if (filters['model-number']) {
     const modelNumbers = filters['model-number'].split(';').map(s => s.trim()).filter(Boolean);

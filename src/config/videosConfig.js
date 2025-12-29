@@ -30,11 +30,21 @@ export const videoListConfigs = [
     {
         order: 11,
         label: 'Model Number',
-        component: 'input',
+        component: 'textarea',
         key: 'model-number',
         type: 'string',
         defaultValue: '',
-        placeholder: 'Search for model number'
+        placeholder: 'Search for model number',
+        children: [
+            {
+                label: 'Mass Search',
+                desc: 'Enter multiple model numbers separated by semicolons',
+                clickMethod: 'onMassSearch',
+                component: 'input',
+                key: 'mass_download',
+                type: 'button',
+            }
+        ]
     },
     {
         order: 21,

@@ -404,8 +404,8 @@ const ProductMassDownloadDialog = ({
         .filter(Boolean)
         .join(',');
 
-      const languageName = selectedLanguages.length > 0
-        ? supportedLanguages.find(lang => lang.code === selectedLanguages[0])?.name || ''
+      const languageCode = selectedLanguages.length > 0
+        ? selectedLanguages[0]
         : '';
 
       // 使用传入的产品 IDs
@@ -418,7 +418,7 @@ const ProductMassDownloadDialog = ({
         publicationTemplates: publicationTemplateIds,
         setupsheetTemplates: setupsheetTemplateIds,
         derivateList: derivateIds,
-        language: languageName,
+        language: languageCode,
         outputQuality: outputQuality,
         tomail: downloadOption === 'other' ? emails.join(',') : (downloadOption === 'email' ? userEmail : ''),
         ccemail: downloadOption === 'other' ? userEmail : '',
