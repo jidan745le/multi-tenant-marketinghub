@@ -206,13 +206,13 @@ const UnifiedSkuTable = ({
                 {columnLabels.unitPackingItem}
               </Typography>
             </Box>
-            <Box sx={{ ...cellStyles, width: columnWidths.innerBoxQuantity }}>
-              <Typography sx={headerTextStyles}>
+            <Box sx={{ ...cellStyles, width: columnWidths.innerBoxQuantity, justifyContent: 'center' }}>
+              <Typography sx={{ ...headerTextStyles, textAlign: 'center' }}>
                 {columnLabels.innerBoxQuantity}
               </Typography>
             </Box>
-            <Box sx={{ ...cellStyles, width: columnWidths.masterCartonQuantity }}>
-              <Typography sx={headerTextStyles}>
+            <Box sx={{ ...cellStyles, width: columnWidths.masterCartonQuantity, justifyContent: 'center' }}>
+              <Typography sx={{ ...headerTextStyles, textAlign: 'center' }}>
                 {columnLabels.masterCartonQuantity}
               </Typography>
             </Box>
@@ -299,13 +299,13 @@ const UnifiedSkuTable = ({
                     {sku.unitPackingItem || '-'}
                   </Typography>
                 </Box>
-                <Box sx={{ ...cellStyles, width: columnWidths.innerBoxQuantity }}>
-                  <Typography sx={cellTextStyles}>
+                <Box sx={{ ...cellStyles, width: columnWidths.innerBoxQuantity, justifyContent: 'center' }}>
+                  <Typography sx={{ ...cellTextStyles, textAlign: 'center' }}>
                     {sku.innerBoxQuantity || '-'}
                   </Typography>
                 </Box>
-                <Box sx={{ ...cellStyles, width: columnWidths.masterCartonQuantity }}>
-                  <Typography sx={cellTextStyles}>
+                <Box sx={{ ...cellStyles, width: columnWidths.masterCartonQuantity, justifyContent: 'center' }}>
+                  <Typography sx={{ ...cellTextStyles, textAlign: 'center' }}>
                     {sku.masterCartonQuantity || '-'}
                   </Typography>
                 </Box>   

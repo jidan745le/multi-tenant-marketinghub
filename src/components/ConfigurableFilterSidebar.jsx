@@ -1,7 +1,9 @@
 import {
+  Autocomplete,
   Box,
   Button,
   Checkbox,
+  Chip,
   Dialog,
   DialogActions,
   DialogContent,
@@ -14,9 +16,11 @@ import {
   Paper,
   Radio,
   RadioGroup,
+  TextField,
   TextareaAutosize,
   Typography
 } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 import { styled, useTheme } from '@mui/material/styles';
 import React, { useEffect, useState } from 'react';
 import MassSearch from './MassSearch';
@@ -183,6 +187,7 @@ const ConfigurableFilterSidebar = ({
   useNewMassSearch = true // 默认使用新的 MassSearch 组件
 }) => {
   const theme = useTheme();
+  const primaryColor = theme.palette.primary.main;
   const [internalValues, setInternalValues] = useState({});
   const [collapseState, setCollapseState] = useState({});
   const [treeData, setTreeData] = useState({});
@@ -351,6 +356,130 @@ const ConfigurableFilterSidebar = ({
       ))}
     </div>
   );
+
+  // 混色函数
+  const mixWithWhite = (hexColor, amount = 0.15) => {
+    try {
+      const hex = hexColor.replace('#', '');
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      const mix = (c) => Math.round((1 - amount) * 255 + amount * c);
+      const toHex = (n) => n.toString(16).padStart(2, '0');
+      return `#${toHex(mix(r))}${toHex(mix(g))}${toHex(mix(b))}`;
+    } catch {
+      return hexColor;
+    }
+  };
+
+  const renderTagsField = (item) => {
+    const currentValue = internalValues[item.key] || '';
+    const tagsArray = typeof currentValue === 'string' 
+      ? currentValue.split(/[,;]/).map(t => t.trim()).filter(Boolean)
+      : Array.isArray(currentValue) 
+        ? currentValue 
+        : [];
+
+    // 处理标签变化
+    const handleTagsChange = (event, newValue) => {
+      const tags = newValue.map(v => typeof v === 'string' ? v : v.value || v.label || String(v));
+      handleValueChange(item.key, tags.join(','));
+    };
+
+    return (
+      <SearchContainer>
+        <Autocomplete
+          multiple
+          freeSolo
+          disableClearable
+          options={[]}
+          value={tagsArray}
+          onChange={handleTagsChange}
+          renderInput={(params) => {
+            const { InputProps, ...other } = params;
+            // 当有标签时，不显示 placeholder
+            const showPlaceholder = tagsArray.length === 0;
+            return (
+              <TextField
+                {...other}
+                placeholder={showPlaceholder ? (item.placeholder || 'Search by tags') : ''}
+                variant="standard"
+                InputProps={{
+                  ...InputProps,
+                  disableUnderline: true,
+                  startAdornment: (
+                    <>
+                      <span style={{color:'#999999',marginRight:'8px'}} className='material-symbols-outlined'>search</span>
+                      {InputProps.startAdornment}
+                    </>
+                  ),
+                  sx: {
+                    fontSize: '14px',
+                    lineHeight: '20px',
+                    letterSpacing: '0.25px',
+                    fontWeight: '400',
+                    '& input': {
+                      outline: 'none',
+                      padding: '0 !important',
+                      fontSize: '14px',
+                      lineHeight: '20px',
+                      letterSpacing: '0.25px',
+                      fontWeight: '400',
+                    },
+                    '& input::placeholder': {
+                      color: '#999999',
+                      opacity: 1,
+                    },
+                  },
+                }}
+              />
+            );
+          }}
+          renderTags={(value, getTagProps) =>
+            value.map((option, index) => (
+              <Chip
+                key={index}
+                label={option}
+                {...getTagProps({ index })}
+                deleteIcon={<CloseIcon sx={{ fontSize: '16px' }} />}
+                sx={{
+                  height: '24px',
+                  fontSize: '12px',
+                  marginRight: '4px',
+                  marginBottom: '4px',
+                  backgroundColor: mixWithWhite(primaryColor, 0.15),
+                  border: `1px solid ${mixWithWhite(primaryColor, 0.80)}`,
+                  color: primaryColor,
+                  borderRadius: '12px', 
+                  fontFamily: '"Roboto-Regular", sans-serif',
+                  '& .MuiChip-deleteIcon': {
+                    fontSize: '16px',
+                    color: '#4d4d4d',
+                    margin: '0 4px 0 -4px',
+                    '&:hover': {
+                      color: '#d32f2f',
+                      backgroundColor: 'transparent',
+                    },
+                  },
+                }}
+              />
+            ))
+          }
+          sx={{
+            width: '100%',
+            '& .MuiAutocomplete-inputRoot': {
+              padding: '8px 8px 8px 0 !important',
+              minHeight: '40px',
+              height: 'auto',
+            },
+            '& .MuiAutocomplete-input': {
+              padding: '0 !important',
+            },
+          }}
+        />
+      </SearchContainer>
+    );
+  };
 
   const renderCheckboxField = (item) => {
     const currentValues = internalValues[item.key] || [];
@@ -685,6 +814,10 @@ const ConfigurableFilterSidebar = ({
     
     switch (item.component) {
       case 'input':
+        // tags
+        if (item.key === 'tags') {
+          return renderTagsField(item);
+        }
         return renderInputField(item);
       case 'textarea':
         return renderTextareaField(item);
@@ -698,6 +831,8 @@ const ConfigurableFilterSidebar = ({
         return renderClickableListField(item);
       case 'tree':
         return renderTreeField(item);
+      case 'tags':
+        return renderTagsField(item);
       default:
         return <div>Unsupported component type: {item.component}</div>;
     }

@@ -4,7 +4,8 @@
  */
 
 // Restricted formats that require derivate selection
-const restrictedFormats = ['psd', 'jpg', 'png', 'tiff', 'eps', 'ai'];
+// Includes image formats and video formats (videos should show download dialog for large file handling)
+const restrictedFormats = ['psd', 'jpg', 'png', 'tiff', 'eps', 'ai', 'mp4', 'mov', 'avi', 'wmv', 'flv', 'webm', 'mkv', 'm4v'];
 
 /**
  * Extract file extension from filename
@@ -47,7 +48,12 @@ const extractFileExtensions = (media) => {
                 'jpeg': 'jpg',
                 'svg+xml': 'svg',
                 'x-photoshop': 'psd',
-                'postscript': 'eps'
+                'postscript': 'eps',
+                'quicktime': 'mov',
+                'x-msvideo': 'avi',
+                'x-ms-wmv': 'wmv',
+                'x-flv': 'flv',
+                'x-matroska': 'mkv'
             };
             extensions.push(mimeMap[ext] || ext);
         }

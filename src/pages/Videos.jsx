@@ -8,6 +8,9 @@ import AssetDetailDialog from '../components/AssetDetailDialog';
 import MediaDownloadDialog from '../components/MediaDownloadDialog';
 import ProductCatalogue from '../components/ProductCatalogue';
 
+// 导入Context
+import { SelectedAssetsProvider } from '../context/SelectedAssetsContext';
+
 // 导入钩子 (基于reference代码)
 import { useBrand } from '../hooks/useBrand';
 import { useLanguage } from '../hooks/useLanguage';
@@ -53,10 +56,18 @@ const Videos = () => {
     }
   }, []);
 
-  // 处理视频下载 (基于reference代码逻辑)
+  // 处理视频下载 (与Product Assets页面逻辑一致)
   const handleVideoDownload = useCallback((video) => {
-    console.log('🎥 Video download:', video);
-    // 保持原逻辑不变，此处不改
+    // Support both single video and array of videos
+    const videoArray = Array.isArray(video) ? video : [video];
+    
+    const mediaIds = videoArray.map(item => item.id || item.mediaId).filter(Boolean);
+    
+    console.log('videos: Passing video IDs to download dialog:', mediaIds);
+    
+    // MediaDownloadDialog
+    setSelectedMediaIds(mediaIds);
+    setDownloadDialogOpen(true);
   }, []);
 
   const handleDownload = useCallback((assetIds) => {
@@ -72,6 +83,19 @@ const Videos = () => {
     setSelectedMediaIds([]);
   }, []);
 
+  // 处理批量下载选择 (来自ActionBar)
+  const handleDownloadSelection = useCallback((selectedAssets) => {
+    console.log('🎥 Batch download from ActionBar:', selectedAssets);
+    
+    // Extract IDs from selected assets
+    const mediaIds = selectedAssets.map(item => item.id || item.mediaId).filter(Boolean);
+    
+    console.log('Videos: Passing batch media IDs to download dialog:', mediaIds);
+    
+    setSelectedMediaIds(mediaIds);
+    setDownloadDialogOpen(true);
+  }, []);
+
   // 处理批量搜索 (基于reference代码逻辑)
   const handleMassSearch = useCallback((item, childItem, filterValues) => {
     console.log('🎥 Video mass search triggered:', { item, childItem, filterValues });
@@ -85,18 +109,14 @@ const Videos = () => {
     setSelectedAssetData(null);
   }, []);
 
-  // 处理 AssetDetailDialog 中的下载
+  // 处理 AssetDetailDialog 中的下载 (与Product Assets页面逻辑一致)
   const handleAssetDetailDownload = useCallback((assetId) => {
     console.log('🎥 Download from AssetDetailDialog:', assetId);
-    if (assetId) {
-      handleDownload(assetId);
-      return;
-    }
-    // 回退
+    // 这里可以调用下载逻辑
     if (selectedAssetData) {
       handleVideoDownload(selectedAssetData);
     }
-  }, [handleDownload, selectedAssetData, handleVideoDownload]);
+  }, [selectedAssetData, handleVideoDownload]);
 
   // 监听品牌和语言变化 (基于reference代码)
   useEffect(() => {
@@ -107,12 +127,13 @@ const Videos = () => {
   }, [currentBrand, currentLanguage]);
 
   return (
-    <>
+    <SelectedAssetsProvider>
       <ProductCatalogue
         key={currentBrandCode} // 确保品牌切换时组件重新渲染
         config={config}
         onProductClick={handleVideoClick}
         onProductDownload={handleVideoDownload}
+        onDownloadSelection={handleDownloadSelection}
         onMassSearch={handleMassSearch}
         useNewMassSearch={true} // Video 页面使用新的 MassSearchSimple 组件
       />
@@ -122,6 +143,7 @@ const Videos = () => {
         open={assetDetailOpen}
         onClose={handleAssetDetailClose}
         assetId={selectedAssetId}
+        mediaData={selectedAssetData}
         onDownload={handleAssetDetailDownload}
       />
 
@@ -131,7 +153,7 @@ const Videos = () => {
         onClose={handleDownloadDialogClose}
         selectedMediaIds={selectedMediaIds}
       />
-    </>
+    </SelectedAssetsProvider>
   );
 };
 

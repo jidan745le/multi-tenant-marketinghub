@@ -786,7 +786,7 @@ const MediaDownloadDialog = ({
                 width: '25px',
                 height: '24px',
                 '&.Mui-checked': {
-                  color: '#f16508'
+                  color: primaryColor
                 },
                 '&.Mui-disabled': {
                   color: '#e0e0e0'
@@ -843,7 +843,7 @@ const MediaDownloadDialog = ({
                 width: '25px',
                 height: '24px',
                 '&.Mui-checked': {
-                  color: '#f16508'
+                  color: primaryColor
                 }
               }}
             />
@@ -902,7 +902,7 @@ const MediaDownloadDialog = ({
                   width: '25px',
                   height: '24px',
                   '&.Mui-checked': {
-                    color: '#f16508'
+                    color: primaryColor
                   }
                 }}
               />
@@ -1015,7 +1015,7 @@ const MediaDownloadDialog = ({
           variant="contained"
           disabled={!canFinalDownload || loading}
           sx={{
-            backgroundColor: '#f16508',
+            backgroundColor: primaryColor,
             borderRadius: '4px',
             padding: '6px 16px',
             height: '32px',
@@ -1027,7 +1027,8 @@ const MediaDownloadDialog = ({
             fontWeight: 400,
             textTransform: 'uppercase',
             '&:hover': {
-              backgroundColor: '#d5570a'
+              backgroundColor: primaryColor,
+              opacity: 0.9
             },
             '&:disabled': {
               backgroundColor: '#cccccc',
