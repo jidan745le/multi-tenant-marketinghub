@@ -193,7 +193,9 @@ export const createVideoCatalogueConfig = (brand = 'kendo') => {
                 show_download: true,
                 show_cart: false,
                 show_view: true,
-                show_favorite: false
+                show_favorite: false,
+                show_open_product_page: false, // 在 Video 页面隐藏扳手图标
+                show_open_pdf: false // 在 Video 页面隐藏 PDF 图标
             },
             // 网格标题
             title: `${brandName} Video Library`
