@@ -746,7 +746,14 @@ const ProductMassDownloadDialog = ({
         <Button
           variant="outlined"
           onClick={handleClose}
-          sx={{ color: '#4d4d4d', border: '1px solid #E6E6E6', textTransform: 'uppercase' }}
+          sx={{ 
+            color: '#4d4d4d', 
+            border: '1px solid #E6E6E6', 
+            textTransform: 'uppercase',
+            '&:hover': {
+              borderColor: theme.palette.primary.main
+            }
+          }}
         >
           Cancel
         </Button>
@@ -807,7 +814,14 @@ const ProductMassDownloadDialog = ({
         <Button
           variant="outlined"
           onClick={handleBackFromSubDialog}
-          sx={{ color: '#4d4d4d', border: '1px solid #E6E6E6', textTransform: 'uppercase' }}
+          sx={{ 
+            color: '#4d4d4d', 
+            border: '1px solid #E6E6E6', 
+            textTransform: 'uppercase',
+            '&:hover': {
+              borderColor: theme.palette.primary.main
+            }
+          }}
         >
           Cancel
         </Button>
@@ -918,7 +932,14 @@ const ProductMassDownloadDialog = ({
         <Button
           variant="outlined"
           onClick={handleBackFromSubDialog}
-          sx={{ color: '#4d4d4d', border: '1px solid #E6E6E6', textTransform: 'uppercase' }}
+          sx={{ 
+            color: '#4d4d4d', 
+            border: '1px solid #E6E6E6', 
+            textTransform: 'uppercase',
+            '&:hover': {
+              borderColor: theme.palette.primary.main
+            }
+          }}
         >
           Cancel
         </Button>
@@ -1005,7 +1026,14 @@ const ProductMassDownloadDialog = ({
         <Button
           variant="outlined"
           onClick={handleBackFromSubDialog}
-          sx={{ color: '#4d4d4d', border: '1px solid #E6E6E6', textTransform: 'uppercase' }}
+          sx={{ 
+            color: '#4d4d4d', 
+            border: '1px solid #E6E6E6', 
+            textTransform: 'uppercase',
+            '&:hover': {
+              borderColor: theme.palette.primary.main
+            }
+          }}
         >
           Cancel
         </Button>
@@ -1133,7 +1161,14 @@ const ProductMassDownloadDialog = ({
         <Button
           variant="outlined"
           onClick={() => setCurrentStep('formats')}
-          sx={{ color: '#4d4d4d', border: '1px solid #E6E6E6', textTransform: 'uppercase' }}
+          sx={{ 
+            color: '#4d4d4d', 
+            border: '1px solid #E6E6E6', 
+            textTransform: 'uppercase',
+            '&:hover': {
+              borderColor: theme.palette.primary.main
+            }
+          }}
         >
           Cancel
         </Button>
