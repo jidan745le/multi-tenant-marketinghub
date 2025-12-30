@@ -63,6 +63,25 @@ export const newProductListConfigs = [
         placeholder: 'Search product name'
     },
     {
+        order: 10,
+        label: 'SKU Code',
+        component: 'textarea',
+        key: 'sku-code',
+        type: 'string',
+        defaultValue: '',
+        placeholder: 'Search SKU code',
+        children: [
+            {
+                label: 'Mass Search',
+                desc: 'Enter multiple SKU codes separated by semicolons',
+                clickMethod: 'onMassSearch',
+                component: 'input',
+                key: 'mass_download',
+                type: 'button',
+            }
+        ]
+    },
+    {
         order: 11,
         label: 'Model Number',
         component: 'textarea',
