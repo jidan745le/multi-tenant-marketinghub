@@ -65,6 +65,38 @@ const SearchContainer = styled(Paper)(({ theme }) => ({
   },
 }));
 
+const StyledTextarea = styled(TextareaAutosize)(() => ({
+  width: '100%',
+  height: '40px',
+  padding: '10px 8px',
+  fontSize: '14px',
+  lineHeight: '20px',
+  letterSpacing: '0.25px',
+  fontWeight: '400',
+  border: 'none',
+  outline: 'none',
+  resize: 'none',
+  overflow: 'auto',
+  backgroundColor: '#fff',
+  fontFamily: 'inherit',
+  '&::placeholder': {
+    color: '#999999',
+    opacity: 1,
+  },
+  '&::-webkit-input-placeholder': {
+    color: '#999999',
+    opacity: 1,
+  },
+  '&::-moz-placeholder': {
+    color: '#999999',
+    opacity: 1,
+  },
+  '&:-ms-input-placeholder': {
+    color: '#999999',
+    opacity: 1,
+  },
+}));
+
 const TextareaContainer = styled(Paper)(({ theme }) => ({
   boxShadow: 'none',
   borderRadius: '4px',
@@ -306,6 +338,10 @@ const ConfigurableFilterSidebar = ({
           fontWeight: '400',
           '& input': {
             outline: 'none',
+            '&::placeholder': {
+              color: '#999999',
+              opacity: 1,
+            },
           },
           '& .MuiInputBase-startAdornment': {
           }
@@ -322,24 +358,7 @@ const ConfigurableFilterSidebar = ({
   const renderTextareaField = (item) => (
     <div>
       <TextareaContainer>
-        <TextareaAutosize
-          style={{
-            width: '100%',
-            // minHeight: '20px',
-            // maxHeight: '48px',
-            height: '40px',
-            padding: '0px 8px',
-            fontSize: '14px',
-            lineHeight: '20px',
-            letterSpacing: '0.25px',
-            fontWeight: '400',
-            border: 'none',
-            outline: 'none',
-            resize: 'none',
-            overflow: 'auto',
-            backgroundColor: '#fff',
-            fontFamily: 'inherit',
-          }}
+        <StyledTextarea
           placeholder={item.placeholder || ''}
           startAdornment={<span style={{color:'#999999',marginRight:'8px'}} className='material-symbols-outlined'>search</span>}
           value={internalValues[item.key] || ''}

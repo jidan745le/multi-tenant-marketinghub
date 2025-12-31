@@ -400,7 +400,11 @@ const MediaDownloadDialog = ({
           <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#333' }}>
             download
           </span>
-          <Typography sx={{ fontSize: '24px', fontWeight: 'bold' }}>
+          <Typography sx={{ 
+            fontSize: '21px',
+            fontWeight: 500,
+            fontFamily: '"Roboto-Medium", sans-serif'
+          }}>
             {t('Download')}
           </Typography>
         </Box>
@@ -437,7 +441,13 @@ const MediaDownloadDialog = ({
           </Box>
         ) : (
           <>
-            <Typography style={{fontWeight: '700',color: '#333',fontFamily: "OpenSans-SemiBold"}} sx={{fontSize: '16px', mb: 2 }}>
+            <Typography sx={{
+              fontSize: '16px',
+              fontWeight: 500,
+              mb: 2,
+              color: '#333',
+              fontFamily: '"Roboto-Medium", sans-serif'
+            }}>
               Select File Format
             </Typography>
         
@@ -447,12 +457,9 @@ const MediaDownloadDialog = ({
               <Typography
                 sx={{
                   height: '20px',
-                  // borderLeft: `2px solid ${theme.palette.primary.main}`,
-                  // paddingLeft: '12px',
-                  fontSize: '14px !important',
-                  fontFamily: "OpenSans-SemiBold",
-                  color: '#4d4d4d',                 
+                  fontSize: '14px',
                   fontWeight: 600,
+                  color: '#4d4d4d',
                   margin: '10px 0',              
                 }}
               >
@@ -477,9 +484,8 @@ const MediaDownloadDialog = ({
                   label={derivate}
                   sx={{
                     color:'#4f4f4f',
-                    fontFamily: "OpenSans-SemiBold",
                     '.MuiTypography-root': {
-                      fontSize: '14px !important',
+                      fontSize: '14px',
                     }
                   }}
                 />
@@ -491,11 +497,8 @@ const MediaDownloadDialog = ({
         <Typography
           sx={{
             height: '20px',
-            fontSize: '14px !important',
-            fontFamily: "OpenSans-SemiBold",
+            fontSize: '14px',
             fontWeight: 600,
-            // borderLeft: `2px solid ${theme.palette.primary.main}`,
-            // paddingLeft: '12px',
             margin: '10px 0',
             color:'#4f4f4f',
           }}
@@ -513,9 +516,8 @@ const MediaDownloadDialog = ({
             label="Yes" 
             sx={{
               color:'#4f4f4f',
-              fontFamily: "OpenSans-SemiBold",
               '.MuiTypography-root': {
-                fontSize: '14px !important',
+                fontSize: '14px',
               }
             }}
           />
@@ -525,9 +527,8 @@ const MediaDownloadDialog = ({
             label="No" 
             sx={{
               color:'#4f4f4f',
-              fontFamily: "OpenSans-SemiBold",
               '.MuiTypography-root': {
-                fontSize: '14px !important',
+                fontSize: '14px',
               }
             }}
           />
@@ -644,27 +645,36 @@ const MediaDownloadDialog = ({
           variant="outlined"
           onClick={handleClose}
           sx={{ 
-            color: '#333', 
-            border: 'solid 1px #E5E5E5',
+            color: '#4d4d4d', 
+            border: '1px solid #E6E6E6',
+            textTransform: 'uppercase',
             '&:hover': {
               borderColor: primaryColor
             }
           }}
           disabled={loading}
         >
-          Cancel
+          CANCEL
         </Button>
         <Button
           onClick={handleDerivateConfirm}
           variant="contained"
           disabled={loading || !canProceedFromDerivates || !isCustomConfigValid}
           sx={{
+            backgroundColor: (!loading && canProceedFromDerivates && isCustomConfigValid) ? primaryColor : '#cccccc',
             color: '#fff',
-            backgroundColor: !loading && canProceedFromDerivates && isCustomConfigValid ? '' : 'gray',
-            cursor: !loading && canProceedFromDerivates && isCustomConfigValid ? 'pointer' : 'not-allowed'
+            textTransform: 'uppercase',
+            '&:hover': {
+              backgroundColor: (!loading && canProceedFromDerivates && isCustomConfigValid) ? primaryColor : '#cccccc',
+              opacity: (!loading && canProceedFromDerivates && isCustomConfigValid) ? 0.9 : 1
+            },
+            '&:disabled': {
+              backgroundColor: '#cccccc',
+              color: '#ffffff'
+            }
           }}
         >
-          {loading ? 'Loading...' : 'Download'}
+          {loading ? 'Loading...' : 'DOWNLOAD'}
         </Button>
       </DialogActions>
     </>
@@ -712,10 +722,10 @@ const MediaDownloadDialog = ({
           <Typography className="dialog-title" sx={{
             color: '#000000',
             textAlign: 'left',
-            fontFamily: 'OpenSans-SemiBold, sans-serif',
+            fontFamily: '"Roboto-Medium", sans-serif',
             fontSize: '21px',
             lineHeight: '140%',
-            fontWeight: 600
+            fontWeight: 500
           }}>
             Download ({selectedMediaIds.length} {selectedMediaIds.length === 1 ? 'file' : 'files'})
           </Typography>
@@ -723,12 +733,10 @@ const MediaDownloadDialog = ({
 
         {/* Dialog Message */}
         <Typography className="download-message" sx={{
-          color: '#333333',
+          color: '#333',
           textAlign: 'left',
-          fontFamily: 'OpenSans-Regular, sans-serif',
           fontSize: '16px',
-          lineHeight: '140%',
-          fontWeight: 400,
+          lineHeight: 1.4,
           width: '100%',
           mb: 2
         }}>
@@ -804,9 +812,7 @@ const MediaDownloadDialog = ({
               <Typography className="option-title" sx={{
                 color: canOnlySendEmail ? '#999999' : '#212121',
                 textAlign: 'left',
-                fontFamily: 'OpenSans-SemiBold, sans-serif',
                 fontSize: '14px',
-                lineHeight: '140%',
                 fontWeight: 600,
                 width: '100%'
               }}>
@@ -815,10 +821,7 @@ const MediaDownloadDialog = ({
               <Typography className="option-description" sx={{
                 color: canOnlySendEmail ? '#999999' : '#4f4f4f',
                 textAlign: 'left',
-                fontFamily: 'OpenSans-Regular, sans-serif',
                 fontSize: '12px',
-                lineHeight: '140%',
-                fontWeight: 400,
                 width: '242px'
               }}>
                 Begin the download immediately.              
@@ -858,9 +861,7 @@ const MediaDownloadDialog = ({
               <Typography className="option-title" sx={{
                 color: '#212121',
                 textAlign: 'left',
-                fontFamily: 'OpenSans-SemiBold, sans-serif',
                 fontSize: '14px',
-                lineHeight: '140%',
                 fontWeight: 600,
                 width: '100%'
               }}>
@@ -869,10 +870,7 @@ const MediaDownloadDialog = ({
               <Typography className="option-description" sx={{
                 color: '#4f4f4f',
                 textAlign: 'left',
-                fontFamily: 'OpenSans-Regular, sans-serif',
                 fontSize: '12px',
-                lineHeight: '140%',
-                fontWeight: 400,
                 width: '100%'
               }}>
                 We'll email you a download link for later access.
@@ -917,9 +915,7 @@ const MediaDownloadDialog = ({
                 <Typography className="option-title" sx={{
                   color: '#212121',
                   textAlign: 'left',
-                  fontFamily: 'OpenSans-SemiBold, sans-serif',
                   fontSize: '14px',
-                  lineHeight: '140%',
                   fontWeight: 600,
                   width: '100%'
                 }}>
@@ -928,10 +924,7 @@ const MediaDownloadDialog = ({
                 <Typography className="option-description" sx={{
                   color: '#4f4f4f',
                   textAlign: 'left',
-                  fontFamily: 'OpenSans-Regular, sans-serif',
                   fontSize: '12px',
-                  lineHeight: '140%',
-                  fontWeight: 400,
                   width: '100%'
                 }}>
                   Send download link to other users and CC you Email to
@@ -992,15 +985,8 @@ const MediaDownloadDialog = ({
           className="cancel-button"
           onClick={handleOptionsCancel}
           sx={{
-            borderRadius: '4px',
-            border: '1px solid #e6e6e6',
-            padding: '8px 16px',
-            boxShadow: '0px 1px 1px 0px rgba(0, 0, 0, 0.05)',
             color: '#4d4d4d',
-            fontFamily: 'OpenSans-Regular, sans-serif',
-            fontSize: '14px',
-            lineHeight: '16px',
-            fontWeight: 400,
+            border: '1px solid #E6E6E6',
             textTransform: 'uppercase',
             '&:hover': {
               borderColor: primaryColor
@@ -1015,20 +1001,12 @@ const MediaDownloadDialog = ({
           variant="contained"
           disabled={!canFinalDownload || loading}
           sx={{
-            backgroundColor: primaryColor,
-            borderRadius: '4px',
-            padding: '6px 16px',
-            height: '32px',
-            color: '#ffffff',
-            fontFamily: 'OpenSans-Regular, sans-serif',
-            fontSize: '14px',
-            lineHeight: '24px',
-            letterSpacing: '0.4px',
-            fontWeight: 400,
+            backgroundColor: canFinalDownload ? primaryColor : '#cccccc',
+            color: '#fff',
             textTransform: 'uppercase',
             '&:hover': {
-              backgroundColor: primaryColor,
-              opacity: 0.9
+              backgroundColor: canFinalDownload ? primaryColor : '#cccccc',
+              opacity: canFinalDownload ? 0.9 : 1
             },
             '&:disabled': {
               backgroundColor: '#cccccc',
