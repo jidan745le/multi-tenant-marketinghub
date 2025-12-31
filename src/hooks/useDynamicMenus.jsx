@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSelector } from 'react-redux';
 import { selectBrands } from '../store/slices/themesSlice';
@@ -41,24 +41,48 @@ export function useDynamicMenus() {
                         `/${currentLanguage}/${currentBrand?.code || 'kendo'}${menu.path}` : 
                         `/${currentLanguage}/${currentBrand?.code || 'kendo'}/page`;
 
-                    // 根据菜单key确定图标
-                    const getMenuIcon = (key) => {
-                        const iconMap = {
-                            'home': 'home',
-                            'brand': 'branding_watermark',
-                            'brand.book': 'branding_watermark',
-                            'products': 'search',
-                            'product': 'search',
-                            'medias': 'photo_library',
-                            'accessory': 'add_circle',
-                            'videos': 'video_library'
-                        };
-                        return iconMap[key] || 'menu';
+                    // 配置格式：字符串表示 Material Symbols 图标名，对象表示 SVG 图片路径
+                    const iconConfig = {
+                        'home': 'home',
+                        'brand.book': { type: 'svg', path: '/assets/brand_assetes_24px.svg', width: '16px', height: '24px'  },
+                        'video': { type: 'svg', path: '/assets/product_asstes_24px.svg', width: '16px', height: '24px'  },
+                        'videos': { type: 'svg', path: '/assets/video_library_24px.svg', width: '16px', height: '24px'  },
+                        'new.products': { type: 'svg', path: '/assets/new_releases_24px.svg', width: '17px', height: '24px'  },
+                        'product.catalog': { type: 'svg', path: '/assets/product_Library_24px.svg', width: '18.5px', height: '24px'  },
+                        'aftersales': { type: 'svg', path: '/assets/after_sales_service_24px.svg', width: '16px', height: '24px'  },
+                        'internaldocuments': { type: 'svg', path: '/assets/internal_documents_24px.svg', width: '14px', height: '24px'  },
+                        'certifications-compliance': { type: 'svg', path: '/assets/certifications_compliance_24px.svg', width: '16px', height: '24px'  },
+                    };
+
+                    // 渲染图标
+                    const renderIcon = (key) => {
+                        const config = iconConfig[key];
+                        
+                        // 如果是对象配置，使用 SVG 图片
+                        if (config && typeof config === 'object') {
+                            return (
+                                <img 
+                                    src={config.path} 
+                                    alt={key} 
+                                    style={{ 
+                                        width: config.width || '24px', 
+                                        height: config.height || '24px' 
+                                    }} 
+                                />
+                            );
+                        }
+                        
+                        // 否则使用 Material Symbols 图标
+                        return (
+                            <span className="material-symbols-outlined">
+                                {config || 'menu'}
+                            </span>
+                        );
                     };
 
                     return {
                         label: menuLabel,
-                        icon: <span className="material-symbols-outlined">{getMenuIcon(menuKey)}</span>,
+                        icon: renderIcon(menuKey),
                         key: menuKey,
                         path: menuPath,
                         order: menu.order || (index + 1),

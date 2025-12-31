@@ -138,17 +138,28 @@ const NavItem = styled(Box)(({ theme, active }) => ({
   },
 }));
 
-const NavItemIcon = styled(Box)(({ theme, active }) => ({
-  color: active ? theme.palette.primary.main : '#ffffff',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: '24px',
-  height: '24px',
-  '& .MuiSvgIcon-root': {
-    strokeWidth: '0.8',
-  },
-}));
+const NavItemIcon = styled(Box)(({ theme, active }) => {
+  const primaryColor = theme.palette.primary.main || '#f16508';
+  
+  return {
+    color: active ? primaryColor : '#ffffff',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '24px',
+    height: '24px',
+    '& .MuiSvgIcon-root': {
+      strokeWidth: '0.8',
+    },
+    // 对于 img 标签（SVG 图片），使用 filter 来改变颜色s
+    '& img': {
+      filter: active 
+        ? 'brightness(0) saturate(100%) invert(48%) sepia(79%) saturate(2476%) hue-rotate(346deg) brightness(118%) contrast(118%)' // 橙色滤镜
+        : 'brightness(0) invert(1)', // 白色滤镜
+      transition: 'filter 0.2s ease',
+    },
+  };
+});
 
 const NavItemLabel = styled(Typography)(({ theme, active }) => ({
   color: active ? theme.palette.primary.main : '#ffffff',

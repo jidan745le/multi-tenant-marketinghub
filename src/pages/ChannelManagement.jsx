@@ -108,14 +108,14 @@ const TableRowStyled = styled(TableRow)(() => ({
   borderStyle: 'solid',
   borderColor: '#e0e0e0',
   borderWidth: '0px 0px 1px 0px',
-  height: '81px',
+  height: '72px',
   '&:hover': {
     backgroundColor: 'rgba(0, 0, 0, 0.02)',
   },
 }));
 
 const TableCellStyled = styled(TableCell)(() => ({
-  padding: '30px 16px',
+  padding: '16px',
   fontFamily: '"Lato-Regular", sans-serif',
   fontSize: '14px',
   lineHeight: '143%',
@@ -178,7 +178,7 @@ const IconContainer = styled(Box)(() => ({
 const ChannelNameText = styled(Typography)(() => ({
   color: '#212121',
   fontFamily: '"Lato-Bold", sans-serif',
-  fontSize: '16px',
+  fontSize: '14px',
   lineHeight: '143%',
   letterSpacing: '0.17px',
   fontWeight: 700,

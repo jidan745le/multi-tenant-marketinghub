@@ -498,7 +498,7 @@ function DerivateManagement() {
     <Box sx={{ padding: 3 }}>
       {/* Header */}
       <HeaderContainer>
-        <Box>
+        <Box sx={{ marginLeft: '-24px' }}>
           <Typography variant="h4" component="h1" gutterBottom>
             Derivate Management
           </Typography>

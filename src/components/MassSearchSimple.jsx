@@ -209,6 +209,10 @@ const SearchButton = styled(Button)(({ theme }) => ({
   letterSpacing: '0.5px',
   fontWeight: 500,
   minWidth: 'auto',
+  '&.Mui-disabled': {
+    background: '#e0e0e0',
+    color: '#9e9e9e',
+  },
 }));
 
 
