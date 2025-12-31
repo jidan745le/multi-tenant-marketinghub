@@ -109,7 +109,7 @@ class DownloadApiService {
             const requestPayload = {
                 tenant: tenant,
                 theme: theme,
-                mediaids: Array.isArray(mediaIds) ? mediaIds.join(',') : String(mediaIds),
+                mediaIds: Array.isArray(mediaIds) ? mediaIds.join(',') : String(mediaIds),
                 derivates: derivates,
                 async: isAsync, // Convert boolean to string
                 tomail: toEmail,
