@@ -10,7 +10,7 @@ import {
 } from '@mui/material';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useBrand } from '../hooks/useBrand';
-import { fetchCatalogAssets, fetchIconographyAssets } from '../services/brandbookAssetsApi';
+import { fetchCatalogAssets, fetchIconographyAssets, fetchLogosAssets } from '../services/brandbookAssetsApi';
 import AssetDetailDialog from './AssetDetailDialog';
 import AssetPagination from './AssetPagination';
 import MediaDownloadDialog from './MediaDownloadDialog';
@@ -159,17 +159,6 @@ const BrandbookContent = ({ data, onSectionInView }) => {
         id="brand-info" 
         ref={(el) => registerSectionRef('brand-info', el)}
       >
-        <Box sx={{ 
-          backgroundColor: 'rgba(255, 255, 255, 0.5)', 
-          margin: '-24px -24px 24px -23px',
-          padding: '12px 24px',
-          position: 'relative'
-        }}>
-          <Typography variant="h4" component="h2" fontWeight="bold" fontSize="1.6rem" sx={{ mb: 0 }}>
-            {brandInfo.title || 'Brand Book'}
-          </Typography>
-        </Box>
-        
         <Paper elevation={0} sx={{ overflow: 'hidden', mb: 3, borderRadius: 1 }}>
           <Box sx={{ 
             display: 'flex',
@@ -578,11 +567,19 @@ const BrandbookContent = ({ data, onSectionInView }) => {
       
       {renderFonts()}
 
-      {/* Iconography section - Icons + Logos */}
+      {/* Iconography section */}
       {renderMediaSection(
         data?.externalMedias?.[0]?.title || 'Iconography',
         data?.externalMedias?.[0]?.mediaType || 'iconography',
         fetchIconographyAssets,
+        { brand: currentBrandCode }
+      )}
+
+      {/* Logos section */}
+      {renderMediaSection(
+        data?.externalMedias?.[1]?.title || 'Logos',
+        data?.externalMedias?.[1]?.mediaType || 'logos',
+        fetchLogosAssets,
         { brand: currentBrandCode }
       )}
 

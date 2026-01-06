@@ -52,15 +52,36 @@ const Toc = ({  data, activeSection, onSectionClick }) => {
     const list = [];
     if (data?.bookInfo?.length) list.push({ id: 'brand-info', title: data.bookInfo?.[0]?.nav_title || 'BRAND BOOK' });
     if (data?.colors?.length) list.push({ id: 'colors', title: data?.sectionTitles?.colors || 'COLOR PALETTE' });
-    if (data?.fonts?.length) list.push({ id: 'fonts', title: data?.sectionTitles?.fonts || 'TYPOGRAPHY' });
-    if (data?.icons?.length) list.push({ id: 'icons', title: data?.externalMedias?.[0]?.subtitle || 'ICONOGRAPHY'});
-    if (data?.logos?.length) list.push({ id: 'logos', title: data?.externalMedias?.[1]?.subtitle || 'LOGOS' });
+    if (data?.fonts?.length) list.push({ id: 'fonts', title: data?.sectionTitles?.fonts || 'TYPOGRAPHY' });  
+    // 遍历 externalMedias
+    if (data?.externalMedias && Array.isArray(data.externalMedias)) {
+      data.externalMedias.forEach((media) => {
+        if (!media) return;
+        
+        const mediaType = media.mediaType?.toLowerCase();
+        if (mediaType === 'icons') {
+          list.push({ id: 'icons', title: media.subtitle || 'ICONOGRAPHY' });
+        } else if (mediaType === 'logos') {
+          list.push({ id: 'logos', title: media.subtitle || 'LOGOS' });
+        }
+      });
+    }
     return list.length ? list : TOC_STRUCTURE_DS;
   }, [data]);
 
   const tocStructureMA = useMemo(() => {
     const list = [];
-    if (data?.catelogs?.length) list.push({ id: 'catalogs', title: data?.externalMedias?.[2]?.subtitle || 'CATALOGS' });
+    if (data?.externalMedias && Array.isArray(data.externalMedias)) {
+      data.externalMedias.forEach((media) => {
+        if (!media) return;
+        
+        const mediaType = media.mediaType?.toLowerCase();
+        if (mediaType === 'catalogs') {
+          list.push({ id: 'catalogs', title: media.subtitle || 'CATALOGS' });
+        }
+      });
+    }
+    
     return list.length ? list : TOC_STRUCTURE_MA;
   }, [data]);
    
@@ -74,11 +95,38 @@ const Toc = ({  data, activeSection, onSectionClick }) => {
     if (anchor) {
       const element = document.querySelector(anchor);
       if (element) {
-        element.scrollIntoView({ 
-          behavior: 'smooth', 
-          block: 'start',
-          inline: 'nearest'
-        });
+        //对brandbook导航做一个限制：导航位置会留出顶部距离
+        if (targetId === 'brand-info') {
+          let scrollContainer = element.parentElement;
+          while (scrollContainer && scrollContainer !== document.body) {
+            const style = window.getComputedStyle(scrollContainer);
+            if (style.overflow === 'auto' || style.overflow === 'scroll' || 
+                style.overflowY === 'auto' || style.overflowY === 'scroll') {
+              const containerRect = scrollContainer.getBoundingClientRect();
+              const elementRect = element.getBoundingClientRect();
+              const offsetTop = scrollContainer.scrollTop + (elementRect.top - containerRect.top) - 24;
+              
+              scrollContainer.scrollTo({ 
+                top: Math.max(0, offsetTop), 
+                behavior: 'smooth' 
+              });
+              return;
+            }
+            scrollContainer = scrollContainer.parentElement;
+          }
+          element.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start',
+            inline: 'nearest'
+          });
+        } else {
+          // 其他导航保持原有行为
+          element.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start',
+            inline: 'nearest'
+          });
+        }
       }
     }
   };
