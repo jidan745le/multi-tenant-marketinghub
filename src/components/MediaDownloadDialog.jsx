@@ -70,9 +70,9 @@ const MediaDownloadDialog = ({
   const [width, setWidth] = useState('');
   const [height, setHeight] = useState('');
   const [ratio, setRatio] = useState('Fill');
-  const [colorSpace, setColorSpace] = useState('');
-  const [format, setFormat] = useState('');
-  const [dpi, setDpi] = useState('');
+  const [colorSpace, setColorSpace] = useState('rgb');
+  const [format, setFormat] = useState('png');
+  const [dpi, setDpi] = useState('72');
   const [compression, setCompression] = useState('none');
 
   // Check and handle download when dialog opens
@@ -242,9 +242,9 @@ const MediaDownloadDialog = ({
     setWidth('');
     setHeight('');
     setRatio('Fill');
-    setColorSpace('');
-    setFormat('');
-    setDpi('');
+    setColorSpace('rgb');
+    setFormat('png');
+    setDpi('72');
     setCompression('none');
     setCameFromDerivateSelection(false);
     setCanOnlySendEmail(false);
@@ -392,6 +392,69 @@ const MediaDownloadDialog = ({
   const isCMYKPNGCombination = colorSpace === 'cmyk' && format === 'png';
   const isCustomConfigValid = isCustomConfiguration === 'no' || 
     (isCustomConfiguration === 'yes' && !isCMYKPNGCombination);
+
+  // 公共样式常量
+  const commonFormStyles = {
+    formControl: {
+      width: '45%'
+    },
+    formHelperText: {
+      ml: 0.05
+    },
+    inputText: {
+      fontSize: '14px',
+      color: '#4d4d4d',
+      fontFamily: '"Roboto-Regular", sans-serif'
+    },
+    outlinedInput: {
+      height: '32px',
+      '& .MuiOutlinedInput-input': {
+        fontSize: '14px',
+        color: '#4d4d4d',
+        fontFamily: '"Roboto-Regular", sans-serif'
+      },
+      '&:hover .MuiOutlinedInput-notchedOutline': {
+        borderColor: primaryColor
+      },
+      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+        borderColor: primaryColor
+      }
+    },
+    select: {
+      height: '32px',
+      '& .MuiSelect-select': {
+        fontSize: '14px',
+        color: '#4d4d4d',
+        fontFamily: '"Roboto-Regular", sans-serif'
+      },
+      '&:hover .MuiOutlinedInput-notchedOutline': {
+        borderColor: primaryColor
+      },
+      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+        borderColor: primaryColor
+      }
+    },
+    menuProps: {
+      PaperProps: {
+        sx: {
+          '& .MuiMenuItem-root': {
+            fontSize: '14px',
+            color: '#4d4d4d',
+            fontFamily: '"Roboto-Regular", sans-serif',
+            '&:hover': {
+              backgroundColor: `${primaryColor}15`
+            },
+            '&.Mui-selected': {
+              backgroundColor: `${primaryColor}25`,
+              '&:hover': {
+                backgroundColor: `${primaryColor}35`
+              }
+            }
+          }
+        }
+      }
+    }
+  };
 
   const derivatesContent = () => (
     <>
@@ -545,32 +608,33 @@ const MediaDownloadDialog = ({
               justifyContent: 'space-between',
               gap: '10px'
             }}>
-              <FormControl sx={{ width: '45%' }} variant="outlined">
-                <FormHelperText>Height</FormHelperText>
+              <FormControl sx={commonFormStyles.formControl} variant="outlined">
+                <FormHelperText sx={commonFormStyles.formHelperText}>Height</FormHelperText>
                 <OutlinedInput
-                  sx={{ height: '32px' }}
+                  sx={commonFormStyles.outlinedInput}
                   value={height}
                   onChange={(e) => setHeight(e.target.value)}
                   endAdornment={<InputAdornment position="end">px</InputAdornment>}
                 />
               </FormControl>
 
-              <FormControl sx={{ width: '45%' }} variant="outlined">
-                <FormHelperText>Width</FormHelperText>
+              <FormControl sx={commonFormStyles.formControl} variant="outlined">
+                <FormHelperText sx={commonFormStyles.formHelperText}>Width</FormHelperText>
                 <OutlinedInput
-                  sx={{ height: '32px' }}
+                  sx={commonFormStyles.outlinedInput}
                   value={width}
                   onChange={(e) => setWidth(e.target.value)}
                   endAdornment={<InputAdornment position="end">px</InputAdornment>}
                 />
               </FormControl>
 
-              <FormControl sx={{ width: '45%' }} variant="outlined">
-                <FormHelperText>Ratio</FormHelperText>
+              <FormControl sx={commonFormStyles.formControl} variant="outlined">
+                <FormHelperText sx={commonFormStyles.formHelperText}>Ratio</FormHelperText>
                 <Select
                   value={ratio}
                   onChange={(e) => setRatio(e.target.value)}
-                  sx={{ height: '32px' }}
+                  sx={commonFormStyles.select}
+                  MenuProps={commonFormStyles.menuProps}
                 >
                   <MenuItem value="Original">Original</MenuItem>
                   <MenuItem value="Adjust - Transparent">Adjust - Transparent</MenuItem>
@@ -579,24 +643,26 @@ const MediaDownloadDialog = ({
                 </Select>
               </FormControl>
 
-              <FormControl sx={{ width: '45%' }} variant="outlined">
-                <FormHelperText>Color Space</FormHelperText>
+              <FormControl sx={commonFormStyles.formControl} variant="outlined">
+                <FormHelperText sx={commonFormStyles.formHelperText}>Color Space</FormHelperText>
                 <Select
                   value={colorSpace}
                   onChange={(e) => setColorSpace(e.target.value)}
-                  sx={{ height: '32px' }}
+                  sx={commonFormStyles.select}
+                  MenuProps={commonFormStyles.menuProps}
                 >
                   <MenuItem value="cmyk">CMYK - Print</MenuItem>
                   <MenuItem value="rgb">RGB - Web</MenuItem>
                 </Select>
               </FormControl>
 
-              <FormControl sx={{ width: '45%' }} variant="outlined">
-                <FormHelperText>Format</FormHelperText>
+              <FormControl sx={commonFormStyles.formControl} variant="outlined">
+                <FormHelperText sx={commonFormStyles.formHelperText}>Format</FormHelperText>
                 <Select
                   value={format}
                   onChange={(e) => setFormat(e.target.value)}
-                  sx={{ height: '32px' }}
+                  sx={commonFormStyles.select}
+                  MenuProps={commonFormStyles.menuProps}
                 >
                   <MenuItem value="png">png</MenuItem>
                   <MenuItem value="tiff">tiff</MenuItem>
@@ -604,24 +670,26 @@ const MediaDownloadDialog = ({
                 </Select>
               </FormControl>
 
-              <FormControl sx={{ width: '45%' }} variant="outlined">
-                <FormHelperText>DPI</FormHelperText>
+              <FormControl sx={commonFormStyles.formControl} variant="outlined">
+                <FormHelperText sx={commonFormStyles.formHelperText}>DPI</FormHelperText>
                 <Select
                   value={dpi}
                   onChange={(e) => setDpi(e.target.value)}
-                  sx={{ height: '32px' }}
+                  sx={commonFormStyles.select}
+                  MenuProps={commonFormStyles.menuProps}
                 >
                   <MenuItem value="72">72 - Web</MenuItem>
                   <MenuItem value="300">300 - Print</MenuItem>
                 </Select>
               </FormControl>
 
-              <FormControl sx={{ width: '45%' }} variant="outlined">
-                <FormHelperText>Compression</FormHelperText>
+              <FormControl sx={commonFormStyles.formControl} variant="outlined">
+                <FormHelperText sx={commonFormStyles.formHelperText}>Compression</FormHelperText>
                 <Select
                   value={compression}
                   onChange={(e) => setCompression(e.target.value)}
-                  sx={{ height: '32px' }}
+                  sx={commonFormStyles.select}
+                  MenuProps={commonFormStyles.menuProps}
                 >
                   <MenuItem value="none">No Compression</MenuItem>
                   <MenuItem value="lzw">LZW Compression</MenuItem>
@@ -645,11 +713,16 @@ const MediaDownloadDialog = ({
           variant="outlined"
           onClick={handleClose}
           sx={{ 
-            color: '#4d4d4d', 
-            border: '1px solid #E6E6E6',
+            color: primaryColor,
+            borderColor: primaryColor,
+            backgroundColor: '#fff',
+            borderRadius: '4px',
             textTransform: 'uppercase',
+            fontWeight: '500',
+            minWidth: 'auto',
             '&:hover': {
-              borderColor: primaryColor
+              borderColor: primaryColor,
+              backgroundColor: `${primaryColor}12`
             }
           }}
           disabled={loading}
@@ -766,7 +839,7 @@ const MediaDownloadDialog = ({
         alignItems: 'flex-start',
         justifyContent: 'flex-start',
         width: '100%',
-        mt: 8, // 为标题和描述留出空间
+        mt: 2, // 为标题和描述留出空间
         mb: 2
       }}>
         <RadioGroup
@@ -814,6 +887,7 @@ const MediaDownloadDialog = ({
                 textAlign: 'left',
                 fontSize: '14px',
                 fontWeight: 600,
+                fontFamily: '"Roboto-Medium", "Roboto", sans-serif',
                 width: '100%'
               }}>
                 Wait for Download
@@ -863,6 +937,7 @@ const MediaDownloadDialog = ({
                 textAlign: 'left',
                 fontSize: '14px',
                 fontWeight: 600,
+                fontFamily: '"Roboto-Medium", "Roboto", sans-serif',
                 width: '100%'
               }}>
                 Send to Email
@@ -917,6 +992,7 @@ const MediaDownloadDialog = ({
                   textAlign: 'left',
                   fontSize: '14px',
                   fontWeight: 600,
+                  fontFamily: '"Roboto-Medium", "Roboto", sans-serif',
                   width: '100%'
                 }}>
                   Send to Others
@@ -983,13 +1059,19 @@ const MediaDownloadDialog = ({
       }}>
         <Button
           className="cancel-button"
+          variant="outlined"
           onClick={handleOptionsCancel}
           sx={{
-            color: '#4d4d4d',
-            border: '1px solid #E6E6E6',
+            color: primaryColor,
+            borderColor: primaryColor,
+            backgroundColor: '#fff',
+            borderRadius: '4px',
             textTransform: 'uppercase',
+            fontWeight: '500',
+            minWidth: 'auto',
             '&:hover': {
-              borderColor: primaryColor
+              borderColor: primaryColor,
+              backgroundColor: `${primaryColor}12`
             }
           }}
         >
@@ -1004,6 +1086,7 @@ const MediaDownloadDialog = ({
             backgroundColor: canFinalDownload ? primaryColor : '#cccccc',
             color: '#fff',
             textTransform: 'uppercase',
+            minWidth: 'auto',
             '&:hover': {
               backgroundColor: canFinalDownload ? primaryColor : '#cccccc',
               opacity: canFinalDownload ? 0.9 : 1

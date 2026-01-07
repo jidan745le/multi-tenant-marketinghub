@@ -6,6 +6,7 @@ import {
     Box,
     Checkbox,
     IconButton,
+    Tooltip,
     Typography
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
@@ -368,9 +369,25 @@ const ProductGridCard = ({
                     </Eyebrow>
                 )}
                 <TitleContainer>
-                    <Title>
-                        {product.modelName || product.name}
-                    </Title>
+                    <Tooltip 
+                        title={product.modelName || product.name}
+                        arrow={false}
+                        placement="bottom"
+                        PopperProps={{
+                            modifiers: [
+                                {
+                                    name: 'offset',
+                                    options: {
+                                        offset: [0, -6.5],
+                                    },
+                                },
+                            ],
+                        }}
+                    >
+                        <Title>
+                            {product.modelName || product.name}
+                        </Title>
+                    </Tooltip>
                 </TitleContainer>
             </ContentSection>
         </ProductCardContainer>

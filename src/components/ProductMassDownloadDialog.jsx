@@ -67,7 +67,7 @@ const ProductMassDownloadDialog = ({
   const [showAllLanguages, setShowAllLanguages] = useState(false);
 
   // Available languages from Redux - 默认显示前5个，点击展开显示全部
-  const displayedLanguages = showAllLanguages ? supportedLanguages : supportedLanguages.slice(0, 5);
+  const displayedLanguages = showAllLanguages ? supportedLanguages : supportedLanguages.slice(0, 6);
 
   // File format选择（非 publication 类格式的开关：Setup Sheet / Mass Media）
   const [selectedFormats, setSelectedFormats] = useState({
@@ -538,18 +538,20 @@ const ProductMassDownloadDialog = ({
             />
           ))}
         </Box>
-        <Typography
-          onClick={() => setShowAllLanguages(!showAllLanguages)}
-          sx={{
-            fontSize: '12px',
-            color: theme.palette.primary.main,
-            cursor: 'pointer',
-            mb: 2,
-            '&:hover': { textDecoration: 'underline' }
-          }}
-        >
-          {showAllLanguages ? 'Less Language...' : 'More Language...'}
-        </Typography>
+        {supportedLanguages.length >= 6 && (
+          <Typography
+            onClick={() => setShowAllLanguages(!showAllLanguages)}
+            sx={{
+              fontSize: '12px',
+              color: theme.palette.primary.main,
+              cursor: 'pointer',
+              mb: 2,
+              '&:hover': { textDecoration: 'underline' }
+            }}
+          >
+            {showAllLanguages ? 'Less Language...' : 'More Language...'}
+          </Typography>
+        )}
 
         <Divider sx={{ my: 2, backgroundColor: '#E6E6E6' }} />
 
@@ -623,10 +625,21 @@ const ProductMassDownloadDialog = ({
         </Typography>
 
         {/* Publications */}
-        <Typography sx={{ fontSize: '14px', fontWeight: 600, mb: 1, color: '#4d4d4d' }}>
-          Publications
-        </Typography>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2, ml: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+          <Box
+            sx={{
+              width: '2px',
+              marginTop: '-4px',
+              height: '16px',
+              backgroundColor: theme.palette.primary.main,
+              flexShrink: 0
+            }}
+          />
+          <Typography sx={{ fontSize: '14px', fontWeight: 600, color: '#4d4d4d' }}>
+            Publications
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2, ml: 0 }}>
           {/* Publications 模板 */}
           <Box sx={{ display: 'flex', gap: 2, rowGap: 0.5, width: '100%', flexWrap: 'wrap' }}>
             {orderedPublicationTemplates.map((tpl, idx) => {
@@ -659,10 +672,21 @@ const ProductMassDownloadDialog = ({
         </Box>
 
         {/* Setup Sheets (Excel) */}
-        <Typography sx={{ fontSize: '14px', fontWeight: 600, mb: 1, color: '#4d4d4d' }}>
-          Setup Sheets (Excel)
-        </Typography>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2, ml: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+          <Box
+            sx={{
+              width: '2px',
+              marginTop: '-4px',
+              height: '16px',
+              backgroundColor: theme.palette.primary.main,
+              flexShrink: 0
+            }}
+          />
+          <Typography sx={{ fontSize: '14px', fontWeight: 600, color: '#4d4d4d' }}>
+            Setup Sheets (Excel)
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2, ml: 0 }}>
           <Box sx={{ display: 'flex', gap: 2, width: '100%' }}>
             <Box sx={{ flex: 1 }}>
               <FormControlLabel
@@ -709,10 +733,21 @@ const ProductMassDownloadDialog = ({
         </Box>
 
         {/* Mass Downloads (Media) */}
-        <Typography sx={{ fontSize: '14px', fontWeight: 600, mb: 1, color: '#4d4d4d' }}>
-          Mass Downloads (Media)
-        </Typography>
-        <Box sx={{ display: 'flex', flexDirection: 'column', ml: 2, mb: 0 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+          <Box
+            sx={{
+              width: '2px',
+              marginTop: '-4px',
+              height: '16px',
+              backgroundColor: theme.palette.primary.main,
+              flexShrink: 0
+            }}
+          />
+          <Typography sx={{ fontSize: '14px', fontWeight: 600, color: '#4d4d4d' }}>
+            Mass Downloads (Media)
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'flex', flexDirection: 'column', ml: 0, mb: 0 }}>
           <FormControlLabel
             control={
               <Checkbox
@@ -742,35 +777,46 @@ const ProductMassDownloadDialog = ({
         </Box>
       </DialogContent>
 
-      <DialogActions sx={{ padding: '12px 24px', gap: 1 }}>
+      <DialogActions sx={{ padding: '12px 24px', display: 'flex', gap: '8px' }}>
         <Button
           variant="outlined"
           onClick={handleClose}
           sx={{ 
-            color: '#4d4d4d', 
-            border: '1px solid #E6E6E6', 
+            color: theme.palette.primary.main,
+            borderColor: theme.palette.primary.main,
+            backgroundColor: '#fff',
+            borderRadius: '4px',
             textTransform: 'uppercase',
+            fontWeight: '500',
+            minWidth: 'auto',
             '&:hover': {
-              borderColor: theme.palette.primary.main
+              borderColor: theme.palette.primary.main,
+              backgroundColor: `${theme.palette.primary.main}12`
             }
           }}
+          disabled={loading}
         >
-          Cancel
+          CANCEL
         </Button>
         <Button
           variant="contained"
           onClick={handleProceedToDownload}
           disabled={!canProceed || loading}
           sx={{
-            backgroundColor: canProceed ? theme.palette.primary.main : '#cccccc',
+            backgroundColor: (!loading && canProceed) ? theme.palette.primary.main : '#cccccc',
             color: '#fff',
             textTransform: 'uppercase',
             '&:hover': {
-              backgroundColor: canProceed ? theme.palette.primary.dark : '#cccccc'
+              backgroundColor: (!loading && canProceed) ? theme.palette.primary.main : '#cccccc',
+              opacity: (!loading && canProceed) ? 0.9 : 1
+            },
+            '&:disabled': {
+              backgroundColor: '#cccccc',
+              color: '#ffffff'
             }
           }}
         >
-          Download
+          {loading ? 'Loading...' : 'DOWNLOAD'}
         </Button>
       </DialogActions>
     </>
@@ -810,37 +856,45 @@ const ProductMassDownloadDialog = ({
           ))}
         </List>
       </DialogContent>
-      <DialogActions sx={{ padding: '12px 24px', gap: 1 }}>
+      <DialogActions sx={{ padding: '12px 24px', display: 'flex', gap: '8px' }}>
         <Button
           variant="outlined"
           onClick={handleBackFromSubDialog}
           sx={{ 
-            color: '#4d4d4d', 
-            border: '1px solid #E6E6E6', 
+            color: theme.palette.primary.main,
+            borderColor: theme.palette.primary.main,
+            backgroundColor: '#fff',
+            borderRadius: '4px',
             textTransform: 'uppercase',
+            fontWeight: '500',
+            minWidth: 'auto',
             '&:hover': {
-              borderColor: theme.palette.primary.main
+              borderColor: theme.palette.primary.main,
+              backgroundColor: `${theme.palette.primary.main}12`
             }
           }}
         >
-          Cancel
+          CANCEL
         </Button>
         <Button
           variant="contained"
           onClick={handleBackFromSubDialog}
           disabled={selectedChannels.length === 0}
           sx={{
-            backgroundColor:
-              selectedChannels.length === 0 ? '#cccccc' : theme.palette.primary.main,
+            backgroundColor: selectedChannels.length === 0 ? '#cccccc' : theme.palette.primary.main,
             color: '#fff',
             textTransform: 'uppercase',
             '&:hover': {
-              backgroundColor:
-                selectedChannels.length === 0 ? '#cccccc' : theme.palette.primary.dark
+              backgroundColor: selectedChannels.length === 0 ? '#cccccc' : theme.palette.primary.main,
+              opacity: selectedChannels.length === 0 ? 1 : 0.9
+            },
+            '&:disabled': {
+              backgroundColor: '#cccccc',
+              color: '#ffffff'
             }
           }}
         >
-          Confirm
+          CONFIRM
         </Button>
       </DialogActions>
     </>
@@ -928,37 +982,45 @@ const ProductMassDownloadDialog = ({
         </List>
         )}
       </DialogContent>
-      <DialogActions sx={{ padding: '12px 24px', gap: 1 }}>
+      <DialogActions sx={{ padding: '12px 24px', display: 'flex', gap: '8px' }}>
         <Button
           variant="outlined"
           onClick={handleBackFromSubDialog}
           sx={{ 
-            color: '#4d4d4d', 
-            border: '1px solid #E6E6E6', 
+            color: theme.palette.primary.main,
+            borderColor: theme.palette.primary.main,
+            backgroundColor: '#fff',
+            borderRadius: '4px',
             textTransform: 'uppercase',
+            fontWeight: '500',
+            minWidth: 'auto',
             '&:hover': {
-              borderColor: theme.palette.primary.main
+              borderColor: theme.palette.primary.main,
+              backgroundColor: `${theme.palette.primary.main}12`
             }
           }}
         >
-          Cancel
+          CANCEL
         </Button>
         <Button
           variant="contained"
           onClick={handleBackFromSubDialog}
           disabled={selectedChannels.length === 0}
           sx={{
-            backgroundColor:
-              selectedChannels.length === 0 ? '#cccccc' : theme.palette.primary.main,
+            backgroundColor: selectedChannels.length === 0 ? '#cccccc' : theme.palette.primary.main,
             color: '#fff',
             textTransform: 'uppercase',
             '&:hover': {
-              backgroundColor:
-                selectedChannels.length === 0 ? '#cccccc' : theme.palette.primary.dark
+              backgroundColor: selectedChannels.length === 0 ? '#cccccc' : theme.palette.primary.main,
+              opacity: selectedChannels.length === 0 ? 1 : 0.9
+            },
+            '&:disabled': {
+              backgroundColor: '#cccccc',
+              color: '#ffffff'
             }
           }}
         >
-          Confirm
+          CONFIRM
         </Button>
       </DialogActions>
     </>
@@ -1022,37 +1084,45 @@ const ProductMassDownloadDialog = ({
           </List>
         )}
       </DialogContent>
-      <DialogActions sx={{ padding: '12px 24px', gap: 1 }}>
+      <DialogActions sx={{ padding: '12px 24px', display: 'flex', gap: '8px' }}>
         <Button
           variant="outlined"
           onClick={handleBackFromSubDialog}
           sx={{ 
-            color: '#4d4d4d', 
-            border: '1px solid #E6E6E6', 
+            color: theme.palette.primary.main,
+            borderColor: theme.palette.primary.main,
+            backgroundColor: '#fff',
+            borderRadius: '4px',
             textTransform: 'uppercase',
+            fontWeight: '500',
+            minWidth: 'auto',
             '&:hover': {
-              borderColor: theme.palette.primary.main
+              borderColor: theme.palette.primary.main,
+              backgroundColor: `${theme.palette.primary.main}12`
             }
           }}
         >
-          Cancel
+          CANCEL
         </Button>
         <Button
           variant="contained"
           onClick={handleBackFromSubDialog}
           disabled={selectedDerivates.length === 0}
           sx={{
-            backgroundColor:
-              selectedDerivates.length === 0 ? '#cccccc' : theme.palette.primary.main,
+            backgroundColor: selectedDerivates.length === 0 ? '#cccccc' : theme.palette.primary.main,
             color: '#fff',
             textTransform: 'uppercase',
             '&:hover': {
-              backgroundColor:
-                selectedDerivates.length === 0 ? '#cccccc' : theme.palette.primary.dark
+              backgroundColor: selectedDerivates.length === 0 ? '#cccccc' : theme.palette.primary.main,
+              opacity: selectedDerivates.length === 0 ? 1 : 0.9
+            },
+            '&:disabled': {
+              backgroundColor: '#cccccc',
+              color: '#ffffff'
             }
           }}
         >
-          Confirm
+          CONFIRM
         </Button>
       </DialogActions>
     </>
@@ -1157,35 +1227,45 @@ const ProductMassDownloadDialog = ({
         </Box>
       </RadioGroup>
 
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 4 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', mt: 4 }}>
         <Button
           variant="outlined"
           onClick={() => setCurrentStep('formats')}
           sx={{ 
-            color: '#4d4d4d', 
-            border: '1px solid #E6E6E6', 
+            color: theme.palette.primary.main,
+            borderColor: theme.palette.primary.main,
+            backgroundColor: '#fff',
+            borderRadius: '4px',
             textTransform: 'uppercase',
+            fontWeight: '500',
+            minWidth: 'auto',
             '&:hover': {
-              borderColor: theme.palette.primary.main
+              borderColor: theme.palette.primary.main,
+              backgroundColor: `${theme.palette.primary.main}12`
             }
           }}
         >
-          Cancel
+          CANCEL
         </Button>
         <Button
           variant="contained"
           onClick={handleFinalDownload}
           disabled={!canFinalDownload || loading}
           sx={{
-            backgroundColor: canFinalDownload ? theme.palette.primary.main : '#cccccc',
+            backgroundColor: (!loading && canFinalDownload) ? theme.palette.primary.main : '#cccccc',
             color: '#fff',
             textTransform: 'uppercase',
             '&:hover': {
-              backgroundColor: canFinalDownload ? theme.palette.primary.dark : '#cccccc'
+              backgroundColor: (!loading && canFinalDownload) ? theme.palette.primary.main : '#cccccc',
+              opacity: (!loading && canFinalDownload) ? 0.9 : 1
+            },
+            '&:disabled': {
+              backgroundColor: '#cccccc',
+              color: '#ffffff'
             }
           }}
         >
-          {loading ? 'Downloading...' : 'Finish'}
+          {loading ? 'Downloading...' : 'FINISH'}
         </Button>
       </Box>
     </Box>

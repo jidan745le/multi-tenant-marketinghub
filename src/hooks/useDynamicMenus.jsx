@@ -43,7 +43,7 @@ export function useDynamicMenus() {
 
                     // 配置格式：字符串表示 Material Symbols 图标名，对象表示 SVG 图片路径
                     const iconConfig = {
-                        'home': { type: 'svg', path: '/assets/home_24px.svg', width: '14.5px', height: '24px'  },
+                        'home': 'home',
                         'brand.book': { type: 'svg', path: '/assets/brand_assetes_24px.svg', width: '16px', height: '24px'  },
                         'video': { type: 'svg', path: '/assets/product_asstes_24px.svg', width: '16px', height: '24px'  },
                         'videos': { type: 'svg', path: '/assets/video_library_24px.svg', width: '16px', height: '24px'  },

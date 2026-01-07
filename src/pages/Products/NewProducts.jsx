@@ -1,19 +1,64 @@
 import React, { useCallback, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import ProductCatalogue from '../../components/ProductCatalogue';
 import ProductMassDownloadDialog from '../../components/ProductMassDownloadDialog';
 import { newProductCatalogueConfig } from '../../config/newProductsConfig';
 import { SelectedAssetsProvider } from '../../context/SelectedAssetsContext';
+import { useBrand } from '../../hooks/useBrand';
+import { useLayoutType } from '../../hooks/useLayoutType';
+import { fetchSKUProducts } from '../../services/skuProductsApi';
 
 function NewProductsPage() {
+  // 获取当前品牌和路由参数
+  const { currentBrandCode } = useBrand();
+  const { lang, brand } = useParams();
+  const getLayoutType = useLayoutType(currentBrandCode);
+  
+  // 产品详情状态
+  const [loadingProductDetail, setLoadingProductDetail] = useState(false);
+  const [productDetailError, setProductDetailError] = useState(null);
+  
   // 批量下载对话框状态
   const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
   const [selectedProductIdsForDownload, setSelectedProductIdsForDownload] = useState([]);
 
-  // 处理产品点击
-  const handleProductClick = (product) => {
-    console.log('🆕 Open new product page for:', product.name);
-    console.log('📅 Online Date:', product._graphqlData?.OnlineDate);
-    // 可以在这里导航到产品详情页
+  const handleProductClick = async (product) => {
+    const virtualProductId = product.VirtualProductID || product.modelNumber;
+    
+    if (!virtualProductId) {
+      setProductDetailError('VirtualProductID not available');
+      return;
+    }
+    
+    try {
+      setLoadingProductDetail(true);
+      setProductDetailError(null);
+      
+      const { skuProducts, error } = await fetchSKUProducts(virtualProductId);
+      
+      if (error) {
+        throw new Error(error);
+      }
+      
+      if (!skuProducts || skuProducts.length === 0) {
+        setProductDetailError('No SKU products found for this product');
+        return;
+      }
+      
+      // 选择第一个SKU产品的ID
+      const firstSku = skuProducts[0];
+      const firstSkuId = firstSku.CustomerFacingProductCode;
+      
+      const detailUrl = `/${lang || 'en_GB'}/${brand || currentBrandCode}/product-detail/${firstSkuId}?layout=${getLayoutType}`;
+      
+      window.open(detailUrl, '_blank');
+      
+    } catch (error) {
+      setProductDetailError(error.message);
+      
+    } finally {
+      setLoadingProductDetail(false);
+    }
   };
 
   // 处理单个产品下载

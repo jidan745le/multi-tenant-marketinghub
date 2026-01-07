@@ -3,6 +3,7 @@ import { styled } from '@mui/material/styles';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useSelectedAssets } from '../context/SelectedAssetsContext';
+import { useTheme } from '../hooks/useTheme';
 
 // Styled components based on the provided CSS
 const AssetViewActionBar = styled(Box)(() => ({
@@ -20,40 +21,52 @@ const AssetViewActionBar = styled(Box)(() => ({
   boxSizing: 'border-box',
 }));
 
-const ActionButton = styled(Button)(() => ({
-  background: '#ffffff',
-  borderRadius: '4px',
-  borderStyle: 'solid',
-  borderColor: '#cccccc',
-  borderWidth: '1px',
-  padding: '0px 12px',
-  display: 'flex',
-  flexDirection: 'row',
-  gap: '8px',
-  alignItems: 'center',
-  justifyContent: 'flex-start',
-  flexShrink: 0,
-  height: '40px',
-  position: 'relative',
-  color: '#000000',
-  textAlign: 'left',
-  fontFamily: '"Roboto-Medium", sans-serif',
-  fontSize: '14px',
-  lineHeight: '20px',
-  letterSpacing: '0.1px',
-  fontWeight: 500,
-  textTransform: 'uppercase',
-  minWidth: 'auto',
-  '&:hover': {
-    backgroundColor: '#f5f5f5',
-    borderColor: '#cccccc',
-  },
-  '&:disabled': {
-    backgroundColor: '#f0f0f0',
-    color: '#999999',
-    borderColor: '#e0e0e0',
-  },
-}));
+const ActionButton = styled(Button)(({ themeColor }) => {
+  // 辅助函数：将十六进制颜色转换为带透明度的颜色
+  const hexToRgba = (hex, alpha = 0.08) => {
+    if (!hex || !hex.startsWith('#')) return `rgba(204, 204, 204, ${alpha})`;
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  };
+
+  return {
+    background: '#ffffff',
+    borderRadius: '4px',
+    borderStyle: 'solid',
+    borderColor: themeColor || '#cccccc',
+    borderWidth: '1px',
+    padding: '0px 12px',
+    display: 'flex',
+    flexDirection: 'row',
+    gap: '8px',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    flexShrink: 0,
+    height: '40px',
+    position: 'relative',
+    color: themeColor || '#000000',
+    textAlign: 'left',
+    fontFamily: '"Roboto-Medium", sans-serif',
+    fontSize: '14px',
+    lineHeight: '20px',
+    letterSpacing: '0.1px',
+    fontWeight: 500,
+    textTransform: 'uppercase',
+    minWidth: 'auto',
+    '&:hover': {
+      backgroundColor: themeColor ? hexToRgba(themeColor, 0.08) : '#f5f5f5',
+      borderColor: themeColor || '#cccccc',
+      color: themeColor || '#000000',
+    },
+    '&:disabled': {
+      backgroundColor: '#f0f0f0',
+      color: '#999999',
+      borderColor: '#e0e0e0',
+    },
+  };
+});
 
 const AssetViewActionBarComponent = ({ 
   onDownloadSelection, 
@@ -65,6 +78,7 @@ const AssetViewActionBarComponent = ({
 }) => {
   const navigate = useNavigate();
   const { lang, brand } = useParams();
+  const { primaryColor } = useTheme();
   
   // 兼容性处理：如果没有传入选中状态相关props，则使用全局context
   const globalSelectedAssets = useSelectedAssets();
@@ -114,12 +128,12 @@ const AssetViewActionBarComponent = ({
 
   return (
     <AssetViewActionBar>
-      <ActionButton onClick={handleSelectAll}>
+      <ActionButton onClick={handleSelectAll} themeColor={primaryColor}>
         {isAllSelected ? 'UNSELECT ALL' : 'SELECT ALL'}
       </ActionButton>
       
       {showCompareButton && (
-        <ActionButton onClick={handleCompare}>
+        <ActionButton onClick={handleCompare} themeColor={primaryColor}>
           Compare
         </ActionButton>
       )}
@@ -127,11 +141,7 @@ const AssetViewActionBarComponent = ({
       <ActionButton 
         onClick={handleDownloadSelection}
         disabled={finalSelectedCount === 0}
-        sx={{
-          ...(finalSelectedCount > 0 && {
-         
-          })
-        }}
+        themeColor={primaryColor}
       >
         Download Selection {finalSelectedCount > 0 && `(${finalSelectedCount})`}
       </ActionButton>

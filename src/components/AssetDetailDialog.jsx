@@ -199,9 +199,9 @@ const InfoValue = styled(Typography)({
 });
 
 
-const CancelButton = styled(Button)({
-  color: '#666',
-  borderColor: '#ddd',
+const CancelButton = styled(Button)(({ theme }) => ({
+  color: theme.palette.primary.main,
+  borderColor: theme.palette.primary.main,
   backgroundColor: '#fff',
   borderRadius: '4px',
   textTransform: 'uppercase',
@@ -210,10 +210,10 @@ const CancelButton = styled(Button)({
   minWidth: 'auto',
   width: 'auto',
   '&:hover': {
-    borderColor: '#999',
-    backgroundColor: '#f5f5f5'
+    borderColor: theme.palette.primary.main,
+    backgroundColor: `${theme.palette.primary.main}12` // 浅色主题色背景
   }
-});
+}));
 
 const DownloadButton = styled(Button)(({ theme }) => ({
   color: '#fff',
@@ -226,7 +226,8 @@ const DownloadButton = styled(Button)(({ theme }) => ({
   width: 'auto',
   border: 'none',
   '&:hover': {
-    backgroundColor: theme.palette.primary.dark
+    backgroundColor: theme.palette.primary.main,
+    opacity: 0.9
   }
 }));
 
@@ -324,6 +325,7 @@ const AssetDetailDialog = ({
 }) => {
   const { t } = useTranslation();
   const [mediaUrl, setMediaUrl] = useState(''); 
+  const [pdfFullUrl, setPdfFullUrl] = useState(''); // PDF文件的完整路径，用于跳转
   const [isMediaLoading, setIsMediaLoading] = useState(false);
   const [mediaError, setMediaError] = useState(false);
   
@@ -334,6 +336,7 @@ const AssetDetailDialog = ({
   useEffect(() => {
     if (assetId) {
       setMediaUrl('');
+      setPdfFullUrl('');
       setIsMediaLoading(false); 
       setMediaError(false);
     }
@@ -621,11 +624,40 @@ const AssetDetailDialog = ({
         return;
       }
 
-      const urlToUse = assetInfo.thumbnail || assetInfo.fullpath;
+      // 检查是否是PDF文件
+      const isPdf = assetInfo.type === 'pdf' || 
+                    (assetInfo.mimetype && assetInfo.mimetype.toLowerCase().includes('pdf')) ||
+                    (assetInfo.name && /\.pdf$/i.test(assetInfo.name));
+      
+      if (isPdf) {
+        // PDF文件：预览使用thumbnail，跳转使用fullpath
+        const thumbnailUrl = assetInfo.thumbnail;
+        const fullpathUrl = assetInfo.fullpath;
+        
+        const buildFullUrl = (url) => {
+          return url && (url.startsWith('http') ? url : `https://pim-test.kendo.com${url}`);
+        };   
+        // 设置预览URL
+        const previewUrl = buildFullUrl(thumbnailUrl) || buildFullUrl(fullpathUrl);
+        if (previewUrl) {
+          setMediaUrl(previewUrl);
+        }  
+        // 设置跳转URL
+        const pdfUrl = buildFullUrl(fullpathUrl) || buildFullUrl(thumbnailUrl);
+        if (pdfUrl) {
+          setPdfFullUrl(pdfUrl);
+        }
+        
+        return;
+      }
+
+      // 非PDF文件的逻辑
+      const urlToUse =  assetInfo.thumbnail || assetInfo.fullpath;
       if (urlToUse) {
         // 拼接URL的地方
         const fullUrl = urlToUse.startsWith('http') ? urlToUse : `https://pim-test.kendo.com${urlToUse}`;
         setMediaUrl(fullUrl);
+        setPdfFullUrl(''); // 非PDF文件清空pdfFullUrl
         return;
       }
       
@@ -650,6 +682,7 @@ const AssetDetailDialog = ({
   useEffect(() => {
     if (!open) {
       setMediaUrl('');
+      setPdfFullUrl('');
       setIsMediaLoading(false);
       setMediaError(false);
     }
@@ -791,7 +824,12 @@ const AssetDetailDialog = ({
                         opacity: 1
                       }
                     }}
-                    onClick={() => window.open(mediaUrl, '_blank')}
+                    onClick={() => {
+                      const urlToOpen = pdfFullUrl || mediaUrl;
+                      if (urlToOpen) {
+                        window.open(urlToOpen, '_blank');
+                      }
+                    }}
                   >
                     {/* PDF 预览背景*/}
                     <Box

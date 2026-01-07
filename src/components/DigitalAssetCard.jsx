@@ -6,6 +6,7 @@ import {
     Box,
     Checkbox,
     IconButton,
+    Tooltip,
     Typography
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
@@ -442,9 +443,25 @@ const DigitalAssetCard = ({
                     </Eyebrow>
                 )}
                 <TitleContainer>
-                    <Title>
-                        {product.name || product.filename || 'Untitled'}
-                    </Title>
+                    <Tooltip 
+                        title={product.name || product.filename || 'Untitled'}
+                        arrow={false}
+                        placement="bottom"
+                        PopperProps={{
+                            modifiers: [
+                                {
+                                    name: 'offset',
+                                    options: {
+                                        offset: [0, -6.5],
+                                    },
+                                },
+                            ],
+                        }}
+                    >
+                        <Title>
+                            {product.name || product.filename || 'Untitled'}
+                        </Title>
+                    </Tooltip>
                 </TitleContainer>
             </ContentSection>
         </AssetCardContainer>

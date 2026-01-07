@@ -5,6 +5,7 @@ import {
 import {
   Avatar,
   Box,
+  CircularProgress,
   IconButton,
   Menu,
   MenuItem,
@@ -301,15 +302,16 @@ const NavBar = () => {
         </>
       ) : (
         menuItems.map((item) => {
+          const isActive = activeItem === item.key;
           return <NavItem
             key={item.key}
-            active={activeItem === item.key ? 1 : 0}
+            active={isActive ? 1 : 0}
             onClick={() => handleNavItemClick(item.key, item.path)}
           >
-            <NavItemIcon active={activeItem === item.key}>
+            <NavItemIcon active={isActive ? 1 : 0}>
               {item.icon}
             </NavItemIcon>
-            <NavItemLabel active={activeItem === item.key}>
+            <NavItemLabel active={isActive ? 1 : 0}>
               {t(item.label)}
             </NavItemLabel>
           </NavItem>
@@ -429,10 +431,27 @@ const TopRow = () => {
         </LogoContainer>
         
         <PortalDropdown onClick={handlePortalClick}>
-          <PortalLabel>
-            {currentBrand?.displayName || 'Loading...'}
-            {debug.isLoading && ' (Loading...)'}
-          </PortalLabel>
+          {currentBrand?.displayName ? (
+            <PortalLabel>
+              {currentBrand.displayName}
+              {debug.isLoading && (
+                <CircularProgress 
+                  size={14} 
+                  sx={{ 
+                    ml: 1,
+                    color: '#666666'
+                  }} 
+                />
+              )}
+            </PortalLabel>
+          ) : (
+            <CircularProgress 
+              size={16} 
+              sx={{ 
+                color: '#666666'
+              }} 
+            />
+          )}
           <ArrowDropDown sx={{ color: '#000000', strokeWidth: '1.5' }} />
         </PortalDropdown>
         

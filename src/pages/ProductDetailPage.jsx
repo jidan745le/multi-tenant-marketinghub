@@ -4,6 +4,7 @@ import {
 import {
     Box,
     Button,
+    CircularProgress,
     Grid,
     IconButton,
     Menu,
@@ -2098,12 +2099,19 @@ const ProductDetailPage = () => {
     return (
       <Box sx={{ 
         display: 'flex', 
+        flexDirection: 'column',
         justifyContent: 'center', 
         alignItems: 'center', 
         height: '100vh',
-        bgcolor: '#f5f5f5'
+        bgcolor: '#f5f5f5',
+        gap: 2
       }}>
-        <Typography variant="h6">Loading...</Typography>
+        <CircularProgress 
+          size={60} 
+          sx={{ 
+            color: primaryColor 
+          }} 
+        />
       </Box>
     );
   }

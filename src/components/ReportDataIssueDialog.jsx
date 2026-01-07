@@ -6,6 +6,7 @@ import { useTheme } from '../hooks/useTheme';
 import { useTranslationLoader } from '../hooks/useTranslationLoader';
 import { useBrand } from '../hooks/useBrand';
 import EmailApiService from '../services/emailApi';
+import CookieService from '../utils/cookieService';
 
 const ReportDataIssueDialog = ({ 
   open, 
@@ -41,7 +42,13 @@ const ReportDataIssueDialog = ({
   React.useEffect(() => {
     if (open) {
       setComment(initialComment);
-      setReportedUser(initialUser);
+      if (initialUser) {
+        setReportedUser(initialUser);
+      } else {
+        const userInfo = CookieService.getUserInfo();
+        const userName = userInfo?.name;
+        setReportedUser(userName);
+      }
     }
   }, [open, initialComment, initialUser]);
 
@@ -159,44 +166,43 @@ const ReportDataIssueDialog = ({
           </Box>
         </Box>
       </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2 }}>
+      <DialogActions sx={{ padding: '12px 24px', display: 'flex', gap: '8px' }}>
         <Button
           variant="outlined"
           onClick={onClose}
-          sx={{
-            bgcolor: '#ffffff',
+          sx={{ 
+            color: primaryColor,
             borderColor: primaryColor,
-            color: '#4d4d4d',
+            backgroundColor: '#fff',
+            borderRadius: '4px',
             textTransform: 'uppercase',
-            fontSize: '14px',
-            lineHeight: '20px',
-            letterSpacing: '0.25px',
-            fontFamily: '"Open Sans", sans-serif',
-            fontWeight: 600,
-            height: '33px',
-            px: 2.5,
-            '&:hover': { bgcolor: '#fafafa', borderColor: primaryColor, color: '#4d4d4d' }
+            fontWeight: '500',
+            minWidth: 'auto',
+            '&:hover': {
+              borderColor: primaryColor,
+              backgroundColor: `${primaryColor}12`
+            }
           }}
+          disabled={isSubmitting}
         >
-          {t('common.cancel')}
+          CANCEL
         </Button>
         <Button
           variant="contained"
           onClick={handleSubmit}
           disabled={isSubmitting}
           sx={{
-            bgcolor: primaryColor,
-            '&:hover': { bgcolor: primaryColor, opacity: 0.8 },
-            '&:disabled': { bgcolor: '#cccccc', color: '#666666' },
-            color: '#ffffff',
+            backgroundColor: !isSubmitting ? primaryColor : '#cccccc',
+            color: '#fff',
             textTransform: 'uppercase',
-            fontSize: '14px',
-            lineHeight: '20px',
-            letterSpacing: '0.25px',
-            fontFamily: '"Open Sans", sans-serif',
-            fontWeight: 600,
-            height: '33px',
-            px: 2.5,
+            '&:hover': {
+              backgroundColor: !isSubmitting ? primaryColor : '#cccccc',
+              opacity: !isSubmitting ? 0.9 : 1
+            },
+            '&:disabled': {
+              backgroundColor: '#cccccc',
+              color: '#ffffff'
+            },
             display: 'flex',
             alignItems: 'center',
             gap: 1
