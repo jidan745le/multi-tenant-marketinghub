@@ -19,8 +19,28 @@ const SaveButton = styled(Button)(({ theme }) => ({
   backgroundColor: theme.palette.primary.main,
   color: 'white',
   '&:hover': {
-    backgroundColor: theme.palette.primary.dark,
+    backgroundColor: theme.palette.primary.main,
+    opacity: 0.9,
     color: 'white',
+  },
+}));
+
+// Styled TextField with theme color hover
+const StyledTextField = styled(TextField)(({ theme }) => ({
+  '& .MuiOutlinedInput-root': {
+    backgroundColor: 'white',
+    '&:hover fieldset': {
+      borderColor: theme.palette.primary.main,
+    },
+    '&.Mui-focused fieldset': {
+      borderColor: theme.palette.primary.main,
+    },
+    '&:hover': {
+      backgroundColor: 'white',
+    },
+    '&.Mui-focused': {
+      backgroundColor: 'white',
+    },
   },
 }));
 
@@ -123,18 +143,9 @@ function SocialProfileSettings() {
         {socialFields.map((field, index) => (
           <Box key={field.key} sx={{ mb: index === socialFields.length - 1 ? 0 : 3 }}>
             <SubTitle>{field.label}</SubTitle>
-            <TextField
+            <StyledTextField
               sx={{ 
                 width: "60%",
-                '& .MuiOutlinedInput-root': {
-                  backgroundColor: 'white',
-                  '&:hover': {
-                    backgroundColor: 'white'
-                  },
-                  '&.Mui-focused': {
-                    backgroundColor: 'white'
-                  }
-                }
               }}
               placeholder={field.placeholder}
               value={formData[field.key]}

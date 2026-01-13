@@ -30,8 +30,29 @@ const SaveButton = styled(Button)(({ theme }) => ({
   backgroundColor: theme.palette.primary.main,
   color: 'white',
   '&:hover': {
-    backgroundColor: theme.palette.primary.dark,
+    backgroundColor: theme.palette.primary.main,
+    opacity: 0.9,
     color: 'white',
+  },
+}));
+
+const StyledTextField = styled(TextField)(({ theme }) => ({
+  '& .MuiOutlinedInput-root': {
+    '&:hover fieldset': {
+      borderColor: theme.palette.primary.main,
+    },
+    '&.Mui-focused fieldset': {
+      borderColor: theme.palette.primary.main,
+    },
+  },
+}));
+
+const StyledSelect = styled(Select)(({ theme }) => ({
+  '&:hover .MuiOutlinedInput-notchedOutline': {
+    borderColor: theme.palette.primary.main,
+  },
+  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+    borderColor: theme.palette.primary.main,
   },
 }));
 
@@ -581,7 +602,7 @@ function CommunicationSettings() {
         {/* From Email */}
         <Box sx={{ mb: 3 }}>
           <SubTitle>FROM EMAIL</SubTitle>
-          <TextField
+          <StyledTextField
             sx={{ width: "60%" }}
             placeholder="notification@rg-experience.com"
             value={formData.fromEmail}
@@ -595,7 +616,7 @@ function CommunicationSettings() {
         {/* Host */}
         <Box sx={{ mb: 3 }}>
           <SubTitle>HOST</SubTitle>
-          <TextField
+          <StyledTextField
             sx={{ width: "60%" }}
             placeholder="smtp.zoho.com"
             value={formData.host}
@@ -608,7 +629,7 @@ function CommunicationSettings() {
         {/* Port */}
         <Box sx={{ mb: 3 }}>
           <SubTitle>PORT</SubTitle>
-          <TextField
+          <StyledTextField
             sx={{ width: "60%" }}
             placeholder="Enter Port"
             value={formData.port}
@@ -658,7 +679,7 @@ function CommunicationSettings() {
         {/* Username */}
         <Box sx={{ mb: 3 }}>
           <SubTitle>USERNAME</SubTitle>
-          <TextField
+          <StyledTextField
             sx={{ width: "60%" }}
             placeholder="notification@rg-experience.com"
             value={formData.username}
@@ -671,7 +692,7 @@ function CommunicationSettings() {
         {/* Password */}
         <Box sx={{ mb: 3 }}>
           <SubTitle>PASSWORD</SubTitle>
-          <TextField
+          <StyledTextField
             sx={{ width: "60%" }}
             placeholder="ReRock520241"
             type={showPassword ? 'text' : 'password'}
@@ -699,7 +720,7 @@ function CommunicationSettings() {
         <Box sx={{ mb: 3 }}>
           <SubTitle>FEEDBACK ADDRESS</SubTitle>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', width: "60%" }}>
-            <TextField
+            <StyledTextField
               sx={{ flex: 1 }}
               placeholder="feedback@example.com"
               value={feedbackAddress}
@@ -774,7 +795,7 @@ function CommunicationSettings() {
         {/* Template Selection */}
         <Box sx={{ mb: 3 }}>
           <SubTitle>TEMPLATE</SubTitle>
-          <Select
+          <StyledSelect
             value={availableTemplates.includes(selectedTemplate) ? selectedTemplate : ''}
             onChange={(e) => handleTemplateSelectionChange(e.target.value)}
             sx={{ width: "60%" }}
@@ -791,13 +812,13 @@ function CommunicationSettings() {
                 {templateName}
               </MenuItem>
             ))}
-          </Select>
+          </StyledSelect>
         </Box>
 
         {/* Subject */}
         <Box sx={{ mb: 3 }}>
           <SubTitle>SUBJECT</SubTitle>
-          <TextField
+          <StyledTextField
             sx={{ width: "60%" }}
             placeholder="Enter Subject"
             value={templateData.subject}
@@ -834,7 +855,7 @@ function CommunicationSettings() {
                   borderColor: '#555',
                 },
                 '&:hover fieldset': {
-                  borderColor: '#777',
+                  borderColor: (theme) => theme.palette.primary.main,
                 },
                 '&.Mui-focused fieldset': {
                   borderColor: (theme) => theme.palette.primary.main,
@@ -847,7 +868,7 @@ function CommunicationSettings() {
         {/* Keywords (自动提取) */}
         <Box sx={{ mb: 3 }}>
           <SubTitle>KEYWORDS</SubTitle>
-          <TextField
+          <StyledTextField
             sx={{ width: "60%" }}
             placeholder="Keywords will be extracted automatically"
             value={templateData.keyword}

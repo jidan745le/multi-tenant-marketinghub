@@ -176,6 +176,18 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
     },
   }));
   
+  const ActionButton = styled(IconButton)(({ theme }) => ({
+    padding: 6,
+    margin: '0 2px',
+    color: theme.palette.text.primary,
+    '&:hover': {
+      backgroundColor: 'transparent',
+      '& .material-symbols-outlined': {
+        color: theme.palette.primary.main,
+      },
+    },
+  }));
+  
   const UsageChip = styled(Chip)(({ theme }) => ({
     height: 24,
     fontSize: '12px',
@@ -234,6 +246,16 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
         color: '#4d4d4d',
         height: '20px',
       },
+    },
+  }));
+
+  // Styled Select with theme color hover
+  const StyledSelect = styled(Select)(({ theme }) => ({
+    '&:hover .MuiOutlinedInput-notchedOutline': {
+      borderColor: theme.palette.primary.main,
+    },
+    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+      borderColor: theme.palette.primary.main,
     },
   }));
   
@@ -372,7 +394,8 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
     const [loading, setLoading] = useState(true);
     const [_error, setError] = useState(null);
     const [imageBlobUrls, setImageBlobUrls] = useState(new Map());
-    const imageBlobUrlsRef = useRef(new Map()); 
+    const imageBlobUrlsRef = useRef(new Map());
+    
     
     // Dialog 相关状态
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -861,7 +884,7 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
             <Title>Manage Publications (Global)</Title>
             <Box sx={{ marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <FormControl size="small" sx={{ minWidth: 125 }}>
-                <Select
+                <StyledSelect
                   value={selectedTenant}
                   onChange={handleTenantChange}
                   displayEmpty
@@ -874,7 +897,7 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
                 >
                   <MenuItem value="global">Global</MenuItem>
                   <MenuItem value="tenant1">Specific</MenuItem>
-                </Select>
+                </StyledSelect>
               </FormControl>
               <Button
                 variant="contained"
@@ -891,12 +914,13 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
                   marginTop: '40px',
                   boxShadow: 'none',
                   '&:hover': {
-                    backgroundColor: theme.palette.primary.dark,
+                    backgroundColor: theme.palette.primary.main,
+                    opacity: 0.9,
                     boxShadow: 'none',
                   },
                 })}
               >
-                + ADD
+                ADD TEMPLATE
               </Button>
             </Box>
           </HeaderContainer>
@@ -914,7 +938,7 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
                 component={Paper} 
                 sx={{ 
                   boxShadow: 1, 
-                  minWidth: 1200,
+                  minWidth: 900,
                   height: '100%', 
                   overflowX: 'auto',
                   overflowY: 'auto', 
@@ -961,8 +985,8 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
                         <TableHeader sx={{ minWidth: 180, textAlign: 'center', fontWeight: 'bold' }}>Created by</TableHeader>
                         <TableHeader sx={{ minWidth: 200, textAlign: 'center', fontWeight: 'bold' }}>Last Update</TableHeader>
                         <TableHeader sx={{ minWidth: 180, textAlign: 'center', fontWeight: 'bold' }}>Last Updated by</TableHeader>
-                        <TableHeader sx={{ minWidth: 220, textAlign: 'center', fontWeight: 'bold' }}>CSS</TableHeader>
-                        <TableHeader sx={{ minWidth: 220, textAlign: 'center', fontWeight: 'bold' }}>HTML</TableHeader>
+                        <TableHeader sx={{ minWidth: 120, textAlign: 'center', fontWeight: 'bold' }}>CSS</TableHeader>
+                        <TableHeader sx={{ minWidth: 120, textAlign: 'center', fontWeight: 'bold' }}>HTML</TableHeader>
                         <TableHeader sx={{ minWidth: 120, textAlign: 'center', fontWeight: 'bold' }}>PDF Example</TableHeader>
                         <StickyHeader sx={{ minWidth: 120, textAlign: 'center', fontWeight: 'bold' }}>Operation</StickyHeader>
                       </TableRow>
@@ -1279,36 +1303,30 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
                           <Typography variant="body2">{row.lastUpdatedBy || '-'}</Typography>
                         </TableCellStyled>
                         <TableCellStyled sx={{ textAlign: 'center' }}>
-                          <Box
-                            component="img"
-                            src="/assets/edit.png"
-                            alt="Edit CSS"
+                          <ActionButton
                             onClick={editingRows.has(row.id) ? () => handleEditClick(row.id, 'css') : undefined}
+                            disabled={!editingRows.has(row.id)}
                             sx={{
-                              width: 20,
-                              height: 20,
-                              objectFit: 'contain',
-                              cursor: editingRows.has(row.id) ? 'pointer' : 'not-allowed',
-                              opacity: editingRows.has(row.id) ? 1 : 0.5,
-                              filter: editingRows.has(row.id) ? 'none' : 'grayscale(100%)',
+                              color: editingRows.has(row.id) ? 'text.primary' : 'action.disabled',
                             }}
-                          />
+                          >
+                            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+                              edit
+                            </span>
+                          </ActionButton>
                         </TableCellStyled>
                         <TableCellStyled sx={{ textAlign: 'center' }}>
-                          <Box
-                            component="img"
-                            src="/assets/edit.png"
-                            alt="Edit HTML"
+                          <ActionButton
                             onClick={editingRows.has(row.id) ? () => handleEditClick(row.id, 'html') : undefined}
+                            disabled={!editingRows.has(row.id)}
                             sx={{
-                              width: 20,
-                              height: 20,
-                              objectFit: 'contain',
-                              cursor: editingRows.has(row.id) ? 'pointer' : 'not-allowed',
-                              opacity: editingRows.has(row.id) ? 1 : 0.5,
-                              filter: editingRows.has(row.id) ? 'none' : 'grayscale(100%)',
+                              color: editingRows.has(row.id) ? 'text.primary' : 'action.disabled',
                             }}
-                          />
+                          >
+                            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+                              edit
+                            </span>
+                          </ActionButton>
                         </TableCellStyled>
                         <TableCellStyled sx={{ textAlign: 'center' }}>
                           <Box sx={{ display: 'flex', justifyContent: 'center' }}>
@@ -1355,31 +1373,21 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
                           </Box>
                         </TableCellStyled>
                         <StickyCell sx={{ textAlign: 'center' }}>
-                          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 2 }}>
-                            <Box
-                              component="img"
-                              src="/assets/edit.png"
-                              alt="Edit"
+                          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 1 }}>
+                            <ActionButton
                               onClick={() => handleToggleRowEdit(row.id)}
-                              sx={{
-                                width: 20,
-                                height: 20,
-                                objectFit: 'contain',
-                                cursor: 'pointer',
-                              }}
-                            />
-                            <Box
-                              component="img"
-                              src="/assets/delete.png"
-                              alt="Delete"
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+                                edit
+                              </span>
+                            </ActionButton>
+                            <ActionButton
                               onClick={() => handleDeleteClick(row.id)}
-                              sx={{
-                                width: 20,
-                                height: 20,
-                                objectFit: 'contain',
-                                cursor: 'pointer',
-                              }}
-                            />
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+                                delete
+                              </span>
+                            </ActionButton>
                           </Box>
                         </StickyCell>
                       </TableRowStyled>
@@ -1448,20 +1456,46 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
             )}
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
-            <Button onClick={handleCloseDialog} disabled={saving}>
+            <Button 
+              onClick={handleCloseDialog} 
+              disabled={saving}
+              variant="outlined"
+              sx={(theme) => ({
+                color: theme.palette.primary.main,
+                borderColor: theme.palette.primary.main,
+                backgroundColor: '#fff',
+                borderRadius: '4px',
+                textTransform: 'uppercase',
+                fontWeight: '500',
+                minWidth: 'auto',
+                '&:hover': {
+                  borderColor: theme.palette.primary.main,
+                  backgroundColor: `${theme.palette.primary.main}12`,
+                },
+              })}
+            >
               Cancel
             </Button>
             <Button
               onClick={handleSaveContent}
               variant="contained"
               disabled={saving || loadingContent}
-              sx={{
-                backgroundColor: (theme) => theme.palette.primary.main,
-                color: 'white',
+              sx={(theme) => ({
+                backgroundColor: (!saving && !loadingContent) ? theme.palette.primary.main : '#cccccc',
+                color: '#fff',
+                textTransform: 'uppercase',
+                borderRadius: '4px',
+                fontWeight: '500',
+                minWidth: 'auto',
                 '&:hover': {
-                  backgroundColor: (theme) => theme.palette.primary.dark,
+                  backgroundColor: (!saving && !loadingContent) ? theme.palette.primary.main : '#cccccc',
+                  opacity: (!saving && !loadingContent) ? 0.9 : 1,
                 },
-              }}
+                '&:disabled': {
+                  backgroundColor: '#cccccc',
+                  color: '#666666',
+                },
+              })}
             >
               {saving ? <CircularProgress size={20} color="inherit" sx={{ mr: 1 }} /> : null}
               Save

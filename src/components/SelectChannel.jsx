@@ -453,9 +453,9 @@ const SelectChannel = ({ open, onClose, onSelect }) => {
           {/* Header */}
           <HeaderContainer>
             <img 
-              src="/assets/channel.png" 
+              src="/assets/select_derivates_24dp.svg" 
               alt="Select Channel" 
-              style={{ width: '28.8px', height: '28.8px' }} 
+              style={{ width: '24px', height: '24px' }} 
             />
             <Title>Select Channel</Title>
             <CloseButton onClick={onClose}>

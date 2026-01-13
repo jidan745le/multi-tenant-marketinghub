@@ -241,24 +241,24 @@ const ButtonContainer = styled(Box)(() => ({
   bottom: '20px',
 }));
 
-const CancelButton = styled(Button)(() => ({
+const CancelButton = styled(Button)(({ theme }) => ({
   borderRadius: '4px',
   borderStyle: 'solid',
-  borderColor: '#e6e6e6',
+  borderColor: theme.palette.primary.main || '#f16508',
   borderWidth: '1px',
   padding: '8px 24px',
-  color: '#4d4d4d',
-  textTransform: 'none',
+  color: theme.palette.primary.main || '#f16508',
+  backgroundColor: '#fff',
+  textTransform: 'uppercase',
   fontFamily: '"OpenSans-Regular", sans-serif',
   fontSize: '14px',
   lineHeight: '16px',
   fontWeight: 300,
-  boxShadow: '0px 1px 1px 0px rgba(0, 0, 0, 0.05)',
   minWidth: 'auto',
   width: 'auto',
   '&:hover': {
-    backgroundColor: '#f5f5f5',
-    borderColor: '#e6e6e6',
+    borderColor: theme.palette.primary.main || '#f16508',
+    backgroundColor: `${theme.palette.primary.main}12`,
   },
 }));
 
@@ -277,11 +277,12 @@ const ConfirmButton = styled(Button)(({ theme }) => ({
   minWidth: 'auto',
   width: 'auto',
   '&:hover': {
-    backgroundColor: theme.palette.primary.dark || '#d5570a',
+    backgroundColor: theme.palette.primary.main || '#f16508',
+    opacity: 0.9,
   },
   '&:disabled': {
-    backgroundColor: '#e0e0e0',
-    color: '#9e9e9e',
+    backgroundColor: '#cccccc',
+    color: '#666666',
     cursor: 'not-allowed',
   },
 }));

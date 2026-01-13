@@ -25,8 +25,34 @@ const SaveButton = styled(Button)(({ theme }) => ({
   backgroundColor: theme.palette.primary.main,
   color: 'white',
   '&:hover': {
-    backgroundColor: theme.palette.primary.dark,
-    color: 'white',
+    backgroundColor: theme.palette.primary.main,
+    opacity: 0.9,
+  },
+  '&:disabled': {
+    backgroundColor: '#cccccc',
+    color: '#666666',
+  },
+}));
+
+// Styled TextField with theme color hover
+const StyledTextField = styled(TextField)(({ theme }) => ({
+  '& .MuiOutlinedInput-root': {
+    '&:hover fieldset': {
+      borderColor: theme.palette.primary.main,
+    },
+    '&.Mui-focused fieldset': {
+      borderColor: theme.palette.primary.main,
+    },
+  },
+}));
+
+// Styled Select with theme color hover
+const StyledSelect = styled(Select)(({ theme }) => ({
+  '&:hover .MuiOutlinedInput-notchedOutline': {
+    borderColor: theme.palette.primary.main,
+  },
+  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+    borderColor: theme.palette.primary.main,
   },
 }));
 
@@ -67,7 +93,7 @@ function ThemeConfiguration() {
   });
 
   const [selectedDataSheet, setSelectedDataSheet] = useState(null); // 存储选中的模板对象 {id, name}
-  const [pimConnector, setPimConnector] = useState('Informatica');
+  const [pimConnector, setPimConnector] = useState('PIMCORE');
   const [serverUrl, setServerUrl] = useState('');
   const [dataSheetTemplates, setDataSheetTemplates] = useState([]);
   const [loadingDataSheets, setLoadingDataSheets] = useState(false);
@@ -358,7 +384,7 @@ function ThemeConfiguration() {
         
         <Box sx={{ mb: 3 }}>
           <SubTitle>SELECT MAIN DATA SHEET</SubTitle>
-          <Select
+          <StyledSelect
             fullWidth
             value={selectedDataSheet?.id || ''}
             onChange={(e) => handleDataSheetChange(e.target.value)}
@@ -383,7 +409,7 @@ function ThemeConfiguration() {
                 </MenuItem>
               ))
             )}
-          </Select>
+          </StyledSelect>
         </Box>
       </SectionCard>
 
@@ -415,7 +441,7 @@ function ThemeConfiguration() {
           {/* PIM Connector */}
           <Box>
             <SubTitle>PIM CONNECTOR</SubTitle>
-            <Select
+            <StyledSelect
               fullWidth
               value={pimConnector}
               onChange={(e) => setPimConnector(e.target.value)}
@@ -423,17 +449,17 @@ function ThemeConfiguration() {
               size="medium"
               sx={{ mt: 1 }}
             >
-              <MenuItem value="Informatica">Informatica</MenuItem>
-              <MenuItem value="SAP">SAP</MenuItem>
-              <MenuItem value="Oracle">Oracle</MenuItem>
-              <MenuItem value="Custom">Custom</MenuItem>
-            </Select>
+              <MenuItem value="PIMCORE">PIMCORE</MenuItem>
+              <MenuItem value="Contentserv">Contentserv</MenuItem>
+              <MenuItem value="AKENEO">AKENEO</MenuItem>
+              <MenuItem value="Salsify">Salsify</MenuItem>
+            </StyledSelect>
           </Box>
 
           {/* Server URL API */}
           <Box>
             <SubTitle>SERVER URL API</SubTitle>
-            <TextField
+            <StyledTextField
               fullWidth
               placeholder="Enter API"
               value={serverUrl}

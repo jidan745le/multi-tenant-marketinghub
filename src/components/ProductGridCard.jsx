@@ -16,6 +16,7 @@ import { useSelectedAssets } from '../context/SelectedAssetsContext';
 import { useBrand } from '../hooks/useBrand';
 import { useLanguage } from '../hooks/useLanguage';
 import useTheme from '../hooks/useTheme';
+import { getColorFilter } from '../utils/colorFilter';
 
 const ProductCardContainer = styled(Box)(() => ({
     background: '#ffffff',
@@ -88,20 +89,33 @@ const QuickActions = styled(Box)(() => ({
     position: 'relative',
 }));
 
-const ActionButton = styled(IconButton)(({theme}) => ({
-    width: '40px',
-    height: '40px',
-    borderRadius: '24px',
-    '& .MuiSvgIcon-root': {
-        fontSize: '20px',
-    },
-    '&:hover': {
-        backgroundColor: 'rgba(0, 0, 0, 0.04)',
-    },
-    "& .material-symbols-outlined:hover":{
-        color: theme.palette.primary.main,
-    }
-}));
+const ActionButton = styled(IconButton)(({theme}) => {
+    const primaryColor = theme.palette.primary.main || '#f16508';
+    return {
+        width: '40px',
+        height: '40px',
+        borderRadius: '24px',
+        '& .MuiSvgIcon-root': {
+            fontSize: '20px',
+        },
+        '&:hover': {
+            backgroundColor: 'rgba(0, 0, 0, 0.04)',
+        },
+        "& .material-symbols-outlined:hover":{
+            color: primaryColor,
+        },
+ 
+        '&:hover img': {
+            filter: getColorFilter(primaryColor),
+            transition: 'filter 0.2s ease',
+            opacity: 1,
+        },
+ 
+        '& img': {
+            transition: 'filter 0.2s ease',
+        }
+    };
+});
 
 const PreviewSection = styled(Box)(() => ({
     padding: '0px 16px',
@@ -334,7 +348,15 @@ const ProductGridCard = ({
                     )}
                     {cardActionsConfig.show_preview_media && (
                         <ActionButton onClick={handleProductClick}>
-                            <Icon type="preview" />
+                            <img 
+                                src="/assets/card_pdp_24dp.svg" 
+                                alt="preview" 
+                                style={{ 
+                                    width: '24px', 
+                                    height: '24px',
+                                    display: 'block'
+                                }} 
+                            />
                         </ActionButton>
                     )}
                     <ActionButton onClick={handleDownloadClick}>

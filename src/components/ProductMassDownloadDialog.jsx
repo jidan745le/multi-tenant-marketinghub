@@ -372,9 +372,12 @@ const ProductMassDownloadDialog = ({
       let setupsheetTemplateIds = '';
       const templateIds = [];
       
-      // 选中了 Setup Sheet (General)，直接传 6
+      // Setup Sheet (General)传id的地方
       if (selectedFormats.setupSheetGeneral) {
-        templateIds.push('6');
+        const defaultTemplateId = localStorage.getItem('setupSheetGeneralDefaultTemplateId');
+        const templateId = defaultTemplateId ? defaultTemplateId : '';
+        console.log('defaultTemplateId:', defaultTemplateId);
+        templateIds.push(templateId);
       }
       
       if (selectedFormats.setupSheetChannel) {
@@ -904,17 +907,27 @@ const ProductMassDownloadDialog = ({
   const channelSelectionContent = () => (
     <>
       <DialogTitle>
-        <Typography
-          sx={{
-            fontSize: '21px',
-            fontWeight: 500,
-            mt: 2,
-            mb: 2,
-            fontFamily: '"Roboto-Medium", sans-serif'
-          }}
-        >
-          Select Channels
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px', mt: 2, mb: 2 }}>
+          <Box
+            component="img"
+            src="/assets/select_derivates_24dp.svg"
+            alt="select channels"
+            sx={{
+              width: '24px',
+              height: '24px',
+              display: 'block'
+            }}
+          />
+          <Typography
+            sx={{
+              fontSize: '21px',
+              fontWeight: 500,
+              fontFamily: '"Roboto-Medium", sans-serif'
+            }}
+          >
+            Select Channels
+          </Typography>
+        </Box>
         <IconButton
           aria-label="close"
           onClick={handleBackFromSubDialog}
@@ -1030,17 +1043,27 @@ const ProductMassDownloadDialog = ({
   const derivateSelectionContent = () => (
     <>
       <DialogTitle>
-        <Typography
-          sx={{
-            fontSize: '21px',
-            fontWeight: 500,
-            mt: 2,
-            mb: 2,
-            fontFamily: '"Roboto-Medium", sans-serif'
-          }}
-        >
-          Select Derivates
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px', mt: 2, mb: 2 }}>
+          <Box
+            component="img"
+            src="/assets/select_derivates_24dp.svg"
+            alt="select derivates"
+            sx={{
+              width: '24px',
+              height: '24px',
+              display: 'block'
+            }}
+          />
+          <Typography
+            sx={{
+              fontSize: '21px',
+              fontWeight: 500,
+              fontFamily: '"Roboto-Medium", sans-serif'
+            }}
+          >
+            Select Derivates
+          </Typography>
+        </Box>
         <IconButton
           aria-label="close"
           onClick={handleBackFromSubDialog}
@@ -1151,6 +1174,7 @@ const ProductMassDownloadDialog = ({
       <Typography sx={{ fontSize: '16px', color: '#333', mb: 3, lineHeight: 1.4 }}>
         The file you're trying to download is large, and it will take a while.
         You have three choices.
+        <br />
         <br />
         Please select your preference:
       </Typography>

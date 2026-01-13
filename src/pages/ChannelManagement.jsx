@@ -12,6 +12,7 @@ import {
   IconButton,
   Snackbar,
   Alert,
+  Checkbox,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -56,8 +57,9 @@ const AddChannelButton = styled(Button)(({ theme }) => ({
   fontWeight: 500,
   textTransform: 'uppercase',
   '&:hover': {
-    backgroundColor: theme.palette.primary.dark || '#d5570a',
-    borderColor: theme.palette.primary.dark || '#d5570a',
+    backgroundColor: theme.palette.primary.main,
+    borderColor: theme.palette.primary.main,
+    opacity: 0.9,
   },
 }));
 
@@ -145,16 +147,19 @@ const ChannelNameContainer = styled(Box)(() => ({
   paddingLeft: '18px',
 }));
 
-const ExpandIcon = styled(Typography)(() => ({
-  color: '#000000',
-  fontFamily: '"Lato-Bold", sans-serif',
-  fontSize: '20px',
-  lineHeight: '143%',
-  letterSpacing: '0.17px',
-  fontWeight: 700,
-  width: '12px',
+const ExpandIcon = styled(Box)(() => ({
+  width: '22px',
+  height: '22px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
   cursor: 'pointer',
   userSelect: 'none',
+  '& img': {
+    width: '100%',
+    height: '100%',
+    objectFit: 'contain',
+  },
 }));
 
 const IconContainer = styled(Box)(() => ({
@@ -199,8 +204,11 @@ const OperationHeader = styled(TableHeader)(({ theme }) => ({
   right: 0,
   backgroundColor: '#fafafa',
   borderStyle: 'solid',
-  borderColor: theme.palette.primary.main || '#eb6100',
-  borderWidth: '0px 0px 0px 1px',
+  borderLeftColor: theme.palette.primary.main || '#eb6100',
+  borderBottomColor: '#e0e0e0',
+  borderTopColor: 'transparent',
+  borderRightColor: 'transparent',
+  borderWidth: '0px 0px 1px 1px',
   fontFamily: '"Lato-SemiBold", sans-serif',
   fontWeight: 600,
   zIndex: 10,
@@ -210,15 +218,18 @@ const OperationCell = styled(TableCellStyled)(({ theme }) => ({
   position: 'sticky',
   right: 0,
   borderStyle: 'solid',
-  borderColor: theme.palette.primary.main || '#eb6100',
-  borderWidth: '0px 0px 0px 1px',
+  borderLeftColor: theme.palette.primary.main || '#eb6100',
+  borderBottomColor: '#e0e0e0',
+  borderTopColor: 'transparent',
+  borderRightColor: 'transparent',
+  borderWidth: '0px 0px 1px 1px',
   zIndex: 9,
 }));
 
 const OperationContent = styled(Box)(() => ({
   display: 'flex',
   flexDirection: 'row',
-  gap: '32px',
+  gap: '16px',
   alignItems: 'center',
   justifyContent: 'flex-start',
   width: '100%',
@@ -227,7 +238,7 @@ const OperationContent = styled(Box)(() => ({
 const IconGroup = styled(Box)(() => ({
   display: 'flex',
   flexDirection: 'row',
-  gap: '32px',
+  gap: '6px',
   alignItems: 'center',
   justifyContent: 'center',
   flexShrink: 0,
@@ -236,10 +247,10 @@ const IconGroup = styled(Box)(() => ({
 const ActionButton = styled(Button)(({ theme }) => ({
   borderRadius: '4px',
   borderStyle: 'solid',
-  borderColor: '#bdbdbd',
+  borderColor: theme.palette.primary.main || '#eb6100',
   borderWidth: '1px',
-  padding: '7px 15px',
-  minWidth: '117px',
+  padding: '7px 12px',
+  minWidth: '80px',
   height: '35px',
   color: theme.palette.primary.main || '#eb6100',
   fontFamily: '"Lato-SemiBold", sans-serif',
@@ -250,8 +261,8 @@ const ActionButton = styled(Button)(({ theme }) => ({
   textTransform: 'none',
   background: 'transparent',
   '&:hover': {
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
     borderColor: theme.palette.primary.main || '#eb6100',
+    backgroundColor: `${theme.palette.primary.main}12`,
   },
 }));
 
@@ -262,6 +273,18 @@ const StyledIconButton = styled(IconButton)(() => ({
   color: 'inherit',
   '&:hover': {
     backgroundColor: 'transparent',
+  },
+}));
+
+const ActionIconButton = styled(IconButton)(({ theme }) => ({
+  padding: 6,
+  margin: '0 2px',
+  color: theme.palette.text.primary,
+  '&:hover': {
+    backgroundColor: 'transparent',
+    '& .material-symbols-outlined': {
+      color: theme.palette.primary.main,
+    },
   },
 }));
 
@@ -403,6 +426,11 @@ function ChannelManagement() {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'error' });
   const [imageBlobUrls, setImageBlobUrls] = useState(new Map());
   const imageBlobUrlsRef = useRef(new Map());
+  const [defaultTemplateId, setDefaultTemplateId] = useState(() => {
+    // 从 localStorage 读取默认 template id
+    const stored = localStorage.getItem('setupSheetGeneralDefaultTemplateId');
+    return stored ? parseInt(stored, 10) : null;
+  });
 
   // 加载带认证的图片
   const loadAuthenticatedImage = useCallback(async (imageUrl, channelId) => {
@@ -873,6 +901,28 @@ function ChannelManagement() {
     setSnackbar({ ...snackbar, open: false });
   };
 
+  // 处理 default
+  const handleDefaultChange = (templateId, checked) => {
+    if (checked) {
+      setDefaultTemplateId(templateId);
+      localStorage.setItem('setupSheetGeneralDefaultTemplateId', templateId.toString());
+      setSnackbar({
+        open: true,
+        message: `Template has been set as default for Setup Sheet (General).`,
+        severity: 'success',
+      });
+    } else {
+      // 取消选中
+      setDefaultTemplateId(null);
+      localStorage.removeItem('setupSheetGeneralDefaultTemplateId');
+      setSnackbar({
+        open: true,
+        message: `Default template for Setup Sheet (General) has been cleared.`,
+        severity: 'success',
+      });
+    }
+  };
+
   const handleDownload = (id) => {
     // 查找 template
     for (const channelItem of data) {
@@ -915,7 +965,7 @@ function ChannelManagement() {
     <Box sx={{ backgroundColor: 'grey.200', height: '85vh', paddingTop: 6, paddingLeft: 5, paddingRight: 5, paddingBottom: 6, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       <Paper sx={{ backgroundColor: 'background.paper', padding: 3, boxShadow: 'none', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <HeaderContainer>
-          <Title>Channel & Template Managment</Title>
+          <Title>Channel Managment</Title>
           <AddChannelButton onClick={handleAddChannel}>
             ADD CHANNEL
           </AddChannelButton>
@@ -949,10 +999,13 @@ function ChannelManagement() {
                   <TableHeader sx={{ width: '310px', minWidth: '310px' }}>
                     File
                   </TableHeader>
+                  <TableHeader sx={{ width: '120px', minWidth: '120px' }}>
+                    Default
+                  </TableHeader>
                   <TableHeader sx={{ width: '200px', minWidth: '200px' }}>
                     Description
                   </TableHeader>
-                  <OperationHeader sx={{ width: '357px', minWidth: '357px' }}>
+                  <OperationHeader sx={{ width: '90px', minWidth: '60px' }}>
                     Operation
                   </OperationHeader>
                 </TableRow>
@@ -970,7 +1023,11 @@ function ChannelManagement() {
                         <ChannelNameCell sx={{ width: '310px' }}>
                           <ChannelNameContainer>
                             <ExpandIcon onClick={() => handleToggleExpand(row.id)}>
-                              {row.expanded ? '-' : '+'}
+                              <Box
+                                component="img"
+                                src={row.expanded ? '/assets/minimize_24px.svg' : '/assets/add_24pxsvg.svg'}
+                                alt={row.expanded ? 'Collapse' : 'Expand'}
+                              />
                             </ExpandIcon>
                             {row.icon ? (
                               <IconContainer>
@@ -1008,6 +1065,9 @@ function ChannelManagement() {
                         <TableCellStyled sx={{ width: '310px' }}>
                           {row.file || '-'}
                         </TableCellStyled>
+                        <TableCellStyled sx={{ width: '120px' }}>
+                          {/* Channel 行不显示复选框 */}
+                        </TableCellStyled>
                         <TableCellStyled sx={{ width: '200px' }}>
                           {row.description || '-'}
                         </TableCellStyled>
@@ -1018,45 +1078,24 @@ function ChannelManagement() {
                         >
                           <OperationContent>
                             <IconGroup>
-                              <StyledIconButton onClick={() => handleEdit(row.id)}>
-                                <Box
-                                  component="img"
-                                  src="/assets/EditOutlined.png"
-                                  alt="Edit"
-                                  sx={{
-                                    width: '24px',
-                                    height: '24px',
-                                    objectFit: 'contain',
-                                  }}
-                                />
-                              </StyledIconButton>
-                              <StyledIconButton onClick={() => handleCopy(row.id)}>
-                                <Box
-                                  component="img"
-                                  src="/assets/copy.png"
-                                  alt="Copy"
-                                  sx={{
-                                    width: '24px',
-                                    height: '24px',
-                                    objectFit: 'contain',
-                                  }}
-                                />
-                              </StyledIconButton>
-                              <StyledIconButton onClick={() => handleDelete(row.id)}>
-                                <Box
-                                  component="img"
-                                  src="/assets/Frame.png"
-                                  alt="Delete"
-                                  sx={{
-                                    width: '24px',
-                                    height: '24px',
-                                    objectFit: 'contain',
-                                  }}
-                                />
-                              </StyledIconButton>
+                              <ActionIconButton onClick={() => handleEdit(row.id)}>
+                                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+                                  edit
+                                </span>
+                              </ActionIconButton>
+                              <ActionIconButton onClick={() => handleCopy(row.id)}>
+                                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+                                  content_copy
+                                </span>
+                              </ActionIconButton>
+                              <ActionIconButton onClick={() => handleDelete(row.id)}>
+                                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+                                  delete
+                                </span>
+                              </ActionIconButton>
                             </IconGroup>
                             <ActionButton onClick={() => handleAddTemplate(row.id)}>
-                              ADD TEMPLATE
+                              + ADD
                             </ActionButton>
                           </OperationContent>
                         </OperationCell>
@@ -1088,6 +1127,18 @@ function ChannelManagement() {
                             <TableCellStyled sx={{ width: '310px' }}>
                               <FileNameText>{template.file}</FileNameText>
                             </TableCellStyled>
+                            <TableCellStyled sx={{ width: '120px' }}>
+                              <Checkbox
+                                checked={defaultTemplateId === template.id}
+                                onChange={(e) => handleDefaultChange(template.id, e.target.checked)}
+                                sx={{
+                                  padding: '4px',
+                                  '&.Mui-checked': {
+                                    color: (theme) => theme.palette.primary.main,
+                                  },
+                                }}
+                              />
+                            </TableCellStyled>
                             <TableCellStyled sx={{ width: '200px' }}>
                               <FileNameText>{template.description || '-'}</FileNameText>
                             </TableCellStyled>
@@ -1098,54 +1149,26 @@ function ChannelManagement() {
                             >
                               <OperationContent>
                                 <IconGroup>
-                                  <StyledIconButton onClick={() => handleEdit(template.id)}>
-                                    <Box
-                                      component="img"
-                                      src="/assets/EditOutlined.png"
-                                      alt="Edit"
-                                      sx={{
-                                        width: '24px',
-                                        height: '24px',
-                                        objectFit: 'contain',
-                                      }}
-                                    />
-                                  </StyledIconButton>
-                                  <StyledIconButton onClick={() => handleCopy(template.id)}>
-                                    <Box
-                                      component="img"
-                                      src="/assets/copy.png"
-                                      alt="Copy"
-                                      sx={{
-                                        width: '24px',
-                                        height: '24px',
-                                        objectFit: 'contain',
-                                      }}
-                                    />
-                                  </StyledIconButton>
-                                  <StyledIconButton onClick={() => handleDownload(template.id)}>
-                                    <Box
-                                      component="img"
-                                      src="/assets/downloadOutline.png"
-                                      alt="Download"
-                                      sx={{
-                                        width: '24px',
-                                        height: '24px',
-                                        objectFit: 'contain',
-                                      }}
-                                    />
-                                  </StyledIconButton>
-                                  <StyledIconButton onClick={() => handleDelete(template.id)}>
-                                    <Box
-                                      component="img"
-                                      src="/assets/Frame.png"
-                                      alt="Delete"
-                                      sx={{
-                                        width: '24px',
-                                        height: '24px',
-                                        objectFit: 'contain',
-                                      }}
-                                    />
-                                  </StyledIconButton>
+                                  <ActionIconButton onClick={() => handleEdit(template.id)}>
+                                    <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+                                      edit
+                                    </span>
+                                  </ActionIconButton>
+                                  <ActionIconButton onClick={() => handleCopy(template.id)}>
+                                    <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+                                      content_copy
+                                    </span>
+                                  </ActionIconButton>
+                                  <ActionIconButton onClick={() => handleDownload(template.id)}>
+                                    <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+                                      download
+                                    </span>
+                                  </ActionIconButton>
+                                  <ActionIconButton onClick={() => handleDelete(template.id)}>
+                                    <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+                                      delete
+                                    </span>
+                                  </ActionIconButton>
                                 </IconGroup>
                               </OperationContent>
                             </OperationCell>

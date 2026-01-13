@@ -25,7 +25,8 @@ const SaveButton = styled(Button)(({ theme }) => ({
   backgroundColor: theme.palette.primary.main,
   color: 'white',
   '&:hover': {
-    backgroundColor: theme.palette.primary.dark,
+    backgroundColor: theme.palette.primary.main,
+    opacity: 0.9,
     color: 'white',
   },
 }));

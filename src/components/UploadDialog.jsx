@@ -310,31 +310,31 @@ const ButtonsContainer = styled(Box)(() => ({
 
 const CancelButtonContainer = styled(ButtonContainer)(() => ({}));
 
-const CancelButton = styled(Button)(() => ({
-  background: 'var(--white, #ffffff)',
-  borderRadius: 'var(--radi-mlg, 8px)',
+const CancelButton = styled(Button)(({ theme }) => ({
+  background: '#ffffff',
+  borderRadius: '4px',
   borderStyle: 'solid',
-  borderColor: 'var(--80, #cccccc)',
+  borderColor: theme.palette.primary.main || '#f16508',
   borderWidth: '1px',
-  padding: '8px var(--spacing-md, 16px)',
+  padding: '8px 16px',
   display: 'flex',
   flexDirection: 'row',
-  gap: 'var(--spacing-sm, 8px)',
+  gap: '8px',
   alignItems: 'center',
   justifyContent: 'center',
   flexShrink: 0,
   position: 'relative',
-  color: 'var(--40, #666666)',
+  color: theme.palette.primary.main || '#f16508',
   fontFamily: 'var(--label-large-font-family, "Roboto-Medium", sans-serif)',
   fontSize: 'var(--label-large-font-size, 14px)',
   lineHeight: 'var(--label-large-line-height, 20px)',
   letterSpacing: 'var(--label-large-letter-spacing, 0.1px)',
   fontWeight: 'var(--label-large-font-weight, 500)',
-  textTransform: 'none',
+  textTransform: 'uppercase',
   minWidth: 'auto',
   '&:hover': {
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
-    borderColor: 'var(--80, #cccccc)',
+    borderColor: theme.palette.primary.main || '#f16508',
+    backgroundColor: `${theme.palette.primary.main}12`,
   },
 }));
 
@@ -342,48 +342,31 @@ const NextButtonContainer = styled(ButtonContainer)(() => ({}));
 
 const NextButton = styled(Button)(({ theme }) => ({
   background: theme.palette.primary.main || '#f16508',
-  borderRadius: 'var(--radi-mlg, 8px)',
-  padding: '8px var(--spacing-md, 16px)',
+  borderRadius: '4px',
+  padding: '8px 16px',
   display: 'flex',
   flexDirection: 'row',
-  gap: 'var(--spacing-sm, 8px)',
+  gap: '8px',
   alignItems: 'center',
   justifyContent: 'center',
   flexShrink: 0,
   position: 'relative',
-  color: 'var(--white, #ffffff) !important',
+  color: '#ffffff',
   fontFamily: 'var(--label-large-font-family, "Roboto-Medium", sans-serif)',
   fontSize: 'var(--label-large-font-size, 14px)',
   lineHeight: 'var(--label-large-line-height, 20px)',
   letterSpacing: 'var(--label-large-letter-spacing, 0.1px)',
   fontWeight: 'var(--label-large-font-weight, 500)',
-  textTransform: 'none',
+  textTransform: 'uppercase',
   minWidth: 'auto',
-  '& .MuiButton-root': {
-    color: 'var(--white, #ffffff) !important',
-  },
-  '& .MuiButton-text': {
-    color: 'var(--white, #ffffff) !important',
-  },
   '&:hover': {
-    backgroundColor: theme.palette.primary.dark || '#d5570a',
-    color: 'var(--white, #ffffff) !important',
-    '& .MuiButton-root': {
-      color: 'var(--white, #ffffff) !important',
-    },
-    '& .MuiButton-text': {
-      color: 'var(--white, #ffffff) !important',
-    },
+    backgroundColor: theme.palette.primary.main || '#f16508',
+    opacity: 0.9,
+    color: '#ffffff',
   },
   '&:disabled': {
     backgroundColor: '#cccccc',
-    color: 'var(--white, #ffffff) !important',
-    '& .MuiButton-root': {
-      color: 'var(--white, #ffffff) !important',
-    },
-    '& .MuiButton-text': {
-      color: 'var(--white, #ffffff) !important',
-    },
+    color: '#666666',
   },
 }));
 

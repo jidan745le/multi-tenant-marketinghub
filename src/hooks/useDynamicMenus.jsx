@@ -51,7 +51,10 @@ export function useDynamicMenus() {
                         'product.catalog': { type: 'svg', path: '/assets/product_Library_24px.svg', width: '18.5px', height: '24px'  },
                         'aftersales': { type: 'svg', path: '/assets/after_sales_service_24px.svg', width: '16px', height: '24px'  },
                         'internaldocuments': { type: 'svg', path: '/assets/internal_documents_24px.svg', width: '14px', height: '24px'  },
-                        'certifications-compliance': { type: 'svg', path: '/assets/certifications_compliance_24px.svg', width: '16px', height: '24px'  },
+                        'certifications-compliance': { type: 'svg', path: '/assets/certifications_compliance_24px.svg', width: '13px', height: '24px'  },
+                        'medias': { type: 'svg', path: '/assets/bosch_digital_lib_24px.svg', width: '13px', height: '24px'  },
+                        'document': { type: 'svg', path: '/assets/internal_documents_24px.svg', width: '13px', height: '24px'  },
+                        'category': { type: 'svg', path: '/assets/product_Library_24px.svg', width: '18.5px', height: '24px'  },
                     };
 
                     // 渲染图标

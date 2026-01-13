@@ -826,6 +826,7 @@ const MediaDownloadDialog = ({
               The file you're trying to download is large, and it will take a while.
               You have three choices.
               <br />
+              <br />
               Please select your preference:
             </>
           )}

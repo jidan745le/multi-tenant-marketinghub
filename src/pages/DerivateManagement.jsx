@@ -1,8 +1,3 @@
-import CancelIcon from '@mui/icons-material/Cancel';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import DeleteIcon from '@mui/icons-material/Delete';
-import EditIcon from '@mui/icons-material/Edit';
-import SaveIcon from '@mui/icons-material/Save';
 import SearchIcon from '@mui/icons-material/Search';
 import {
   Alert,
@@ -74,52 +69,65 @@ const StickyTableCell = styled(TableCell)(({ theme }) => ({
   padding: '12px 8px',
 }));
 
-const ActionButton = styled(IconButton)(({ theme, variant = 'default' }) => ({
+const ActionIconButton = styled(IconButton)(({ theme }) => ({
   padding: 6,
   margin: '0 2px',
-  borderRadius: theme.shape.borderRadius,
-  transition: theme.transitions.create(['background-color', 'color'], {
-    duration: theme.transitions.duration.short,
-  }),
-  ...(variant === 'primary' && {
-    color: theme.palette.primary.main,
-    '&:hover': {
-      backgroundColor: theme.palette.primary.light + '20', // 20% opacity
-      color: theme.palette.primary.dark,
+  color: theme.palette.text.primary,
+  '&:hover': {
+    backgroundColor: 'transparent',
+    '& .material-symbols-outlined': {
+      color: theme.palette.primary.main,
     },
-  }),
-  ...(variant === 'success' && {
-    color: theme.palette.success.main,
-    '&:hover': {
-      backgroundColor: theme.palette.success.light + '20',
-      color: theme.palette.success.dark,
-    },
-  }),
-  ...(variant === 'error' && {
-    color: theme.palette.error.main,
-    '&:hover': {
-      backgroundColor: theme.palette.error.light + '20',
-      color: theme.palette.error.dark,
-    },
-  }),
-  ...(variant === 'default' && {
-    color: theme.palette.action.active,
-    '&:hover': {
-      backgroundColor: theme.palette.action.hover,
-      color: theme.palette.text.primary,
-    },
-  }),
+  },
 }));
 
 const PrimaryButton = styled(Button)(({ theme }) => ({
   backgroundColor: theme.palette.primary.main,
   color: 'white',
   '&:hover': {
-    backgroundColor: theme.palette.primary.dark,
+    backgroundColor: theme.palette.primary.main,
+    opacity: 0.9,
   },
   '&:disabled': {
     backgroundColor: theme.palette.action.disabled,
     color: theme.palette.action.disabled,
+  },
+}));
+
+const ResetButton = styled(Button)(({ theme }) => ({
+  borderRadius: '4px',
+  borderStyle: 'solid',
+  borderColor: theme.palette.primary.main || '#f16508',
+  borderWidth: '1px',
+  padding: '8px 16px',
+  color: theme.palette.primary.main || '#f16508',
+  backgroundColor: '#fff',
+  textTransform: 'uppercase',
+  fontWeight: '500',
+  minWidth: 'auto',
+  '&:hover': {
+    borderColor: theme.palette.primary.main || '#f16508',
+    backgroundColor: `${theme.palette.primary.main}12`,
+  },
+}));
+
+const StyledTextField = styled(TextField)(({ theme }) => ({
+  '& .MuiOutlinedInput-root': {
+    '&:hover fieldset': {
+      borderColor: theme.palette.primary.main,
+    },
+    '&.Mui-focused fieldset': {
+      borderColor: theme.palette.primary.main,
+    },
+  },
+}));
+
+const StyledSelect = styled(Select)(({ theme }) => ({
+  '&:hover .MuiOutlinedInput-notchedOutline': {
+    borderColor: theme.palette.primary.main,
+  },
+  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+    borderColor: theme.palette.primary.main,
   },
 }));
 
@@ -278,7 +286,7 @@ function DerivateManagement() {
       switch (field) {
         case 'themeId':
           return (
-            <Select
+            <StyledSelect
               value={editingRow.themeId || ''}
               onChange={(e) => setEditingRow({ ...editingRow, themeId: e.target.value })}
               size="small"
@@ -287,11 +295,11 @@ function DerivateManagement() {
               {themes.map(theme => (
                 <MenuItem key={theme} value={theme}>{theme}</MenuItem>
               ))}
-            </Select>
+            </StyledSelect>
           );
         case 'derivateGroup':
           return (
-            <Select
+            <StyledSelect
               value={editingRow.derivateGroup || ''}
               onChange={(e) => setEditingRow({ ...editingRow, derivateGroup: e.target.value })}
               size="small"
@@ -300,11 +308,11 @@ function DerivateManagement() {
               {DerivateManagementApiService.getGroupOptions().map(option => (
                 <MenuItem key={option} value={option}>{option}</MenuItem>
               ))}
-            </Select>
+            </StyledSelect>
           );
         case 'dpi':
           return (
-            <Select
+            <StyledSelect
               value={editingRow.dpi || ''}
               onChange={(e) => setEditingRow({ ...editingRow, dpi: e.target.value })}
               size="small"
@@ -313,13 +321,13 @@ function DerivateManagement() {
               {DerivateManagementApiService.getDpiOptions().map(option => (
                 <MenuItem key={option} value={option}>{option}</MenuItem>
               ))}
-            </Select>
+            </StyledSelect>
           );
-        case 'ratio':
+        case 'ratio': {
           // Handle null value for Original ratio
           const ratioValue = editingRow.ratio === null || editingRow.ratio === undefined ? '' : editingRow.ratio;
           return (
-            <Select
+            <StyledSelect
               value={ratioValue}
               onChange={(e) => {
                 const newValue = e.target.value === '' ? null : e.target.value;
@@ -332,9 +340,10 @@ function DerivateManagement() {
               {DerivateManagementApiService.getRatioOptions().map(option => (
                 <MenuItem key={option.value || 'original'} value={option.value || ''}>{option.label}</MenuItem>
               ))}
-            </Select>
+            </StyledSelect>
           );
-        case 'compression':
+        }
+        case 'compression': {
           // 标准化compression值用于显示
           let displayValue = editingRow.compression;
           if (displayValue === null || displayValue === undefined) {
@@ -342,7 +351,7 @@ function DerivateManagement() {
           }
           
           return (
-            <Select
+            <StyledSelect
               value={displayValue}
               onChange={(e) => {
                 const newValue = e.target.value === '' ? null : e.target.value;
@@ -354,11 +363,12 @@ function DerivateManagement() {
             >
               <MenuItem value="">No Compression</MenuItem>
               <MenuItem value="lzw">LZW Compression</MenuItem>
-            </Select>
+            </StyledSelect>
           );
+        }
         case 'targetFormat':
           return (
-            <Select
+            <StyledSelect
               value={editingRow.targetFormat || ''}
               onChange={(e) => setEditingRow({ ...editingRow, targetFormat: e.target.value })}
               size="small"
@@ -367,11 +377,11 @@ function DerivateManagement() {
               {DerivateManagementApiService.getTargetFormatOptions().map(option => (
                 <MenuItem key={option} value={option}>{option.toUpperCase()}</MenuItem>
               ))}
-            </Select>
+            </StyledSelect>
           );
         case 'targetColorSpace':
           return (
-            <Select
+            <StyledSelect
               value={editingRow.targetColorSpace || ''}
               onChange={(e) => setEditingRow({ ...editingRow, targetColorSpace: e.target.value })}
               size="small"
@@ -380,11 +390,11 @@ function DerivateManagement() {
               {DerivateManagementApiService.getTargetColorSpaceOptions().map(option => (
                 <MenuItem key={option} value={option}>{option}</MenuItem>
               ))}
-            </Select>
+            </StyledSelect>
           );
         case 'gravity':
           return (
-            <Select
+            <StyledSelect
               value={editingRow.gravity || ''}
               onChange={(e) => setEditingRow({ ...editingRow, gravity: e.target.value })}
               size="small"
@@ -393,9 +403,9 @@ function DerivateManagement() {
               {DerivateManagementApiService.getGravityOptions().map(option => (
                 <MenuItem key={option} value={option}>{option}</MenuItem>
               ))}
-            </Select>
+            </StyledSelect>
           );
-        case 'allowedFileType':
+        case 'allowedFileType': {
           // Ensure value is always an array for multiple select
           const allowedFileTypeValue = editingRow.allowedFileType 
             ? (Array.isArray(editingRow.allowedFileType) 
@@ -403,7 +413,7 @@ function DerivateManagement() {
                 : editingRow.allowedFileType.split(',').map(item => item.trim()))
             : [];
           return (
-            <Select
+            <StyledSelect
               value={allowedFileTypeValue}
               onChange={(e) => setEditingRow({ ...editingRow, allowedFileType: e.target.value })}
               size="small"
@@ -414,9 +424,10 @@ function DerivateManagement() {
               {DerivateManagementApiService.getAllowedFileTypeOptions().map(option => (
                 <MenuItem key={option} value={option}>{option.toUpperCase()}</MenuItem>
               ))}
-            </Select>
+            </StyledSelect>
           );
-        case 'mediaType':
+        }
+        case 'mediaType': {
           // Ensure value is always an array for multiple select
           const mediaTypeValue = editingRow.mediaType 
             ? (Array.isArray(editingRow.mediaType) 
@@ -424,7 +435,7 @@ function DerivateManagement() {
                 : editingRow.mediaType.split(',').map(item => item.trim()))
             : [];
           return (
-            <Select
+            <StyledSelect
               value={mediaTypeValue}
               onChange={(e) => setEditingRow({ ...editingRow, mediaType: e.target.value })}
               size="small"
@@ -435,8 +446,9 @@ function DerivateManagement() {
               {DerivateManagementApiService.getMediaTypeOptions().map(option => (
                 <MenuItem key={option} value={option}>{option}</MenuItem>
               ))}
-            </Select>
+            </StyledSelect>
           );
+        }
         case 'publicLink':
         case 'preserveAlpha':
           return (
@@ -447,7 +459,7 @@ function DerivateManagement() {
           );
         default:
           return (
-            <TextField
+            <StyledTextField
               value={editingRow[field] || ''}
               onChange={(e) => setEditingRow({ ...editingRow, [field]: e.target.value })}
               size="small"
@@ -525,7 +537,7 @@ function DerivateManagement() {
 
       {/* Search */}
       <Box sx={{ mb: 2, display: 'flex', gap: 2 }}>
-        <TextField
+        <StyledTextField
           placeholder="Search by Theme or Label"
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
@@ -539,12 +551,11 @@ function DerivateManagement() {
             ),
           }}
         />
-        <Button
+        <ResetButton
           onClick={() => setSearchText('')}
-          variant="outlined"
         >
           RESET
-        </Button>
+        </ResetButton>
       </Box>
 
       {/* Derivates Table */}
@@ -599,41 +610,48 @@ function DerivateManagement() {
                     {editingId === derivate.id ? (
                       <>
                         <Tooltip title="Save">
-                          <ActionButton onClick={handleSave} variant="primary">
-                            <SaveIcon />
-                          </ActionButton>
+                          <ActionIconButton onClick={handleSave}>
+                            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+                              save
+                            </span>
+                          </ActionIconButton>
                         </Tooltip>
                         <Tooltip title="Cancel">
-                          <ActionButton onClick={handleCancel} variant="primary">
-                            <CancelIcon />
-                          </ActionButton>
+                          <ActionIconButton onClick={handleCancel}>
+                            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+                              close
+                            </span>
+                          </ActionIconButton>
                         </Tooltip>
                       </>
                     ) : (
                       <>
                         <Tooltip title="Edit">
-                          <ActionButton
+                          <ActionIconButton
                             onClick={() => handleEdit(derivate)}
-                            variant="primary"
                           >
-                            <EditIcon />
-                          </ActionButton>
+                            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+                              edit
+                            </span>
+                          </ActionIconButton>
                         </Tooltip>
                         <Tooltip title="Copy">
-                          <ActionButton
+                          <ActionIconButton
                             onClick={() => handleCopy(derivate)}
-                            variant="primary"
                           >
-                            <ContentCopyIcon />
-                          </ActionButton>
+                            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+                              content_copy
+                            </span>
+                          </ActionIconButton>
                         </Tooltip>
                         <Tooltip title="Delete">
-                          <ActionButton
+                          <ActionIconButton
                             onClick={() => handleDelete(derivate)}
-                            variant="primary"
                           >
-                            <DeleteIcon />
-                          </ActionButton>
+                            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+                              delete
+                            </span>
+                          </ActionIconButton>
                         </Tooltip>
                       </>
                     )}

@@ -115,7 +115,7 @@ const LegalTermsPage = () => {
                     height: 'auto', 
                     objectFit: 'contain', 
                     mt: 0, 
-                    transform: { xs: 'none', md: 'translateX(200px) translateY(-100px)' }
+                    transform: { xs: 'none', md: 'translateX(180px) translateY(-100px)' }
                   }}
                 />
               </Illustration>

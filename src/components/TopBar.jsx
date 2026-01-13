@@ -19,6 +19,7 @@ import { useAuth } from '../context/AuthContext';
 import { useBrand } from '../hooks/useBrand';
 import { useDynamicMenus } from '../hooks/useDynamicMenus';
 import { useLanguage } from '../hooks/useLanguage';
+import { getColorFilter } from '../utils/colorFilter';
 
 // Styled Components
 const StyledTopBar = styled(Box)(() => ({
@@ -152,10 +153,9 @@ const NavItemIcon = styled(Box)(({ theme, active }) => {
     '& .MuiSvgIcon-root': {
       strokeWidth: '0.8',
     },
-    // 对于 img 标签（SVG 图片），使用 filter 来改变颜色s
     '& img': {
       filter: active 
-        ? 'brightness(0) saturate(100%) invert(48%) sepia(79%) saturate(2476%) hue-rotate(346deg) brightness(118%) contrast(118%)' // 橙色滤镜
+        ? getColorFilter(primaryColor) 
         : 'brightness(0) invert(1)', // 白色滤镜
       transition: 'filter 0.2s ease',
     },

@@ -28,8 +28,12 @@ const SaveButton = styled(Button)(({ theme }) => ({
   backgroundColor: theme.palette.primary.main,
   color: 'white',
   '&:hover': {
-    backgroundColor: theme.palette.primary.dark,
-    color: 'white',
+    backgroundColor: theme.palette.primary.main,
+    opacity: 0.9,
+  },
+  '&:disabled': {
+    backgroundColor: '#cccccc',
+    color: '#666666',
   },
 }));
 

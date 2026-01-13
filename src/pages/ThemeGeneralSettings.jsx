@@ -164,8 +164,34 @@ const SaveButton = styled(Button)(({ theme }) => ({
   backgroundColor: theme.palette.primary.main,
   color: 'white',
   '&:hover': {
-    backgroundColor: theme.palette.primary.dark,
-    color: 'white',
+    backgroundColor: theme.palette.primary.main,
+    opacity: 0.9,
+  },
+  '&:disabled': {
+    backgroundColor: '#cccccc',
+    color: '#666666',
+  },
+}));
+
+// Styled TextField with theme color hover
+const StyledTextField = styled(TextField)(({ theme }) => ({
+  '& .MuiOutlinedInput-root': {
+    '&:hover fieldset': {
+      borderColor: theme.palette.primary.main,
+    },
+    '&.Mui-focused fieldset': {
+      borderColor: theme.palette.primary.main,
+    },
+  },
+}));
+
+// Styled Select with theme color hover
+const StyledSelect = styled(Select)(({ theme }) => ({
+  '&:hover .MuiOutlinedInput-notchedOutline': {
+    borderColor: theme.palette.primary.main,
+  },
+  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+    borderColor: theme.palette.primary.main,
   },
 }));
 
@@ -772,7 +798,7 @@ function ThemeGeneralSettings() {
         <Box sx={{ display: 'flex', gap: 3 }}>
           <Box sx={{ flex: 1 }}>
             <SubTitle>TITLE</SubTitle>
-            <TextField
+            <StyledTextField
               sx={{ width: "80%" }}
               placeholder="title"
               value={loginTitle}
@@ -781,7 +807,7 @@ function ThemeGeneralSettings() {
 
             <Box sx={{ mt: 3 }}>
               <SubTitle>PRE TITLE</SubTitle>
-            <TextField
+            <StyledTextField
                 sx={{ width: "80%" }}
               placeholder="pre_title"
               value={loginPretitle}
@@ -791,7 +817,7 @@ function ThemeGeneralSettings() {
 
             <Box sx={{ mt: 3 }}>
               <SubTitle>SUBTITLE</SubTitle>
-            <TextField
+            <StyledTextField
                 sx={{ width: "80%" }}
               placeholder="subtitle"
               value={loginSubtitle}
@@ -865,13 +891,13 @@ function ThemeGeneralSettings() {
                       </Box>
                     )}
                   </Box>
-                  <TextField 
+                  <StyledTextField 
                     fullWidth 
                     size="small" 
                     placeholder="Username" 
                     sx={{ mb: 2, '& .MuiInputBase-input': { fontSize: '0.9rem', py: 1.2 } }}
                   />
-                  <TextField 
+                  <StyledTextField 
                     fullWidth 
                     size="small" 
                     type="password"
@@ -1009,7 +1035,7 @@ function ThemeGeneralSettings() {
           <Typography variant="subtitle2" gutterBottom>
             Select Language for Translation
           </Typography>
-          <Select
+          <StyledSelect
             fullWidth
             value={selectedTranslationLanguage}
             onChange={(e) => {
@@ -1048,7 +1074,7 @@ function ThemeGeneralSettings() {
                 </Box>
               </MenuItem>
             ))}
-          </Select>
+          </StyledSelect>
           {selectedTranslationLanguage && (
             <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Typography variant="caption" color="text.secondary">
@@ -1196,7 +1222,7 @@ function ThemeGeneralSettings() {
                   flexDirection: 'column',
                   p: 2
                 }}>
-                        <TextField
+                        <StyledTextField
                           fullWidth
                           multiline
                           variant="outlined"
@@ -1240,7 +1266,19 @@ function ThemeGeneralSettings() {
                     <Button variant="outlined" onClick={cancelEditingTranslation} size="small">
                             Cancel
                           </Button>
-                                            <Button variant="contained" onClick={saveEditingTranslation} size="small" sx={{ color: 'white' }}>
+                                            <Button 
+                          variant="contained" 
+                          onClick={saveEditingTranslation} 
+                          size="small" 
+                          sx={{ 
+                            color: 'white',
+                            backgroundColor: (theme) => theme.palette.primary.main,
+                            '&:hover': {
+                              backgroundColor: (theme) => theme.palette.primary.main,
+                              opacity: 0.9,
+                            },
+                          }}
+                        >
                           Save
                           </Button>
                         </Box>
@@ -1285,7 +1323,12 @@ function ThemeGeneralSettings() {
                           right: 16,
                           opacity: 0,
                           transition: 'opacity 0.2s ease',
-                          color: 'white'
+                          color: 'white',
+                          backgroundColor: (theme) => theme.palette.primary.main,
+                          '&:hover': {
+                            backgroundColor: (theme) => theme.palette.primary.main,
+                            opacity: 0.9,
+                          },
                         }}
                       >
                         Edit

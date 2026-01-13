@@ -29,7 +29,7 @@ import {
   Tooltip,
   Typography
 } from '@mui/material';
-import { styled } from '@mui/material/styles';
+import { styled, useTheme } from '@mui/material/styles';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useBrand } from '../hooks/useBrand';
 import UserManagementApiService from '../services/userManagementApi';
@@ -53,8 +53,12 @@ const TableHeader = styled(TableCell)(({ theme }) => ({
 const ActionButton = styled(IconButton)(({ theme }) => ({
   padding: 6,
   margin: '0 2px',
+  color: theme.palette.text.primary,
   '&:hover': {
-    backgroundColor: theme.palette.action.hover,
+    backgroundColor: 'transparent',
+    '& .material-symbols-outlined': {
+      color: theme.palette.primary.main,
+    },
   },
 }));
 
@@ -72,7 +76,8 @@ const PrimaryButton = styled(Button)(({ theme }) => ({
   backgroundColor: theme.palette.primary.main,
   color: 'white',
   '&:hover': {
-    backgroundColor: theme.palette.primary.dark,
+    backgroundColor: theme.palette.primary.main,
+    opacity: 0.9,
   },
   '&:disabled': {
     backgroundColor: theme.palette.action.disabled,
@@ -80,9 +85,32 @@ const PrimaryButton = styled(Button)(({ theme }) => ({
   },
 }));
 
+// Styled TextField with theme color hover
+const StyledTextField = styled(TextField)(({ theme }) => ({
+  '& .MuiOutlinedInput-root': {
+    '&:hover fieldset': {
+      borderColor: theme.palette.primary.main,
+    },
+    '&.Mui-focused fieldset': {
+      borderColor: theme.palette.primary.main,
+    },
+  },
+}));
+
+// Styled Select with theme color hover
+const StyledSelect = styled(Select)(({ theme }) => ({
+  '&:hover .MuiOutlinedInput-notchedOutline': {
+    borderColor: theme.palette.primary.main,
+  },
+  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+    borderColor: theme.palette.primary.main,
+  },
+}));
+
 
 // Main component
 function UserManagement() {
+  const theme = useTheme();
   // Get current brand/theme from URL
   const { currentBrandCode } = useBrand();
   
@@ -427,10 +455,10 @@ function UserManagement() {
       {/* Header */}
       <HeaderContainer>
         <Box>
-          <Typography variant="h4" component="h1" gutterBottom>
+          <Typography variant="h4" component="h1" gutterBottom sx={{ ml:-2.5 }}>
             User Management
-                      </Typography>
-          <Typography variant="body2" color="text.secondary">
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ ml:-2.5, fontSize: '14px', fontFamily: 'var(--label-large-font-family, "Roboto-Medium", sans-serif)', paddingTop: '10px' }}>
             Results {((page - 1) * limit) + 1} - {Math.min(page * limit, total)} of {total} users {emailSearch ? `(filtered by email: "${emailSearch}")` : `for ${currentBrandCode.toUpperCase()} theme`}
           </Typography>
         </Box>
@@ -475,7 +503,7 @@ function UserManagement() {
         boxShadow: 1,
         alignItems: 'center'
       }}>
-        <TextField
+        <StyledTextField
           label="Search by Email"
           variant="outlined"
           size="small"
@@ -560,7 +588,7 @@ function UserManagement() {
               return (
                 <TableRow key={user.id} hover>
                   <TableCell>
-                    <Typography variant="body2" color="primary">
+                    <Typography variant="body2">
                       {user.id.slice(-6)}
                     </Typography>
                   </TableCell>
@@ -599,7 +627,6 @@ function UserManagement() {
                           key={role.id}
                           label={role.name.replace('_viewer', '').toUpperCase()}
                           size="small"
-                          color="primary"
                           variant="outlined"
                           sx={{ mr: 0.5, mb: 0.5 }}
                         />
@@ -613,7 +640,6 @@ function UserManagement() {
                       <Tooltip title="Edit">
                         <ActionButton
                           onClick={() => openEditDialog(user)}
-                          sx={{ color: 'primary.main' }}
                         >
                           <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
                             edit
@@ -621,7 +647,7 @@ function UserManagement() {
                         </ActionButton>
                       </Tooltip>
                       <Tooltip title="Send Email">
-                        <ActionButton sx={{ color: 'primary.main' }}>
+                        <ActionButton>
                           <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
                             mail
                           </span>
@@ -637,7 +663,6 @@ function UserManagement() {
                       <Tooltip title="Delete">
                         <ActionButton
                           onClick={() => openDeleteDialog(user)}
-                          sx={{ color: 'primary.main' }}
                         >
                           <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
                             delete
@@ -687,12 +712,18 @@ function UserManagement() {
         fullWidth
       >
         <DialogTitle>Add New User</DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{
+          overflow: 'auto',
+          scrollbarWidth: 'none', // Firefox
+          '&::-webkit-scrollbar': {
+            display: 'none' // Chrome, Safari, Edge
+          }
+        }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
             {/* Basic Data Section */}
             <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>Basic Data</Typography>
             
-            <TextField
+            <StyledTextField
               label="First Name"
               value={newUser.firstName}
               onChange={(e) => setNewUser({ ...newUser, firstName: e.target.value })}
@@ -702,14 +733,14 @@ function UserManagement() {
               fullWidth
             />
             
-            <TextField
+            <StyledTextField
               label="Last Name"
               value={newUser.lastName}
               onChange={(e) => setNewUser({ ...newUser, lastName: e.target.value })}
               fullWidth
             />
             
-            <TextField
+            <StyledTextField
               label="Email"
               type="email"
               value={newUser.email}
@@ -720,7 +751,7 @@ function UserManagement() {
               fullWidth
             />
             
-            <TextField
+            <StyledTextField
               label="Password"
               type="password"
               value={newUser.password}
@@ -731,14 +762,14 @@ function UserManagement() {
               fullWidth
             />
             
-            <TextField
+            <StyledTextField
               label="Mobile"
               value={newUser.phone}
               onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
               fullWidth
             />
             
-            <TextField
+            <StyledTextField
               label="Address"
               value={newUser.address}
               onChange={(e) => setNewUser({ ...newUser, address: e.target.value })}
@@ -746,8 +777,8 @@ function UserManagement() {
             />
             
             <FormControl fullWidth>
-              <InputLabel>Country</InputLabel>
-              <Select
+              <InputLabel sx={{ backgroundColor: 'background.paper', px: 1 }}>Country</InputLabel>
+              <StyledSelect
                 value={newUser.country}
                 onChange={(e) => setNewUser({ ...newUser, country: e.target.value })}
               >
@@ -756,12 +787,12 @@ function UserManagement() {
                 <MenuItem value="Germany">Germany</MenuItem>
                 <MenuItem value="Japan">Japan</MenuItem>
                 <MenuItem value="Other">Other</MenuItem>
-              </Select>
+              </StyledSelect>
             </FormControl>
             
             <FormControl fullWidth>
-              <InputLabel>Language</InputLabel>
-              <Select
+              <InputLabel sx={{ backgroundColor: 'background.paper', px: 1 }}>Language</InputLabel>
+              <StyledSelect
                 value={newUser.preferredLanguage}
                 onChange={(e) => setNewUser({ ...newUser, preferredLanguage: e.target.value })}
               >
@@ -769,10 +800,10 @@ function UserManagement() {
                 <MenuItem value="English">English</MenuItem>
                 <MenuItem value="German">German</MenuItem>
                 <MenuItem value="Japanese">Japanese</MenuItem>
-              </Select>
+              </StyledSelect>
             </FormControl>
             
-            <TextField
+            <StyledTextField
               label="Partner ID"
               value={newUser.partnerId}
               onChange={(e) => setNewUser({ ...newUser, partnerId: e.target.value })}
@@ -780,8 +811,8 @@ function UserManagement() {
             />
             
             <FormControl fullWidth>
-              <InputLabel>Themes</InputLabel>
-              <Select
+              <InputLabel sx={{ backgroundColor: 'background.paper', px: 1 }}>Themes</InputLabel>
+              <StyledSelect
                 multiple
                 value={newUser.themeIds}
                 onChange={(e) => setNewUser({ ...newUser, themeIds: e.target.value })}
@@ -798,15 +829,15 @@ function UserManagement() {
                     {theme.name.replace('_viewer', '').toUpperCase()}
                   </MenuItem>
                 ))}
-              </Select>
+              </StyledSelect>
             </FormControl>
 
             {/* Rights & Roles Section */}
             <Typography variant="h6" sx={{ mt: 3, mb: 1 }}>Rights & Roles</Typography>
             
             <FormControl fullWidth>
-              <InputLabel>Role</InputLabel>
-              <Select
+              <InputLabel sx={{ backgroundColor: 'background.paper', px: 1 }}>Role</InputLabel>
+              <StyledSelect
                 multiple
                 value={newUser.roleIds}
                 onChange={(e) => setNewUser({ ...newUser, roleIds: e.target.value })}
@@ -823,7 +854,7 @@ function UserManagement() {
                     {role.name.toUpperCase()}
                   </MenuItem>
                 ))}
-              </Select>
+              </StyledSelect>
             </FormControl>
 
             <FormControlLabel
@@ -839,21 +870,21 @@ function UserManagement() {
             {/* Dealer Data Section */}
             <Typography variant="h6" sx={{ mt: 3, mb: 1 }}>Dealer Data (Optional)</Typography>
             
-            <TextField
+            <StyledTextField
               label="Dealer ID"
               value={newUser.dealerId || ''}
               onChange={(e) => setNewUser({ ...newUser, dealerId: e.target.value })}
               fullWidth
             />
             
-            <TextField
+            <StyledTextField
               label="Dealer Name"
               value={newUser.dealerName || ''}
               onChange={(e) => setNewUser({ ...newUser, dealerName: e.target.value })}
               fullWidth
             />
             
-            <TextField
+            <StyledTextField
               label="Dealer FB Link"
               value={newUser.dealerFbLink || ''}
               onChange={(e) => setNewUser({ ...newUser, dealerFbLink: e.target.value })}
@@ -861,13 +892,48 @@ function UserManagement() {
             />
           </Box>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setAddUserDialog(false)} variant="outlined">
+        <DialogActions sx={{ padding: '12px 24px', display: 'flex', gap: '8px' }}>
+          <Button 
+            onClick={() => setAddUserDialog(false)} 
+            variant="outlined"
+            sx={{ 
+              color: theme.palette.primary.main,
+              borderColor: theme.palette.primary.main,
+              backgroundColor: '#fff',
+              borderRadius: '4px',
+              textTransform: 'uppercase',
+              fontWeight: '500',
+              minWidth: 'auto',
+              '&:hover': {
+                borderColor: theme.palette.primary.main,
+                backgroundColor: `${theme.palette.primary.main}12`
+              }
+            }}
+          >
             CANCEL
           </Button>
-          <PrimaryButton onClick={handleAddUser} variant="contained">
+          <Button 
+            onClick={handleAddUser} 
+            variant="contained"
+            sx={{
+              backgroundColor: theme.palette.primary.main,
+              color: '#fff',
+              textTransform: 'uppercase',
+              borderRadius: '4px',
+              fontWeight: '500',
+              minWidth: 'auto',
+              '&:hover': {
+                backgroundColor: theme.palette.primary.main,
+                opacity: 0.9
+              },
+              '&:disabled': {
+                backgroundColor: '#cccccc',
+                color: '#ffffff'
+              }
+            }}
+          >
             SUBMIT
-          </PrimaryButton>
+          </Button>
         </DialogActions>
       </Dialog>
 
@@ -879,13 +945,19 @@ function UserManagement() {
         fullWidth
       >
         <DialogTitle>Edit User</DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{
+          overflow: 'auto',
+          scrollbarWidth: 'none', // Firefox
+          '&::-webkit-scrollbar': {
+            display: 'none' // Chrome, Safari, Edge
+          }
+        }}>
           {editingUser && (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
               {/* Basic Data Section */}
               <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>Basic Data</Typography>
               
-              <TextField
+              <StyledTextField
                 label="First Name"
                 value={editingUser.firstName || (editingUser.name ? editingUser.name.split(' ')[0] : '')}
                 onChange={(e) => setEditingUser({ ...editingUser, firstName: e.target.value })}
@@ -895,14 +967,14 @@ function UserManagement() {
                 fullWidth
               />
               
-              <TextField
+              <StyledTextField
                 label="Last Name"
                 value={editingUser.lastName || (editingUser.name ? editingUser.name.split(' ').slice(1).join(' ') : '')}
                 onChange={(e) => setEditingUser({ ...editingUser, lastName: e.target.value })}
                 fullWidth
               />
               
-              <TextField
+              <StyledTextField
                 label="Email"
                 type="email"
                 value={editingUser.email || ''}
@@ -913,14 +985,14 @@ function UserManagement() {
                 fullWidth
               />
               
-              <TextField
+              <StyledTextField
                 label="Mobile"
                 value={editingUser.phone || ''}
                 onChange={(e) => setEditingUser({ ...editingUser, phone: e.target.value })}
                 fullWidth
               />
               
-              <TextField
+              <StyledTextField
                 label="New Password (leave empty to keep current)"
                 type="password"
                 value={editingUser.password || ''}
@@ -930,7 +1002,7 @@ function UserManagement() {
                 fullWidth
               />
               
-              <TextField
+              <StyledTextField
                 label="Address"
                 value={editingUser.address || ''}
                 onChange={(e) => setEditingUser({ ...editingUser, address: e.target.value })}
@@ -938,8 +1010,8 @@ function UserManagement() {
               />
               
               <FormControl fullWidth>
-                <InputLabel>Country</InputLabel>
-                <Select
+                <InputLabel sx={{ backgroundColor: 'background.paper', px: 1 }}>Country</InputLabel>
+                <StyledSelect
                   value={editingUser.country || ''}
                   onChange={(e) => setEditingUser({ ...editingUser, country: e.target.value })}
                 >
@@ -948,12 +1020,12 @@ function UserManagement() {
                   <MenuItem value="Germany">Germany</MenuItem>
                   <MenuItem value="Japan">Japan</MenuItem>
                   <MenuItem value="Other">Other</MenuItem>
-                </Select>
+                </StyledSelect>
               </FormControl>
               
               <FormControl fullWidth>
-                <InputLabel>Language</InputLabel>
-                <Select
+                <InputLabel sx={{ backgroundColor: 'background.paper', px: 1 }}>Language</InputLabel>
+                <StyledSelect
                   value={editingUser.preferredLanguage || ''}
                   onChange={(e) => setEditingUser({ ...editingUser, preferredLanguage: e.target.value })}
                 >
@@ -961,10 +1033,10 @@ function UserManagement() {
                   <MenuItem value="English">English</MenuItem>
                   <MenuItem value="German">German</MenuItem>
                   <MenuItem value="Japanese">Japanese</MenuItem>
-                </Select>
+                </StyledSelect>
               </FormControl>
               
-              <TextField
+              <StyledTextField
                 label="Partner ID"
                 value={editingUser.partnerId || ''}
                 onChange={(e) => setEditingUser({ ...editingUser, partnerId: e.target.value })}
@@ -972,8 +1044,8 @@ function UserManagement() {
               />
               
               <FormControl fullWidth>
-                <InputLabel>Themes</InputLabel>
-                <Select
+                <InputLabel sx={{ backgroundColor: 'background.paper', px: 1 }}>Themes</InputLabel>
+                <StyledSelect
                   multiple
                   value={editingUser.themeIds || []}
                   onChange={(e) => setEditingUser({ ...editingUser, themeIds: e.target.value })}
@@ -990,15 +1062,15 @@ function UserManagement() {
                       {theme.name.replace('_viewer', '').toUpperCase()}
                     </MenuItem>
                   ))}
-                </Select>
+                </StyledSelect>
               </FormControl>
 
               {/* Rights & Roles Section */}
               <Typography variant="h6" sx={{ mt: 3, mb: 1 }}>Rights & Roles</Typography>
               
               <FormControl fullWidth>
-                <InputLabel>Role</InputLabel>
-                <Select
+                <InputLabel sx={{ backgroundColor: 'background.paper', px: 1 }}>Role</InputLabel>
+                <StyledSelect
                   multiple
                   value={editingUser.roleIds || []}
                   onChange={(e) => setEditingUser({ ...editingUser, roleIds: e.target.value })}
@@ -1022,7 +1094,7 @@ function UserManagement() {
                       </Box>
                     </MenuItem>
                   ))}
-                </Select>
+                </StyledSelect>
               </FormControl>
 
               <FormControlLabel
@@ -1038,21 +1110,21 @@ function UserManagement() {
               {/* Dealer Data Section */}
               <Typography variant="h6" sx={{ mt: 3, mb: 1 }}>Dealer Data (Optional)</Typography>
               
-              <TextField
+              <StyledTextField
                 label="Dealer ID"
                 value={editingUser.dealerId || ''}
                 onChange={(e) => setEditingUser({ ...editingUser, dealerId: e.target.value })}
                 fullWidth
               />
               
-              <TextField
+              <StyledTextField
                 label="Dealer Name"
                 value={editingUser.dealerName || ''}
                 onChange={(e) => setEditingUser({ ...editingUser, dealerName: e.target.value })}
                 fullWidth
               />
               
-              <TextField
+              <StyledTextField
                 label="Dealer FB Link"
                 value={editingUser.dealerFbLink || ''}
                 onChange={(e) => setEditingUser({ ...editingUser, dealerFbLink: e.target.value })}
@@ -1061,13 +1133,48 @@ function UserManagement() {
             </Box>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEditUserDialog(false)} variant="outlined">
+        <DialogActions sx={{ padding: '12px 24px', display: 'flex', gap: '8px' }}>
+          <Button 
+            onClick={() => setEditUserDialog(false)} 
+            variant="outlined"
+            sx={{ 
+              color: theme.palette.primary.main,
+              borderColor: theme.palette.primary.main,
+              backgroundColor: '#fff',
+              borderRadius: '4px',
+              textTransform: 'uppercase',
+              fontWeight: '500',
+              minWidth: 'auto',
+              '&:hover': {
+                borderColor: theme.palette.primary.main,
+                backgroundColor: `${theme.palette.primary.main}12`
+              }
+            }}
+          >
             CANCEL
           </Button>
-          <PrimaryButton onClick={handleEditUser} variant="contained">
+          <Button 
+            onClick={handleEditUser} 
+            variant="contained"
+            sx={{
+              backgroundColor: theme.palette.primary.main,
+              color: '#fff',
+              textTransform: 'uppercase',
+              borderRadius: '4px',
+              fontWeight: '500',
+              minWidth: 'auto',
+              '&:hover': {
+                backgroundColor: theme.palette.primary.main,
+                opacity: 0.9
+              },
+              '&:disabled': {
+                backgroundColor: '#cccccc',
+                color: '#ffffff'
+              }
+            }}
+          >
             SUBMIT
-          </PrimaryButton>
+          </Button>
         </DialogActions>
       </Dialog>
 

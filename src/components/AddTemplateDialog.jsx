@@ -212,20 +212,19 @@ const ExcelUploadArea = styled(Box)(() => ({
 const CancelButton = styled(Button)(({ theme }) => ({
   borderRadius: '4px',
   borderStyle: 'solid',
-  borderColor: '#e6e6e6',
+  borderColor: theme.palette.primary.main || '#f16508',
   borderWidth: '1px',
   padding: '8px 16px',
-  color: '#4d4d4d',
+  color: theme.palette.primary.main || '#f16508',
   fontFamily: '"OpenSans-Regular", sans-serif',
   fontSize: '14px',
   lineHeight: '16px',
   fontWeight: 400,
-  textTransform: 'none',
+  textTransform: 'uppercase',
   background: '#ffffff',
-  boxShadow: '0px 1px 1px 0px rgba(0, 0, 0, 0.05)',
   '&:hover': {
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
     borderColor: theme.palette.primary.main || '#f16508',
+    backgroundColor: `${theme.palette.primary.main}12`,
   },
 }));
 
@@ -270,8 +269,9 @@ const AddSheetButton = styled(Button)(({ theme }) => ({
   fontWeight: 'var(--label-large-font-weight, 500)',
   textTransform: 'uppercase',
   '&:hover': {
-    backgroundColor: theme.palette.primary.dark || '#d5570a',
-    borderColor: theme.palette.primary.dark || '#d5570a',
+    backgroundColor: theme.palette.primary.main || '#f16508',
+    borderColor: theme.palette.primary.main || '#f16508',
+    opacity: 0.9,
   },
 }));
 
@@ -317,8 +317,13 @@ const SaveButton = styled(Button)(({ theme }) => ({
   fontWeight: 'var(--label-large-font-weight, 500)',
   textTransform: 'uppercase',
   '&:hover': {
-    backgroundColor: theme.palette.primary.dark || '#d5570a',
-    borderColor: theme.palette.primary.dark || '#d5570a',
+    backgroundColor: theme.palette.primary.main || '#f16508',
+    borderColor: theme.palette.primary.main || '#f16508',
+    opacity: 0.9,
+  },
+  '&:disabled': {
+    backgroundColor: '#cccccc',
+    color: '#666666',
   },
 }));
 

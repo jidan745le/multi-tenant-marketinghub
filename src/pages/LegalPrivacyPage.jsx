@@ -113,7 +113,7 @@ const LegalPrivacyPage = () => {
                   component="img"
                   src={legalPrivacyIllustration}
                   alt="Privacy Illustration"
-                  sx={{ width: { xs: '100%', md: 880 }, height: 'auto', objectFit: 'contain', mt: 0, transform: { xs: 'none', md: 'translateX(190px) translateY(-170px)' } }}
+                  sx={{ width: { xs: '100%', md: 880 }, height: 'auto', objectFit: 'contain', mt: 0, transform: { xs: 'none', md: 'translateX(280px) translateY(-155px)' } }}
                 />
               </Illustration>
             </Grid>

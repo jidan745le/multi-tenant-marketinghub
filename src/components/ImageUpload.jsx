@@ -1,4 +1,3 @@
-import DeleteIcon from '@mui/icons-material/Delete';
 import { Box, CircularProgress, IconButton } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import React, { useState } from 'react';
@@ -27,13 +26,14 @@ const IconButtonWrapper = styled(Box)(() => ({
   gap: '8px',
 }));
 
-const StyledIconButton = styled(IconButton)(() => ({
-  width: 30,
-  height: 30,
-  backgroundColor: 'transparent',
-  boxShadow: 'none',
+const StyledIconButton = styled(IconButton)(({ theme }) => ({
+  padding: 6,
+  color: theme.palette.text.primary,
   '&:hover': {
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+    backgroundColor: 'transparent',
+    '& .material-symbols-outlined': {
+      color: theme.palette.primary.main,
+    },
   },
 }));
 
@@ -121,17 +121,17 @@ const ImageUpload = ({ title, image, logoType, isUploading, onUpload, onDelete }
                 size="small"
                 onClick={handleEdit}
               >
-                <img 
-                  src="/assets/edit.svg" 
-                  alt="Edit" 
-                  style={{ width: 20, height: 20 }} 
-                />
+                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+                  edit
+                </span>
               </StyledIconButton>
               <StyledIconButton
                 size="small"
                 onClick={handleDelete}
               >
-                <DeleteIcon fontSize="small" color="error" />
+                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+                  delete
+                </span>
               </StyledIconButton>
             </IconButtonWrapper>
           </>

@@ -1,4 +1,4 @@
-import { Backdrop, Box } from '@mui/material';
+import { Backdrop, Box, CircularProgress } from '@mui/material';
 import CssBaseline from '@mui/material/CssBaseline';
 import React, { Suspense, useEffect } from 'react';
 import { Provider } from 'react-redux';
@@ -222,11 +222,9 @@ const LoadingFallback = () => (
       justifyContent: 'center',
       alignItems: 'center',
       height: '100vh',
-      fontSize: '18px',
-      color: 'text.secondary',
     }}
   >
-    Loading...
+    <CircularProgress />
   </Box>
 );
 

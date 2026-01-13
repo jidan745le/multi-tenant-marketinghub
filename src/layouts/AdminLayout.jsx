@@ -152,13 +152,14 @@ const adminMenuItems = [
   { id: 'theme-general-settings', label: 'Theme General Settings', iconName: 'settings' },
   { id: 'theme-configuration', label: 'Theme Configuration', iconName: 'Design_Services' },
   { id: 'derivate-management', label: 'Derivate Management', iconName: 'imagesmode' },
-  { id: 'channel-management', label: 'Channel Management', iconImage: '/assets/SymbolsIcon.png', isSpecial: true },
+  { id: 'channel-management', label: 'Channel Management', iconImage: '/assets/SymbolsIcon.svg', isSpecial: true },
   { id: 'legal', label: 'Legal', iconName: 'contract' },
   { id: 'communication-email', label: 'Communication & Email', iconName: 'email' },
   { 
     id: 'publications', 
     label: 'Publications', 
-    iconName: 'list',
+    iconImage: '/assets/publications_24px.svg',
+    isSpecial: true,
     hasSubMenu: true,
     subMenu: [
       { id: 'template-marketplace', label: 'Template Marketplace' },
@@ -168,7 +169,6 @@ const adminMenuItems = [
     ]
   },
   { id: 'data-sheet-config', label: 'Data Sheet Config', iconName: 'bar_chart' },
-  { id: 'mass-download', label: 'Mass Download', iconName: 'download_2' },
   { id: 'social-profile', label: 'Social Profile', iconName: 'public' },
   { id: 'user-management', label: 'User Management', iconName: 'group' },
 ];
@@ -305,8 +305,8 @@ function AdminLayout() {
                     {item.iconImage ? (
                       <Box
                         sx={{
-                          width: '24px',
-                          height: '24px',
+                          width: '20px',
+                          height: '20px',
                           maskImage: `url(${item.iconImage})`,
                           maskSize: 'contain',
                           maskRepeat: 'no-repeat',
