@@ -53,6 +53,10 @@ function LookAndFeel() {
   // 配置数据状态
   const [primaryColor, setPrimaryColor] = useState('');
   const [secondaryColor, setSecondaryColor] = useState('');
+  
+  // 字体和大小选择状态
+  const [selectedFont, setSelectedFont] = useState('Open Sans');
+  const [selectedSize, setSelectedSize] = useState('Medium');
 
   // 上传状态管理
   const [uploadingStates, setUploadingStates] = useState({
@@ -611,110 +615,216 @@ function LookAndFeel() {
       {/* Font & Size 部分 */}
       <SectionCard>
         <SectionTitle>Font & Size</SectionTitle>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+          {/* Font & Size 选择区域 */}
           <Box sx={{ flex: 1 }}>
-            <SubTitle>SELECT FONT</SubTitle>
-            <TextField
-              select
-              sx={{width:"60%"}}
-              defaultValue="Open Sans"
-              SelectProps={{
-                native: true,
-              }}
-            >
-              <option value="Open Sans">Open Sans</option>
-            </TextField>
-          </Box>
-          
-          <Box sx={{ flex: 1 }}>
-            <SubTitle>HEADINGS</SubTitle>
-            <Box sx={{ 
-              display: 'flex', 
-              flexDirection: 'column', 
-              gap: '28px' 
-            }}>
-              <Typography sx={{ 
-                fontFamily: '"Open Sans", sans-serif', 
-                fontSize: '48px', 
-                lineHeight: '56px', 
-                fontWeight: 700 
-              }}>
-                Heading 1
-              </Typography>
-              <Typography sx={{ 
-                fontFamily: '"Open Sans", sans-serif', 
-                fontSize: '36px', 
-                lineHeight: '44px', 
-                fontWeight: 600 
-              }}>
-                Heading 2
-              </Typography>
-              <Typography sx={{ 
-                fontFamily: '"Open Sans", sans-serif', 
-                fontSize: '30px', 
-                lineHeight: '38px', 
-                fontWeight: 600 
-              }}>
-                Heading 3
-              </Typography>
-              <Typography sx={{ 
-                fontFamily: '"Open Sans", sans-serif', 
-                fontSize: '24px', 
-                lineHeight: '32px', 
-                fontWeight: 600 
-              }}>
-                Heading 4
-              </Typography>
-              <Typography sx={{ 
-                fontFamily: '"Open Sans", sans-serif', 
-                fontSize: '20px', 
-                lineHeight: '28px', 
-                fontWeight: 600 
-              }}>
-                Heading 5
-              </Typography>
+            {/* 字体选择 */}
+            <Box sx={{ mb: 4 }}>
+              <SubTitle>SELECT FONT</SubTitle>
+              <Box sx={{ display: 'flex', gap: 1.5, mt: 2, flexWrap: 'wrap' }}>
+                {['Robot', 'Lato', 'Open Sans', 'New Roman'].map((font) => {
+                  const isSelected = selectedFont === font;
+                  const fontFamilyMap = {
+                    'Robot': 'Roboto',
+                    'Lato': 'Lato',
+                    'Open Sans': 'Open Sans',
+                    'New Roman': 'Times New Roman'
+                  };
+                  return (
+                    <Button
+                      key={font}
+                      onClick={() => setSelectedFont(font)}
+                      sx={{
+                        minWidth: '70px',
+                        height: '65px',
+                        border: `2px solid ${isSelected ? (primaryColor || themeColors.primary_color || '#f16508') : '#000000'}`,
+                        borderRadius: '4px',
+                        backgroundColor: '#ffffff',
+                        color: isSelected ? (primaryColor || themeColors.primary_color || '#f16508') : '#000000',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 0.3,
+                        textTransform: 'none',
+                        fontFamily: fontFamilyMap[font] || 'inherit',
+                        '&:hover': {
+                          backgroundColor: '#ffffff',
+                          borderColor: isSelected ? (primaryColor || themeColors.primary_color || '#f16508') : '#000000',
+                        }
+                      }}
+                    >
+                      <Typography
+                        sx={{
+                          fontSize: '20px',
+                          fontWeight: 400,
+                          color: 'inherit',
+                          fontFamily: 'inherit',
+                        }}
+                      >
+                        Ag
+                      </Typography>
+                      <Typography
+                        sx={{
+                          fontSize: '11px',
+                          fontWeight: 400,
+                          color: 'inherit',
+                          fontFamily: 'inherit',
+                        }}
+                      >
+                        {font}
+                      </Typography>
+                    </Button>
+                  );
+                })}
+              </Box>
+            </Box>
+            
+            {/* 大小选择 */}
+            <Box>
+              <SubTitle>SELECT FONT</SubTitle>
+              <Box sx={{ display: 'flex', gap: 1.5, mt: 2, flexWrap: 'wrap' }}>
+                {['Small', 'Medium', 'Large'].map((size) => {
+                  const isSelected = selectedSize === size;
+                  const sizeMap = {
+                    'Small': { fontSize: '14px', lineHeight: '20px' },
+                    'Medium': { fontSize: '16px', lineHeight: '24px' },
+                    'Large': { fontSize: '18px', lineHeight: '28px' }
+                  };
+                  const currentSize = sizeMap[size];
+                  return (
+                    <Button
+                      key={size}
+                      onClick={() => setSelectedSize(size)}
+                      sx={{
+                        minWidth: '70px',
+                        height: '65px',
+                        border: `2px solid ${isSelected ? (primaryColor || themeColors.primary_color || '#f16508') : '#000000'}`,
+                        borderRadius: '4px',
+                        backgroundColor: '#ffffff',
+                        color: isSelected ? (primaryColor || themeColors.primary_color || '#f16508') : '#000000',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 0.3,
+                        textTransform: 'none',
+                        '&:hover': {
+                          backgroundColor: '#ffffff',
+                          borderColor: isSelected ? (primaryColor || themeColors.primary_color || '#f16508') : '#000000',
+                        }
+                      }}
+                    >
+                      <Typography
+                        sx={{
+                          fontSize: currentSize.fontSize,
+                          lineHeight: currentSize.lineHeight,
+                          fontWeight: 400,
+                          color: 'inherit',
+                        }}
+                      >
+                        Ag
+                      </Typography>
+                      <Typography
+                        sx={{
+                          fontSize: '11px',
+                          fontWeight: 400,
+                          color: 'inherit',
+                        }}
+                      >
+                        {size}
+                      </Typography>
+                    </Button>
+                  );
+                })}
+              </Box>
             </Box>
           </Box>
           
+          {/* Title 区域 */}
+          <Box sx={{ flex: 1 }}>
+            <SubTitle>TITLE</SubTitle>
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: '28px',
+              mt: 2
+            }}>
+              {[1, 2, 3, 4, 5].map((level) => {
+                const fontFamilyMap = {
+                  'Robot': 'Roboto',
+                  'Lato': 'Lato',
+                  'Open Sans': 'Open Sans',
+                  'New Roman': 'Times New Roman'
+                };
+                const headingStyles = {
+                  1: { fontSize: '48px', lineHeight: '56px', fontWeight: 700 },
+                  2: { fontSize: '36px', lineHeight: '44px', fontWeight: 600 },
+                  3: { fontSize: '30px', lineHeight: '38px', fontWeight: 600 },
+                  4: { fontSize: '24px', lineHeight: '32px', fontWeight: 600 },
+                  5: { fontSize: '20px', lineHeight: '28px', fontWeight: 600 }
+                };
+                const style = headingStyles[level];
+                return (
+                  <Typography
+                    key={level}
+                    sx={{
+                      fontFamily: `"${fontFamilyMap[selectedFont] || 'Open Sans'}", sans-serif`,
+                      fontSize: style.fontSize,
+                      lineHeight: style.lineHeight,
+                      fontWeight: style.fontWeight,
+                      color: '#000000'
+                    }}
+                  >
+                    Heading {level}
+                  </Typography>
+                );
+              })}
+            </Box>
+          </Box>
+          
+          {/* Body 区域 */}
           <Box sx={{ flex: 1 }}>
             <SubTitle>BODY</SubTitle>
             <Box sx={{ 
               display: 'flex', 
               flexDirection: 'column', 
-              gap: '22px' 
+              gap: '22px',
+              mt: 2
             }}>
-              <Typography sx={{ 
-                fontFamily: '"Open Sans", sans-serif', 
-                fontSize: '16px', 
-                lineHeight: '24px', 
-                fontWeight: 400 
-              }}>
-                The quick brown fox jumps over the lazy dog
-              </Typography>
-              <Typography sx={{ 
-                fontFamily: '"Open Sans", sans-serif', 
-                fontSize: '16px', 
-                lineHeight: '24px', 
-                fontWeight: 600 
-              }}>
-                The quick brown fox jumps over the lazy dog
-              </Typography>
-              <Typography sx={{ 
-                fontFamily: '"Open Sans", sans-serif', 
-                fontSize: '16px', 
-                lineHeight: '24px', 
-                fontWeight: 700 
-              }}>
-                The quick brown fox jumps over the lazy dog
-              </Typography>
-              <Typography sx={{ 
-                fontFamily: '"Open Sans", sans-serif', 
-                fontSize: '16px', 
-                lineHeight: '24px', 
-                fontWeight: 800 
-              }}>
-                The quick brown fox jumps over the lazy dog
-              </Typography>
+              {[
+                { text: 'This is a regular body text', fontWeight: 400 },
+                { text: 'This is a semibold body text', fontWeight: 600 },
+                { text: 'This is a bold body text', fontWeight: 700 },
+                { text: 'This is a regular body text', fontWeight: 400 }
+              ].map((item, index) => {
+                const fontFamilyMap = {
+                  'Robot': 'Roboto',
+                  'Lato': 'Lato',
+                  'Open Sans': 'Open Sans',
+                  'New Roman': 'Times New Roman'
+                };
+                const sizeMap = {
+                  'Small': { fontSize: '14px', lineHeight: '20px' },
+                  'Medium': { fontSize: '16px', lineHeight: '24px' },
+                  'Large': { fontSize: '18px', lineHeight: '28px' }
+                };
+                const currentSize = sizeMap[selectedSize];
+                return (
+                  <Typography
+                    key={index}
+                    sx={{
+                      fontFamily: `"${fontFamilyMap[selectedFont] || 'Open Sans'}", sans-serif`,
+                      fontSize: currentSize.fontSize,
+                      lineHeight: currentSize.lineHeight,
+                      fontWeight: item.fontWeight,
+                      color: '#000000'
+                    }}
+                  >
+                    {item.text}
+                  </Typography>
+                );
+              })}
             </Box>
           </Box>
         </Box>
@@ -737,7 +847,7 @@ function LookAndFeel() {
         open={notification.open}
         autoHideDuration={6000}
         onClose={handleCloseNotification}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
         <Alert 
           onClose={handleCloseNotification} 

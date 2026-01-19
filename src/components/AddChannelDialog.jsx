@@ -451,6 +451,9 @@ const AddChannelDialog = ({ open, onClose, onSave, editData, copyData }) => {
         setSelectedFile(null);
       }, 300); //防止关闭时提前置空
       return () => clearTimeout(timer);
+    } else {
+      // 当对话框打开时，重置 snackbar 状态
+      setSnackbar({ open: false, message: '', severity: 'error' });
     }
   }, [open, iconBlobUrl]);
 
@@ -914,7 +917,7 @@ const AddChannelDialog = ({ open, onClose, onSave, editData, copyData }) => {
         open={snackbar.open}
         autoHideDuration={4000}
         onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
         <Alert
           onClose={handleCloseSnackbar}

@@ -33,6 +33,7 @@ import { styled, useTheme } from '@mui/material/styles';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useBrand } from '../hooks/useBrand';
 import UserManagementApiService from '../services/userManagementApi';
+import ConfirmDeleteDialog from '../components/ConfirmDeleteDialog';
 
 // Styled components
 const HeaderContainer = styled(Box)(() => ({
@@ -81,7 +82,7 @@ const PrimaryButton = styled(Button)(({ theme }) => ({
   },
   '&:disabled': {
     backgroundColor: theme.palette.action.disabled,
-    color: theme.palette.action.disabled,
+    color: '#666666',
   },
 }));
 
@@ -355,10 +356,13 @@ function UserManagement() {
   };
 
   const handleDeleteUser = async () => {
+    if (!userToDelete) return;
+    
+    const userId = userToDelete.id;
+    
     try {
-      await UserManagementApiService.deleteUser(userToDelete.id);
+      await UserManagementApiService.deleteUser(userId);
       showSnackbar('User deleted successfully');
-      setDeleteConfirmDialog(false);
       setUserToDelete(null);
       loadUsers();
     } catch (err) {
@@ -928,7 +932,7 @@ function UserManagement() {
               },
               '&:disabled': {
                 backgroundColor: '#cccccc',
-                color: '#ffffff'
+                color: '#666666'
               }
             }}
           >
@@ -1169,7 +1173,7 @@ function UserManagement() {
               },
               '&:disabled': {
                 backgroundColor: '#cccccc',
-                color: '#ffffff'
+                color: '#666666'
               }
             }}
           >
@@ -1178,24 +1182,19 @@ function UserManagement() {
         </DialogActions>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog
+      {/* 确认删除对话框 */}
+      <ConfirmDeleteDialog
         open={deleteConfirmDialog}
-        onClose={() => setDeleteConfirmDialog(false)}
-      >
-        <DialogTitle>Confirm Delete</DialogTitle>
-        <DialogContent>
-          <Typography>
-            Are you sure you want to delete user "{userToDelete?.name}"? This action cannot be undone.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteConfirmDialog(false)}>Cancel</Button>
-          <Button onClick={handleDeleteUser} variant="contained" color="error">
-            Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onClose={() => {
+          setDeleteConfirmDialog(false);
+          // 延迟清空
+          setTimeout(() => {
+            setUserToDelete(null);
+          }, 300);
+        }}
+        onConfirm={handleDeleteUser}
+        message={userToDelete ? `Are you sure want to delete user "${userToDelete.name}" ?` : 'Are you sure want to delete the record ?'}
+      />
 
 
       {/* Success/Error Snackbar */}

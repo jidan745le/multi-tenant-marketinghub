@@ -384,7 +384,7 @@ const AssetPagination = ({
               },
               '&:disabled': {
                 backgroundColor: '#e0e0e0', 
-                color: '#999999',
+                color: '#666666',
                 borderColor: '#e0e0e0',
               }
             }}

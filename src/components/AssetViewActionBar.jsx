@@ -62,7 +62,7 @@ const ActionButton = styled(Button)(({ themeColor }) => {
     },
     '&:disabled': {
       backgroundColor: '#f0f0f0',
-      color: '#999999',
+      color: '#666666',
       borderColor: '#e0e0e0',
     },
   };

@@ -201,7 +201,7 @@ const ReportDataIssueDialog = ({
             },
             '&:disabled': {
               backgroundColor: '#cccccc',
-              color: '#ffffff'
+              color: '#666666'
             },
             display: 'flex',
             alignItems: 'center',

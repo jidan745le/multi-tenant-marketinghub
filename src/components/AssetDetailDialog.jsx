@@ -73,10 +73,10 @@ const DetailsTitle = styled(Box)({
 const DetailsIcon = styled(Box)({
   width: '16px',
   height: '16px',
-  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M3 6h18M3 12h18M3 18h18'/%3E%3C/svg%3E")`,
-  backgroundRepeat: 'no-repeat',
-  backgroundPosition: 'center',
-  backgroundSize: 'contain'
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  flexShrink: 0
 });
 
 const DetailsText = styled(Typography)({
@@ -722,7 +722,15 @@ const AssetDetailDialog = ({
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             {assetError}
           </Typography>
-          <Button variant="outlined" onClick={refetch}>
+          <Button 
+            variant="outlined" 
+            onClick={refetch}
+            sx={(theme) => ({
+              '&:hover': {
+                borderColor: theme.palette.primary.main,
+              }
+            })}
+          >
             {t('common.retry')}
           </Button>
         </DialogContent>
@@ -764,7 +772,20 @@ const AssetDetailDialog = ({
             }}
           >
             <DetailsTitle>
-              <DetailsIcon />
+              <DetailsIcon>
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="2"
+                  width="16"
+                  height="16"
+                  style={{ display: 'block' }}
+                >
+                  <path d="M3 6h18M3 12h18M3 18h18" />
+                </svg>
+              </DetailsIcon>
             <DetailsText>{t(title)}</DetailsText>
           </DetailsTitle>
           {stableDialogConfig.show_close_button && (

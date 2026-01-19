@@ -815,7 +815,7 @@ const ProductMassDownloadDialog = ({
             },
             '&:disabled': {
               backgroundColor: '#cccccc',
-              color: '#ffffff'
+              color: '#666666'
             }
           }}
         >
@@ -893,7 +893,7 @@ const ProductMassDownloadDialog = ({
             },
             '&:disabled': {
               backgroundColor: '#cccccc',
-              color: '#ffffff'
+              color: '#666666'
             }
           }}
         >
@@ -1029,7 +1029,7 @@ const ProductMassDownloadDialog = ({
             },
             '&:disabled': {
               backgroundColor: '#cccccc',
-              color: '#ffffff'
+              color: '#666666'
             }
           }}
         >
@@ -1141,7 +1141,7 @@ const ProductMassDownloadDialog = ({
             },
             '&:disabled': {
               backgroundColor: '#cccccc',
-              color: '#ffffff'
+              color: '#666666'
             }
           }}
         >
@@ -1285,7 +1285,7 @@ const ProductMassDownloadDialog = ({
             },
             '&:disabled': {
               backgroundColor: '#cccccc',
-              color: '#ffffff'
+              color: '#666666'
             }
           }}
         >

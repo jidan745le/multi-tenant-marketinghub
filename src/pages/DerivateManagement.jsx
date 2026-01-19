@@ -90,7 +90,7 @@ const PrimaryButton = styled(Button)(({ theme }) => ({
   },
   '&:disabled': {
     backgroundColor: theme.palette.action.disabled,
-    color: theme.palette.action.disabled,
+    color: '#666666',
   },
 }));
 

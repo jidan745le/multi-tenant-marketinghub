@@ -16,6 +16,7 @@ import {
   MenuItem,
   Paper,
   Select,
+  Snackbar,
   Table,
   TableBody,
   TableCell,
@@ -29,6 +30,7 @@ import { styled } from '@mui/material/styles';
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import NewPublicationSpecDialog from '../components/NewPublicationSpecDialog';
 import UploadDialog from '../components/UploadDialog';
+import ConfirmDeleteDialog from '../components/ConfirmDeleteDialog';
 import templateApi from '../services/templateApi';
 import fileApi from '../services/fileApi';
 import CookieService from '../utils/cookieService';
@@ -414,6 +416,9 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
     
     // 行编辑模式状态
     const [editingRows, setEditingRows] = useState(new Set());
+    
+    const [confirmDialog, setConfirmDialog] = useState({ open: false, rowId: null });
+    const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
 
     // 加载带认证的图片
     const loadAuthenticatedImage = useCallback(async (imageUrl, templateId) => {
@@ -763,11 +768,14 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
       });
     };
 
-    // 删除
-    const handleDeleteClick = async (rowId) => {
-      if (!window.confirm('Are you sure you want to delete this record? This action cannot be undone.')) {
-        return;
-      }
+    const handleDeleteClick = (rowId) => {
+      setConfirmDialog({ open: true, rowId });
+    };
+    
+    // 确认删除
+    const handleConfirmDelete = async () => {
+      const rowId = confirmDialog.rowId;
+      setConfirmDialog({ open: false, rowId: null });
 
       try {
         setData(prevData => prevData.filter(row => row.id !== rowId));
@@ -775,6 +783,7 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
         await templateApi.deleteTemplate(rowId);
         
         console.log('Template deleted successfully:', rowId);
+        setNotification({ open: true, message: 'Record deleted successfully', severity: 'success' });
 
         const apiData = await templateApi.getTemplates();
         let transformedData = transformApiData(Array.isArray(apiData) ? apiData : (apiData._embedded?.templates || apiData.content || []));
@@ -783,6 +792,7 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
         setError(null);
       } catch (error) {
         console.error('Failed to delete template:', error);
+        setNotification({ open: true, message: `Failed to delete: ${error.message}`, severity: 'error' });
         try {
           const apiData = await templateApi.getTemplates();
           let transformedData = transformApiData(Array.isArray(apiData) ? apiData : (apiData._embedded?.templates || apiData.content || []));
@@ -791,8 +801,16 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
         } catch (refreshError) {
           console.error('Failed to refresh data after delete error:', refreshError);
         }
-        setError(`Failed to delete: ${error.message}`);
       }
+    };
+    
+    const handleCloseConfirmDialog = () => {
+      setConfirmDialog({ open: false, rowId: null });
+    };
+    
+    // 关闭通知
+    const handleCloseNotification = () => {
+      setNotification({ ...notification, open: false });
     };
 
     return (
@@ -1462,6 +1480,41 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
           onCancel={handleCloseUploadDialog}
           uploadType={uploadType}
         />
+
+        {/* 确认删除对话框 */}
+        <ConfirmDeleteDialog
+          open={confirmDialog.open}
+          onClose={handleCloseConfirmDialog}
+          onConfirm={handleConfirmDelete}
+          message="Are you sure want to delete the record ?"
+        />
+
+        {/* 通知消息 */}
+        <Snackbar
+          open={notification.open}
+          autoHideDuration={4000}
+          onClose={handleCloseNotification}
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        >
+          <Alert
+            onClose={handleCloseNotification}
+            severity={notification.severity}
+            variant="filled"
+            sx={(theme) => ({
+              backgroundColor: notification.severity === 'success'
+                ? theme.palette.primary.main
+                : undefined,
+              '&.MuiAlert-filledSuccess': {
+                backgroundColor: theme.palette.primary.main,
+              },
+              '&.MuiAlert-filledError': {
+                backgroundColor: theme.palette.error.main,
+              }
+            })}
+          >
+            {notification.message}
+          </Alert>
+        </Snackbar>
       </Box>
     );
   }
