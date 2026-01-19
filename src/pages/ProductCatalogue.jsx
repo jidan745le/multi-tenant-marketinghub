@@ -96,23 +96,6 @@ function ProductCataloguePage() {
         onMassSearch={handleMassSearch}
       />
       
-      {/* 产品详情加载状态提示 */}
-      {loadingProductDetail && (
-        <div style={{
-          position: 'fixed',
-          bottom: '20px',
-          right: '20px',
-          background: '#2196F3',
-          color: 'white',
-          padding: '12px 20px',
-          borderRadius: '4px',
-          boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
-          zIndex: 1000
-        }}>
-          🔍 Loading product details...
-        </div>
-      )}
-      
       {/* 产品详情错误提示 */}
       {productDetailError && (
         <div style={{

@@ -708,7 +708,7 @@ const MediaDownloadDialog = ({
         )}
       </DialogContent>
 
-      <DialogActions sx={{ padding: '12px 24px', display: 'flex', gap: '8px' }}>
+      <DialogActions sx={{ padding: '12px 24px 24px 24px', display: 'flex', gap: '8px' }}>
         <Button
           variant="outlined"
           onClick={handleClose}

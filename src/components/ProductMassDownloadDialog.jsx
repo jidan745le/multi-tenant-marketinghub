@@ -476,8 +476,8 @@ const ProductMassDownloadDialog = ({
 
     return (
     <>
-      <DialogTitle>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 2, mb: 2 }}>
+      <DialogTitle sx={{ padding: '24px 20px 24px 20px' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#333' }}>
               download
@@ -496,9 +496,6 @@ const ProductMassDownloadDialog = ({
             aria-label="close"
             onClick={handleClose}
             sx={{
-              position: 'absolute',
-              right: 8,
-              top: 8,
               color: theme?.palette.grey[500]
             }}
           >
@@ -780,7 +777,7 @@ const ProductMassDownloadDialog = ({
         </Box>
       </DialogContent>
 
-      <DialogActions sx={{ padding: '12px 24px', display: 'flex', gap: '8px' }}>
+      <DialogActions sx={{ padding: '12px 24px 24px 24px', display: 'flex', gap: '8px' }}>
         <Button
           variant="outlined"
           onClick={handleClose}
@@ -1153,7 +1150,7 @@ const ProductMassDownloadDialog = ({
 
   // Download options dialog
   const downloadOptionsContent = () => (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: 3, pb: '24px' }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <span className="material-symbols-outlined" style={{ fontSize: '24px', color: '#333' }}>
@@ -1181,7 +1178,7 @@ const ProductMassDownloadDialog = ({
 
       <RadioGroup value={downloadOption} onChange={(e) => setDownloadOption(e.target.value)} sx={{ gap: 2 }}>
         {/* Wait for Download */}
-        <Box sx={{ display: 'flex', gap: 1 }}>
+        <Box sx={{ display: 'flex', gap: '7px' }}>
           <Radio
             value="direct"
             sx={{ color: '#cccccc', '&.Mui-checked': { color: theme.palette.primary.main } }}
@@ -1197,7 +1194,7 @@ const ProductMassDownloadDialog = ({
         </Box>
 
         {/* Send to Email */}
-        <Box sx={{ display: 'flex', gap: 1 }}>
+        <Box sx={{ display: 'flex', gap: '7px' }}>
           <Radio
             value="email"
             sx={{ color: '#cccccc', '&.Mui-checked': { color: theme.palette.primary.main } }}
@@ -1214,7 +1211,7 @@ const ProductMassDownloadDialog = ({
 
         {/* Send to Others */}
         <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <Box sx={{ display: 'flex', gap: '7px' }}>
             <Radio
               value="other"
               sx={{ color: '#cccccc', '&.Mui-checked': { color: theme.palette.primary.main } }}
@@ -1251,7 +1248,7 @@ const ProductMassDownloadDialog = ({
         </Box>
       </RadioGroup>
 
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', mt: 4 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: '16px', mt: 4 }}>
         <Button
           variant="outlined"
           onClick={() => setCurrentStep('formats')}
