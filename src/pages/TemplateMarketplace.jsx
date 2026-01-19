@@ -7,10 +7,13 @@ import fileApi from '../services/fileApi';
 import CookieService from '../utils/cookieService';
 
 // 样式化组件
-const PageContainer = styled(Box)(() => ({
+const PageContainer = styled(Box)(({ theme }) => ({
   background: '#f5f5f5',
   position: 'relative',
-  padding: '50px 55px',
+  paddingTop: theme.spacing(6),
+  paddingLeft: theme.spacing(5),
+  paddingRight: theme.spacing(5),
+  paddingBottom: theme.spacing(6),
   overflow: 'visible',
   width: '100%',
   minHeight: '85vh',
@@ -19,18 +22,19 @@ const PageContainer = styled(Box)(() => ({
   justifyContent: 'flex-start',
 }));
 
-const BackgroundBox = styled(Box)(() => ({
+const BackgroundBox = styled(Box)(({ theme }) => ({
   background: '#ffffff',
   minWidth: '1100px',
   width: '100%',
   minHeight: 'auto',
   position: 'relative',
   overflow: 'visible',
-  padding: '50px 39px',
+  padding: theme.spacing(3),
   display: 'flex',
   flexDirection: 'column',
   boxSizing: 'border-box',
   alignSelf: 'flex-start', // 防止拉伸，保持顶部对齐
+  borderRadius: '4px',
 }));
 
 const ContentWrapper = styled(Box)(() => ({
@@ -45,18 +49,10 @@ const ContentWrapper = styled(Box)(() => ({
 const TitleContainer = styled(Box)(() => ({
   display: 'flex',
   flexDirection: 'row',
-  justifyContent: 'center', 
+  justifyContent: 'flex-start', 
   width: '100%',
   marginTop: '18px',
   marginBottom: '20px',
-}));
-
-const TitleContent = styled(Box)(() => ({
-  display: 'flex',
-  flexDirection: 'row',
-  width: '100%',
-  maxWidth: 'calc(750px * 2 + 24px)', 
-  justifyContent: 'flex-start', // 标题内容左对齐
 }));
 
 const MarketplaceTitle = styled(Typography)(() => ({
@@ -262,11 +258,12 @@ const PreviewContent = styled(Box)(() => ({
   minWidth: '180px', 
   width: '100%',
   maxWidth: '320px',
-  minHeight: '440px', 
-  height: '440px',
-  maxHeight: '450px',
   position: 'relative',
   overflow: 'hidden',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  aspectRatio: '320 / 450', // 保持宽高比，基于常见的 PDF 预览比例
 }));
 
 function TemplateMarketplace() {
@@ -478,9 +475,7 @@ function TemplateMarketplace() {
       <BackgroundBox>
         <ContentWrapper>
           <TitleContainer>
-            <TitleContent>
-              <MarketplaceTitle>Marketplace</MarketplaceTitle>
-            </TitleContent>
+            <MarketplaceTitle>Marketplace</MarketplaceTitle>
           </TitleContainer>
           
           <TemplatesContainer>
@@ -568,13 +563,14 @@ function TemplateMarketplace() {
                             width: '100%',
                             height: '100%',
                             objectFit: 'contain',
+                            display: 'block',
                           }}
                         />
                       ) : (
                         <Box
                           sx={{
                             width: '100%',
-                            height: '100%',
+                            minHeight: '440px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',

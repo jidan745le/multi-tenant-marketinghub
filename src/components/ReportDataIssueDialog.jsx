@@ -117,7 +117,20 @@ const ReportDataIssueDialog = ({
       }}
     >
       <DialogTitle>
-        <Typography sx={{ fontSize: '20px', fontWeight: 600, color: '#333333', fontFamily: '"Open Sans", sans-serif' }}>{t('pdp.reportDataIssue')}</Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box
+            component="img"
+            src="/assets/report_24px.svg"
+            alt="report"
+            sx={{
+              width: '22px',
+              height: '22px',
+              display: 'block',
+              // color: '#333333'
+            }}
+          />
+          <Typography sx={{ fontSize: '20px', fontWeight: 600, color: '#333333', fontFamily: '"Open Sans", sans-serif' }}>{t('pdp.reportDataIssue')}</Typography>
+        </Box>
       </DialogTitle>
       <DialogContent sx={{ pt: 1 }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

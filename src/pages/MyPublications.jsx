@@ -5,10 +5,13 @@ import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import templateApi from '../services/templateApi';
 
 // 样式化组件
-const PageContainer = styled(Box)(() => ({
+const PageContainer = styled(Box)(({ theme }) => ({
   background: '#f5f5f5',
   position: 'relative',
-  padding: '50px 55px',
+  paddingTop: theme.spacing(6),
+  paddingLeft: theme.spacing(5),
+  paddingRight: theme.spacing(5),
+  paddingBottom: theme.spacing(6),
   overflow: 'visible', 
   width: '100%',
   height: '85vh', // 使用视口高度
@@ -16,7 +19,7 @@ const PageContainer = styled(Box)(() => ({
   flexDirection: 'column',
 }));
 
-const BackgroundBox = styled(Box)(() => ({
+const BackgroundBox = styled(Box)(({ theme }) => ({
   background: '#ffffff',
   minWidth: '1180px',
   width: '100%', 
@@ -24,10 +27,11 @@ const BackgroundBox = styled(Box)(() => ({
   flex: 1, 
   position: 'relative', 
   overflow: 'visible',
-  padding: '36px 39px', 
+  padding: theme.spacing(3), 
   display: 'flex',
   flexDirection: 'column',
   boxSizing: 'border-box',
+  borderRadius: '4px',
 }));
 
 const PublicationsTitle = styled(Typography)(() => ({
