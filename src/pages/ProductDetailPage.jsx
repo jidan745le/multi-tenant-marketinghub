@@ -2401,9 +2401,18 @@ const ProductDetailPage = () => {
                 products={productData.referenceRelationship.components.map(component => ({
                   image: component.imageUrl ? `https://pim-test.kendo.com${component.imageUrl}` : componentImage1,
                   name: component.productName || '',
-                  code: component.productNumber || ''
+                  code: component.productNumber || '',
+                  redirectId: component.redirectId || ''
                 }))}
-                onProductClick={(product, index) => console.log('Component Product clicked:', product, index)}
+                onProductClick={(product, index) => {
+                  console.log('Component Product clicked:', product, index);
+                  if (product.code && product.redirectId) {
+                    const currentLayout = searchParams.get('layout') || 'internalPDPBasic';
+                    const encoded = parseLayoutFromUrl(currentLayout);
+                    const newUrl = `/${currentLanguage}/${currentBrandCode}/product-detail/${product.redirectId}?layout=${encoded}`;
+                    window.open(newUrl, '_blank', 'noopener,noreferrer');
+                  }
+                }}
                 onImageClick={(product, index) => console.log('Component Image clicked:', product, index)}
               />
             </Box>
@@ -2411,7 +2420,15 @@ const ProductDetailPage = () => {
             <Box sx={{ mb: 3 }}>
               <ProductCardGrid 
                 products={[]}
-                onProductClick={(product, index) => console.log('Component Product clicked:', product, index)}
+                onProductClick={(product, index) => {
+                  console.log('Component Product clicked:', product, index);
+                  if (product.code) {
+                    const currentLayout = searchParams.get('layout') || 'internalPDPBasic';
+                    const encoded = parseLayoutFromUrl(currentLayout);
+                    const newUrl = `/${currentLanguage}/${currentBrandCode}/product-detail/${product.code}?layout=${encoded}`;
+                    window.open(newUrl, '_blank', 'noopener,noreferrer');
+                  }
+                }}
                 onImageClick={(product, index) => console.log('Component Image clicked:', product, index)}
               />
             </Box>
