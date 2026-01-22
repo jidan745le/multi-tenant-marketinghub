@@ -132,7 +132,7 @@ export const newProductListConfigs = [
     },
     {
         order: 51,
-        label: 'Created',
+        label: 'Launch Date',
         component: 'checkbox',
         key: 'created',
         type: 'array',
@@ -161,7 +161,7 @@ export const fetchNewProductsAPI = async (params) => {
             objectType: p.objectType,
             productType: p.productType,
             name: p.name?.substring(0, 30) + '...',
-            onlineDate: p._graphqlData?.OnlineDate || 'Unknown'
+            firstShipmentDate: p._graphqlData?.FirstShipmentDate || 'Unknown'
         })));
 
         // 确保返回格式完全兼容ConfigurableProductGrid组件

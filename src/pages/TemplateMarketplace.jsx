@@ -334,7 +334,7 @@ function TemplateMarketplace() {
           template.templateTypeName === 'Global' ||
           template.templateType === 'Global'
         );
-        console.log('globalTemplates1111', globalTemplates);
+        console.log('globalTemplates', globalTemplates);
         setTemplates(globalTemplates);
         
         // 加载所有模板的图片

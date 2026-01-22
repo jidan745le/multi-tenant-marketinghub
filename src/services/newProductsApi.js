@@ -5,7 +5,7 @@ const GRAPHQL_API_URL = '/apis/kendo/products';
 const API_KEY = '4fe5b9cb2dc6015250c46f9332c195ae';
 
 /**
- * 构建新产品GraphQL查询（包含OnlineDate过滤）
+ * 构建新产品GraphQL查询（包含FirstShipmentDate过滤）
  * @param {Object} filters - 筛选条件
  * @param {number} first - 获取数量
  * @param {number} after - 偏移量
@@ -27,7 +27,7 @@ const buildNewProductsQuery = (filters = {}, first = 100, after = 0, brand = 'ke
     "objectType": { "$like": "virtual-product" }
   });
 
-  // 新产品基础筛选：Online date was in the last 12 months（默认条件）
+  // 新产品基础筛选：FirstShipmentDate was in the last 12 months（默认条件）
   const now = new Date();
   const twelveMonthsAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
   const twelveMonthsAgoStr = twelveMonthsAgo.toISOString().split('T')[0];
@@ -35,7 +35,7 @@ const buildNewProductsQuery = (filters = {}, first = 100, after = 0, brand = 'ke
   // 如果没有Created筛选，应用默认的12个月筛选
   if (!filters['created'] || filters['created'].length === 0) {
     filterConditions.push({
-      "OnlineDate": { "$gte": twelveMonthsAgoStr }
+      "FirstShipmentDate": { "$gte": twelveMonthsAgoStr }
     });
   }
 
@@ -115,17 +115,17 @@ const buildNewProductsQuery = (filters = {}, first = 100, after = 0, brand = 'ke
       switch (period) {
         case 'last-12-months': {
           const twelveMonthsAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
-          return { "OnlineDate": { "$gte": twelveMonthsAgo.toISOString().split('T')[0] } };
+          return { "FirstShipmentDate": { "$gte": twelveMonthsAgo.toISOString().split('T')[0] } };
         }
 
         case 'last-6-months': {
           const sixMonthsAgo = new Date(now.setMonth(now.getMonth() - 6));
-          return { "OnlineDate": { "$gte": sixMonthsAgo.toISOString().split('T')[0] } };
+          return { "FirstShipmentDate": { "$gte": sixMonthsAgo.toISOString().split('T')[0] } };
         }
 
         case 'coming-soon':
-          // Coming Soon: Online Date为空
-          return { "OnlineDate": { "$like": "" } };
+          // Coming Soon: FirstShipmentDate为空
+          return { "FirstShipmentDate": { "$like": "" } };
 
         default:
           return null;
@@ -160,7 +160,7 @@ const buildNewProductsQuery = (filters = {}, first = 100, after = 0, brand = 'ke
           CategoryID
           Application
           objectType
-          OnlineDate
+          FirstShipmentDate
           children {
             __typename
             ...on object_Product {
