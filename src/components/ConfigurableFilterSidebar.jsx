@@ -1,3 +1,4 @@
+import CloseIcon from '@mui/icons-material/Close';
 import {
   Autocomplete,
   Box,
@@ -20,7 +21,6 @@ import {
   TextareaAutosize,
   Typography
 } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
 import { styled, useTheme } from '@mui/material/styles';
 import React, { useEffect, useState } from 'react';
 import MassSearch from './MassSearch';
@@ -950,7 +950,9 @@ const ConfigurableFilterSidebar = ({
                 onClose={() => setDialogOpen(false)}
                 initialValue={dialogContent}
                 description={currentChildItem?.desc || 'Please paste multiple SKU codes separated by semicolons.'}
+                fieldKey={currentItem?.key || 'sku-code'}
                 onConfirm={(value) => {
+                  // value 已经是处理后的 found 值（如果有 notFound 的话）
                   setDialogContent(value);
                   if (currentItem) {
                     handleValueChange(currentItem.key, value);
@@ -983,10 +985,13 @@ const ConfigurableFilterSidebar = ({
               onClose={() => setDialogOpen(false)}
               initialValue={dialogContent}
               description={currentChildItem?.desc || 'Please paste multiple value for Model No & Model Name below.'}
-              onConfirm={(value) => {
-                setDialogContent(value);
+              fieldKey={currentItem?.key || 'model-number'}
+              onConfirm={(value, found, notFound) => {
+                // 如果有 notFound，只使用 found 的值进行搜索
+                const searchValue = (notFound && notFound.length > 0 && found && found.length > 0) ? value : value;
+                setDialogContent(searchValue);
                 if (currentItem) {
-                  handleValueChange(currentItem.key, value);
+                  handleValueChange(currentItem.key, searchValue);
                 }
                 setDialogOpen(false);
                 onMassSearch?.(currentItem, currentChildItem);

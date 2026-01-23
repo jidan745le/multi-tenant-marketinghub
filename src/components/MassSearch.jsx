@@ -11,6 +11,8 @@ import {
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { useEffect, useRef, useState } from 'react';
+import { useBrand } from '../hooks/useBrand';
+import { validateModelNumbers, validateSKUCodes } from '../services/graphqlApi';
 
 const MassSearchContainer = styled(Box)(() => ({
   background: '#ffffff',
@@ -486,13 +488,16 @@ const MassSearch = ({
   onClose, 
   initialValue = '', 
   onConfirm,
-  description = 'Please paste multiple value for Model No & Model Name below.'
+  description = 'Please paste multiple value for Model No & Model Name below.',
+  fieldKey = 'model-number' // 'sku-code' or 'model-number'
 }) => {
   const theme = useTheme();
+  const { currentBrandCode } = useBrand();
   const [inputValue, setInputValue] = useState(initialValue);
   const [foundItems, setFoundItems] = useState([]);
   const [notFoundItems, setNotFoundItems] = useState([]);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [validating, setValidating] = useState(false);
   const textareaRef = useRef(null);
 
   // 初始化
@@ -513,7 +518,7 @@ const MassSearch = ({
     }
   };
 
-  const performValidation = () => {
+  const performValidation = async () => {
     if (!inputValue.trim()) {
       return { found: [], notFound: [] };
     }
@@ -528,29 +533,71 @@ const MassSearch = ({
       return { found: [], notFound: [] };
     }
 
-    // 实际应该从 API 获取
-    // 模拟数据，后面会改
-    const found = values.slice(0, Math.floor(values.length * 0.65));
-    const notFound = values.slice(Math.floor(values.length * 0.65));
-    
-    return { found, notFound };
+    try {
+      setValidating(true);
+      let validCodes = [];
+
+      if (fieldKey === 'sku-code') {
+        // Validate SKU codes
+        validCodes = await validateSKUCodes(values, currentBrandCode);
+      } else if (fieldKey === 'model-number') {
+        // Validate model numbers
+        validCodes = await validateModelNumbers(values, currentBrandCode);
+      }
+
+      // Find which codes are valid and which are not
+      // Normalize both input and valid codes for comparison (case-insensitive, trimmed)
+      const normalizedValidCodes = validCodes.map(c => c.trim().toLowerCase());
+      const found = values.filter(v => {
+        const normalizedInput = v.trim().toLowerCase();
+        return normalizedValidCodes.some(validCode => {
+          // Check if the input matches any valid code (case-insensitive)
+          return validCode === normalizedInput;
+        });
+      });
+      const notFound = values.filter(v => {
+        const normalizedInput = v.trim().toLowerCase();
+        return !normalizedValidCodes.some(validCode => validCode === normalizedInput);
+      });
+      
+      return { found, notFound };
+    } catch (error) {
+      console.error('Validation error:', error);
+      // On error, treat all as not found
+      return { found: [], notFound: values };
+    } finally {
+      setValidating(false);
+    }
   };
 
-  const handleValidate = () => {
-    const { found, notFound } = performValidation();
+  const handleValidate = async () => {
+    const { found, notFound } = await performValidation();
     setFoundItems(found);
     setNotFoundItems(notFound);
   };
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     // 先执行验证并更新显示
-    const { found, notFound } = performValidation();
+    const { found, notFound } = await performValidation();
     setFoundItems(found);
     setNotFoundItems(notFound);
     
     // 调用 onConfirm 并关闭对话框
+    // 如果有 notFound，只使用 found 的项目进行搜索
     if (onConfirm) {
-      onConfirm(inputValue, found, notFound);
+      if (notFound.length > 0) {
+        // 如果有 notFound，只使用 found 的项目进行搜索
+        if (found.length > 0) {
+          const foundValue = found.join(';');
+          onConfirm(foundValue, found, notFound);
+        } else {
+          // 如果全部都是 notFound，使用空值（不搜索）
+          onConfirm('', found, notFound);
+        }
+      } else {
+        // 如果没有 notFound，使用原始输入值
+        onConfirm(inputValue, found, notFound);
+      }
     }
     onClose();
   };
@@ -623,9 +670,9 @@ const MassSearch = ({
                 <ClearButton onClick={handleClear}>CLEAR</ClearButton>
                 <ValidateButton 
                   onClick={handleValidate}
-                  disabled={!inputValue.trim()}
+                  disabled={!inputValue.trim() || validating}
                 >
-                  VALIDATE
+                  {validating ? 'VALIDATING...' : 'VALIDATE'}
                 </ValidateButton>
               </ButtonContainer>
             </TextAreaContainer>
@@ -699,9 +746,9 @@ const MassSearch = ({
           <ClearButton onClick={onClose}>CANCEL</ClearButton>
           <SearchButton 
             onClick={handleSearch}
-            disabled={!inputValue.trim()}
+            disabled={!inputValue.trim() || validating}
           >
-            SEARCH
+            {validating ? 'VALIDATING...' : 'SEARCH'}
           </SearchButton>
         </ActionButtons>
       </MassSearchContainer>
