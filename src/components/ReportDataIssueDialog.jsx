@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Box, Typography, CircularProgress } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Box, Typography, CircularProgress, Snackbar, Alert, Portal } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../hooks/useTheme';
 import { useTranslationLoader } from '../hooks/useTranslationLoader';
@@ -26,6 +26,7 @@ const ReportDataIssueDialog = ({
   const [comment, setComment] = React.useState(initialComment);
   const [reportedUser, setReportedUser] = React.useState(initialUser);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [notification, setNotification] = React.useState({ open: false, message: '', severity: 'success' });
 
   const [effectiveMailTo, setEffectiveMailTo] = React.useState(mailTo);
   
@@ -58,12 +59,20 @@ const ReportDataIssueDialog = ({
 
     // 基本验证
     if (!trimmedComment) {
-      alert(t('pdp.commentRequired') || 'Comment is required');
+      setNotification({
+        open: true,
+        message: t('pdp.commentRequired') || 'Comment is required',
+        severity: 'warning'
+      });
       return;
     }
     
     if (!trimmedUser) {
-      alert(t('pdp.reporterRequired') || 'Reporter is required');
+      setNotification({
+        open: true,
+        message: t('pdp.reporterRequired') || 'Reporter is required',
+        severity: 'warning'
+      });
       return;
     }
 
@@ -81,10 +90,17 @@ const ReportDataIssueDialog = ({
       if (onSuccess) {
         onSuccess({ comment: trimmedComment, reportedUser: trimmedUser });
       } else {
-        alert(t('pdp.feedbackSubmitted') || 'Feedback submitted successfully');
+        setNotification({
+          open: true,
+          message: t('pdp.feedbackSubmitted') || 'Feedback submitted successfully',
+          severity: 'success'
+        });
       }
       
-      onClose();
+      // 延迟关闭 Dialog，让通知先显示
+      setTimeout(() => {
+        onClose();
+      }, 100);
       
     } catch (error) {
       console.error('Failed to send feedback:', error);
@@ -93,29 +109,39 @@ const ReportDataIssueDialog = ({
       if (onError) {
         onError(error);
       } else {
-        alert(t('pdp.feedbackError') || `Failed to submit feedback !.`);
+        setNotification({
+          open: true,
+          message: t('pdp.feedbackError') || 'Failed to submit feedback!',
+          severity: 'error'
+        });
+        // 错误时不关闭 Dialog，让用户看到错误信息
       }
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const handleCloseNotification = () => {
+    setNotification({ ...notification, open: false });
+  };
+
   return (
-    <Dialog
-      open={open}
-      disableEscapeKeyDown
-      disableBackdropClick
-      maxWidth="md"
-      fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: '4px',
-          boxShadow: '0px 10px 25px rgba(0,0,0,0.25)',
-          width: '600px',
-          maxWidth: '90vw'
-        }
-      }}
-    >
+    <>
+      <Dialog
+        open={open}
+        disableEscapeKeyDown
+        disableBackdropClick
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '4px',
+            boxShadow: '0px 10px 25px rgba(0,0,0,0.25)',
+            width: '600px',
+            maxWidth: '90vw'
+          }
+        }}
+      >
       <DialogTitle>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Box
@@ -225,7 +251,40 @@ const ReportDataIssueDialog = ({
           {isSubmitting ? (t('common.submitting') || 'Submitting...') : t('common.submit')}
         </Button>
       </DialogActions>
-    </Dialog>
+      </Dialog>
+      
+      {/* 通知消息 */}
+      <Portal>
+        <Snackbar
+          open={notification.open}
+          autoHideDuration={6000}
+          onClose={handleCloseNotification}
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        >
+          <Alert 
+            onClose={handleCloseNotification} 
+            severity={notification.severity}
+            variant="filled"
+            sx={(theme) => ({
+              backgroundColor: notification.severity === 'success'
+                ? theme.palette.primary.main
+                : undefined,
+              '&.MuiAlert-filledSuccess': {
+                backgroundColor: theme.palette.primary.main,
+              },
+              '&.MuiAlert-filledError': {
+                backgroundColor: theme.palette.error.main,
+              },
+              '&.MuiAlert-filledWarning': {
+                backgroundColor: theme.palette.warning.main,
+              }
+            })}
+          >
+            {notification.message}
+          </Alert>
+        </Snackbar>
+      </Portal>
+    </>
   );
 };
 

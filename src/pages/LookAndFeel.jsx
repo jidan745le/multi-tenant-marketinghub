@@ -291,7 +291,7 @@ function LookAndFeel() {
         [logoType]: false
       }));
       
-      alert(`图片上传失败: ${error.message}`);
+      setNotification(createNotification(false, `图片上传失败: ${error.message}`));
     }
   };
 

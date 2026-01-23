@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { Snackbar, Alert, Portal } from '@mui/material';
 import ProductCatalogue from '../../components/ProductCatalogue';
 import ProductMassDownloadDialog from '../../components/ProductMassDownloadDialog';
 import { createProductCatalogueConfig } from '../../config/kendoProductConfig';
@@ -20,6 +21,9 @@ function ProductCataloguePage() {
   // 批量下载对话框状态
   const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
   const [selectedProductIdsForDownload, setSelectedProductIdsForDownload] = useState([]);
+  
+  // 通知状态
+  const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
   
   // 监听品牌变化
   useEffect(() => {
@@ -109,8 +113,16 @@ function ProductCataloguePage() {
   const handleDownloadExecute = useCallback(async (downloadData) => {
     // TODO: Implement actual download logic
     // This should call your backend API to generate and download the files
-    alert(`Download initiated for ${downloadData.products.length} product(s)`);
+    setNotification({
+      open: true,
+      message: `Download initiated for ${downloadData.products.length} product(s)`,
+      severity: 'success'
+    });
   }, []);
+
+  const handleCloseNotification = () => {
+    setNotification({ ...notification, open: false });
+  };
 
   // 处理批量搜索
   // eslint-disable-next-line no-unused-vars
@@ -156,6 +168,38 @@ function ProductCataloguePage() {
           ❌ {productDetailError} (Click to dismiss)
         </div>
       )}
+      
+      {/* 通知消息 */}
+      <Portal>
+        <Snackbar
+          open={notification.open}
+          autoHideDuration={6000}
+          onClose={handleCloseNotification}
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        >
+          <Alert 
+            onClose={handleCloseNotification} 
+            severity={notification.severity}
+            variant="filled"
+            sx={(theme) => ({
+              backgroundColor: notification.severity === 'success'
+                ? theme.palette.primary.main
+                : undefined,
+              '&.MuiAlert-filledSuccess': {
+                backgroundColor: theme.palette.primary.main,
+              },
+              '&.MuiAlert-filledError': {
+                backgroundColor: theme.palette.error.main,
+              },
+              '&.MuiAlert-filledWarning': {
+                backgroundColor: theme.palette.warning.main,
+              }
+            })}
+          >
+            {notification.message}
+          </Alert>
+        </Snackbar>
+      </Portal>
     </SelectedAssetsProvider>
   );
 }

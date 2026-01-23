@@ -15,7 +15,10 @@ import {
   Radio,
   RadioGroup,
   Typography,
-  useTheme
+  useTheme,
+  Snackbar,
+  Alert,
+  Portal
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -61,6 +64,7 @@ const ProductMassDownloadDialog = ({
   // Dialog states
   const [currentStep, setCurrentStep] = useState('formats'); // 'formats' | 'regions' | 'channels' | 'derivates' | 'options'
   const [loading, setLoading] = useState(false);
+  const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
 
   // Language selection - 使用语言代码存储
   const [selectedLanguages, setSelectedLanguages] = useState([]);
@@ -442,10 +446,18 @@ const ProductMassDownloadDialog = ({
 
       handleClose();
     } catch (error) {
-      alert(`Download failed: ${error.message}`);
+      setNotification({
+        open: true,
+        message: `Download failed: ${error.message}`,
+        severity: 'error'
+      });
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCloseNotification = () => {
+    setNotification({ ...notification, open: false });
   };
 
   // Validation
@@ -1304,6 +1316,7 @@ const ProductMassDownloadDialog = ({
   };
 
   return (
+    <>
     <Dialog
       open={open}
       onClose={handleClose}
@@ -1325,6 +1338,39 @@ const ProductMassDownloadDialog = ({
       {currentStep === 'derivates' && derivateSelectionContent()}
       {currentStep === 'options' && downloadOptionsContent()}
     </Dialog>
+    
+    {/* 通知消息 */}
+    <Portal>
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={6000}
+        onClose={handleCloseNotification}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={handleCloseNotification} 
+          severity={notification.severity}
+          variant="filled"
+          sx={(theme) => ({
+            backgroundColor: notification.severity === 'success'
+              ? theme.palette.primary.main
+              : undefined,
+            '&.MuiAlert-filledSuccess': {
+              backgroundColor: theme.palette.primary.main,
+            },
+            '&.MuiAlert-filledError': {
+              backgroundColor: theme.palette.error.main,
+            },
+            '&.MuiAlert-filledWarning': {
+              backgroundColor: theme.palette.warning.main,
+            }
+          })}
+        >
+          {notification.message}
+        </Alert>
+      </Snackbar>
+    </Portal>
+    </>
   );
 };
 

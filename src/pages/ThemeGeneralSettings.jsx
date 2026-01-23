@@ -699,7 +699,11 @@ function ThemeGeneralSettings() {
     event.preventDefault();
     
     if (!selectedTranslationLanguage) {
-      alert('Please select a language first');
+      setNotification({
+        open: true,
+        message: 'Please select a language first',
+        severity: 'warning'
+      });
       return;
     }
     
@@ -709,7 +713,11 @@ function ThemeGeneralSettings() {
       const fileExtension = file.name.split('.').pop().toLowerCase();
       
       if (!['txt', 'json'].includes(fileExtension)) {
-        alert('Only TXT and JSON files are supported');
+        setNotification({
+          open: true,
+          message: 'Only TXT and JSON files are supported',
+          severity: 'warning'
+        });
         return;
       }
 
@@ -759,7 +767,11 @@ function ThemeGeneralSettings() {
         [logoType]: false
       }));
       
-      alert(`图片上传失败: ${error.message}`);
+      setNotification({
+        open: true,
+        message: `图片上传失败: ${error.message}`,
+        severity: 'error'
+      });
     }
   };
 
@@ -1187,7 +1199,11 @@ function ThemeGeneralSettings() {
                     const file = e.target.files[0];
                     if (file) {
                       if (!selectedTranslationLanguage) {
-                        alert('Please select a language first');
+                        setNotification({
+                          open: true,
+                          message: 'Please select a language first',
+                          severity: 'warning'
+                        });
                         e.target.value = '';
                         return;
                       }

@@ -1,6 +1,6 @@
-import { Box, Button } from '@mui/material';
+import { Box, Button, Snackbar, Alert, Portal } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useSelectedAssets } from '../context/SelectedAssetsContext';
 import { useTheme } from '../hooks/useTheme';
@@ -79,6 +79,7 @@ const AssetViewActionBarComponent = ({
   const navigate = useNavigate();
   const { lang, brand } = useParams();
   const { primaryColor } = useTheme();
+  const [notification, setNotification] = useState({ open: false, message: '', severity: 'warning' });
   
   // 兼容性处理：如果没有传入选中状态相关props，则使用全局context
   const globalSelectedAssets = useSelectedAssets();
@@ -99,7 +100,11 @@ const AssetViewActionBarComponent = ({
 
   const handleDownloadSelection = () => {
     if (finalSelectedCount === 0) {
-      alert('Please select assets to download');
+      setNotification({
+        open: true,
+        message: 'Please select assets to download',
+        severity: 'warning'
+      });
       return;
     }
     
@@ -117,7 +122,11 @@ const AssetViewActionBarComponent = ({
 
   const handleCompare = () => {
     if (productIds.length < 2) {
-      alert('Please select at least 2 products to compare');
+      setNotification({
+        open: true,
+        message: 'Please select at least 2 products to compare',
+        severity: 'warning'
+      });
       return;
     }
     
@@ -126,7 +135,12 @@ const AssetViewActionBarComponent = ({
     navigate(compareUrl);
   };
 
+  const handleCloseNotification = () => {
+    setNotification({ ...notification, open: false });
+  };
+
   return (
+    <>
     <AssetViewActionBar>
       <ActionButton onClick={handleSelectAll} themeColor={primaryColor}>
         {isAllSelected ? 'UNSELECT ALL' : 'SELECT ALL'}
@@ -146,6 +160,36 @@ const AssetViewActionBarComponent = ({
         Download Selection {finalSelectedCount > 0 && `(${finalSelectedCount})`}
       </ActionButton>
     </AssetViewActionBar>
+    
+    {/* 通知消息 */}
+    <Portal>
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={6000}
+        onClose={handleCloseNotification}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={handleCloseNotification} 
+          severity={notification.severity}
+          variant="filled"
+          sx={(theme) => ({
+            '&.MuiAlert-filledSuccess': {
+              backgroundColor: theme.palette.primary.main,
+            },
+            '&.MuiAlert-filledError': {
+              backgroundColor: theme.palette.error.main,
+            },
+            '&.MuiAlert-filledWarning': {
+              backgroundColor: theme.palette.warning.main,
+            }
+          })}
+        >
+          {notification.message}
+        </Alert>
+      </Snackbar>
+    </Portal>
+    </>
   );
 };
 

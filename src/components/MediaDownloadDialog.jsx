@@ -19,6 +19,9 @@ import {
   RadioGroup,
   Select,
   Typography,
+  Snackbar,
+  Alert,
+  Portal
 } from '@mui/material';
 import IconButton from '@mui/material/IconButton';
 import { useEffect, useState } from 'react';
@@ -65,6 +68,7 @@ const MediaDownloadDialog = ({
   const [cameFromDerivateSelection, setCameFromDerivateSelection] = useState(false); // Track dialog source
   const [shouldShowDialog, setShouldShowDialog] = useState(false); // Control whether to actually show the dialog
   const [canOnlySendEmail, setCanOnlySendEmail] = useState(false); // Force email sending for large files
+  const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
   
   // Custom configuration states
   const [width, setWidth] = useState('');
@@ -160,8 +164,15 @@ const MediaDownloadDialog = ({
       onClose();
     } catch (error) {
       console.error('Direct download failed:', error);
-      alert(`Download failed: ${error.message}`);
-      onClose();
+      setNotification({
+        open: true,
+        message: `Download failed: ${error.message}`,
+        severity: 'error'
+      });
+      // 延迟关闭，让通知先显示
+      setTimeout(() => {
+        onClose();
+      }, 100);
     } finally {
       setLoading(false);
     }
@@ -306,7 +317,11 @@ const MediaDownloadDialog = ({
   const handleFinalDownload = async () => {
     // Validate email input when sending to others
     if (downloadOption === 'other' && emails.length === 0) {
-      alert('Please enter at least one email address');
+      setNotification({
+        open: true,
+        message: 'Please enter at least one email address',
+        severity: 'warning'
+      });
       return;
     }
 
@@ -366,22 +381,37 @@ const MediaDownloadDialog = ({
       if (isAsync) {
         // For async downloads, show success message
         console.log('Async download initiated:', result.message);
-        alert('Download link will be sent to your email shortly.');
+        setNotification({
+          open: true,
+          message: 'Download link will be sent to your email shortly.',
+          severity: 'success'
+        });
+        // 延迟关闭，让通知先显示
+        setTimeout(() => {
+          handleClose();
+        }, 100);
       } else {
         // For direct downloads, trigger the download
         if (result.blob && result.filename) {
           downloadApi.triggerDownload(result.blob, result.filename);
         }
+        handleClose();
       }
-
-      handleClose();
     } catch (error) {
       console.error('Download failed:', error);
       // Show error message to user
-      alert(`Download failed: ${error.message}`);
+      setNotification({
+        open: true,
+        message: `Download failed: ${error.message}`,
+        severity: 'error'
+      });
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCloseNotification = () => {
+    setNotification({ ...notification, open: false });
   };
 
   // Validation
@@ -1106,6 +1136,7 @@ const MediaDownloadDialog = ({
   };
 
   return (
+    <>
     <Dialog
       open={open && shouldShowDialog} // Only show dialog when both conditions are true
       onClose={handleClose}
@@ -1123,6 +1154,39 @@ const MediaDownloadDialog = ({
     >
       {currentStep === 'derivates' ? derivatesContent() : optionsContent()}
     </Dialog>
+    
+    {/* 通知消息 - 使用 Portal 渲染到 body，避免 Dialog 关闭时被卸载 */}
+    <Portal>
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={6000}
+        onClose={handleCloseNotification}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={handleCloseNotification} 
+          severity={notification.severity}
+          variant="filled"
+          sx={(theme) => ({
+            backgroundColor: notification.severity === 'success'
+              ? theme.palette.primary.main
+              : undefined,
+            '&.MuiAlert-filledSuccess': {
+              backgroundColor: theme.palette.primary.main,
+            },
+            '&.MuiAlert-filledError': {
+              backgroundColor: theme.palette.error.main,
+            },
+            '&.MuiAlert-filledWarning': {
+              backgroundColor: theme.palette.warning.main,
+            }
+          })}
+        >
+          {notification.message}
+        </Alert>
+      </Snackbar>
+    </Portal>
+    </>
   );
 };
 

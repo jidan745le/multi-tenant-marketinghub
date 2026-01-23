@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Snackbar, Alert, Portal } from '@mui/material';
 import Logo from '../components/Logo';
 import { getBackgroundImageUrl, getLoginConfig, validateTenant } from '../services/tenantValidationService';
 import styles from '../styles/VerificationPage.module.css';
@@ -14,6 +15,7 @@ const VerificationSentPage = () => {
     const [tenantData, setTenantData] = useState(null);
     const [loginConfig, setLoginConfig] = useState(null);
     const [themeLoading, setThemeLoading] = useState(true);
+    const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
 
     const { email, phone } = location.state || {};
     const [skipTimer, setSkipTimer] = useState(location.state?.skipTimer || false);
@@ -124,13 +126,25 @@ const VerificationSentPage = () => {
             }
 
             // Show success message
-            alert('Verification email sent successfully!');
+            setNotification({
+                open: true,
+                message: 'Verification email sent successfully!',
+                severity: 'success'
+            });
         } catch (error) {
             const errorMessage = error.response?.data?.message || error.message || 'Failed to resend email. Please try again.';
-            alert(errorMessage);
+            setNotification({
+                open: true,
+                message: errorMessage,
+                severity: 'error'
+            });
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleCloseNotification = () => {
+        setNotification({ ...notification, open: false });
     };
 
     // Show loading state while theme data loads
@@ -243,6 +257,38 @@ const VerificationSentPage = () => {
                         : `linear-gradient(45deg, ${loginConfig?.primaryColor || '#e53935'} 0%, ${loginConfig?.secondaryColor || loginConfig?.primaryColor || '#d32f2f'} 100%)`
                 }}></div>
             </div>
+            
+            {/* 通知消息 */}
+            <Portal>
+                <Snackbar
+                    open={notification.open}
+                    autoHideDuration={6000}
+                    onClose={handleCloseNotification}
+                    anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+                >
+                    <Alert 
+                        onClose={handleCloseNotification} 
+                        severity={notification.severity}
+                        variant="filled"
+                        sx={(theme) => ({
+                            backgroundColor: notification.severity === 'success'
+                                ? theme.palette.primary.main
+                                : undefined,
+                            '&.MuiAlert-filledSuccess': {
+                                backgroundColor: theme.palette.primary.main,
+                            },
+                            '&.MuiAlert-filledError': {
+                                backgroundColor: theme.palette.error.main,
+                            },
+                            '&.MuiAlert-filledWarning': {
+                                backgroundColor: theme.palette.warning.main,
+                            }
+                        })}
+                    >
+                        {notification.message}
+                    </Alert>
+                </Snackbar>
+            </Portal>
         </div>
     );
 };

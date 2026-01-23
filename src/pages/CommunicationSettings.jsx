@@ -512,7 +512,7 @@ function CommunicationSettings() {
 
         setNotification({ 
           open: true, 
-          message: '邮件模板保存成功！', 
+          message: 'email template saved successfully!', 
           severity: 'success' 
         });
         console.log('✅ 邮件模板保存成功');
@@ -904,6 +904,17 @@ function CommunicationSettings() {
           onClose={handleCloseNotification} 
           severity={notification.severity}
           variant="filled"
+          sx={(theme) => ({
+            backgroundColor: notification.severity === 'success'
+              ? theme.palette.primary.main
+              : undefined,
+            '&.MuiAlert-filledSuccess': {
+              backgroundColor: theme.palette.primary.main,
+            },
+            '&.MuiAlert-filledError': {
+              backgroundColor: theme.palette.error.main,
+            }
+          })}
         >
           {notification.message}
         </Alert>
