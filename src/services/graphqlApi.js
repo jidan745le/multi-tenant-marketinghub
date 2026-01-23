@@ -85,21 +85,14 @@ const buildGraphQLQuery = (filters = {}, first = 100, after = 0, brand = 'kendo'
   }
 
   // SKU code filtering (CustomerFacingProductCode)
-  if (filters['sku-code']) {
-    const skuCodes = filters['sku-code'].split(';').map(s => s.trim()).filter(Boolean);
-    const skuConditions = skuCodes.map(skuCode => ({
-      "CustomerFacingProductCode": { "$like": `%${skuCode}%` }
-    }));
-    if (skuConditions.length > 0) {
-      filterConditions.push({ "$or": skuConditions });
-    }
-  }
+  // Note: SKU code is handled separately with childFilter for nested filtering
+  // This is handled in the query building logic below
 
   // Virtual product ID filtering (equivalent to model number)
   if (filters['model-number']) {
     const modelNumbers = filters['model-number'].split(';').map(s => s.trim()).filter(Boolean);
     const modelConditions = modelNumbers.map(modelNumber => ({
-      "VirtualProductID": { "$like": `%${modelNumber}%` }
+      "VirtualProductID": { "$like": modelNumber }
     }));
     if (modelConditions.length > 0) {
       filterConditions.push({ "$or": modelConditions });
@@ -157,6 +150,95 @@ const buildGraphQLQuery = (filters = {}, first = 100, after = 0, brand = 'kendo'
   }
 
   const filterString = JSON.stringify({ "$and": filterConditions });
+
+  // Handle SKU code with nested filter (childFilter)
+  if (filters['sku-code']) {
+    const skuCodes = filters['sku-code'].split(';').map(s => s.trim()).filter(Boolean);
+    const skuConditions = skuCodes.map(skuCode => ({
+      "CustomerFacingProductCode": { "$like": skuCode }
+    }));
+    
+    if (skuConditions.length > 0) {
+      const childFilterString = JSON.stringify({ "$or": skuConditions });
+      
+      return `{
+        getProductListing(
+          first: ${first}, 
+          after: ${after}, 
+          filter: "${filterString.replace(/"/g, '\\"')}",
+          childFilter: "${childFilterString.replace(/"/g, '\\"')}",
+          childClassName: "Product",
+          defaultLanguage: "${language}"
+        ) {
+          totalCount
+          edges {
+            cursor
+            node {
+              id
+              Brand
+              ERPMaterialCode
+              VirtualProductID
+              CustomerFacingProductCode
+              ProductName
+              ShortDescription
+              LongDescription
+              ProductType
+              CategoryName
+              CategoryID
+              Application
+              OnlineDate        
+              objectType
+              EnrichmentStatus
+              LifecycleStatus
+              CustomerSpecificFlag
+              children {
+                  __typename
+                  ...on object_Product {
+                    id
+                    CustomerFacingProductCode
+                    Size
+                    MainMaterial
+                    SurfaceFinish
+                    ApplicableStandard              
+                  }
+              }
+              Icons {
+                image {
+                  filename
+                  fullpath
+                  filesize
+                  duration
+                }
+              }
+              Lifestyles {
+                image {
+                  filename
+                  fullpath
+                }
+              }
+              Main {
+                 id
+                 filename
+                 fullpath
+                 assetThumb: fullpath(thumbnail: "content",format: "webp")
+               }
+              OnWhite {
+                marker {
+                  name
+                }
+                image {
+                  id
+                  filename
+                  fullpath
+                  filesize
+                }
+              }
+            }
+          }
+        }
+      }`;
+    }
+  }
 
   return `{
     getProductListing(first: ${first}, after: ${after}, filter: "${filterString.replace(/"/g, '\\"')}", defaultLanguage: "${language}") {
@@ -229,6 +311,192 @@ const buildGraphQLQuery = (filters = {}, first = 100, after = 0, brand = 'kendo'
   }`;
 };
 
+
+/**
+ * Build validation query for SKU codes
+ * @param {Array<string>} skuCodes - Array of SKU codes to validate
+ * @param {string} brand - Brand code
+ * @param {string} language - Language code
+ * @returns {string} GraphQL query string
+ */
+const buildSKUValidationQuery = (skuCodes, brand = 'kendo', language = "en") => {
+  const brandName = brand.toUpperCase();
+  const skuConditions = skuCodes.map(skuCode => ({
+    "CustomerFacingProductCode": { "$like": skuCode }
+  }));
+
+  const filterConditions = [
+    { "Brand": { "$like": brandName } },
+    { "objectType": { "$like": "sku" } },
+    { "$or": skuConditions }
+  ];
+
+  const filterString = JSON.stringify({ "$and": filterConditions });
+
+  return `{
+    getProductListing(
+      first: 20, 
+      after: 0, 
+      filter: "${filterString.replace(/"/g, '\\"')}",
+      defaultLanguage: "${language}"
+    ) {
+      totalCount
+      edges {
+        node {
+          id
+          CustomerFacingProductCode
+        }
+      }
+    }
+  }`;
+};
+
+/**
+ * Build validation query for model numbers (Virtual Product IDs)
+ * @param {Array<string>} modelNumbers - Array of model numbers to validate
+ * @param {string} brand - Brand code
+ * @param {string} language - Language code
+ * @returns {string} GraphQL query string
+ */
+const buildModelNumberValidationQuery = (modelNumbers, brand = 'kendo', language = "en") => {
+  const brandName = brand.toUpperCase();
+  const modelConditions = modelNumbers.map(modelNumber => ({
+    "VirtualProductID": { "$like": modelNumber }
+  }));
+
+  const filterConditions = [
+    { "Brand": { "$like": brandName } },
+    { "objectType": { "$like": "virtual-product" } },
+    { "$or": modelConditions }
+  ];
+
+  const filterString = JSON.stringify({ "$and": filterConditions });
+
+  return `{
+    getProductListing(
+      first: 20, 
+      after: 0, 
+      filter: "${filterString.replace(/"/g, '\\"')}",
+      defaultLanguage: "${language}"
+    ) {
+      totalCount
+      edges {
+        node {
+          id
+          VirtualProductID
+        }
+      }
+    }
+  }`;
+};
+
+/**
+ * Validate SKU codes
+ * @param {Array<string>} skuCodes - Array of SKU codes to validate
+ * @param {string} brand - Brand code
+ * @param {string} language - Language code
+ * @returns {Promise<Array<string>>} Array of valid SKU codes
+ */
+export const validateSKUCodes = async (skuCodes, brand = 'kendo', language = "en") => {
+  try {
+    if (!skuCodes || skuCodes.length === 0) {
+      return [];
+    }
+
+    const query = buildSKUValidationQuery(skuCodes, brand, language);
+    const token = CookieService.getToken();
+
+    const response = await fetch(GRAPHQL_API_URL, {
+      method: 'POST',
+      headers: {
+        'Pragma': 'no-cache',
+        'X-API-Key': API_KEY,
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        operationName: null,
+        variables: {},
+        query: query
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (data.errors) {
+      throw new Error(`GraphQL error: ${data.errors.map(e => e.message).join(', ')}`);
+    }
+
+    const edges = data.data?.getProductListing?.edges || [];
+    const validCodes = edges
+      .map(edge => edge.node.CustomerFacingProductCode)
+      .filter(Boolean)
+      .map(code => code.trim());
+    
+    return validCodes;
+  } catch (error) {
+    console.error('Error validating SKU codes:', error);
+    return [];
+  }
+};
+
+/**
+ * Validate model numbers (Virtual Product IDs)
+ * @param {Array<string>} modelNumbers - Array of model numbers to validate
+ * @param {string} brand - Brand code
+ * @param {string} language - Language code
+ * @returns {Promise<Array<string>>} Array of valid model numbers
+ */
+export const validateModelNumbers = async (modelNumbers, brand = 'kendo', language = "en") => {
+  try {
+    if (!modelNumbers || modelNumbers.length === 0) {
+      return [];
+    }
+
+    const query = buildModelNumberValidationQuery(modelNumbers, brand, language);
+    const token = CookieService.getToken();
+
+    const response = await fetch(GRAPHQL_API_URL, {
+      method: 'POST',
+      headers: {
+        'Pragma': 'no-cache',
+        'X-API-Key': API_KEY,
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        operationName: null,
+        variables: {},
+        query: query
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (data.errors) {
+      throw new Error(`GraphQL error: ${data.errors.map(e => e.message).join(', ')}`);
+    }
+
+    const edges = data.data?.getProductListing?.edges || [];
+    const validCodes = edges
+      .map(edge => edge.node.VirtualProductID)
+      .filter(Boolean)
+      .map(code => code.trim());
+    
+    return validCodes;
+  } catch (error) {
+    console.error('Error validating model numbers:', error);
+    return [];
+  }
+};
 
 /**
  * Call GraphQL API to fetch product data
