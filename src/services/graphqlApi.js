@@ -50,7 +50,7 @@ const buildGraphQLQuery = (filters = {}, first = 100, after = 0, brand = 'kendo'
   const hasInternalDataAccess = userPermissions.includes('marketinghub:domain:InternalData:access');
   const hasExternalDataAccess = userPermissions.includes('marketinghub:domain:ExternalData:access');
 
-  // Internal users: Always show all products (no enrichment status filter)
+  // Internal users: Only keep objectType and brand filters (no other restrictions)
   // External users: Apply stricter filters
   if (hasExternalDataAccess && !hasInternalDataAccess) {
     // For External users: EnrichmentStatus is not "New" AND not "Deactivated"
@@ -80,17 +80,8 @@ const buildGraphQLQuery = (filters = {}, first = 100, after = 0, brand = 'kendo'
     filterConditions.push({
       "CustomerSpecificFlag": { "$not": true }
     });
-  } else {
-    // Internal users: Only exclude "New" enrichment status
-    filterConditions.push({
-      "EnrichmentStatus": { "$not": "New" }
-    });
-
-    // Lifecycle Status = "Active"
-    filterConditions.push({
-      "LifecycleStatus": { "$like": "Active" }
-    });
   }
+  // Internal users: No additional filters beyond objectType and brand
 
   // Product name filtering 
   if (filters['product-name']) {
