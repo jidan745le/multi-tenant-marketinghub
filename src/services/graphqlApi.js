@@ -45,35 +45,50 @@ const buildGraphQLQuery = (filters = {}, first = 100, after = 0, brand = 'kendo'
     "objectType": { "$like": "virtual-product" }
   });
 
-  filterConditions.push({
-    "EnrichmentStatus": { "$not": "New" }
-  });
-
-  filterConditions.push({
-    "LifecycleStatus": { "$like": "Active" }
-  });
-
   // Permission-based filtering
   const userPermissions = getUserPermissions();
   const hasInternalDataAccess = userPermissions.includes('marketinghub:domain:InternalData:access');
   const hasExternalDataAccess = userPermissions.includes('marketinghub:domain:ExternalData:access');
 
-  // If user only has ExternalData access (not InternalData), apply additional filters
+  // Internal users: Always show all products (no enrichment status filter)
+  // External users: Apply stricter filters
   if (hasExternalDataAccess && !hasInternalDataAccess) {
+    // For External users: EnrichmentStatus is not "New" AND not "Deactivated"
+    filterConditions.push({
+      "$and": [
+        { "EnrichmentStatus": { "$not": "New" } },
+        { "EnrichmentStatus": { "$not": "Deactivated" } }
+      ]
+    });
 
-    // OnlineDate is NOT EMPTY
+    // Lifecycle Status = "Active"
+    filterConditions.push({
+      "LifecycleStatus": { "$like": "Active" }
+    });
+
+    // Launch Date (OnlineDate) is NOT EMPTY
     filterConditions.push({
       "OnlineDate": { "$not": "" }
     });
 
-    // FirstShipmentDate is NOT EMPTY
+    // First Shipping Date (FirstShipmentDate) is NOT EMPTY
     filterConditions.push({
       "FirstShipmentDate": { "$not": "" }
     });
 
-    // CustomerSpecificFlag = "No"
+    // Customer Specific = "No"
     filterConditions.push({
       "CustomerSpecificFlag": { "$not": true }
+    });
+  } else {
+    // Internal users: Only exclude "New" enrichment status
+    filterConditions.push({
+      "EnrichmentStatus": { "$not": "New" }
+    });
+
+    // Lifecycle Status = "Active"
+    filterConditions.push({
+      "LifecycleStatus": { "$like": "Active" }
     });
   }
 
@@ -186,7 +201,8 @@ const buildGraphQLQuery = (filters = {}, first = 100, after = 0, brand = 'kendo'
               CategoryName
               CategoryID
               Application
-              OnlineDate        
+              OnlineDate
+              FirstShipmentDate        
               objectType
               EnrichmentStatus
               LifecycleStatus
