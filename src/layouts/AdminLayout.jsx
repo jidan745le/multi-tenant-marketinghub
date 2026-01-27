@@ -189,15 +189,20 @@ function AdminLayout() {
         
         // 检查 role（支持字符串或对象格式）
         for (const role of roles) {
+          let roleName = '';
           if (typeof role === 'string') {
-            if (role.toLowerCase() === 'admin') {
-              return 'admin';
-            }
+            roleName = role.toLowerCase();
           } else if (typeof role === 'object' && role !== null) {
-            const roleName = role.name || role.code || role.role || role.id || '';
-            if (String(roleName).toLowerCase() === 'admin') {
-              return 'admin';
-            }
+            roleName = String(role.name || role.code || role.role || role.id || '').toLowerCase();
+          }
+          
+          // 检查是否是 TENANT ADMINISTRATOR（优先检查，因为可能包含 admin）
+          if (roleName.includes('tenant') && roleName.includes('administrator')) {
+            return 'tenant-admin';
+          }
+          // 检查是否是 admin（但不是 tenant admin）
+          if (roleName === 'admin' || (roleName.includes('admin') && !roleName.includes('tenant'))) {
+            return 'admin';
           }
         }
       }
@@ -209,15 +214,21 @@ function AdminLayout() {
 
   const userRole = getUserRole();
   
-  // 根据 role 过滤菜单项：admin 角色隐藏 derivate-management, channel-management, publications
+  // 根据 role 过滤菜单项：
+  // - admin 角色：隐藏 derivate-management, channel-management, publications, user-management
+  // - TENANT ADMINISTRATOR 角色：显示所有菜单项
+  // - 其他角色：显示所有菜单项
   const filteredMenuItems = useMemo(() => {
-    return userRole === 'admin' 
-      ? adminMenuItems.filter(item => 
-          item.id !== 'derivate-management' && 
-          item.id !== 'channel-management' && 
-          item.id !== 'publications'
-        )
-      : adminMenuItems;
+    if (userRole === 'admin') {
+      return adminMenuItems.filter(item => 
+        item.id !== 'derivate-management' && 
+        item.id !== 'channel-management' && 
+        item.id !== 'publications' &&
+        item.id !== 'user-management'
+      );
+    }
+    // TENANT ADMINISTRATOR 和其他角色：显示所有菜单项
+    return adminMenuItems;
   }, [userRole]);
 
   // 初始化时从URL路径中确定活跃的菜单项
