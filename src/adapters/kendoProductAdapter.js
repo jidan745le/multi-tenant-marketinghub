@@ -82,12 +82,21 @@ export const adaptGraphQLProductNode = (graphqlNode) => {
     const mainImageUrl = getMainImageUrl(graphqlNode);
     const skuInfo = getSkuInfo(graphqlNode);
 
-    // 获取产品名称
-    const productName = graphqlNode.ProductName || 'Unnamed Product';
+    // 获取产品名称（支持语言特定字段作为后备）
+    const productName = graphqlNode.ProductName || 
+                        graphqlNode.ProductName_en || 
+                        graphqlNode.ProductName_de || 
+                        'Unnamed Product';
 
-    // 获取产品描述
-    const shortDescription = graphqlNode.ShortDescription || '';
-    const longDescription = graphqlNode.LongDescription || '';
+    // 获取产品描述（支持语言特定字段作为后备）
+    const shortDescription = graphqlNode.ShortDescription || 
+                             graphqlNode.ShortDescription_en || 
+                             graphqlNode.ShortDescription_de || 
+                             '';
+    const longDescription = graphqlNode.LongDescription || 
+                           graphqlNode.LongDescription_en || 
+                           graphqlNode.LongDescription_de || 
+                           '';
 
     return {
         // 基础标识

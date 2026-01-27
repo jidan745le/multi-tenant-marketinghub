@@ -5,14 +5,32 @@ const GRAPHQL_API_URL = '/apis/kendo/products';
 const API_KEY = '4fe5b9cb2dc6015250c46f9332c195ae';
 
 /**
+ * Get user permissions from localStorage
+ * @returns {Array} User permissions array
+ */
+const getUserPermissions = () => {
+  try {
+    const userInfo = localStorage.getItem('user_info');
+    if (userInfo) {
+      const userData = JSON.parse(userInfo);
+      return userData.permissions || [];
+    }
+  } catch {
+    // Silent fail
+  }
+  return [];
+};
+
+/**
  * 构建新产品GraphQL查询（包含FirstShipmentDate过滤）
  * @param {Object} filters - 筛选条件
  * @param {number} first - 获取数量
  * @param {number} after - 偏移量
  * @param {string} brand - 品牌代码
+ * @param {string} language - 语言代码
  * @returns {string} GraphQL查询字符串
  */
-const buildNewProductsQuery = (filters = {}, first = 100, after = 0, brand = 'kendo') => {
+const buildNewProductsQuery = (filters = {}, first = 100, after = 0, brand = 'kendo', language = "en") => {
   // 构建筛选条件
   const filterConditions = [];
 
@@ -26,6 +44,44 @@ const buildNewProductsQuery = (filters = {}, first = 100, after = 0, brand = 'ke
   filterConditions.push({
     "objectType": { "$like": "virtual-product" }
   });
+
+  // Permission-based filtering
+  const userPermissions = getUserPermissions();
+  const hasInternalDataAccess = userPermissions.includes('marketinghub:domain:InternalData:access');
+  const hasExternalDataAccess = userPermissions.includes('marketinghub:domain:ExternalData:access');
+
+  // Internal users: Only keep objectType and brand filters (no other restrictions)
+  // External users: Apply stricter filters
+  if (hasExternalDataAccess && !hasInternalDataAccess) {
+    // For External users: EnrichmentStatus is not "New" AND not "Deactivated"
+    filterConditions.push({
+      "$and": [
+        { "EnrichmentStatus": { "$not": "New" } },
+        { "EnrichmentStatus": { "$not": "Deactivated" } }
+      ]
+    });
+
+    // Lifecycle Status = "Active"
+    filterConditions.push({
+      "LifecycleStatus": { "$like": "Active" }
+    });
+
+    // Launch Date (OnlineDate) is NOT EMPTY
+    filterConditions.push({
+      "OnlineDate": { "$not": "" }
+    });
+
+    // First Shipping Date (FirstShipmentDate) is NOT EMPTY
+    filterConditions.push({
+      "FirstShipmentDate": { "$not": "" }
+    });
+
+    // Customer Specific = "No"
+    filterConditions.push({
+      "CustomerSpecificFlag": { "$not": true }
+    });
+  }
+  // Internal users: No additional filters beyond objectType and brand
 
   // 新产品基础筛选：FirstShipmentDate was in the last 12 months（默认条件）
   const now = new Date();
@@ -46,22 +102,15 @@ const buildNewProductsQuery = (filters = {}, first = 100, after = 0, brand = 'ke
     });
   }
 
-  // SKU代码筛选（CustomerFacingProductCode）
-  if (filters['sku-code']) {
-    const skuCodes = filters['sku-code'].split(';').map(s => s.trim()).filter(Boolean);
-    const skuConditions = skuCodes.map(skuCode => ({
-      "CustomerFacingProductCode": { "$like": `%${skuCode}%` }
-    }));
-    if (skuConditions.length > 0) {
-      filterConditions.push({ "$or": skuConditions });
-    }
-  }
+  // SKU code filtering (CustomerFacingProductCode)
+  // Note: SKU code is handled separately with childFilter for nested filtering
+  // This is handled in the query building logic below
 
-  // 虚拟产品ID筛选（相当于model number）
+  // Virtual product ID filtering (equivalent to model number)
   if (filters['model-number']) {
     const modelNumbers = filters['model-number'].split(';').map(s => s.trim()).filter(Boolean);
     const modelConditions = modelNumbers.map(modelNumber => ({
-      "VirtualProductID": { "$like": `%${modelNumber}%` }
+      "VirtualProductID": { "$like": modelNumber }
     }));
     if (modelConditions.length > 0) {
       filterConditions.push({ "$or": modelConditions });
@@ -139,8 +188,103 @@ const buildNewProductsQuery = (filters = {}, first = 100, after = 0, brand = 'ke
 
   const filterString = JSON.stringify({ "$and": filterConditions });
 
+  // Handle SKU code with nested filter (childFilter)
+  if (filters['sku-code']) {
+    const skuCodes = filters['sku-code'].split(';').map(s => s.trim()).filter(Boolean);
+    const skuConditions = skuCodes.map(skuCode => ({
+      "CustomerFacingProductCode": { "$like": skuCode }
+    }));
+    
+    if (skuConditions.length > 0) {
+      const childFilterString = JSON.stringify({ "$or": skuConditions });
+      
+      return `{
+        getProductListing(
+          first: ${first}, 
+          after: ${after}, 
+          filter: "${filterString.replace(/"/g, '\\"')}",
+          childFilter: "${childFilterString.replace(/"/g, '\\"')}",
+          childClassName: "Product",
+          defaultLanguage: "${language}"
+        ) {
+          totalCount
+          edges {
+            cursor
+            node {
+              id
+              Brand
+              ERPMaterialCode
+              VirtualProductID
+              CustomerFacingProductCode
+              ProductName
+              ShortDescription
+              LongDescription
+              ProductType
+              CategoryName
+              CategoryID
+              Application
+              OnlineDate
+              FirstShipmentDate
+              objectType
+              EnrichmentStatus
+              LifecycleStatus
+              CustomerSpecificFlag
+              children {
+                __typename
+                ...on object_Product {
+                  id
+                  CustomerFacingProductCode
+                  Size
+                  MainMaterial
+                  SurfaceFinish
+                  ApplicableStandard              
+                }
+              }
+              Icons {
+                image {
+                  filename
+                  fullpath
+                  filesize
+                  duration
+                }
+              }
+              Lifestyles {
+                image {
+                  filename
+                  fullpath
+                }
+              }
+              Main {
+                id
+                filename
+                fullpath
+                assetThumb: fullpath(thumbnail: "content",format: "webp")
+                assetThumb2: fullpath(thumbnail: "content", format: "webp")
+                resolutions(thumbnail: "content", types: [2, 5]) {
+                  resolution
+                  url
+                }
+              }
+              OnWhite {
+                marker {
+                  name
+                }
+                image {
+                  id
+                  filename
+                  fullpath
+                  filesize
+                }
+              }
+            }
+          }
+        }
+      }`;
+    }
+  }
+
   return `{
-    getProductListing(first: ${first}, after: ${after}, filter: "${filterString.replace(/"/g, '\\"')}") {
+    getProductListing(first: ${first}, after: ${after}, filter: "${filterString.replace(/"/g, '\\"')}", defaultLanguage: "${language}") {
       totalCount
       edges {
         cursor
@@ -149,18 +293,20 @@ const buildNewProductsQuery = (filters = {}, first = 100, after = 0, brand = 'ke
           Brand
           ERPMaterialCode
           VirtualProductID
-          ProductName_en: ProductName(language: "en")
-          ProductName_de: ProductName(language: "de")
-          ShortDescription_en: ShortDescription(language: "en")
-          ShortDescription_de: ShortDescription(language: "de")
-          LongDescription_en: LongDescription(language: "en")
-          LongDescription_de: LongDescription(language: "de")
+          CustomerFacingProductCode
+          ProductName
+          ShortDescription
+          LongDescription
           ProductType
           CategoryName
           CategoryID
           Application
-          objectType
+          OnlineDate
           FirstShipmentDate
+          objectType
+          EnrichmentStatus
+          LifecycleStatus
+          CustomerSpecificFlag
           children {
             __typename
             ...on object_Product {
@@ -218,12 +364,13 @@ const buildNewProductsQuery = (filters = {}, first = 100, after = 0, brand = 'ke
  * 获取新产品数据
  * @param {Object} params - 查询参数
  * @param {string} brand - 品牌代码
+ * @param {string} language - 语言代码
  * @returns {Promise<Object>} 新产品数据
  */
-export const fetchNewProducts = async (params = {}, brand = 'kendo') => {
+export const fetchNewProducts = async (params = {}, brand = 'kendo', language = "en") => {
   try {
     const { limit = 100, offset = 0 } = params;
-    const query = buildNewProductsQuery(params, limit, offset, brand);
+    const query = buildNewProductsQuery(params, limit, offset, brand, language);
     const token = CookieService.getToken();
 
     console.log('🆕 Fetching new products with query:', query);
