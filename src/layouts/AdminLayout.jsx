@@ -215,16 +215,17 @@ function AdminLayout() {
   const userRole = getUserRole();
   
   // 根据 role 过滤菜单项：
-  // - admin 角色：隐藏 derivate-management, channel-management, publications, user-management
+  // - admin 角色：隐藏 theme-configuration, derivate-management, channel-management, publications
+  //   但可以访问 user-management（但不能设置 tenant administrator role）
   // - TENANT ADMINISTRATOR 角色：显示所有菜单项
   // - 其他角色：显示所有菜单项
   const filteredMenuItems = useMemo(() => {
     if (userRole === 'admin') {
       return adminMenuItems.filter(item => 
+        item.id !== 'theme-configuration' &&
         item.id !== 'derivate-management' && 
         item.id !== 'channel-management' && 
-        item.id !== 'publications' &&
-        item.id !== 'user-management'
+        item.id !== 'publications'
       );
     }
     // TENANT ADMINISTRATOR 和其他角色：显示所有菜单项

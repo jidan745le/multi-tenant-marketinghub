@@ -31,9 +31,9 @@ import {
 } from '@mui/material';
 import { styled, useTheme } from '@mui/material/styles';
 import React, { useCallback, useEffect, useState } from 'react';
+import ConfirmDeleteDialog from '../components/ConfirmDeleteDialog';
 import { useBrand } from '../hooks/useBrand';
 import UserManagementApiService from '../services/userManagementApi';
-import ConfirmDeleteDialog from '../components/ConfirmDeleteDialog';
 
 // Styled components
 const HeaderContainer = styled(Box)(() => ({
@@ -114,6 +114,42 @@ function UserManagement() {
   const theme = useTheme();
   // Get current brand/theme from URL
   const { currentBrandCode } = useBrand();
+  
+  // Get current user role
+  const getCurrentUserRole = () => {
+    try {
+      const userInfoStr = localStorage.getItem('user_info');
+      if (userInfoStr) {
+        const userInfo = JSON.parse(userInfoStr);
+        const roles = userInfo?.roles || [];
+        
+        // 检查 role（支持字符串或对象格式）
+        for (const role of roles) {
+          let roleName = '';
+          if (typeof role === 'string') {
+            roleName = role.toLowerCase();
+          } else if (typeof role === 'object' && role !== null) {
+            roleName = String(role.name || role.code || role.role || role.id || '').toLowerCase();
+          }
+          
+          // 检查是否是 TENANT ADMINISTRATOR（优先检查，因为可能包含 admin）
+          if (roleName.includes('tenant') && roleName.includes('administrator')) {
+            return 'tenant-admin';
+          }
+          // 检查是否是 admin（但不是 tenant admin）
+          if (roleName === 'admin' || (roleName.includes('admin') && !roleName.includes('tenant'))) {
+            return 'admin';
+          }
+        }
+      }
+    } catch (error) {
+      // 静默处理错误
+    }
+    return null;
+  };
+
+  const currentUserRole = getCurrentUserRole();
+  const isAdmin = currentUserRole === 'admin';
   
   // State management
   const [users, setUsers] = useState([]);
@@ -197,16 +233,24 @@ function UserManagement() {
       const themes = (allRoles || []).filter(role => 
         role.name.toLowerCase().includes('_viewer')
       );
-      const roles = (allRoles || []).filter(role => 
+      let roles = (allRoles || []).filter(role => 
         !role.name.toLowerCase().includes('_viewer')
       );
+      
+      // If current user is admin, filter out tenant administrator role
+      if (isAdmin) {
+        roles = roles.filter(role => {
+          const roleName = role.name?.toLowerCase() || '';
+          return !(roleName.includes('tenant') && roleName.includes('administrator'));
+        });
+      }
       
       setAvailableRoles(roles);
       setAvailableThemes(themes);
     } catch (err) {
       console.error('Failed to load roles:', err);
     }
-  }, []);
+  }, [isAdmin]);
 
   // Initialize data
   useEffect(() => {
@@ -398,9 +442,22 @@ function UserManagement() {
         .filter(role => role.name.toLowerCase().includes('_viewer'))
         .map(role => role.id);
       
-      const regularRoleIds = allUserRoles
+      let regularRoleIds = allUserRoles
         .filter(role => !role.name.toLowerCase().includes('_viewer'))
         .map(role => role.id);
+      
+      // If current user is admin, filter out tenant administrator role from editing user's roles
+      if (isAdmin) {
+        const allRoles = await UserManagementApiService.getAllRoles();
+        const tenantAdminRole = allRoles.find(role => {
+          const roleName = role.name?.toLowerCase() || '';
+          return roleName.includes('tenant') && roleName.includes('administrator');
+        });
+        
+        if (tenantAdminRole) {
+          regularRoleIds = regularRoleIds.filter(roleId => roleId !== tenantAdminRole.id);
+        }
+      }
         
       setEditingUser({ 
         ...user, 

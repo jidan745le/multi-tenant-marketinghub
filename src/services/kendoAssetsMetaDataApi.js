@@ -11,6 +11,7 @@ const API_KEY = '7ce45a85b23aa742131a94d4431e22fe';
  * @param {string} filters.filename - Filter by filename (partial match)
  * @param {string} filters['folder-path'] - Filter by folder path
  * @param {string} filters['model-number'] - Filter by product model number
+ * @param {string} filters['sku-code'] - Filter by SKU code (通过 metadata "Media Product IDs" 查询，支持多个 SKU 用分号分隔)
  * @param {string} filters.tags - Filter by tags/keywords (Media Key Words metadata)
  * @param {Array<string>} filters['media-type'] - Filter by media types
  * @param {Array<string>} filters['media-category'] - Filter by Media Category metadata (支持多选)
@@ -86,6 +87,19 @@ const buildAssetsQuery = (filters = {}, first = 20, offset = 0) => {
         }
     }
 
+    // SKU code metadata filter (基于 "Media Product IDs" metadata)
+    // Media Product IDs 字段可能包含多个 SKU，用逗号分隔
+    if (filters['sku-code']) {
+        const skuCodes = filters['sku-code'].split(';').map(s => s.trim()).filter(Boolean);
+        if (skuCodes.length > 0) {
+            metadataFilters.push({
+                name: "Media Product IDs",
+                values: skuCodes,
+                operator: "LIKE" // 使用 LIKE 支持部分匹配（因为一个值可能包含多个 SKU，用逗号分隔）
+            });
+        }
+    }
+
     // Add metadata filters to query if any exist
     if (metadataFilters.length > 0) {
         // 构建正确的 GraphQL 语法，而不是转义的 JSON 字符串
@@ -97,9 +111,10 @@ const buildAssetsQuery = (filters = {}, first = 20, offset = 0) => {
         queryParams.push(`metadataFilters: [${metadataFiltersGraphQL}]`);
 
         // Support both AND and OR logic for metadata filters
-        // 当有 tags 筛选时，默认使用 OR 逻辑，以便标签之间是或的关系
+        // 当有 tags 或 sku-code 筛选时，默认使用 OR 逻辑，以便标签/SKU之间是或的关系
         const hasTagsFilter = filters.tags && typeof filters.tags === 'string' && filters.tags.trim();
-        const defaultLogic = hasTagsFilter ? 'OR' : 'AND';
+        const hasSkuCodeFilter = filters['sku-code'] && typeof filters['sku-code'] === 'string' && filters['sku-code'].trim();
+        const defaultLogic = (hasTagsFilter || hasSkuCodeFilter) ? 'OR' : 'AND';
         const metadataLogic = filters['metadata-logic'] ? filters['metadata-logic'].toUpperCase() : defaultLogic;
         queryParams.push(`metadataLogic: "${metadataLogic}"`);
     }
@@ -123,16 +138,8 @@ const buildAssetsQuery = (filters = {}, first = 20, offset = 0) => {
         mongoFilters.push({ fullpath: { "$like": `%${filters['folder-path']}%` } });
     }
 
-    // Filter by SKU code (through path matching)
-    if (filters['sku-code']) {
-        const skuCodes = filters['sku-code'].split(';').map(s => s.trim()).filter(Boolean);
-        if (skuCodes.length > 0) {
-            const skuConditions = skuCodes.map(skuCode => ({
-                fullpath: { "$like": `%${skuCode}%` }
-            }));
-            mongoFilters.push({ "$or": skuConditions });
-        }
-    }
+    // Note: SKU code filtering is now handled through metadata "Media Product IDs" (see metadataFilters above)
+    // The path-based filtering has been removed in favor of metadata-based filtering for product assets
     
     // Filter by product model number (through path matching) - backward compatibility
     if (filters['model-number']) {
@@ -275,6 +282,7 @@ const buildAssetsQuery = (filters = {}, first = 20, offset = 0) => {
  * @param {string} params.filename - Filter by filename (partial match)
  * @param {string} params['folder-path'] - Filter by folder path
  * @param {string} params['model-number'] - Filter by product model number
+ * @param {string} params['sku-code'] - Filter by SKU code (通过 metadata "Media Product IDs" 查询，支持多个 SKU 用分号分隔；metadata 中多个 SKU 用逗号分隔)
  * @param {string} params.tags - Filter by tags/keywords (Media Key Words metadata)
  * @param {Array<string>} params['media-type'] - Filter by media types (Images, Videos, Documents, Audio)
  * @param {Array<string>} params['media-category'] - Filter by Media Category metadata (支持多选：Icons, Logos, Main等)
