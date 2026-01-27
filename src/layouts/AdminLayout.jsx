@@ -1,13 +1,13 @@
 import {
-    Box,
-    CircularProgress,
-    Collapse,
-    List,
-    ListItem,
-    ListItemText
+  Box,
+  CircularProgress,
+  Collapse,
+  List,
+  ListItem,
+  ListItemText
 } from '@mui/material';
 import { alpha, styled, useTheme } from '@mui/material/styles';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import SmallTriangleIcon from '../components/SmallTriangleIcon';
@@ -179,6 +179,47 @@ function AdminLayout() {
   const isLoading = useSelector(selectThemesLoading);
   const theme = useTheme();
 
+  // 获取用户 role
+  const getUserRole = () => {
+    try {
+      const userInfoStr = localStorage.getItem('user_info');
+      if (userInfoStr) {
+        const userInfo = JSON.parse(userInfoStr);
+        const roles = userInfo?.roles || [];
+        
+        // 检查 role（支持字符串或对象格式）
+        for (const role of roles) {
+          if (typeof role === 'string') {
+            if (role.toLowerCase() === 'admin') {
+              return 'admin';
+            }
+          } else if (typeof role === 'object' && role !== null) {
+            const roleName = role.name || role.code || role.role || role.id || '';
+            if (String(roleName).toLowerCase() === 'admin') {
+              return 'admin';
+            }
+          }
+        }
+      }
+    } catch (error) {
+      // 静默处理错误
+    }
+    return null;
+  };
+
+  const userRole = getUserRole();
+  
+  // 根据 role 过滤菜单项：admin 角色隐藏 derivate-management, channel-management, publications
+  const filteredMenuItems = useMemo(() => {
+    return userRole === 'admin' 
+      ? adminMenuItems.filter(item => 
+          item.id !== 'derivate-management' && 
+          item.id !== 'channel-management' && 
+          item.id !== 'publications'
+        )
+      : adminMenuItems;
+  }, [userRole]);
+
   // 初始化时从URL路径中确定活跃的菜单项
   const getInitialActiveMenuItem = () => {
     const pathSegments = location.pathname.split('/');
@@ -189,8 +230,8 @@ function AdminLayout() {
       return 'look-feel';
     }
     
-    // 检查是否是已知的菜单项
-    const foundItem = adminMenuItems.find(item => item.id === lastSegment);
+    // 检查是否是已知的菜单项（使用过滤后的菜单项）
+    const foundItem = filteredMenuItems.find(item => item.id === lastSegment);
     return foundItem ? lastSegment : 'look-feel';
   };
 
@@ -209,13 +250,13 @@ function AdminLayout() {
     if (lastSegment === 'admin') {
       setActiveMenuItem('look-feel');
     } else {
-      // 检查是否是主菜单项
-      const foundItem = adminMenuItems.find(item => item.id === lastSegment);
+      // 检查是否是主菜单项（使用过滤后的菜单项）
+      const foundItem = filteredMenuItems.find(item => item.id === lastSegment);
       if (foundItem) {
         setActiveMenuItem(lastSegment);
       } else {
         // 检查是否是子菜单项（可能在 publications 路径下）
-        for (const item of adminMenuItems) {
+        for (const item of filteredMenuItems) {
           if (item.subMenu) {
             const foundSubItem = item.subMenu.find(subItem => subItem.id === lastSegment);
             if (foundSubItem) {
@@ -236,7 +277,7 @@ function AdminLayout() {
       }
       // 对于 under-construction 或其他情况，保持当前的 activeMenuItem 不变
     }
-  }, [location.pathname]);
+  }, [location.pathname, filteredMenuItems]);
 
   // 处理菜单项点击
   const handleMenuItemClick = (menuId, hasSubMenu = false) => {
@@ -278,7 +319,7 @@ function AdminLayout() {
       {/* Admin Sidebar */}
       <AdminSidebar>
         <NavigationList component="nav">
-          {adminMenuItems.filter(item => item.id !== 'data-sheet-config').map(item => {
+          {filteredMenuItems.filter(item => item.id !== 'data-sheet-config').map(item => {
             const isActive = activeMenuItem === item.id;
             const isExpanded = expandedMenus[item.id] || false;
             const hasSubMenu = item.hasSubMenu && item.subMenu;
