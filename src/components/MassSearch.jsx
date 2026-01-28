@@ -662,7 +662,7 @@ const MassSearch = ({
                   ref={textareaRef}
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  placeholder="A01010101;A01010102;A01010201;A01010202;A01010203;A01010204"
+                  placeholder={fieldKey === 'sku-code' ? '10111;10112;10113' : 'A01010101;A01010102;A01010201'}
                   style={{ minHeight: '100px' }}
                 />
               </TextAreaWrapper>
