@@ -923,41 +923,53 @@ function ChannelManagement() {
     }
   };
 
-  const handleDownload = (id) => {
-    // 查找 template
+  const handleDownload = async (id) => {
     for (const channelItem of data) {
-      if (channelItem.templates) {
-        const template = channelItem.templates.find(t => t.id === id);
-        if (template) {
-          // 如果有文件，创建下载链接
-          if (template.file && template.file !== '-') {
-            // 使用 mock 数据，实际应该从 API 获取文件
-            // 这里创建一个临时的下载链接
-            const link = document.createElement('a');
-            link.href = template.file.startsWith('http') 
-              ? template.file 
-              : `/excel/template/templateFile/${template.id}`;
-            link.download = template.file;
-            link.style.display = 'none';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            setSnackbar({
-              open: true,
-              message: `Downloading template file: ${template.file}`,
-              severity: 'success',
-            });
-          } else {
-            setSnackbar({
-              open: true,
-              message: `Template "${template.name}" has no file to download.`,
-              severity: 'error',
-            });
-          }
-          return;
-        }
+      if (!channelItem.templates) continue;
+      const template = channelItem.templates.find(t => t.id === id);
+      if (!template) continue;
+
+      if (!template.fileId || template.file === '-') {
+        setSnackbar({
+          open: true,
+          message: `Template "${template.name}" has no file to download.`,
+          severity: 'error',
+        });
+        return;
       }
+
+      const safeName = (template.name || template.fileName || `Template_${template.id}`)
+        .replace(/[/\\:*?"<>|]/g, '_')
+        .trim() || `Template_${template.id}`;
+      const downloadFileName = safeName.endsWith('.xlsx') ? safeName : `${safeName}.xlsx`;
+
+      try {
+        // 使用 fileApi 下载接口
+        const blob = await fileApi.downloadFile(template.fileId, '/srv/v1.0/main/files');
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = downloadFileName;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+
+        setSnackbar({
+          open: true,
+          message: `Downloading template file: ${downloadFileName}`,
+          severity: 'success',
+        });
+      } catch (error) {
+        console.error('Failed to download template file:', error);
+        setSnackbar({
+          open: true,
+          message: error?.message || `Failed to download template file: ${template.name}`,
+          severity: 'error',
+        });
+      }
+      return;
     }
   };
 
