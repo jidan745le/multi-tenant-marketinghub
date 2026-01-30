@@ -397,7 +397,10 @@ const AssetDetailDialog = ({
       customerImageType: assetInfo.mediaType || assetInfo.type || '--',
       customerUsageRights: assetInfo.usage || '--',
       language: assetInfo.language || '--',
-      productIds: assetInfo.productIds || '--',
+      // Product IDs 用分号拼接显示
+      productIds: Array.isArray(assetInfo.productIds) && assetInfo.productIds.length > 0
+        ? assetInfo.productIds.join(';')
+        : (assetInfo.productIdsString || assetInfo.productIds || '--'),
       customerApprovalStatus: '• Published', // 默认值
       
       // Technical
