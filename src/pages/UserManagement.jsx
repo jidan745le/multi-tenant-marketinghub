@@ -595,6 +595,14 @@ function UserManagement() {
                 clear
               </span>
             }
+            sx={{
+              color: theme.palette.primary.main,
+              borderColor: theme.palette.primary.main,
+              '&:hover': {
+                borderColor: theme.palette.primary.main,
+                backgroundColor: `${theme.palette.primary.main}12`,
+              },
+            }}
           >
             Clear Search
           </Button>
@@ -1254,11 +1262,12 @@ function UserManagement() {
       />
 
 
-      {/* Success/Error Snackbar */}
+      {/* Success/Error Snackbar - 顶部中间 */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
         <Alert
           onClose={() => setSnackbar({ ...snackbar, open: false })}
