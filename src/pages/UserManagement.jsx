@@ -209,7 +209,11 @@ function UserManagement() {
   // Load users data
   const loadUsers = useCallback(async () => {
     try {
-      setLoading(true);
+      // 避免输入框失焦
+      const isInitialLoad = users.length === 0 && !emailSearch;
+      if (isInitialLoad) {
+        setLoading(true);
+      }
       setIsSearching(true);
       const response = await UserManagementApiService.getUsers(page, limit, emailSearch, currentTheme);
       setUsers(response.users || []);
@@ -222,7 +226,7 @@ function UserManagement() {
       setLoading(false);
       setIsSearching(false);
     }
-  }, [page, limit, emailSearch, currentTheme]);
+  }, [page, limit, emailSearch, currentTheme, users.length]);
 
   // Load available roles and themes
   const loadRoles = useCallback(async () => {
