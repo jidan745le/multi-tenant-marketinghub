@@ -297,7 +297,7 @@ const MassSearchSimple = ({
                   ref={textareaRef}
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  placeholder="10111;10112;10113"
+                  placeholder="10101;10102;10201;10202;10203"
                 />
               </TextAreaWrapper>
               <ButtonContainer>
