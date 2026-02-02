@@ -283,12 +283,59 @@ const ProductCard = ({
                 transition: 'filter 180ms ease'
               }}
             />
-            {/* 下载按钮 */}
+            {/* 悬停时居中显示的 DOWNLOAD MAIN IMAGE 按钮 */}
+            <Box
+              sx={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: isImageHover ? 1 : 0,
+                pointerEvents: isImageHover ? 'auto' : 'none',
+                transition: 'opacity 180ms ease',
+                zIndex: 1
+              }}
+            >
+              <Box
+                component="button"
+                type="button"
+                role="button"
+                aria-label={t('pdp.downloadMainImage', 'Download main image')}
+                onClick={handleDownloadImage}
+                sx={{
+                  padding: '8px 20px',
+                  background: '#ffffff',
+                  backgroundColor: '#ffffff',
+                  color: primaryColor,
+                  border: `1px solid ${primaryColor}`,
+                  borderRadius: '4px',
+                  fontFamily: '"Open Sans", sans-serif',
+                  fontSize: 14,
+                  fontWeight: 500,
+                  textTransform: 'uppercase',
+                  cursor: onDownloadClick ? 'pointer' : 'default',
+                  whiteSpace: 'nowrap',
+                  minWidth: 'auto',
+                  '&:hover': onDownloadClick ? {
+                    borderColor: primaryColor,
+                    background: '#ffffff',
+                    backgroundColor: '#ffffff'
+                  } : {}
+                }}
+              >
+                {t('pdp.downloadMainImage', 'DOWNLOAD MAIN IMAGE')}
+              </Box>
+            </Box>
+            {/* 右下角下载图标：悬停显示中央按钮时隐藏 */}
             <Box sx={{ 
               position: 'absolute', 
               right: 0, 
               bottom: 0, 
-              p: 1.93 
+              p: 1.93,
+              opacity: isImageHover ? 0 : 1,
+              pointerEvents: isImageHover ? 'none' : 'auto',
+              transition: 'opacity 180ms ease'
             }}>
               <Box
                 role="button"
