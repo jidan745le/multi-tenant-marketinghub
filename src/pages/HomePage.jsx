@@ -385,7 +385,7 @@ const HomePage = () => {
                     <Grid item xs={8} sx={{ display: 'flex', width: '66.666%' }}>
                       {renderCard(cardWidgets[0], true)}
                     </Grid>
-                    <Grid item xs={4} sx={{ display: 'flex', width: '33.333%' }}>
+                    <Grid item xs={4} sx={{ display: 'flex', width: '32.13%' }}>
                       {renderCard(cardWidgets[1])}
                     </Grid>
                   </Grid>
