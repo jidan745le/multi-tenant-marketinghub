@@ -324,9 +324,10 @@ const buildGraphQLQuery = (filters = {}, first = 100, after = 0, brand = 'kendo'
  * @param {Array<string>} skuCodes - Array of SKU codes to validate
  * @param {string} brand - Brand code
  * @param {string} language - Language code
+ * @param {boolean} isNewRelease - Whether to apply new release filter (FirstShipmentDate in last 12 months)
  * @returns {string} GraphQL query string
  */
-const buildSKUValidationQuery = (skuCodes, brand = 'kendo', language = "en") => {
+const buildSKUValidationQuery = (skuCodes, brand = 'kendo', language = "en", isNewRelease = false) => {
   const brandName = brand.toUpperCase();
   const skuConditions = skuCodes.map(skuCode => ({
     "CustomerFacingProductCode": { "$like": skuCode }
@@ -337,6 +338,16 @@ const buildSKUValidationQuery = (skuCodes, brand = 'kendo', language = "en") => 
     { "objectType": { "$like": "sku" } },
     { "$or": skuConditions }
   ];
+
+  // Add new release filter if needed
+  if (isNewRelease) {
+    const now = new Date();
+    const twelveMonthsAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+    const twelveMonthsAgoStr = twelveMonthsAgo.toISOString().split('T')[0];
+    filterConditions.push({
+      "FirstShipmentDate": { "$gte": twelveMonthsAgoStr }
+    });
+  }
 
   const filterString = JSON.stringify({ "$and": filterConditions });
 
@@ -363,9 +374,10 @@ const buildSKUValidationQuery = (skuCodes, brand = 'kendo', language = "en") => 
  * @param {Array<string>} modelNumbers - Array of model numbers to validate
  * @param {string} brand - Brand code
  * @param {string} language - Language code
+ * @param {boolean} isNewRelease - Whether to apply new release filter (FirstShipmentDate in last 12 months)
  * @returns {string} GraphQL query string
  */
-const buildModelNumberValidationQuery = (modelNumbers, brand = 'kendo', language = "en") => {
+const buildModelNumberValidationQuery = (modelNumbers, brand = 'kendo', language = "en", isNewRelease = false) => {
   const brandName = brand.toUpperCase();
   const modelConditions = modelNumbers.map(modelNumber => ({
     "VirtualProductID": { "$like": modelNumber }
@@ -376,6 +388,16 @@ const buildModelNumberValidationQuery = (modelNumbers, brand = 'kendo', language
     { "objectType": { "$like": "virtual-product" } },
     { "$or": modelConditions }
   ];
+
+  // Add new release filter if needed
+  if (isNewRelease) {
+    const now = new Date();
+    const twelveMonthsAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+    const twelveMonthsAgoStr = twelveMonthsAgo.toISOString().split('T')[0];
+    filterConditions.push({
+      "FirstShipmentDate": { "$gte": twelveMonthsAgoStr }
+    });
+  }
 
   const filterString = JSON.stringify({ "$and": filterConditions });
 
@@ -402,15 +424,16 @@ const buildModelNumberValidationQuery = (modelNumbers, brand = 'kendo', language
  * @param {Array<string>} skuCodes - Array of SKU codes to validate
  * @param {string} brand - Brand code
  * @param {string} language - Language code
+ * @param {boolean} isNewRelease - Whether to apply new release filter (FirstShipmentDate in last 12 months)
  * @returns {Promise<Array<string>>} Array of valid SKU codes
  */
-export const validateSKUCodes = async (skuCodes, brand = 'kendo', language = "en") => {
+export const validateSKUCodes = async (skuCodes, brand = 'kendo', language = "en", isNewRelease = false) => {
   try {
     if (!skuCodes || skuCodes.length === 0) {
       return [];
     }
 
-    const query = buildSKUValidationQuery(skuCodes, brand, language);
+    const query = buildSKUValidationQuery(skuCodes, brand, language, isNewRelease);
     const token = CookieService.getToken();
 
     const response = await fetch(GRAPHQL_API_URL, {
@@ -456,15 +479,16 @@ export const validateSKUCodes = async (skuCodes, brand = 'kendo', language = "en
  * @param {Array<string>} modelNumbers - Array of model numbers to validate
  * @param {string} brand - Brand code
  * @param {string} language - Language code
+ * @param {boolean} isNewRelease - Whether to apply new release filter (FirstShipmentDate in last 12 months)
  * @returns {Promise<Array<string>>} Array of valid model numbers
  */
-export const validateModelNumbers = async (modelNumbers, brand = 'kendo', language = "en") => {
+export const validateModelNumbers = async (modelNumbers, brand = 'kendo', language = "en", isNewRelease = false) => {
   try {
     if (!modelNumbers || modelNumbers.length === 0) {
       return [];
     }
 
-    const query = buildModelNumberValidationQuery(modelNumbers, brand, language);
+    const query = buildModelNumberValidationQuery(modelNumbers, brand, language, isNewRelease);
     const token = CookieService.getToken();
 
     const response = await fetch(GRAPHQL_API_URL, {

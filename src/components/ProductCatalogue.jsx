@@ -71,6 +71,19 @@ const ProductCatalogue = ({
     onMassSearch?.(item, childItem, filterValues);
   }, [onMassSearch, filterValues]);
 
+  // 检测是否是 new release 页面（通过检查 fetchProducts 函数名或源码）
+  const isNewRelease = useMemo(() => {
+    const fetchProducts = config?.productConfig?.fetchProducts;
+    if (!fetchProducts) return false;
+    // 检查函数名是否包含 "NewProducts" 相关字符串
+    const functionName = fetchProducts.name || '';
+    const functionString = fetchProducts.toString() || '';
+    return functionName.includes('NewProducts') || 
+           functionName.includes('fetchNewProducts') ||
+           functionString.includes('newProductsApi') ||
+           functionString.includes('buildNewProductsQuery');
+  }, [config?.productConfig?.fetchProducts]);
+
   if (!config) {
     return <div>No configuration provided</div>;
   }
@@ -112,6 +125,7 @@ const ProductCatalogue = ({
                 onChange={handleFilterChange}
                 onMassSearch={handleMassSearchClick}
                 useNewMassSearch={useNewMassSearch}
+                isNewRelease={isNewRelease}
               />
             </Box>
           </Paper>

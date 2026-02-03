@@ -216,7 +216,8 @@ const ConfigurableFilterSidebar = ({
   config, 
   onChange, 
   onMassSearch,
-  useNewMassSearch = true // 默认使用新的 MassSearch 组件
+  useNewMassSearch = true, // 默认使用新的 MassSearch 组件
+  isNewRelease = false // 是否是 new release 页面
 }) => {
   const theme = useTheme();
   const primaryColor = theme.palette.primary.main;
@@ -951,6 +952,7 @@ const ConfigurableFilterSidebar = ({
                 initialValue={dialogContent}
                 description={currentChildItem?.desc || 'Please paste multiple SKU codes separated by semicolons.'}
                 fieldKey={currentItem?.key || 'sku-code'}
+                isNewRelease={isNewRelease}
                 onConfirm={(value) => {
                   // value 已经是处理后的 found 值（如果有 notFound 的话）
                   setDialogContent(value);
@@ -986,6 +988,7 @@ const ConfigurableFilterSidebar = ({
               initialValue={dialogContent}
               description={currentChildItem?.desc || 'Please paste multiple value for Model No & Model Name below.'}
               fieldKey={currentItem?.key || 'model-number'}
+              isNewRelease={isNewRelease}
               onConfirm={(value, found, notFound) => {
                 // 如果有 notFound，只使用 found 的值进行搜索
                 const searchValue = (notFound && notFound.length > 0 && found && found.length > 0) ? value : value;

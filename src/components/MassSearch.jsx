@@ -1,13 +1,13 @@
 import CloseIcon from '@mui/icons-material/Close';
 import {
-  Alert,
-  Box,
-  Button,
-  Dialog,
-  IconButton,
-  Snackbar,
-  Typography,
-  useTheme
+    Alert,
+    Box,
+    Button,
+    Dialog,
+    IconButton,
+    Snackbar,
+    Typography,
+    useTheme
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { useEffect, useRef, useState } from 'react';
@@ -489,7 +489,8 @@ const MassSearch = ({
   initialValue = '', 
   onConfirm,
   description = 'Please paste multiple value for Model No & Model Name below.',
-  fieldKey = 'model-number' // 'sku-code' or 'model-number'
+  fieldKey = 'model-number', // 'sku-code' or 'model-number'
+  isNewRelease = false // Whether this is for new release validation
 }) => {
   const theme = useTheme();
   const { currentBrandCode } = useBrand();
@@ -539,10 +540,10 @@ const MassSearch = ({
 
       if (fieldKey === 'sku-code') {
         // Validate SKU codes
-        validCodes = await validateSKUCodes(values, currentBrandCode);
+        validCodes = await validateSKUCodes(values, currentBrandCode, "en", isNewRelease);
       } else if (fieldKey === 'model-number') {
         // Validate model numbers
-        validCodes = await validateModelNumbers(values, currentBrandCode);
+        validCodes = await validateModelNumbers(values, currentBrandCode, "en", isNewRelease);
       }
 
       // Find which codes are valid and which are not
