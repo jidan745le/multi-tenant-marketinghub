@@ -11,8 +11,8 @@ const API_KEY = '7ce45a85b23aa742131a94d4431e22fe';
  * @param {string} filters.filename - Filter by filename (partial match)
  * @param {string} filters['folder-path'] - Filter by folder path
  * @param {string} filters['model-number'] - Filter by product model number
- * @param {string} filters['sku-code'] - Filter by SKU code (通过 metadata "Media Product IDs" 查询，支持批量模糊查询，多个 SKU 用分号分隔，例如："11606633;11606634")
- * @param {string} filters.tags - Filter by tags/keywords (Media Key Words metadata)
+ * @param {string} filters['sku-code'] - Filter by SKU code (根据页面类型使用不同的 metadata：Video页面使用 "Video Product IDs"，文档页面使用 "Document Product IDs"，Product Assets页面使用 "Media Product IDs"。支持批量模糊查询，多个 SKU 用分号分隔，例如："11606633;11606634"；metadata 中多个 SKU 用分号连接)
+ * @param {string} filters.tags - Filter by tags/keywords (根据页面类型使用不同的 metadata：Video页面使用 "Video Key Words"，文档页面使用 "Document Key Words"，Product Assets页面使用 "Media Key Words")
  * @param {Array<string>} filters['media-type'] - Filter by media types
  * @param {Array<string>} filters['media-category'] - Filter by Media Category metadata (支持多选)
  * @param {Array<string>} filters['document-type'] - Filter by Document Type metadata (支持多选)
@@ -70,8 +70,18 @@ const buildAssetsQuery = (filters = {}, first = 20, offset = 0) => {
         });
     }
 
+    // 根据 media-type 确定使用的 metadata name
+    // Video页面：Video Product IDs, Video Key Words
+    // 文档页面：Document Product IDs, Document Key Words
+    // Product Assets页面：Media Product IDs, Media Key Words
+    const isVideoPage = filters['media-type'] && Array.isArray(filters['media-type']) && filters['media-type'].includes('Videos');
+    const isDocumentPage = filters['media-type'] && Array.isArray(filters['media-type']) && filters['media-type'].includes('Documents');
+    
+    const productIdsMetadataName = isVideoPage ? "Video Product IDs" : (isDocumentPage ? "Document Product IDs" : "Media Product IDs");
+    const keyWordsMetadataName = isVideoPage ? "Video Key Words" : (isDocumentPage ? "Document Key Words" : "Media Key Words");
+
     // Tags/Keywords metadata filter (支持模糊搜索)
-    // 按照指南：name 为 "Media Key Words"，operator 为 "LIKE"
+    // Video页面使用 "Video Key Words"，文档页面使用 "Document Key Words"，Product Assets页面使用 "Media Key Words"
     if (filters.tags && typeof filters.tags === 'string' && filters.tags.trim()) {
         // 将逗号或分号分隔的标签字符串拆分为数组
         const tagValues = filters.tags
@@ -81,15 +91,16 @@ const buildAssetsQuery = (filters = {}, first = 20, offset = 0) => {
 
         if (tagValues.length > 0) {
             metadataFilters.push({
-                name: "Media Key Words",
+                name: keyWordsMetadataName,
                 values: tagValues,
                 operator: "LIKE" // 使用 LIKE 支持部分匹配
             });
         }
     }
 
-    // SKU code metadata filter (基于 "Media Product IDs" metadata)
-    // Media Product IDs 字段存储的是 SKU code，用分号（;）连接，例如："11606633;11606634"
+    // SKU code metadata filter
+    // Video页面使用 "Video Product IDs"，文档页面使用 "Document Product IDs"，Product Assets页面使用 "Media Product IDs"
+    // 字段存储的是 SKU code，用分号（;）连接，例如："11606633;11606634"
     // 支持批量模糊查询：用户输入多个 SKU code（用分号分隔），会匹配 metadata 中包含任一 SKU code 的资产
     if (filters['sku-code']) {
         // 将用户输入的多个 SKU code（用分号分隔）拆分为数组
@@ -100,7 +111,7 @@ const buildAssetsQuery = (filters = {}, first = 20, offset = 0) => {
         
         if (skuCodes.length > 0) {
             metadataFilters.push({
-                name: "Media Product IDs",
+                name: productIdsMetadataName,
                 values: skuCodes,
                 operator: "LIKE" // 使用 LIKE 支持模糊匹配，可以匹配 metadata 中包含任一 SKU code 的资产
             });
@@ -285,8 +296,8 @@ const buildAssetsQuery = (filters = {}, first = 20, offset = 0) => {
  * @param {string} params.filename - Filter by filename (partial match)
  * @param {string} params['folder-path'] - Filter by folder path
  * @param {string} params['model-number'] - Filter by product model number
- * @param {string} params['sku-code'] - Filter by SKU code (通过 metadata "Media Product IDs" 查询，支持批量模糊查询，多个 SKU 用分号分隔，例如："11606633;11606634"；metadata 中多个 SKU 用分号连接)
- * @param {string} params.tags - Filter by tags/keywords (Media Key Words metadata)
+ * @param {string} params['sku-code'] - Filter by SKU code (根据页面类型使用不同的 metadata：Video页面使用 "Video Product IDs"，文档页面使用 "Document Product IDs"，Product Assets页面使用 "Media Product IDs"。支持批量模糊查询，多个 SKU 用分号分隔，例如："11606633;11606634"；metadata 中多个 SKU 用分号连接)
+ * @param {string} params.tags - Filter by tags/keywords (根据页面类型使用不同的 metadata：Video页面使用 "Video Key Words"，文档页面使用 "Document Key Words"，Product Assets页面使用 "Media Key Words")
  * @param {Array<string>} params['media-type'] - Filter by media types (Images, Videos, Documents, Audio)
  * @param {Array<string>} params['media-category'] - Filter by Media Category metadata (支持多选：Icons, Logos, Main等)
  * @param {Array<string>} params['document-type'] - Filter by Document Type metadata (支持多选：Catalog, Brochure, Manual等)
