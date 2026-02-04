@@ -1,14 +1,14 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
+  Box,
+  Button,
+  Chip,
+  CircularProgress,
   Dialog,
   DialogContent,
-  Box,
-  Typography,
-  Button,
   styled,
-  CircularProgress,
-  Chip
+  Typography
 } from '@mui/material';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useAssetInfo from '../hooks/useAssetInfo';
 // import { axiosExt } from 'src/utils/axios'; // 暂时用mock数据
@@ -619,9 +619,12 @@ const AssetDetailDialog = ({
                       (assetInfo.mimetype && assetInfo.mimetype.toLowerCase().includes('video')) ||
                       (assetInfo.name && /\.(mp4|avi|mov|wmv|flv|webm|mkv|m4v)$/i.test(assetInfo.name));
       
-      // 是 video 且有 assetId，使用新的 URL 格式
-      if (isVideo && assetId) {
-        const videoUrl = `https://marketinghub-test.rg-experience.com/apis/kendo/asset-stream/${assetId}`;
+      // 是 video 且有 fullpath，使用 https://pim-test.kendo.com + fullpath
+      if (isVideo && assetInfo.fullpath) {
+        const buildFullUrl = (url) => {
+          return url && (url.startsWith('http') ? url : `https://pim-test.kendo.com${url}`);
+        };
+        const videoUrl = buildFullUrl(assetInfo.fullpath);
         console.log('Video URL (new format):', videoUrl);
         setMediaUrl(videoUrl);
         return;

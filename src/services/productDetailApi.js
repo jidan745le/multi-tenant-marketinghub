@@ -728,6 +728,106 @@ class ProductDetailApiService {
             }
           }
         }
+
+        # COMPLIANCE & CERTIFICATIONS
+        DangerousGoodClass
+        
+        CE {
+          ... on fieldcollection_CECertification {
+            Certification {
+              ... on asset {
+                id
+                filename
+                fullpath
+                assetThumbWeb: fullpath(thumbnail: "content", format: "webp")
+              }
+            }
+
+            DoC {
+              ... on asset {
+                id
+                filename
+                fullpath
+                assetThumbWeb: fullpath(thumbnail: "content", format: "webp")
+              }
+            }
+
+            TestReport {
+              ... on asset {
+                id
+                filename
+                fullpath
+                assetThumbWeb: fullpath(thumbnail: "content", format: "webp")
+              }
+            }
+          }
+        }
+
+        GS {
+          ... on fieldcollection_Certification {
+            Certificate {
+              ... on asset {
+                id
+                filename
+                fullpath
+                assetThumbWeb: fullpath(thumbnail: "content", format: "webp")
+              }
+            }
+
+            TestReport {
+              ... on asset {
+                id
+                filename
+                fullpath
+                assetThumbWeb: fullpath(thumbnail: "content", format: "webp")
+              }
+            }
+          }
+        }
+
+        CCC {
+          ... on fieldcollection_Certification {
+            Certificate {
+              ... on asset {
+                id
+                filename
+                fullpath
+                assetThumbWeb: fullpath(thumbnail: "content", format: "webp")
+              }
+            }
+
+            TestReport {
+              ... on asset {
+                id
+                filename
+                fullpath
+                assetThumbWeb: fullpath(thumbnail: "content", format: "webp")
+              }
+            }
+          }
+        }
+
+        UL {
+          ... on fieldcollection_Certification {
+            Certificate {
+              ... on asset {
+                id
+                filename
+                fullpath
+                assetThumbWeb: fullpath(thumbnail: "content", format: "webp")
+              }
+            }
+
+            TestReport {
+              ... on asset {
+                id
+                filename
+                fullpath
+                assetThumbWeb: fullpath(thumbnail: "content", format: "webp")
+              }
+            }
+          }
+        }
           }
         }
       }
@@ -757,7 +857,8 @@ class ProductDetailApiService {
       marketingCollaterals: this.transformMarketingCollateralsData(product),
       afterService: this.transformAfterServiceData(product),
       skuData: this.transformSkuData(product),
-      successor: this.transformSuccessorData(product)
+      successor: this.transformSuccessorData(product),
+      complianceCertifications: this.transformComplianceCertificationsData(product)
     };
   }
 
@@ -772,6 +873,54 @@ class ProductDetailApiService {
       assetId: successor.Main?.id || ''
     }));
 
+  }
+
+  // 合规认证数据转换
+  transformComplianceCertificationsData(product) {
+    const buildFullUrl = (url) => {
+      return url && (url.startsWith('http') ? url : `https://pim-test.kendo.com${url}`);
+    };
+
+    const transformAssetArray = (assets) => {
+      if (!assets || !Array.isArray(assets)) return [];
+      return assets.map(asset => ({
+        id: asset.id || '',
+        filename: asset.filename || '',
+        fullpath: asset.fullpath || '',
+        thumbnailUrl: buildFullUrl(asset.assetThumbWeb || asset.fullpath || ''),
+        downloadUrl: buildFullUrl(asset.fullpath || '')
+      }));
+    };
+
+    // 转换认证数据为单个数组（参考 afterService 的 packaging 结构）
+    const transformCertificationToArray = (certData, hasDoc = false, useCertificate = false) => {
+      if (!certData || !Array.isArray(certData) || certData.length === 0) return [];
+      const firstCert = certData[0];
+      // CE 使用 Certification，GS/CCC/UL 使用 Certificate
+      const certField = useCertificate ? firstCert.Certificate : firstCert.Certification;
+      
+      // 合并所有文档到一个数组
+      const result = [
+        ...transformAssetArray(certField),
+        ...transformAssetArray(firstCert.TestReport)
+      ];
+      
+      if (hasDoc && firstCert.DoC) {
+        result.push(...transformAssetArray(firstCert.DoC));
+      }
+      
+      return result;
+    };
+
+    return {
+      dangerousGoods: {
+        dangerousGoodClass: product.DangerousGoodClass || ''
+      },
+      ce: transformCertificationToArray(product.CE, true, false), // CE 合并 Certification、DoC、TestReport
+      gs: transformCertificationToArray(product.GS, false, true), // GS 合并 Certificate、TestReport
+      ccc: transformCertificationToArray(product.CCC, false, true), // CCC 合并 Certificate、TestReport
+      ul: transformCertificationToArray(product.UL, false, true) // UL 合并 Certificate、TestReport
+    };
   }
 
   // 产品卡片信息转换
