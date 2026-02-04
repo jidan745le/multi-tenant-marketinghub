@@ -437,7 +437,7 @@ export const createAfterSalesConfig = (brand = 'kendo') => {
             cardActions: {
                 show_file_type: true,
                 show_eyebrow: true,
-                show_open_pdf: true,
+                show_open_pdf: false,
                 show_open_product_page: false,
                 show_preview_media: true,
                 show_download: true,
@@ -525,7 +525,7 @@ export const createCertificationsConfig = (brand = 'kendo') => {
             cardActions: {
                 show_file_type: true,
                 show_eyebrow: true,
-                show_open_pdf: true,
+                show_open_pdf: false,
                 show_open_product_page: false,
                 show_preview_media: true,
                 show_download: true,
