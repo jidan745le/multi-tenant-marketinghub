@@ -560,8 +560,8 @@ class DerivateManagementApiService {
      */
     getMediaTypeOptions() {
         return [
-            'Main', 'On White', 'Lifestyle', 'Action',
-            'In Scene', 'Logo', 'Icon', 'Picto'
+            'Main', 'OnWhite', 'Lifestyle', 'Action',
+            'InScene', 'Logo', 'Icon', 'Picto'
         ];
     }
 }
