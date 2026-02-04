@@ -49,24 +49,44 @@ export const AuthProvider = ({ children }) => {
             return false;
         }
         
-        const requiredPermissions = [
-            'marketinghub:theme:kendo',
-            'marketinghub:theme:bosch',
-            'marketinghub:system:admin'
-        ];
+        const adminPermission = 'marketinghub:system:admin';
+        const themePermissionPrefix = 'marketinghub:theme';
 
-        const hasPermission = requiredPermissions.some(permission => 
-            permissions.includes(permission)
+        const hasAdminPermission = permissions.includes(adminPermission);
+        const hasThemePermission = permissions.some(perm => perm.startsWith(themePermissionPrefix));
+        
+        // 如果拥有 admin 权限，直接允许进入
+        if (hasAdminPermission) {
+            console.log('🔍 权限检查详情: 拥有 admin 权限，允许进入应用');
+            return true;
+        }
+
+        // 如果没有 theme 权限，不允许进入
+        if (!hasThemePermission) {
+            console.log('🔍 权限检查详情: 没有 theme 权限，不允许进入应用');
+            return false;
+        }
+
+        // 有 theme 权限，检查是否有其他非 theme 权限
+        const otherPermissions = permissions.filter(perm => 
+            perm !== adminPermission && 
+            !perm.startsWith(themePermissionPrefix)
         );
+
+        const hasOtherPermissions = otherPermissions.length > 0;
 
         console.log('🔍 权限检查详情:', {
             userPermissions: permissions,
-            requiredPermissions,
-            hasMatchingPermission: hasPermission,
-            matchingPermissions: permissions.filter(p => requiredPermissions.includes(p))
+            hasAdminPermission,
+            hasThemePermission,
+            hasOtherPermissions,
+            otherPermissions,
+            canAccess: hasOtherPermissions
         });
 
-        return hasPermission;
+        // 如果只有 theme 权限，没有其他权限，跳转到 ThankYou 页面
+        // 如果有 theme 权限 + 其他权限，允许进入应用
+        return hasOtherPermissions;
     };
 
     useEffect(() => {

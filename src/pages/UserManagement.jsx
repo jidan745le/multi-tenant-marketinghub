@@ -375,11 +375,18 @@ function UserManagement() {
     }
 
     try {
-      // Update user basic information with combined name
+      // 构建更新数据，排除 password 字段（如果为空）
+      const { password, ...userDataWithoutPassword } = editingUser;
       const userUpdateData = {
-        ...editingUser,
+        ...userDataWithoutPassword,
         name: `${editingUser.firstName || ''} ${editingUser.lastName || ''}`.trim()
       };
+      
+      // 只有当密码字段有值时才包含在更新数据中
+      if (password && password.trim()) {
+        userUpdateData.password = password;
+      }
+      
       await UserManagementApiService.updateUser(editingUser.id, userUpdateData);
       
       // Combine role IDs and theme IDs for role assignment
@@ -431,7 +438,9 @@ function UserManagement() {
 
   // Dialog handlers
   const openEditDialog = async (user) => {
-    setEditingUser({ ...user });
+    // 排除 password 字段，确保密码字段始终为空
+    const { password, ...userWithoutPassword } = user;
+    setEditingUser({ ...userWithoutPassword, password: '' });
     setEditUserDialog(true);
     setFormErrors({});
     
@@ -462,20 +471,22 @@ function UserManagement() {
       }
         
       setEditingUser({ 
-        ...user, 
+        ...userWithoutPassword, 
         firstName: user.name ? user.name.split(' ')[0] : '',
         lastName: user.name ? user.name.split(' ').slice(1).join(' ') : '',
         roleIds: regularRoleIds,
-        themeIds: themeRoleIds
+        themeIds: themeRoleIds,
+        password: '' // 确保密码字段始终为空
       });
     } catch (err) {
       console.error('Failed to load user roles:', err);
       setEditingUser({ 
-        ...user, 
+        ...userWithoutPassword, 
         firstName: user.name ? user.name.split(' ')[0] : '',
         lastName: user.name ? user.name.split(' ').slice(1).join(' ') : '',
         roleIds: [], 
-        themeIds: [] 
+        themeIds: [],
+        password: '' // 确保密码字段始终为空
       });
     }
   };
@@ -822,16 +833,38 @@ function UserManagement() {
               fullWidth
             />
             
-            <StyledTextField
-              label="Password"
-              type="password"
-              value={newUser.password}
-              onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-              error={!!formErrors.password}
-              helperText={formErrors.password}
-              required
-              fullWidth
-            />
+            <Box>
+              <InputLabel sx={{ mb: 1, color: 'text.primary' }}>
+                Password {formErrors.password && <span style={{ color: 'red' }}>*</span>}
+              </InputLabel>
+              <input
+                type="password"
+                value={newUser.password}
+                onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  border: formErrors.password ? '1px solid #d32f2f' : '1px solid rgba(0, 0, 0, 0.23)',
+                  borderRadius: '4px',
+                  fontSize: '16px',
+                  fontFamily: 'inherit',
+                  outline: 'none',
+                  transition: 'border-color 0.2s',
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = theme.palette.primary.main;
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = formErrors.password ? '#d32f2f' : 'rgba(0, 0, 0, 0.23)';
+                }}
+                required
+              />
+              {formErrors.password && (
+                <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75 }}>
+                  {formErrors.password}
+                </Typography>
+              )}
+            </Box>
             
             <StyledTextField
               label="Mobile"
@@ -1063,15 +1096,38 @@ function UserManagement() {
                 fullWidth
               />
               
-              <StyledTextField
-                label="New Password (leave empty to keep current)"
-                type="password"
-                value={editingUser.password || ''}
-                onChange={(e) => setEditingUser({ ...editingUser, password: e.target.value })}
-                error={!!formErrors.password}
-                helperText={formErrors.password}
-                fullWidth
-              />
+              <Box>
+                <InputLabel sx={{ mb: 1, color: 'text.primary' }}>
+                  New Password (leave empty to keep current)
+                  {formErrors.password && <span style={{ color: 'red' }}>*</span>}
+                </InputLabel>
+                <input
+                  type="password"
+                  value={editingUser.password || ''}
+                  onChange={(e) => setEditingUser({ ...editingUser, password: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '14px',
+                    border: formErrors.password ? '1px solid #d32f2f' : '1px solid rgba(0, 0, 0, 0.23)',
+                    borderRadius: '4px',
+                    fontSize: '16px',
+                    fontFamily: 'inherit',
+                    outline: 'none',
+                    transition: 'border-color 0.2s',
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = theme.palette.primary.main;
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = formErrors.password ? '#d32f2f' : 'rgba(0, 0, 0, 0.23)';
+                  }}
+                />
+                {formErrors.password && (
+                  <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75 }}>
+                    {formErrors.password}
+                  </Typography>
+                )}
+              </Box>
               
               <StyledTextField
                 label="Address"
