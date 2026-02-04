@@ -26,6 +26,7 @@ export default {
     "pdp.sections.packaging": "包装",
     "pdp.sections.drawing": "技术图纸",
     "pdp.sections.patent": "专利",
+    "pdp.sections.seo": "SEO",
     "pdp.sections.complianceCertifications": "合规与认证",
     "pdp.sections.dangerousGoods": "危险品",
     "pdp.sections.ce": "CE",

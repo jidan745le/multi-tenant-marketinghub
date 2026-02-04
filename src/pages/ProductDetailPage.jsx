@@ -420,6 +420,7 @@ const ProductDetailPage = () => {
     basicFormData,
     sapFormData,
     marketingFormData,
+    seoFormData,
     iconsAndPicturesData,
     onWhiteData,
     actionAndLifestyleData,
@@ -863,7 +864,11 @@ const ProductDetailPage = () => {
       specifications: 'marketingData.specifications',
       bulletTextListView: 'marketingData.bulletTextListView',
       channelSpecificDescription: 'marketingData.channelSpecificDescription',
-      benefits: 'marketingData.benefits'
+      benefits: 'marketingData.benefits',
+      // SEO (对应 PIM 的 seoData)
+      seoTitle: 'seoData.seoTitle',
+      seoDescription: 'seoData.seoDescription',
+      seoKeywords: 'seoData.seoKeywords'
     };
     
     // 如果有特殊映射，使用特殊映射
@@ -877,6 +882,7 @@ const ProductDetailPage = () => {
       case 'sap': return `sapData.${fieldName}`;
       case 'marketing': return `marketingData.${fieldName}`;
       case 'productCard': return `productCardInfo.${fieldName}`;
+      case 'seo': return `seoData.${fieldName}`;
       default: return `${fieldName}`;
     }
   }, []);
@@ -934,6 +940,11 @@ const ProductDetailPage = () => {
   const marketingValueGetterMap = React.useMemo(() => 
     buildGetterMap(marketingFormData?.fields, 'marketing'), 
     [buildGetterMap, marketingFormData?.fields]
+  );
+
+  const seoValueGetterMap = React.useMemo(() => 
+    buildGetterMap(seoFormData?.fields, 'seo'), 
+    [buildGetterMap, seoFormData?.fields]
   );
 
   const productCardValueGetterMap = React.useMemo(() => 
@@ -1025,6 +1036,11 @@ const ProductDetailPage = () => {
   
   const marketingFormItems = React.useMemo(() => 
     buildItemsFromFields(marketingFormData, marketingValueGetterMap, productData), [buildItemsFromFields, marketingFormData, marketingValueGetterMap, productData]
+  );
+
+  const seoFormItems = React.useMemo(() => 
+    buildItemsFromFields(seoFormData, seoValueGetterMap, productData), 
+    [buildItemsFromFields, seoFormData, seoValueGetterMap, productData]
   );
 
   // 通用的区域显示判断函数
@@ -1862,7 +1878,8 @@ const ProductDetailPage = () => {
           marketingCollaterals,
           afterService,
           successor,
-          complianceCertifications
+          complianceCertifications,
+          seoData
         } = detail;
         
         if (import.meta.env.DEV) {
@@ -1881,6 +1898,7 @@ const ProductDetailPage = () => {
           console.log('afterService', afterService);
           console.log('successor', successor);
           console.log('complianceCertifications', complianceCertifications);
+          console.log('seoData', seoData);
         }
         
         // 直接使用PIM接口返回的数据结构
@@ -1908,6 +1926,7 @@ const ProductDetailPage = () => {
           afterService: afterService || {},
           successor: successor || {},
           complianceCertifications: complianceCertifications || {},
+          seoData: seoData || {},
           
           // 兼容旧版本的数据结构
           status: {
@@ -2288,6 +2307,23 @@ const ProductDetailPage = () => {
           <Form
             columns={marketingFormData?.columnType || "single"}
             items={marketingFormItems}
+          />
+        </Box>
+      )}
+      {/* SEO - 与 Marketing Copy 一致：仅由 Strapi form 配置驱动 */}
+      {seoFormData && seoFormItems && seoFormItems.length > 0 && (
+        <Box sx={{ mt: 4, mb: 3 }}>
+          <SectionHeader
+            titleRef={null}
+            title={seoFormData.title}
+            showView={seoFormData.show}
+            showDownload={seoFormData.download}
+            onViewClick={() => {}}
+            onDownloadClick={() => {}}
+          />
+          <Form
+            columns={seoFormData.columnType || 'single'}
+            items={seoFormItems}
           />
         </Box>
       )}

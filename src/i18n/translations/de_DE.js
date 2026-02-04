@@ -37,6 +37,7 @@ export default {
     "pdp.sections.packaging": "Verpackung",
     "pdp.sections.drawing": "Zeichnung",
     "pdp.sections.patent": "Patent",
+    "pdp.sections.seo": "SEO",
     "pdp.sections.complianceCertifications": "Compliance & Zertifizierungen",
     "pdp.sections.dangerousGoods": "Gefahrgut",
     "pdp.sections.ce": "CE",

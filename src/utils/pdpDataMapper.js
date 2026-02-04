@@ -27,7 +27,8 @@ const DATA_MAPPING_CONFIG = {
   forms: {
     basicFormData: 'pdp.sections.basicData',
     sapFormData: 'pdp.sections.sapDetail', 
-    marketingFormData: 'pdp.sections.marketingCopy'
+    marketingFormData: 'pdp.sections.marketingCopy',
+    seoFormData: 'pdp.sections.seo'
   },
   
   images: {
@@ -115,6 +116,7 @@ const createEmptyMappedData = () => ({
   basicFormData: null,
   sapFormData: null,
   marketingFormData: null,
+  seoFormData: null,
   
   iconsAndPicturesData: null,
   onWhiteData: null,

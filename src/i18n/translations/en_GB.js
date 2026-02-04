@@ -26,6 +26,7 @@ export default {
     "pdp.sections.packaging": "Packaging",
     "pdp.sections.drawing": "Drawing",
     "pdp.sections.patent": "Patent",
+    "pdp.sections.seo": "SEO",
     "pdp.sections.complianceCertifications": "Compliance & Certifications",
     "pdp.sections.dangerousGoods": "Dangerous Goods",
     "pdp.sections.ce": "CE",
