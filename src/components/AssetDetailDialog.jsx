@@ -401,7 +401,10 @@ const AssetDetailDialog = ({
       productIds: Array.isArray(assetInfo.productIds) && assetInfo.productIds.length > 0
         ? assetInfo.productIds.join(';')
         : (assetInfo.productIdsString || assetInfo.productIds || '--'),
-      customerApprovalStatus: '• Published', // 默认值
+      // Approval Status - 从 assetInfo 获取，如果没有则使用默认值
+      customerApprovalStatus: Array.isArray(assetInfo.approvalStatus) && assetInfo.approvalStatus.length > 0
+        ? `• ${assetInfo.approvalStatus[0]}`
+        : (assetInfo.approvalStatusString ? `• ${assetInfo.approvalStatusString}` : '• Published'),
       
       // Technical
       // name: assetInfo.name || '--',

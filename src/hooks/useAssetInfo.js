@@ -53,7 +53,10 @@ const getMetadataValue = (metadata, fieldName) => {
  * @returns {Array<string>} Array of languages
  */
 const parseLanguages = (metadata) => {
-    const languageValue = getMetadataValue(metadata, 'Media Language');
+    // Try Document, Video, and Media prefixes
+    const languageValue = getMetadataValue(metadata, 'Document Language') || 
+                         getMetadataValue(metadata, 'Video Language') ||
+                         getMetadataValue(metadata, 'Media Language');
     if (!languageValue) return [];
 
     // Split by comma and trim whitespace
@@ -66,7 +69,10 @@ const parseLanguages = (metadata) => {
  * @returns {Array<string>} Array of tags
  */
 const parseTags = (metadata) => {
-    const tagsValue = getMetadataValue(metadata, 'Media Key Words');
+    // Try Document, Video, and Media prefixes
+    const tagsValue = getMetadataValue(metadata, 'Document Key Words') || 
+                     getMetadataValue(metadata, 'Video Key Words') ||
+                     getMetadataValue(metadata, 'Media Key Words');
     if (!tagsValue) return [];
 
     // Split by semicolon or comma and trim whitespace
@@ -79,7 +85,10 @@ const parseTags = (metadata) => {
  * @returns {Array<string>} Array of product IDs
  */
 const parseProductIds = (metadata) => {
-    const productIdsValue = getMetadataValue(metadata, 'Media Product IDs');
+    // Try Document, Video, and Media prefixes
+    const productIdsValue = getMetadataValue(metadata, 'Document Product IDs') || 
+                           getMetadataValue(metadata, 'Video Product IDs') ||
+                           getMetadataValue(metadata, 'Media Product IDs');
     if (!productIdsValue) return [];
 
     // Split by semicolon or comma and trim whitespace
@@ -92,7 +101,10 @@ const parseProductIds = (metadata) => {
  * @returns {Array<string>} Array of approval statuses
  */
 const parseApprovalStatus = (metadata) => {
-    const statusValue = getMetadataValue(metadata, 'Media Approval Status');
+    // Try Document, Video, and Media prefixes
+    const statusValue = getMetadataValue(metadata, 'Document Approval Status') || 
+                       getMetadataValue(metadata, 'Video Approval Status') ||
+                       getMetadataValue(metadata, 'Media Approval Status');
     if (!statusValue) return [];
 
     // Split by semicolon or comma and trim whitespace
@@ -146,6 +158,53 @@ const formatDate = (dateInput) => {
 };
 
 /**
+ * Detect asset category based on mimetype and type
+ * @param {string} mimetype - MIME type
+ * @param {string} type - Asset type
+ * @returns {string} Category: 'video', 'document', or 'media'
+ */
+const detectAssetCategory = (mimetype, type) => {
+    // Check mimetype first
+    if (mimetype) {
+        if (mimetype.startsWith('video/')) return 'video';
+        if (mimetype.startsWith('application/') || mimetype.startsWith('text/')) return 'document';
+        if (mimetype.startsWith('image/')) return 'media';
+    }
+    
+    // Check type field
+    if (type) {
+        const lowerType = type.toLowerCase();
+        if (lowerType === 'video') return 'video';
+        if (lowerType === 'document' || lowerType === 'pdf') return 'document';
+        if (lowerType === 'image' || lowerType === 'media') return 'media';
+    }
+    
+    // Default to media
+    return 'media';
+};
+
+/**
+ * Get media type based on asset category
+ * @param {Array} metadata - Metadata array
+ * @param {string} category - Asset category ('video', 'document', 'media')
+ * @returns {string} Media type value
+ */
+const getMediaTypeByCategory = (metadata, category) => {
+    if (category === 'document') {
+        // Document: Try Document Type first, then Media Type
+        return getMetadataValue(metadata, 'Document Type') || 
+               getMetadataValue(metadata, 'Media Type');
+    } else if (category === 'video') {
+        // Video: Try Video Type first, then Media Type
+        return getMetadataValue(metadata, 'Video Type') || 
+               getMetadataValue(metadata, 'Media Type');
+    } else {
+        // Media/Image: Use Media Type
+        return getMetadataValue(metadata, 'Media Type');
+    }
+};
+
+/**
  * Transform GraphQL asset response to structured data
  * @param {Object} assetData - Raw GraphQL response
  * @returns {Object} Structured asset information
@@ -155,6 +214,12 @@ const transformAssetData = (assetData) => {
 
     const { metadata, dimensions, filesize, creationDate, modificationDate, filename, type, mimetype, fullpath, assetThumb } = assetData;
 
+    // Detect asset category
+    const category = detectAssetCategory(mimetype, type);
+    
+    // Get media type based on category
+    const mediaType = getMediaTypeByCategory(metadata, category);
+
     return {
         // Basic info
         id: assetData.id,
@@ -163,17 +228,27 @@ const transformAssetData = (assetData) => {
         thumbnail: assetThumb,
         type: type,
         mimetype: mimetype,
+        category: category, // Add category for reference
 
-        // Metadata fields
-        mediaType: getMetadataValue(metadata, 'Media Type'),
-        usage: getMetadataValue(metadata, 'Media Usage') || 'Internal', // Default to Internal if not specified
-        language: getMetadataValue(metadata, 'Media Language'),
+        // Metadata fields - Try both Document and Media prefixes
+        mediaType: mediaType,
+        usage: getMetadataValue(metadata, 'Document Usage') || 
+              getMetadataValue(metadata, 'Video Usage') ||
+              getMetadataValue(metadata, 'Media Usage') || 
+              'Internal', // Default to Internal if not specified
+        language: getMetadataValue(metadata, 'Document Language') || 
+                 getMetadataValue(metadata, 'Video Language') ||
+                 getMetadataValue(metadata, 'Media Language'),
         languages: parseLanguages(metadata),
         tags: parseTags(metadata),
         productIds: parseProductIds(metadata),
-        productIdsString: getMetadataValue(metadata, 'Media Product IDs'), // Original string format
+        productIdsString: getMetadataValue(metadata, 'Document Product IDs') || 
+                         getMetadataValue(metadata, 'Video Product IDs') ||
+                         getMetadataValue(metadata, 'Media Product IDs'), // Original string format
         approvalStatus: parseApprovalStatus(metadata),
-        approvalStatusString: getMetadataValue(metadata, 'Media Approval Status'), // Original string format
+        approvalStatusString: getMetadataValue(metadata, 'Document Approval Status') || 
+                            getMetadataValue(metadata, 'Video Approval Status') ||
+                            getMetadataValue(metadata, 'Media Approval Status'), // Original string format
 
         // Automatic/Technical fields
         creationDate: formatDate(creationDate),
