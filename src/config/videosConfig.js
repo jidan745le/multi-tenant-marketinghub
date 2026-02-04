@@ -53,7 +53,7 @@ export const videoListConfigs = [
         key: 'tags',
         type: 'string',
         defaultValue: '',
-        placeholder: 'Search by tags'
+        placeholder: 'Search for tags press Enter'
     },
     {
         order: 31,

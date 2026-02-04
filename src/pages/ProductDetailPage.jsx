@@ -860,7 +860,10 @@ const ProductDetailPage = () => {
       popShortDescription: 'marketingData.popShortDescription',
       longDescription: 'marketingData.longDescription',
       packagingContains: 'marketingData.packagingContains',
-      specifications: 'marketingData.specifications'
+      specifications: 'marketingData.specifications',
+      bulletTextListView: 'marketingData.bulletTextListView',
+      channelSpecificDescription: 'marketingData.channelSpecificDescription',
+      benefits: 'marketingData.benefits'
     };
     
     // 如果有特殊映射，使用特殊映射

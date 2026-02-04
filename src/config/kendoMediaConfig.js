@@ -149,7 +149,7 @@ export const createMediaFilterConfigs = (selectedMediaTypes = []) => {
             key: 'tags',
             type: 'string',
             defaultValue: '',
-            placeholder: 'Search by tags'
+            placeholder: 'Search for tags press Enter'
         },
         {
             order: 31,
@@ -379,7 +379,7 @@ const createDocumentFilterConfigs = (documentTypeOptions) => {
             key: 'tags',
             type: 'string',
             defaultValue: '',
-            placeholder: 'Search by tags'
+            placeholder: 'Search for tags press Enter'
         },
         {
             order: 31,

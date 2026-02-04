@@ -422,7 +422,7 @@ const ConfigurableFilterSidebar = ({
             return (
               <TextField
                 {...other}
-                placeholder={showPlaceholder ? (item.placeholder || 'Search by tags') : ''}
+                placeholder={showPlaceholder ? (item.placeholder || 'Search for tags press Enter') : ''}
                 variant="standard"
                 InputProps={{
                   ...InputProps,
