@@ -37,6 +37,12 @@ export default {
     "pdp.sections.packaging": "Verpackung",
     "pdp.sections.drawing": "Zeichnung",
     "pdp.sections.patent": "Patent",
+    "pdp.sections.complianceCertifications": "Compliance & Zertifizierungen",
+    "pdp.sections.dangerousGoods": "Gefahrgut",
+    "pdp.sections.ce": "CE",
+    "pdp.sections.gs": "GS",
+    "pdp.sections.ccc": "CCC",
+    "pdp.sections.ul": "UL",
     
     // Table headers - German translations
     "eanTable.image": "Bild",

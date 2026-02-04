@@ -27,6 +27,7 @@ import referIcon from '../assets/icon/referenceIcon.png';
 import serviceIcon from '../assets/icon/serviceIcon.png';
 import shareIcon from '../assets/icon/Share.png';
 import specIcon from '../assets/icon/specIcon.png';
+import certificationsIcon from '../assets/icon/certificationsIcon.png';
 import { default as drawingImage, default as packagingImage } from '../assets/image/D.png';
 import { default as manualsImage, default as repairGuideImage } from '../assets/image/MR.png';
 import patentImage from '../assets/image/P.png';
@@ -702,6 +703,13 @@ const ProductDetailPage = () => {
       drawing: data?.afterService?.drawing && data.afterService.drawing.length > 0,
       patent: data?.afterService?.patent && data.afterService.patent.length > 0,
       
+      // Compliance & Certifications
+      dangerousGoods: !!(data?.complianceCertifications?.dangerousGoods && (data.complianceCertifications.dangerousGoods.dangerousGoodClass != null && data.complianceCertifications.dangerousGoods.dangerousGoodClass !== '')),
+      ce: data?.complianceCertifications?.ce && data.complianceCertifications.ce.length > 0,
+      gs: data?.complianceCertifications?.gs && data.complianceCertifications.gs.length > 0,
+      ccc: data?.complianceCertifications?.ccc && data.complianceCertifications.ccc.length > 0,
+      ul: data?.complianceCertifications?.ul && data.complianceCertifications.ul.length > 0,
+      
       // Packaging & Logistics
       packagingData: !!(data?.packagingData && (data.packagingData.headers || data.packagingData.rows)),
       
@@ -946,12 +954,13 @@ const ProductDetailPage = () => {
       marketingCollateralsSection: extractTitleFromNavPath(onWhiteData?.navPath || actionAndLifestyleData?.navPath || mediaData?.[0]?.navPath || galleryData?.navPath, 'Marketing Collaterals'),
       
       afterServiceSection: extractTitleFromNavPath(manualsData?.navPath || repairGuidesData?.navPath || packagingsData?.navPath || drawingsData?.navPath || patentData?.navPath, 'After Service'),
+      complianceCertificationsSection: t('pdp.sections.complianceCertifications') || 'Compliance & Certifications',
     };
   }, [
     extractTitleFromNavPath, basicFormData, marketingFormData,
     bundlesData, componentsData, accessoriesData,
     packagingData, specificationData, onWhiteData, actionAndLifestyleData, mediaData, galleryData,
-    manualsData, repairGuidesData, packagingsData, drawingsData, patentData
+    manualsData, repairGuidesData, packagingsData, drawingsData, patentData, t
   ]);
 
   const buildItemsFromFields = React.useCallback((formData, getterMap, sourceData) => {
@@ -1052,6 +1061,10 @@ const ProductDetailPage = () => {
       const shouldShowDrawing = normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.drawing;
       const shouldShowPatent = normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.patent;
       return hasAnyAfterServiceData && (shouldShowManuals || shouldShowRepairGuide || shouldShowPackaging || shouldShowDrawing || shouldShowPatent);
+    },
+    // Compliance & Certifications
+    complianceCertifications: () => {
+      return hasData.dangerousGoods || hasData.ce || hasData.gs || hasData.ccc || hasData.ul;
     }
   }), [hasData, basicFormItems, sapFormItems, marketingFormItems, normalizedLayoutFromUrl, basicTab]);
 
@@ -1088,6 +1101,11 @@ const ProductDetailPage = () => {
 
   const shouldShowAfterServiceSection = React.useMemo(() => 
     shouldShowSection(sectionDisplayConfig.afterService()),
+    [shouldShowSection, sectionDisplayConfig]
+  );
+
+  const shouldShowComplianceCertificationsSection = React.useMemo(() => 
+    shouldShowSection(sectionDisplayConfig.complianceCertifications()),
     [shouldShowSection, sectionDisplayConfig]
   );
 
@@ -1211,6 +1229,35 @@ const ProductDetailPage = () => {
     };
   }, [productData.afterService, productData.basicData]);
 
+  // Compliance & Certifications: Dangerous Goods 表单项
+  const dangerousGoodsFormItems = React.useMemo(() => {
+    const dg = productData.complianceCertifications?.dangerousGoods;
+    const value = dg?.dangerousGoodClass ?? '-';
+    return [{ label: 'Dangerous Good Class', value, type: 'text' }];
+  }, [productData.complianceCertifications?.dangerousGoods]);
+
+  // Compliance & Certifications: CE/GS/CCC/UL
+  const complianceAssets = React.useMemo(() => {
+    const baseUrl = 'https://pim-test.kendo.com';
+    const cert = productData.complianceCertifications;
+    const modelNumber = productData.basicData?.modelNumber || '';
+    const productNumber = productData.basicData?.productNumber || '';
+    const mapAssets = (arr, fallbackImage) => (arr || []).map(asset => ({
+      image: asset.thumbnailUrl ? (asset.thumbnailUrl.startsWith('http') ? asset.thumbnailUrl : `${baseUrl}${asset.thumbnailUrl}`) : fallbackImage,
+      modelNumber,
+      productType: productNumber,
+      name: asset.filename || asset.title || '',
+      assetId: asset.id || '',
+      id: asset.id || ''
+    }));
+    return {
+      ce: mapAssets(cert?.ce, manualsImage),
+      gs: mapAssets(cert?.gs, manualsImage),
+      ccc: mapAssets(cert?.ccc, manualsImage),
+      ul: mapAssets(cert?.ul, manualsImage)
+    };
+  }, [productData.complianceCertifications, productData.basicData]);
+
   if (import.meta.env.DEV) {
     console.log('productCardConfig', productCardConfig);
   }
@@ -1223,7 +1270,8 @@ const ProductDetailPage = () => {
     'packaging-logistics': true,
     'usps-benefits': true,
     'marketing-collaterals': true,
-    'after-service': true
+    'after-service': true,
+    'compliance-certifications': true
   });
 
   // 顶部菜单控制与样式
@@ -1264,6 +1312,12 @@ const ProductDetailPage = () => {
   const packagingTitleRef = useRef(null);
   const drawingTitleRef = useRef(null);
   const patentTitleRef = useRef(null);
+  // Compliance & Certifications anchors
+  const dangerousGoodsTitleRef = useRef(null);
+  const ceTitleRef = useRef(null);
+  const gsTitleRef = useRef(null);
+  const cccTitleRef = useRef(null);
+  const ulTitleRef = useRef(null);
 
   // 避免重复大小写/空格处理
   const normalize = React.useCallback((val) => (val ?? '').toString().trim().toUpperCase(), []);
@@ -1297,7 +1351,13 @@ const ProductDetailPage = () => {
     { sectionId: 'after-service', i18nKey: 'pdp.sections.repairGuide', ref: repairGuideTitleRef },
     { sectionId: 'after-service', i18nKey: 'pdp.sections.packaging', ref: packagingTitleRef },
     { sectionId: 'after-service', i18nKey: 'pdp.sections.drawing', ref: drawingTitleRef },
-    { sectionId: 'after-service', i18nKey: 'pdp.sections.patent', ref: patentTitleRef }
+    { sectionId: 'after-service', i18nKey: 'pdp.sections.patent', ref: patentTitleRef },
+    // Compliance & Certifications
+    { sectionId: 'compliance-certifications', i18nKey: 'pdp.sections.dangerousGoods', ref: dangerousGoodsTitleRef },
+    { sectionId: 'compliance-certifications', i18nKey: 'pdp.sections.ce', ref: ceTitleRef },
+    { sectionId: 'compliance-certifications', i18nKey: 'pdp.sections.gs', ref: gsTitleRef },
+    { sectionId: 'compliance-certifications', i18nKey: 'pdp.sections.ccc', ref: cccTitleRef },
+    { sectionId: 'compliance-certifications', i18nKey: 'pdp.sections.ul', ref: ulTitleRef }
   ], []);
 
   // 导航查找
@@ -1798,7 +1858,8 @@ const ProductDetailPage = () => {
           packagingSpec,
           marketingCollaterals,
           afterService,
-          successor
+          successor,
+          complianceCertifications
         } = detail;
         
         if (import.meta.env.DEV) {
@@ -1816,6 +1877,7 @@ const ProductDetailPage = () => {
           console.log('marketingCollaterals', marketingCollaterals);
           console.log('afterService', afterService);
           console.log('successor', successor);
+          console.log('complianceCertifications', complianceCertifications);
         }
         
         // 直接使用PIM接口返回的数据结构
@@ -1842,6 +1904,7 @@ const ProductDetailPage = () => {
           marketingCollaterals: marketingCollaterals || {},
           afterService: afterService || {},
           successor: successor || {},
+          complianceCertifications: complianceCertifications || {},
           
           // 兼容旧版本的数据结构
           status: {
@@ -1944,6 +2007,11 @@ const ProductDetailPage = () => {
             const iconsPicturesKey = titleKey(t('pdp.sections.iconsAndPictures'));
             const packagingDataKey = titleKey(t('pdp.sections.packagingData') || 'Packaging Data');
             const packagingSpecKey = titleKey(t('pdp.sections.packagingSpec') || 'Specifications');
+            const dangerousGoodsKey = titleKey(t('pdp.sections.dangerousGoods'));
+            const ceKey = titleKey(t('pdp.sections.ce'));
+            const gsKey = titleKey(t('pdp.sections.gs'));
+            const cccKey = titleKey(t('pdp.sections.ccc'));
+            const ulKey = titleKey(t('pdp.sections.ul'));
             
             // 在 externalPDPBasic 时隐藏空数据部分
             if (normalizedLayoutFromUrl === 'externalPDPBasic') {
@@ -1965,6 +2033,11 @@ const ProductDetailPage = () => {
               if (k === iconsPicturesKey && !hasData.iconsPictures) return false;
               if (k === packagingDataKey && !hasData.packagingData) return false;
               if (k === packagingSpecKey && !hasData.packagingSpec) return false;
+              if (k === dangerousGoodsKey && !hasData.dangerousGoods) return false;
+              if (k === ceKey && !hasData.ce) return false;
+              if (k === gsKey && !hasData.gs) return false;
+              if (k === cccKey && !hasData.ccc) return false;
+              if (k === ulKey && !hasData.ul) return false;
             } else {
               // internalPDPBasic 保持原有逻辑
               if (k === skuDataKey && !hasData.skuData) return false;
@@ -2984,6 +3057,138 @@ const ProductDetailPage = () => {
     </Box>
   );
 
+  const renderComplianceCertificationsSection = () => (
+    <Box>
+      {/* Dangerous Goods */}
+      {(normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.dangerousGoods) && (
+        <>
+          <Typography ref={dangerousGoodsTitleRef} variant="h6" sx={{ mb: 2, fontSize: '24px', fontFamily: '"Open Sans", sans-serif', fontWeight: 520, color: '#4d4d4d' }}>
+            {t('pdp.sections.dangerousGoods')}
+          </Typography>
+          <Box sx={{ mb: 3, mt: 3 }}>
+            <Form columns="single" items={dangerousGoodsFormItems} />
+          </Box>
+        </>
+      )}
+
+      {/* CE */}
+      {(normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.ce) && (
+        <>
+          <Typography ref={ceTitleRef} variant="h6" sx={{ mb: 3.5, fontSize: '24px', fontFamily: '"Open Sans", sans-serif', fontWeight: 520, color: '#4d4d4d' }}>
+            {t('pdp.sections.ce')}
+          </Typography>
+          {complianceAssets.ce.length > 0 && (
+            <Box sx={{ mb: 3, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+              {complianceAssets.ce.map((asset, idx) => (
+                <DigitalAssetCard
+                  key={`ce-${idx}`}
+                  product={asset}
+                  onProductClick={handleAfterServiceAssetClick}
+                  onDownload={handleAfterServiceDownload}
+                  showCheckbox={false}
+                  cardActionsConfig={{
+                    show_file_type: false,
+                    show_eyebrow: true,
+                    show_open_pdf: false,
+                    show_open_product_page: false,
+                    show_preview_media: true
+                  }}
+                />
+              ))}
+            </Box>
+          )}
+        </>
+      )}
+
+      {/* GS */}
+      {(normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.gs) && (
+        <>
+          <Typography ref={gsTitleRef} variant="h6" sx={{ mb: 3.5, fontSize: '24px', fontFamily: '"Open Sans", sans-serif', fontWeight: 520, color: '#4d4d4d' }}>
+            {t('pdp.sections.gs')}
+          </Typography>
+          {complianceAssets.gs.length > 0 && (
+            <Box sx={{ mb: 3, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+              {complianceAssets.gs.map((asset, idx) => (
+                <DigitalAssetCard
+                  key={`gs-${idx}`}
+                  product={asset}
+                  onProductClick={handleAfterServiceAssetClick}
+                  onDownload={handleAfterServiceDownload}
+                  showCheckbox={false}
+                  cardActionsConfig={{
+                    show_file_type: false,
+                    show_eyebrow: true,
+                    show_open_pdf: false,
+                    show_open_product_page: false,
+                    show_preview_media: true
+                  }}
+                />
+              ))}
+            </Box>
+          )}
+        </>
+      )}
+
+      {/* CCC */}
+      {(normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.ccc) && (
+        <>
+          <Typography ref={cccTitleRef} variant="h6" sx={{ mb: 3.5, fontSize: '24px', fontFamily: '"Open Sans", sans-serif', fontWeight: 520, color: '#4d4d4d' }}>
+            {t('pdp.sections.ccc')}
+          </Typography>
+          {complianceAssets.ccc.length > 0 && (
+            <Box sx={{ mb: 3, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+              {complianceAssets.ccc.map((asset, idx) => (
+                <DigitalAssetCard
+                  key={`ccc-${idx}`}
+                  product={asset}
+                  onProductClick={handleAfterServiceAssetClick}
+                  onDownload={handleAfterServiceDownload}
+                  showCheckbox={false}
+                  cardActionsConfig={{
+                    show_file_type: false,
+                    show_eyebrow: true,
+                    show_open_pdf: false,
+                    show_open_product_page: false,
+                    show_preview_media: true
+                  }}
+                />
+              ))}
+            </Box>
+          )}
+        </>
+      )}
+
+      {/* UL */}
+      {(normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.ul) && (
+        <>
+          <Typography ref={ulTitleRef} variant="h6" sx={{ mb: 3.5, fontSize: '24px', fontFamily: '"Open Sans", sans-serif', fontWeight: 520, color: '#4d4d4d' }}>
+            {t('pdp.sections.ul')}
+          </Typography>
+          {complianceAssets.ul.length > 0 && (
+            <Box sx={{ mb: 3, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+              {complianceAssets.ul.map((asset, idx) => (
+                <DigitalAssetCard
+                  key={`ul-${idx}`}
+                  product={asset}
+                  onProductClick={handleAfterServiceAssetClick}
+                  onDownload={handleAfterServiceDownload}
+                  showCheckbox={false}
+                  cardActionsConfig={{
+                    show_file_type: false,
+                    show_eyebrow: true,
+                    show_open_pdf: false,
+                    show_open_product_page: false,
+                    show_preview_media: true
+                  }}
+                />
+              ))}
+            </Box>
+          )}
+        </>
+      )}
+    </Box>
+  );
+
   return (
     <Box sx={{ 
       display: 'flex', 
@@ -3108,6 +3313,16 @@ const ProductDetailPage = () => {
               primaryColor={primaryColor}
             >
               {renderAfterServiceSection()}
+            </MainSection>
+          )}
+
+          {shouldShowComplianceCertificationsSection && (
+            <MainSection 
+              icon={certificationsIcon} 
+              title={sectionTitles.complianceCertificationsSection}
+              primaryColor={primaryColor}
+            >
+              {renderComplianceCertificationsSection()}
             </MainSection>
           )}
             </Box>
