@@ -338,18 +338,21 @@ const HomePage = () => {
   return (
     <Box sx={{ 
       width: '100vw',
-      height: '100vh',
-      overflow: 'hidden',
-      position: 'relative'
+      minHeight: '100vh',
+      overflow: 'auto',
+      position: 'relative',
+      scrollbarWidth: 'none',
+      msOverflowStyle: 'none',
+      '&::-webkit-scrollbar': { display: 'none' }
     }}>
       <Box 
         sx={{ 
           width: '1440px',
-          height: '100%',
+          minHeight: '100%',
           margin: '0 auto',
           transform: 'scale(min(100vw / 1440px, 1))',
           transformOrigin: 'top center',
-          overflow: 'hidden'
+          overflow: 'visible'
         }}
       >
         <Box sx={{ padding: '64px 24px 32px 24px' }}>
