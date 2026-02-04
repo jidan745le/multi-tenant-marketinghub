@@ -1310,6 +1310,7 @@ const ProductDetailPage = () => {
   const sapDetailTitleRef = useRef(null);
   // Marketing Data anchors
   const marketingCopyTitleRef = useRef(null);
+  const seoTitleRef = useRef(null);
   const iconsPicturesTitleRef = useRef(null);
   const qrCodesTitleRef = useRef(null);
   const eansTitleRef = useRef(null);
@@ -1349,6 +1350,7 @@ const ProductDetailPage = () => {
     { sectionId: 'basic-data', i18nKey: 'pdp.sections.sapDetail', ref: sapDetailTitleRef },
     // Marketing Data  
     { sectionId: 'marketing-data', i18nKey: 'pdp.sections.marketingCopy', ref: marketingCopyTitleRef },
+    { sectionId: 'marketing-data', i18nKey: 'pdp.sections.seo', ref: seoTitleRef },
     { sectionId: 'marketing-data', i18nKey: 'pdp.sections.iconsAndPictures', ref: iconsPicturesTitleRef },
     { sectionId: 'marketing-data', i18nKey: 'pdp.sections.qrCodes', ref: qrCodesTitleRef },
     { sectionId: 'marketing-data', i18nKey: 'pdp.sections.eans', ref: eansTitleRef },
@@ -2310,11 +2312,11 @@ const ProductDetailPage = () => {
           />
         </Box>
       )}
-      {/* SEO - 与 Marketing Copy 一致：仅由 Strapi form 配置驱动 */}
+      {/* SEO */}
       {seoFormData && seoFormItems && seoFormItems.length > 0 && (
         <Box sx={{ mt: 4, mb: 3 }}>
           <SectionHeader
-            titleRef={null}
+            titleRef={seoTitleRef}
             title={seoFormData.title}
             showView={seoFormData.show}
             showDownload={seoFormData.download}

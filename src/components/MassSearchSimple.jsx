@@ -177,23 +177,28 @@ const ButtonContainer = styled(Box)(() => ({
   position: 'relative',
 }));
 
-const ClearButton = styled(Button)(() => ({
+const ClearButton = styled(Button)(({ theme }) => ({
   background: '#ffffff',
   borderRadius: '4px',
   borderStyle: 'solid',
-  borderColor: '#cccccc',
+  borderColor: theme.palette.primary.main,
   borderWidth: '1px',
   padding: '0px 16px',
   height: '24px',
   boxShadow: '0px 1px 1px 0px rgba(0, 0, 0, 0.05)',
   textTransform: 'uppercase',
-  color: '#333333',
+  color: theme.palette.primary.main,
   fontFamily: '"Roboto-Medium", sans-serif',
   fontSize: '12px',
   lineHeight: '16px',
   letterSpacing: '0.5px',
   fontWeight: 500,
   minWidth: 'auto',
+  '&:hover': {
+    background: `${theme.palette.primary.main}14`,
+    borderColor: theme.palette.primary.main,
+    color: theme.palette.primary.main,
+  },
 }));
 
 const SearchButton = styled(Button)(({ theme }) => ({
