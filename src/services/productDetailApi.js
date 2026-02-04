@@ -98,7 +98,15 @@ class ProductDetailApiService {
             CategoryID
             ShortDescription
             LongDescription
+            BulletTextListView
+            ChannelSpecificDescription
             PackagingContains
+            Benefits
+            
+            # SEO
+            SEOTitle
+            SEOKeywords
+            SEODescription
             
             # ICONS
             Icons {
@@ -730,7 +738,7 @@ class ProductDetailApiService {
         }
 
         # COMPLIANCE & CERTIFICATIONS
-        DangerousGoodClass
+        DangerousGoods
         
         CE {
           ... on fieldcollection_CECertification {
@@ -848,6 +856,7 @@ class ProductDetailApiService {
       basicData: this.transformBasicData(product),
       sapData: this.transformSapData(product),
       marketingData: this.transformMarketingData(product),
+      seoData: this.transformSeoData(product),
       referenceRelationship: this.transformReferenceRelationshipData(product),
       iconsPictures: this.transformIconsPicturesData(product),
       qrCodes: this.transformQrCodesData(product),
@@ -884,7 +893,7 @@ class ProductDetailApiService {
     const transformAssetArray = (assets) => {
       if (!assets || !Array.isArray(assets)) return [];
       return assets.map(asset => ({
-        id: asset.id || '',
+        assetId: asset.id || '',
         filename: asset.filename || '',
         fullpath: asset.fullpath || '',
         thumbnailUrl: buildFullUrl(asset.assetThumbWeb || asset.fullpath || ''),
@@ -914,7 +923,7 @@ class ProductDetailApiService {
 
     return {
       dangerousGoods: {
-        dangerousGoodClass: product.DangerousGoodClass || ''
+        dangerousGoods: product.DangerousGoods || ''
       },
       ce: transformCertificationToArray(product.CE, true, false), // CE 合并 Certification、DoC、TestReport
       gs: transformCertificationToArray(product.GS, false, true), // GS 合并 Certificate、TestReport
@@ -989,8 +998,20 @@ class ProductDetailApiService {
       categoryBullets: this.extractCategoryBullets(product),
       popShortDescription: product.ShortDescription || '',
       longDescription: product.LongDescription || '',
+      bulletTextListView: product.BulletTextListView || '',
+      channelSpecificDescription: product.ChannelSpecificDescription || '',
       packagingContains: product.PackagingContains || '',
-      specifications: this.extractSpecifications(product.Specs)//这里未来应该改成marketingfeatures 待确认
+      benefits: product.Benefits || '',
+      specifications: this.extractSpecifications(product.Specs) //这里未来应该改成marketingfeatures 待确认
+    };
+  }
+
+  // SEO数据转换
+  transformSeoData(product) {
+    return {
+      seoTitle: product.SEOTitle || '',
+      seoKeywords: product.SEOKeywords || '',
+      seoDescription: product.SEODescription || ''
     };
   }
 

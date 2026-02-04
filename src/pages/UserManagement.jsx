@@ -388,10 +388,8 @@ function UserManagement() {
         ...(editingUser.themeIds || [])
       ];
       
-      // Update user roles if any roles are provided
-      if (allRoleIds.length > 0) {
-        await UserManagementApiService.assignRoles(editingUser.id, allRoleIds);
-      }
+      // Update user roles (always call assignRoles, even if empty array to clear all roles)
+      await UserManagementApiService.assignRoles(editingUser.id, allRoleIds);
       
       showSnackbar('User updated successfully');
       setEditUserDialog(false);
