@@ -40,6 +40,8 @@ export default {
     "pdp.sections.seo": "SEO",
     "pdp.sections.complianceCertifications": "Compliance & Zertifizierungen",
     "pdp.sections.dangerousGoods": "Gefahrgut",
+    "pdp.fields.dangerousGoods": "Gefahrgut",
+    "pdp.fields.dangerousGoodClass": "Gefahrgutklasse",
     "pdp.sections.ce": "CE",
     "pdp.sections.gs": "GS",
     "pdp.sections.ccc": "CCC",

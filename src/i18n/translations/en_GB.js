@@ -29,6 +29,8 @@ export default {
     "pdp.sections.seo": "SEO",
     "pdp.sections.complianceCertifications": "Compliance & Certifications",
     "pdp.sections.dangerousGoods": "Dangerous Goods",
+    "pdp.fields.dangerousGoods": "Dangerous Goods",
+    "pdp.fields.dangerousGoodClass": "Dangerous Good Class",
     "pdp.sections.ce": "CE",
     "pdp.sections.gs": "GS",
     "pdp.sections.ccc": "CCC",
