@@ -421,6 +421,7 @@ const ProductDetailPage = () => {
     sapFormData,
     marketingFormData,
     seoFormData,
+    dangerousGoodsFormData: dangerousGoodsFormDataFromStrapi,
     iconsAndPicturesData,
     onWhiteData,
     actionAndLifestyleData,
@@ -705,7 +706,13 @@ const ProductDetailPage = () => {
       patent: data?.afterService?.patent && data.afterService.patent.length > 0,
       
       // Compliance & Certifications
-      dangerousGoods: !!(data?.complianceCertifications?.dangerousGoods && (data.complianceCertifications.dangerousGoods.dangerousGoodClass != null && data.complianceCertifications.dangerousGoods.dangerousGoodClass !== '')),
+      dangerousGoods: (() => {
+        const dg = data?.complianceCertifications?.dangerousGoods;
+        if (!dg) return false;
+        const hasClass = dg.dangerousGoodClass != null && String(dg.dangerousGoodClass).trim() !== '';
+        const hasYesNo = dg.dangerousGoods != null && String(dg.dangerousGoods).trim() !== '';
+        return hasClass || hasYesNo;
+      })(),
       ce: data?.complianceCertifications?.ce && data.complianceCertifications.ce.length > 0,
       gs: data?.complianceCertifications?.gs && data.complianceCertifications.gs.length > 0,
       ccc: data?.complianceCertifications?.ccc && data.complianceCertifications.ccc.length > 0,
@@ -868,7 +875,10 @@ const ProductDetailPage = () => {
       // SEO (对应 PIM 的 seoData)
       seoTitle: 'seoData.seoTitle',
       seoDescription: 'seoData.seoDescription',
-      seoKeywords: 'seoData.seoKeywords'
+      seoKeywords: 'seoData.seoKeywords',
+      // Compliance: Dangerous Goods
+      dangerousGoods: 'complianceCertifications.dangerousGoods.dangerousGoods',
+      dangerousGoodClass: 'complianceCertifications.dangerousGoods.dangerousGoodClass'
     };
     
     // 如果有特殊映射，使用特殊映射
@@ -883,6 +893,7 @@ const ProductDetailPage = () => {
       case 'marketing': return `marketingData.${fieldName}`;
       case 'productCard': return `productCardInfo.${fieldName}`;
       case 'seo': return `seoData.${fieldName}`;
+      case 'compliance': return `complianceCertifications.dangerousGoods.${fieldName}`;
       default: return `${fieldName}`;
     }
   }, []);
@@ -985,10 +996,11 @@ const ProductDetailPage = () => {
       const getter = getterMap?.[fieldName];
       const pimValue = getter ? getter(sourceData) : undefined;
       const fallback = getFieldValue(field, '-');
+      const isRichText = fieldName === 'bulletTextListView';
       return {
         label: title,
         value: pimValue ?? fallback ?? '-',
-        type: /status/i.test(fieldName) ? 'status' : 'text'
+        type: /status/i.test(fieldName) ? 'status' : (isRichText ? 'html' : 'text')
       };
     });
   }, [getFieldValue, formatLabel]);
@@ -1248,12 +1260,28 @@ const ProductDetailPage = () => {
     };
   }, [productData.afterService, productData.basicData]);
 
-  // Compliance & Certifications: Dangerous Goods 表单项
-  const dangerousGoodsFormItems = React.useMemo(() => {
-    const dg = productData.complianceCertifications?.dangerousGoods;
-    const value = dg?.dangerousGoodClass ?? '-';
-    return [{ label: 'Dangerous Good Class', value, type: 'text' }];
-  }, [productData.complianceCertifications?.dangerousGoods]);
+  // Compliance & Certifications
+  const dangerousGoodsFormData = React.useMemo(() => {
+    if (dangerousGoodsFormDataFromStrapi?.fields?.length > 0) {
+      return dangerousGoodsFormDataFromStrapi;
+    }
+    return {
+      fields: [
+        { fieldName: 'dangerousGoods', label: t('pdp.fields.dangerousGoods') },
+        { fieldName: 'dangerousGoodClass', label: t('pdp.fields.dangerousGoodClass') }
+      ]
+    };
+  }, [dangerousGoodsFormDataFromStrapi, t]);
+
+  const dangerousGoodsValueGetterMap = React.useMemo(() =>
+    buildGetterMap(dangerousGoodsFormData?.fields, 'compliance'),
+    [buildGetterMap, dangerousGoodsFormData?.fields]
+  );
+
+  const dangerousGoodsFormItems = React.useMemo(() =>
+    buildItemsFromFields(dangerousGoodsFormData, dangerousGoodsValueGetterMap, productData),
+    [buildItemsFromFields, dangerousGoodsFormData, dangerousGoodsValueGetterMap, productData]
+  );
 
   // Compliance & Certifications: CE/GS/CCC/UL
   const complianceAssets = React.useMemo(() => {

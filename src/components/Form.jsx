@@ -88,6 +88,26 @@ const ValueCell = ({ children, flexible = false }) => (
   </Box>
 );
 
+/** 富文本单元格 */
+const RichTextCell = ({ html, flexible = false }) => (
+  <Box
+    sx={{
+      ...commonStyles.cellContainer,
+      ...(flexible ? { flex: 1, minWidth: 0 } : { width: 260 })
+    }}
+  >
+    <Box
+      component="div"
+      sx={{
+        ...commonStyles.valueText,
+        '& p': { margin: '0.25em 0', '&:first-of-type': { marginTop: 0 }, '&:last-of-type': { marginBottom: 0 } },
+        '& ul, & ol': { paddingLeft: 20, margin: '0.25em 0' }
+      }}
+      dangerouslySetInnerHTML={{ __html: html || '' }}
+    />
+  </Box>
+);
+
 const StatusValue = ({ statusText }) => (
   <Box sx={commonStyles.statusContainer}>
     <Typography sx={commonStyles.statusText}>
@@ -117,6 +137,8 @@ const Form = ({ items, columns = 'double' }) => {
                 <Box sx={commonStyles.formPair}>
                   <StatusValue statusText={value} />
                 </Box>
+              ) : type === 'html' ? (
+                <RichTextCell flexible={isSinglePairPerRow} html={typeof value === 'string' ? value : (value ?? '-')} />
               ) : (
                 <ValueCell flexible={isSinglePairPerRow}>{value ?? '-'}</ValueCell>
               )}
@@ -133,7 +155,7 @@ Form.propTypes = {
     PropTypes.shape({
       label: PropTypes.string.isRequired,
       value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-      type: PropTypes.oneOf(['text', 'status'])
+      type: PropTypes.oneOf(['text', 'status', 'html'])
     })
   ).isRequired,
   columns: PropTypes.oneOf(['single', 'double'])

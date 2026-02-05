@@ -280,20 +280,20 @@ const AssetDetailDialog = ({
   },
   // 媒体类型配置
   mediaTypeConfig = {
+    pdf: {
+      extensions: ['pdf'],
+      fields: ['format', 'type', 'mimetype'],
+      keywords: ['pdf', 'document', 'application/pdf']
+    },
     video: {
       extensions: ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mkv', 'm4v'],
-      fields: ['format', 'type'],
+      fields: ['format', 'type', 'mimetype'],
       keywords: ['video', 'mp4', 'avi']
     },
     image: {
       extensions: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'tiff', 'psd'],
-      fields: ['format', 'type'],
+      fields: ['format', 'type', 'mimetype'],
       keywords: ['image', 'jpg', 'png', 'photo']
-    },
-    pdf: {
-      extensions: ['pdf'],
-      fields: ['format', 'type'],
-      keywords: ['pdf', 'document', 'application/pdf']
     }
   },
   // 自定义按钮配置
@@ -489,21 +489,22 @@ const AssetDetailDialog = ({
       return customMediaTypeDetector(data);
     }
     
-    if (!data) return 'video';
-    const filename = data.filename || data.name || '';
-    const extension = filename.toLowerCase().split('.').pop();
+    if (!data) return 'document';
+    const filename = (data.filename || data.name || '').trim();
+    const extension = filename ? filename.toLowerCase().split('.').pop() : '';
     
     // 使用配置的媒体类型检测
     for (const [type, config] of Object.entries(stableMediaTypeConfig)) {
-      if (config.extensions && config.extensions.includes(extension)) {
+      if (config.extensions && extension && config.extensions.includes(extension)) {
         return type;
       }
       
       // 检查字段匹配
       if (config.fields) {
         for (const field of config.fields) {
-          if (data[field]) {
-            const value = data[field].toLowerCase();
+          const raw = data[field];
+          if (raw && raw !== '--') {
+            const value = String(raw).toLowerCase();
             if (config.keywords && config.keywords.some(keyword => value.includes(keyword))) {
               return type;
             }
@@ -512,7 +513,7 @@ const AssetDetailDialog = ({
       }
     }
     
-    return 'video'; // 默认类型
+    return 'document';
   }, [customMediaTypeDetector, stableMediaTypeConfig]);
   
 

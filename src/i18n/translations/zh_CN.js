@@ -29,6 +29,8 @@ export default {
     "pdp.sections.seo": "SEO",
     "pdp.sections.complianceCertifications": "合规与认证",
     "pdp.sections.dangerousGoods": "危险品",
+    "pdp.fields.dangerousGoods": "危险品",
+    "pdp.fields.dangerousGoodClass": "危险品等级",
     "pdp.sections.ce": "CE",
     "pdp.sections.gs": "GS",
     "pdp.sections.ccc": "CCC",
