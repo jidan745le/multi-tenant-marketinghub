@@ -311,15 +311,24 @@ function RouterContent() {
         {/* 顶部导航栏 - 登录页面、PDP页面和对比页面不显示 */}
         {!isLoginPage && !isSignUpPage && !isVerificationSentPage && !isEmailVerificationPage && !isProductDetailPage && !isComparePage && !isThankYouPage && <TopBar />}
         
-        {/* 主要内容区域 */}
+        {/* 主要内容区域 - 实际滚动发生在此处 */}
         <Box 
           component="main" 
-          sx={{ 
+          sx={(theme) => ({ 
             flexGrow: 1, 
             overflow: 'auto',
             display: 'flex',
-            flexDirection: 'column'
-          }}
+            flexDirection: 'column',
+            scrollbarColor: `${theme.palette.grey[400]} ${theme.palette.grey[200]}`,
+            scrollbarWidth: 'thin',
+            '&::-webkit-scrollbar': { width: 8, height: 8 },
+            '&::-webkit-scrollbar-track': { background: theme.palette.grey[200] },
+            '&::-webkit-scrollbar-thumb': {
+              background: theme.palette.grey[400],
+              borderRadius: 4,
+            },
+            '&::-webkit-scrollbar-thumb:hover': { background: theme.palette.grey[500] },
+          })}
         >
           <AppRoutes />
         </Box>

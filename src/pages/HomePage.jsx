@@ -339,11 +339,8 @@ const HomePage = () => {
     <Box sx={{ 
       width: '100vw',
       minHeight: '100vh',
-      overflow: 'auto',
+      overflow: 'visible',
       position: 'relative',
-      scrollbarWidth: 'none',
-      msOverflowStyle: 'none',
-      '&::-webkit-scrollbar': { display: 'none' }
     }}>
       <Box 
         sx={{ 
