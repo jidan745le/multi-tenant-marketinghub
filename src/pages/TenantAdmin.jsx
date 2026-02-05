@@ -332,6 +332,7 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
         lastUpdatedBy: item.updatedBy || '-',
         css: hasCss ? 'Edit' : '-',
         html: hasHtml ? 'Edit' : '-',
+        pdfPerModel: !!item.pdfPerModel,
       };
     });
   };
@@ -498,6 +499,14 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
       fetchTemplates();
     }, []);
   
+    const handlePdfPerModelChange = (rowId, checked) => {
+      setData(prevData =>
+        prevData.map(row =>
+          row.id === rowId ? { ...row, pdfPerModel: checked } : row
+        )
+      );
+    };
+
     const handleSaveRowData = async (rowId) => {
       try {
         const rowData = data.find(row => row.id === rowId);
@@ -524,6 +533,7 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
           theme: templateData.theme || '',
           html: templateData.html || '',
           css: templateData.css || '',
+          pdfPerModel: !!rowData.pdfPerModel,
         };
 
         if (templateData.pdfFileId) {
@@ -1193,7 +1203,9 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
                         </TableCellStyled>
                         <TableCellStyled sx={{ textAlign: 'center' }}>
                           <Checkbox 
+                            checked={!!row.pdfPerModel}
                             disabled={!editingRows.has(row.id)}
+                            onChange={(e) => handlePdfPerModelChange(row.id, e.target.checked)}
                             sx={{
                               '&.Mui-disabled': {
                                 color: (theme) => theme.palette.grey[400],
@@ -1448,7 +1460,7 @@ const StickyCell = styled(TableCellStyled)(({ theme }) => ({
                 templateTypeId: templateTypeId,
                 html: '',
                 css: '',
-                pdfPerModel: false,
+                pdfPerModel: !!formData.pdfPerModel,
                 // 添加文件ID（如果已上传）
                 iconFileId: formData.iconFileId || null,
                 pdfFileId: formData.pdfFileId || null,
