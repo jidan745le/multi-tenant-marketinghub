@@ -739,6 +739,7 @@ class ProductDetailApiService {
 
         # COMPLIANCE & CERTIFICATIONS
         DangerousGoods
+        DangerousGoodClass
         
         CE {
           ... on fieldcollection_CECertification {
@@ -923,7 +924,8 @@ class ProductDetailApiService {
 
     return {
       dangerousGoods: {
-        dangerousGoods: product.DangerousGoods || ''
+        dangerousGoods: product.DangerousGoods || '',
+        dangerousGoodClass: product.DangerousGoodClass || ''
       },
       ce: transformCertificationToArray(product.CE, true, false), // CE 合并 Certification、DoC、TestReport
       gs: transformCertificationToArray(product.GS, false, true), // GS 合并 Certificate、TestReport
