@@ -340,7 +340,15 @@ const useAssetInfo = (assetId) => {
 
     useEffect(() => {
         if (assetId) {
+            // 立即清空旧数据并进入 loading，避免弹框先显示上一次 asset 的内容再切换
+            setData(null);
+            setError(null);
+            setLoading(true);
             fetchAsset(assetId);
+        } else {
+            setData(null);
+            setLoading(false);
+            setError(null);
         }
     }, [assetId]);
 

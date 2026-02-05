@@ -616,7 +616,7 @@ const ProductDetailPage = () => {
 
   // 处理售后服务资产点击
   const handleAfterServiceAssetClick = useCallback((asset) => {
-    console.log('After service asset clicked:', asset);
+    console.log('asset clicked:', asset);
     
     // 如果有资产ID，打开 AssetDetailDialog
     if (asset.id) {
@@ -1261,14 +1261,17 @@ const ProductDetailPage = () => {
     const cert = productData.complianceCertifications;
     const modelNumber = productData.basicData?.modelNumber || '';
     const productNumber = productData.basicData?.productNumber || '';
-    const mapAssets = (arr, fallbackImage) => (arr || []).map(asset => ({
-      image: asset.thumbnailUrl ? (asset.thumbnailUrl.startsWith('http') ? asset.thumbnailUrl : `${baseUrl}${asset.thumbnailUrl}`) : fallbackImage,
-      modelNumber,
-      productType: productNumber,
-      name: asset.filename || asset.title || '',
-      assetId: asset.id || '',
-      id: asset.id || ''
-    }));
+    const mapAssets = (arr, fallbackImage) => (arr || []).map(asset => {
+      const aid = asset.assetId ?? asset.id ?? '';
+      return {
+        image: asset.thumbnailUrl ? (asset.thumbnailUrl.startsWith('http') ? asset.thumbnailUrl : `${baseUrl}${asset.thumbnailUrl}`) : fallbackImage,
+        modelNumber,
+        productType: productNumber,
+        name: asset.filename || asset.title || '',
+        assetId: aid,
+        id: aid
+      };
+    });
     return {
       ce: mapAssets(cert?.ce, manualsImage),
       gs: mapAssets(cert?.gs, manualsImage),
