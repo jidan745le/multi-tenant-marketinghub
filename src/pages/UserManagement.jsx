@@ -838,7 +838,7 @@ function UserManagement() {
                 Password {formErrors.password && <span style={{ color: 'red' }}>*</span>}
               </InputLabel>
               <input
-                type="password"
+                type="text"
                 value={newUser.password}
                 onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
                 style={{
@@ -1102,7 +1102,7 @@ function UserManagement() {
                   {formErrors.password && <span style={{ color: 'red' }}>*</span>}
                 </InputLabel>
                 <input
-                  type="password"
+                  type="text"
                   value={editingUser.password || ''}
                   onChange={(e) => setEditingUser({ ...editingUser, password: e.target.value })}
                   style={{
