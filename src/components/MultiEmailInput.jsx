@@ -1,4 +1,4 @@
-import { Box, Chip, TextField } from '@mui/material';
+import { Box, Chip, TextField, useTheme } from '@mui/material';
 import { useState } from 'react';
 
 const MultiEmailInput = ({ 
@@ -10,6 +10,8 @@ const MultiEmailInput = ({
   style = {},
   ...props 
 }) => {
+  const theme = useTheme();
+  const primaryColor = theme.palette.primary.main || '#f16508';
   const [inputValue, setInputValue] = useState('');
   const [focused, setFocused] = useState(false);
 
@@ -87,12 +89,13 @@ const MultiEmailInput = ({
           size="small"
           onDelete={() => removeEmail(email)}
           sx={{
-            backgroundColor: '#fff3e0',
-            color: '#f16508',
+            backgroundColor: `${primaryColor}15`,
+            color: primaryColor,
             '& .MuiChip-deleteIcon': {
-              color: '#f16508',
+              color: primaryColor,
               '&:hover': {
-                color: '#d5570a',
+                color: primaryColor,
+                opacity: 0.8,
               },
             },
           }}
