@@ -96,6 +96,27 @@ const extractMetadataValue = (metadata, fieldName) => {
 };
 
 /**
+ * 根据资产类型从metadata中提取Media Category
+ * @param {Array} metadata - metadata数组
+ * @param {string} assetType - 资产类型（Images, Videos, Documents）
+ * @returns {string} Media Category值
+ */
+const getMediaCategoryByAssetType = (metadata, assetType) => {
+    if (assetType === 'Documents') {
+        // 文档类型：优先查找 Document Type，然后 Media Type
+        return extractMetadataValue(metadata, 'Document Type') || 
+               extractMetadataValue(metadata, 'Media Type');
+    } else if (assetType === 'Videos') {
+        // 视频类型：优先查找 Video Type，然后 Media Type
+        return extractMetadataValue(metadata, 'Video Type') || 
+               extractMetadataValue(metadata, 'Media Type');
+    } else {
+        // 图片/媒体类型：使用 Media Type
+        return extractMetadataValue(metadata, 'Media Type');
+    }
+};
+
+/**
  * 将单个GraphQL资产节点转换为应用内部格式
  * @param {Object} assetNode - GraphQL资产节点
  * @returns {Object} 转换后的资产对象
@@ -105,10 +126,8 @@ export const adaptGraphQLAssetNode = (assetNode) => {
     const assetType = getAssetType(assetNode.mimetype);
     const modelNumber = extractProductIdFromPath(assetNode.fullpath);
 
-    // 从metadata中提取Media Category (Media Type字段)
-    const mediaCategoryFromMetadata = extractMetadataValue(assetNode.metadata, 'Media Type');
-    // 如果metadata中没有Media Category，则从路径中提取
-    const mediaCategory = mediaCategoryFromMetadata;
+    // 根据资产类型从metadata中提取Media Category
+    const mediaCategory = getMediaCategoryByAssetType(assetNode.metadata, assetType);
 
     const mediaType = assetType; // 媒体类型（Images, Videos, Documents）
 

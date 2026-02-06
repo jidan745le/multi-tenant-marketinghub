@@ -1093,6 +1093,14 @@ class ProductDetailApiService {
 
   // 包装数据转换
   transformPackagingData(product) {
+    // 辅助函数：构建尺寸字符串，处理 null 值
+    const buildDimensionString = (l, w, h) => {
+      const length = l ?? '';
+      const width = w ?? '';
+      const height = h ?? '';
+      return (length || width || height) ? `${length}×${width}×${height}` : '';
+    };
+
     const headers = ['DIMENSIONS', 'ITEM', 'INNER BOX', 'MASTER CARTON'];
     const rows = [
       [
@@ -1121,9 +1129,9 @@ class ProductDetailApiService {
       ],
       [
         'L×W×H(cm)',
-        product.ItemSizeWxHxL || `${product.ItemSizeLcm}×${product.ItemSizeWcm}×${product.ItemSizeHcm}`,
-        product.INSizeWxHxL || `${product.InnerBoxSizeLcm}×${product.InnerBoxSizeWcm}×${product.InnerBoxSizeHcm}`,
-        product.MCSizeWxHxL || `${product.MCSizeLcm}×${product.MCSizeWcm}×${product.MCSizeHcm}`
+        product.ItemSizeWxHxL || buildDimensionString(product.ItemSizeLcm, product.ItemSizeWcm, product.ItemSizeHcm),
+        product.INSizeWxHxL || buildDimensionString(product.InnerBoxSizeLcm, product.InnerBoxSizeWcm, product.InnerBoxSizeHcm),
+        product.MCSizeWxHxL || buildDimensionString(product.MCSizeLcm, product.MCSizeWcm, product.MCSizeHcm)
       ],
       [
         'Volume(m³)',
