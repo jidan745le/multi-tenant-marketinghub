@@ -728,7 +728,14 @@ const ProductDetailPage = () => {
       skuData: Array.isArray(data?.skuData) && data.skuData.length >= 2,
       qrCodes: data?.qrCodes?.qrCodes && data.qrCodes.qrCodes.length > 0,
       eans: data?.eans?.eans && data.eans.eans.length > 0,
-      iconsPictures: data?.iconsPictures?.icons && data.iconsPictures.icons.length > 0
+      iconsPictures: data?.iconsPictures?.icons && data.iconsPictures.icons.length > 0,
+      // SEO
+      seo: (() => {
+        const sd = data?.seoData;
+        if (!sd || typeof sd !== 'object') return false;
+        const v = (x) => x != null && String(x).trim() !== '';
+        return v(sd.seoTitle) || v(sd.seoDescription) || v(sd.seoKeywords);
+      })()
     };
   }, [productData]);
 
@@ -2062,6 +2069,7 @@ const ProductDetailPage = () => {
             const iconsPicturesKey = titleKey(t('pdp.sections.iconsAndPictures'));
             const packagingDataKey = titleKey(t('pdp.sections.packagingData') || 'Packaging Data');
             const packagingSpecKey = titleKey(t('pdp.sections.packagingSpec') || 'Specifications');
+            const seoKey = titleKey(t('pdp.sections.seo'));
             const dangerousGoodsKey = titleKey(t('pdp.sections.dangerousGoods'));
             const ceKey = titleKey(t('pdp.sections.ce'));
             const gsKey = titleKey(t('pdp.sections.gs'));
@@ -2071,6 +2079,7 @@ const ProductDetailPage = () => {
             // 在 externalPDPBasic 时隐藏空数据部分
             if (normalizedLayoutFromUrl === 'externalPDPBasic') {
               if (k === skuDataKey && !hasData.skuData) return false;
+              if (k === seoKey && !hasData.seo) return false;
               if (k === bundlesKey && !hasData.bundles) return false;
               if (k === componentsKey && !hasData.components) return false;
               if (k === accessoriesKey && !hasData.accessories) return false;
@@ -2344,7 +2353,7 @@ const ProductDetailPage = () => {
         </Box>
       )}
       {/* SEO */}
-      {seoFormData && seoFormItems && seoFormItems.length > 0 && (
+      {(normalizedLayoutFromUrl !== 'externalPDPBasic' || hasData.seo) && seoFormData && seoFormItems && seoFormItems.length > 0 && (
         <Box sx={{ mt: 4, mb: 3 }}>
           <SectionHeader
             titleRef={seoTitleRef}
