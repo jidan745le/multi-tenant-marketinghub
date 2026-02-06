@@ -113,7 +113,7 @@ const UploadSection = styled(Box)(() => ({
   position: 'relative',
 }));
 
-const UploadContainer = styled(Box)(() => ({
+const UploadContainer = styled(Box)(({ theme }) => ({
   borderRadius: '4px',
   borderStyle: 'solid',
   borderColor: '#b3b3b3',
@@ -129,7 +129,7 @@ const UploadContainer = styled(Box)(() => ({
   cursor: 'pointer',
   position: 'relative',
   '&:hover': {
-    borderColor: '#f16508',
+    borderColor: theme.palette.primary.main,
   },
 }));
 

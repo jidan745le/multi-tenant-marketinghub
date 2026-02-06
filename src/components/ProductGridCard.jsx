@@ -271,7 +271,10 @@ const ProductGridCard = ({
         queryParams.append('productNumber', productNumber);
         queryParams.append('template-id', dataSheetId.toString());
         // queryParams.append('brand', brandName); // 注释掉
-        // queryParams.append('language', language); // 注释掉
+        // language 映射：en_GB->en, de_DE->de_DE, zh_CN->zh_Hans
+        const languageMap = { en_GB: 'en', de_DE: 'de_DE', zh_CN: 'zh_Hans' };
+        const languageParam = languageMap[currentLanguage] ?? currentLanguage;
+        queryParams.append('language', languageParam);
         // queryParams.append('region', 'EU'); // 注释掉
         // queryParams.append('output-quality', 'web'); // 注释掉
 
