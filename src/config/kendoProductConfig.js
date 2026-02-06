@@ -30,8 +30,9 @@ export const kendoApplicationOptions = [
     { value: 'HoReCa', label: 'HoReCa' },
 ];
 
-// Created 时间范围选项 (days: 往前推的天数, 'year-start': 今年开始)
+// Created 时间范围选项 (days: 往前推的天数, 'year-start': 今年开始, null: 不限制)
 export const kendoCreatedOptions = [
+    { value: '', label: 'All', days: null },
     { value: 'last-week', label: 'Last Week', days: 7 },
     { value: 'last-month', label: 'Last Month', days: 30 },
     { value: 'last-3-months', label: 'Last 3 months', days: 90 },
